@@ -22,22 +22,22 @@ export default async function HubPage({ searchParams }: PageProps) {
     <section className="flex flex-col gap-10 pb-16">
       {/* Hero — titolo del mockup */}
       <div className="pt-6 text-center">
-        <h1 className="font-display text-4xl uppercase leading-tight tracking-wide text-white drop-shadow-lg sm:text-5xl">
+        <h1 className="font-display text-4xl font-black uppercase leading-tight tracking-wide text-white drop-shadow-lg sm:text-5xl">
           Scegli il torneo a cui vuoi{' '}
           <span className="text-primary">partecipare</span>
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-lg text-white/80">
-          giocando dalla tua webcam con tutto il mondo
+          Gioca da casa, vivi l’adrenalina di una vera partita.
         </p>
       </div>
 
       {/* Step 1: formato */}
       <div>
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-display text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full brx-liquid-glass-circle font-sans font-bold text-white">
             1
           </span>
-          <h2 className="font-display text-2xl uppercase tracking-wide text-white">
+          <h2 className="font-sans text-2xl font-bold uppercase tracking-wide text-white">
             Scegli il formato
           </h2>
         </div>
@@ -46,22 +46,19 @@ export default async function HubPage({ searchParams }: PageProps) {
 
       {/* Step 2: modalità — appare solo dopo la selezione del formato (come da mockup) */}
       {selected && (
-        <div
-          id="modalita"
-          className="brx-glass animate-auth-enter rounded-3xl border border-white/15 p-6 sm:p-8"
-        >
-          <div className="mb-5 flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-display text-white">
+        <div id="modalita" className="animate-auth-enter flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full brx-liquid-glass-circle font-sans font-bold text-white">
               2
             </span>
-            <h2 className="font-display text-2xl uppercase tracking-wide text-white">
+            <h2 className="font-sans text-2xl font-bold uppercase tracking-wide text-white">
               Scegli la modalità
             </h2>
-            <span className="ml-auto rounded-full bg-white/10 px-4 py-1 font-display uppercase tracking-wide text-marquee">
+            <span className="ml-auto rounded-full bg-white/10 px-4 py-1 font-sans text-xs font-bold uppercase tracking-wider text-marquee">
               {selected.name}
             </span>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 group/grid">
             {MODES.map((mode, i) => (
               <ModeCard
                 key={mode.id}
@@ -71,6 +68,8 @@ export default async function HubPage({ searchParams }: PageProps) {
                 available={mode.available}
                 badge={mode.badge}
                 index={i}
+                bgImage={mode.id === 'heads-up' ? '/images/modes/heads-up.jpeg' : '/images/modes/torneo.jpeg'}
+                accent={mode.id === 'heads-up' ? '#FF7300' : '#C89CFF'}
               />
             ))}
             {/* Terza card del mockup: crea il tuo torneo personale (porta alla dashboard) */}
@@ -80,6 +79,8 @@ export default async function HubPage({ searchParams }: PageProps) {
               href={`/tornei?format=${selected.id}&mode=heads-up`}
               available
               index={MODES.length}
+              bgImage="/images/modes/crea-partita.jpeg"
+              accent="#4EEAEC"
             />
           </div>
         </div>
@@ -87,3 +88,4 @@ export default async function HubPage({ searchParams }: PageProps) {
     </section>
   );
 }
+

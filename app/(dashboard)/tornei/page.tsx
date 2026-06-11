@@ -42,7 +42,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
         {/* Barra titolo + azione principale */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl uppercase tracking-wide text-white drop-shadow">
+            <h1 className="font-display text-3xl font-black uppercase tracking-wide text-white drop-shadow">
               Tornei <span className="text-primary">{format.name}</span>
             </h1>
             <p className="mt-1 text-sm text-white/60">

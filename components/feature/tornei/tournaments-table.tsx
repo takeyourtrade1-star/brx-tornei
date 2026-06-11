@@ -16,7 +16,7 @@ export function TournamentsTable({ tournaments }: { tournaments: Tournament[] })
   if (tournaments.length === 0) {
     return (
       <div className="brx-glass rounded-3xl border border-white/15 p-12 text-center">
-        <p className="font-display text-xl uppercase tracking-wide text-white/80">
+        <p className="font-sans text-xl font-bold uppercase tracking-wide text-white/80">
           Nessun torneo per questa selezione
         </p>
         <p className="mt-2 text-sm text-white/55">Creane uno con “Crea Torneo”.</p>
@@ -28,7 +28,7 @@ export function TournamentsTable({ tournaments }: { tournaments: Tournament[] })
     <div className="brx-glass overflow-x-auto rounded-3xl border border-white/15">
       <table className="w-full min-w-[680px] text-left text-sm text-white">
         <thead>
-          <tr className="border-b border-white/15 font-display text-xs uppercase tracking-widest text-marquee">
+          <tr className="border-b border-white/15 font-sans text-xs font-bold uppercase tracking-widest text-marquee">
             <th scope="col" className="px-5 py-4">Buy-In</th>
             <th scope="col" className="px-5 py-4">Forma</th>
             <th scope="col" className="px-5 py-4">Stato</th>
@@ -43,17 +43,17 @@ export function TournamentsTable({ tournaments }: { tournaments: Tournament[] })
               className="border-b border-white/5 transition-colors last:border-0 hover:bg-white/[0.06]"
             >
               <td className="px-5 py-4">
-                <span className="rounded-full bg-marquee/15 px-3 py-1 font-display text-sm uppercase tracking-wide text-marquee">
+                <span className="rounded-full bg-marquee/15 px-3 py-1 font-sans text-sm font-bold uppercase tracking-wide text-marquee">
                   For Fun
                 </span>
               </td>
-              <td className="px-5 py-4 font-display text-lg text-white/90">
+              <td className="px-5 py-4 font-sans text-lg font-bold text-white/90">
                 {BEST_OF_LABEL[t.bestOf]}
               </td>
               <td className="px-5 py-4">
                 <StatusBadge status={t.status} />
               </td>
-              <td className="px-5 py-4 font-display text-lg tabular-nums text-white/90">
+              <td className="px-5 py-4 font-sans text-lg font-bold tabular-nums text-white/90">
                 {t.participants.length}/{t.maxPlayers}
               </td>
               <td className="px-5 py-4">

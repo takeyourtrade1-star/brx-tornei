@@ -13,7 +13,7 @@ interface DashboardHeaderProps {
 }
 
 const CHIP_CLASS =
-  'rounded-full bg-white/10 px-4 py-1.5 font-display text-sm uppercase tracking-wide text-white ring-1 ring-white/20 transition-colors hover:bg-white/20';
+  'rounded-full bg-white/10 px-4 py-1.5 font-sans text-sm font-bold uppercase tracking-wide text-white ring-1 ring-white/20 transition-colors hover:bg-white/20';
 
 /**
  * Header di stato della dashboard — speculare all'header Ebartex
@@ -26,16 +26,16 @@ export function DashboardHeader({ user, formatId, formatName, modeName }: Dashbo
   const initial = (displayName[0] ?? '?').toUpperCase();
 
   return (
-    <header className="header-gradient sticky top-0 z-50 w-full pb-8 font-display text-white">
+    <header className="header-gradient sticky top-0 z-50 w-full pb-8 font-sans text-white">
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6">
         {/* Logo + home (riporta alla home, dal mockup) */}
-        <Link href="/" aria-label="Home" className="transition-opacity hover:opacity-90">
+        <Link href="/" aria-label="Home" className="transition-opacity hover:opacity-90 overflow-visible py-1 flex items-center justify-center">
           <Image
             src={logoUrl}
             alt="Ebartex"
             width={110}
             height={48}
-            className="h-12 w-auto object-contain"
+            className="h-12 w-auto object-contain block align-middle"
             priority
             unoptimized
           />
@@ -80,7 +80,7 @@ export function DashboardHeader({ user, formatId, formatName, modeName }: Dashbo
           </Link>
           <Link
             href="/partite"
-            className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm uppercase tracking-wide ring-1 ring-white/20 transition-colors hover:bg-white/20"
+            className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold uppercase tracking-wide ring-1 ring-white/20 transition-colors hover:bg-white/20"
           >
             <Swords className="h-4 w-4" />
             Le mie partite

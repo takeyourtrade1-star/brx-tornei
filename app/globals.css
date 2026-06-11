@@ -17,7 +17,6 @@
     /* Palette principale Ebartex (gradiente e blocchi) */
     --color-brand: #3D65C6;
     --color-brand-dark: #1D3160;
-    --font-comodo: 'Comodo Regular', sans-serif;
 
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -66,27 +65,21 @@
 
 .font-display {
   font-family: var(--font-comodo) !important;
+  font-weight: bold !important;
 }
 
-/* Sfumatura header dal blu a trasparente — copia 1:1 di new_frontend_brx (.header-gradient) */
+/* Sfumatura header dal blu a trasparente con sfocatura progressiva (gradual backdrop-blur) */
 .header-gradient {
-  background:
-    linear-gradient(
-      to bottom,
-      rgba(61, 101, 198, 0.3) 0%,
-      rgba(61, 101, 198, 0.08) 28%,
-      rgba(61, 101, 198, 0) 46%
-    ),
-    linear-gradient(
-      to bottom,
-      #1d3160 0%,
-      #1d3160 62%,
-      rgba(29, 49, 96, 0.92) 72%,
-      rgba(29, 49, 96, 0.7) 80%,
-      rgba(29, 49, 96, 0.38) 87%,
-      rgba(29, 49, 96, 0.1) 93%,
-      rgba(29, 49, 96, 0) 100%
-    );
+  background: linear-gradient(
+    to bottom,
+    rgba(29, 49, 96, 0.85) 0%,
+    rgba(29, 49, 96, 0.45) 55%,
+    rgba(29, 49, 96, 0) 100%
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
 }
 
 /* Glass scuro Ebartex (da auth-glass.ts AUTH_GLASS_DARK) — pannelli su sfondo gradiente */
@@ -107,15 +100,59 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-/* Glow arancio brand al passaggio (card cliccabili) */
-.brx-glow-hover {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
-}
-.brx-glow-hover:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow:
-    0 0 0 2px rgba(255, 115, 0, 0.55),
-    0 12px 40px -8px rgba(255, 115, 0, 0.35);
+@layer utilities {
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .mode-card-glow {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .mode-card-glow:hover {
+    box-shadow: 0 0 25px var(--mode-accent), 0 0 50px rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(-8px) !important;
+  }
+  .mode-card-glow:hover > div {
+    border-color: var(--mode-accent) !important;
+  }
+
+  .brx-liquid-glass-circle {
+    background: linear-gradient(135deg, rgba(255, 115, 0, 0.45) 0%, rgba(255, 115, 0, 0.15) 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1.5px solid rgba(255, 115, 0, 0.55);
+    box-shadow:
+      inset 0 1px 1.5px rgba(255, 255, 255, 0.4),
+      0 4px 10px rgba(0, 0, 0, 0.3),
+      0 0 12px rgba(255, 115, 0, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .brx-liquid-glass-btn {
+    background: linear-gradient(135deg, rgba(255, 115, 0, 0.4) 0%, rgba(255, 115, 0, 0.15) 100%) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1.5px solid rgba(255, 115, 0, 0.6) !important;
+    box-shadow:
+      inset 0 1px 1.5px rgba(255, 255, 255, 0.35),
+      0 4px 12px rgba(0, 0, 0, 0.25),
+      0 0 10px rgba(255, 115, 0, 0.2) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .brx-liquid-glass-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 115, 0, 0.55) 0%, rgba(255, 115, 0, 0.25) 100%) !important;
+    box-shadow:
+      inset 0 1px 2px rgba(255, 255, 255, 0.45),
+      0 8px 20px rgba(0, 0, 0, 0.35),
+      0 0 18px rgba(255, 115, 0, 0.55) !important;
+    transform: translateY(-2px) scale(1.02);
+  }
 }
 
 @layer base {
@@ -129,13 +166,15 @@
      Copiare brx_bg.png da new_frontend_brx/public/ (o usare --brx-bg-url da CDN). */
   body {
     @apply transition-colors duration-300 min-h-screen font-medium;
+    font-family: var(--font-sans), serif;
     background-image:
-      linear-gradient(rgba(61, 101, 198, 0.65), rgba(29, 49, 96, 0.65)),
-      var(--brx-bg-url, url('/brx_bg.png')),
+      linear-gradient(rgba(15, 23, 42, 0.32), rgba(15, 23, 42, 0.48)),
+      url('/images/sfondo-tornei.png'),
       linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
-    background-repeat: no-repeat, repeat, no-repeat;
-    background-size: cover, 80px 80px, cover;
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    background-size: cover, cover, cover;
     background-attachment: fixed;
     color: #fff;
   }
 }
+

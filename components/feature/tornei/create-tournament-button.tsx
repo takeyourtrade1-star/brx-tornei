@@ -37,7 +37,7 @@ export function CreateTournamentButton({ selection }: { selection: Selection }) 
       <button
         onClick={handleClick}
         disabled={isPending}
-        className="brx-glow-hover flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 font-display text-sm uppercase tracking-wide text-primary-foreground shadow-lg disabled:pointer-events-none disabled:opacity-50"
+        className="brx-liquid-glass-btn flex items-center gap-2 rounded-full px-6 py-2.5 font-sans font-bold text-sm uppercase tracking-wide text-white disabled:pointer-events-none disabled:opacity-50"
       >
         <Plus className="h-4 w-4" />
         {isPending ? 'Creazione…' : 'Crea Torneo'}

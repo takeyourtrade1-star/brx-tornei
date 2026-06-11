@@ -5,13 +5,13 @@
  */
 
 export const FORMATS = [
-  { id: 'old-school', name: 'Old School', gradient: 'bg-gradient-card2' },
-  { id: 'premodern', name: 'Pre Modern', gradient: 'bg-gradient-card3' },
-  { id: 'pioneer', name: 'Pioneer', gradient: 'bg-gradient-card4' },
-  { id: 'modern', name: 'Modern', gradient: 'bg-gradient-card1' },
-  { id: 'standard', name: 'Standard', gradient: 'bg-gradient-card3' },
-  { id: 'legacy', name: 'Legacy', gradient: 'bg-gradient-card2' },
-  { id: 'commander', name: 'Commander', gradient: 'bg-gradient-card4' },
+  { id: 'old-school', name: 'Old School' },
+  { id: 'premodern', name: 'Pre Modern' },
+  { id: 'pioneer', name: 'Pioneer' },
+  { id: 'modern', name: 'Modern' },
+  { id: 'standard', name: 'Standard' },
+  { id: 'legacy', name: 'Legacy' },
+  { id: 'commander', name: 'Commander' },
 ] as const;
 
 export type FormatId = (typeof FORMATS)[number]['id'];

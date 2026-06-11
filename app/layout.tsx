@@ -1,11 +1,19 @@
 import type { Metadata } from 'next';
-import { Nunito } from 'next/font/google';
+import { Almendra_SC, EB_Garamond } from 'next/font/google';
 import { config } from '@/lib/config';
 import './globals.css';
 
-/** Stesso font principale di Ebartex (--font-sans nel preset). */
-const nunito = Nunito({
+const almendraSC = Almendra_SC({
   subsets: ['latin'],
+  weight: '400',
+  variable: '--font-comodo',
+  display: 'swap',
+});
+
+const ebGaramond = EB_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  style: ['normal', 'italic'],
   variable: '--font-sans',
   display: 'swap',
 });
@@ -22,8 +30,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="it" className={nunito.variable}>
+    <html lang="it" className={`${almendraSC.variable} ${ebGaramond.variable}`}>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
+

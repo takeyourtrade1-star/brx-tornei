@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getAccessToken } from '@/lib/auth/session';
+import { getSession } from '@/lib/auth/session';
 import { LoginForm } from '@/components/feature/auth/login-form';
 import { config } from '@/lib/config';
 
@@ -9,7 +9,8 @@ export const metadata: Metadata = { title: 'Accedi' };
 
 export default async function LoginPage() {
   // Già loggato (anche via bridge SSO) → niente login.
-  if (await getAccessToken()) redirect('/hub');
+  const session = await getSession();
+  if (session) redirect('/hub');
 
   return (
     <div className="flex flex-col gap-4">

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { config as appConfig } from '@/lib/config';
 
 /**
  * Protezione route + innesco SSO.
@@ -8,8 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
  * - Nessuno dei due → /login.
  */
 
-const ACCESS_COOKIE = 'ebartex_access_token';
-const REFRESH_COOKIE = 'ebartex_refresh_token';
+const ACCESS_COOKIE = appConfig.auth.accessCookie;
+const REFRESH_COOKIE = appConfig.auth.refreshCookie;
 
 const PUBLIC_PATHS = ['/login', '/registrati', '/auth/bridge'];
 
