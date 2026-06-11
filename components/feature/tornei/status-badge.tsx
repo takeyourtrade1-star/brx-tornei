@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { TournamentStatus } from '@/types/tournament';
+import { CheckCircle2, Clock } from 'lucide-react';
 
 const STATUS_CONFIG: Record<
   TournamentStatus,
@@ -12,8 +13,8 @@ const STATUS_CONFIG: Record<
   },
   iniziata: {
     label: 'Iniziata',
-    chip: 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30',
-    dot: 'bg-emerald-400 animate-pulse',
+    chip: 'bg-red-500/15 text-red-300 ring-red-400/30',
+    dot: 'bg-red-400 animate-pulse',
   },
   terminata: {
     label: 'Terminata',
@@ -31,7 +32,13 @@ export function StatusBadge({ status }: { status: TournamentStatus }) {
         chip
       )}
     >
-      <span className={cn('h-1.5 w-1.5 rounded-full', dot)} aria-hidden />
+      {status === 'in_registrazione' ? (
+        <Clock className="h-3.5 w-3.5 text-marquee animate-pulse shrink-0" aria-hidden />
+      ) : status === 'terminata' ? (
+        <CheckCircle2 className="h-3.5 w-3.5 text-white/60 shrink-0" aria-hidden />
+      ) : (
+        <span className={cn('h-1.5 w-1.5 rounded-full', dot)} aria-hidden />
+      )}
       {label}
     </span>
   );

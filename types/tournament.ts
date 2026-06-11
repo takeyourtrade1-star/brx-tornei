@@ -25,4 +25,5 @@ export interface Tournament {
   maxPlayers: number;
   participants: Participant[];
   createdAt: string; // ISO
+  isPrivate?: boolean; // Partita privata con lucchetto
 }

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, Layers, LogOut, Swords } from 'lucide-react';
+import { ChevronRight, Home, Layers, LogOut, Swords } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
 import { getCdnImageUrl } from '@/lib/config';
 import type { SessionUser } from '@/types/auth';
@@ -52,6 +52,7 @@ export function DashboardHeader({ user, formatId, formatName, modeName }: Dashbo
         <Link href="/hub" className={CHIP_CLASS} title="Cambia formato">
           {formatName}
         </Link>
+        <ChevronRight className="h-4 w-4 text-white/50 shrink-0" />
         <Link
           href={`/hub?format=${formatId}#modalita`}
           className={CHIP_CLASS}
