@@ -1,0 +1,44 @@
+/**
+ * Catalogo statico: formati di gioco e modalità torneo (dal mockup "Pagina Tornei").
+ * Step 1 = FORMATO (Old School → Commander), Step 2 = MODALITÀ.
+ * Dati di configurazione, non di dominio: vivono qui finché non arriverà un'API dedicata.
+ */
+
+export const FORMATS = [
+  { id: 'old-school', name: 'Old School', gradient: 'bg-gradient-card2' },
+  { id: 'premodern', name: 'Pre Modern', gradient: 'bg-gradient-card3' },
+  { id: 'pioneer', name: 'Pioneer', gradient: 'bg-gradient-card4' },
+  { id: 'modern', name: 'Modern', gradient: 'bg-gradient-card1' },
+  { id: 'standard', name: 'Standard', gradient: 'bg-gradient-card3' },
+  { id: 'legacy', name: 'Legacy', gradient: 'bg-gradient-card2' },
+  { id: 'commander', name: 'Commander', gradient: 'bg-gradient-card4' },
+] as const;
+
+export type FormatId = (typeof FORMATS)[number]['id'];
+
+export const MODES = [
+  {
+    id: 'heads-up',
+    name: 'Heads-Up',
+    description: '1 contro 1, dalla tua webcam',
+    available: true,
+    badge: undefined,
+  },
+  {
+    id: 'multiplayer',
+    name: 'Multiplayer',
+    description: 'Torneo svizzero / eliminazione diretta',
+    available: false,
+    badge: 'Presto in arrivo',
+  },
+] as const;
+
+export type ModeId = (typeof MODES)[number]['id'];
+
+export function getFormat(id: string) {
+  return FORMATS.find((f) => f.id === id);
+}
+
+export function getMode(id: string) {
+  return MODES.find((m) => m.id === id);
+}

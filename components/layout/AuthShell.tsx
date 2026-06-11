@@ -1,0 +1,39 @@
+import Link from 'next/link';
+import Image from 'next/image';
+import type { ReactNode } from 'react';
+import { getCdnImageUrl } from '@/lib/config';
+
+/**
+ * Shell delle pagine auth — speculare a new_frontend_brx/components/layout/AuthShell.tsx
+ * (versione server component, senza i18n per l'MVP).
+ */
+export function AuthShell({ children }: { children: ReactNode }) {
+  const logoUrl = getCdnImageUrl('logo.png');
+
+  return (
+    <div className="relative min-h-screen w-full overflow-hidden">
+      <div className="absolute inset-0 bg-[#2d2d2d]/30 backdrop-blur-sm" aria-hidden />
+
+      <div className="relative z-10 flex min-h-screen flex-col pt-8">
+        <div className="flex justify-center px-4">
+          <Link
+            href="/"
+            className="relative block h-[80px] w-[200px] sm:h-[100px] sm:w-[260px]"
+            aria-label="Vai alla home"
+          >
+            <Image
+              src={logoUrl}
+              alt="Ebartex"
+              fill
+              className="object-contain object-center"
+              priority
+              sizes="(max-width: 640px) 200px, 260px"
+              unoptimized
+            />
+          </Link>
+        </div>
+        <div className="mx-auto mt-8 w-full max-w-xl flex-1 px-4 pb-12">{children}</div>
+      </div>
+    </div>
+  );
+}
