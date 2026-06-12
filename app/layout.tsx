@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Almendra_SC, EB_Garamond } from 'next/font/google';
+import { AuthModalProvider } from '@/components/feature/auth/auth-modal-provider';
 import { config } from '@/lib/config';
 import './globals.css';
 
@@ -31,7 +32,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it" className={`${almendraSC.variable} ${ebGaramond.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <AuthModalProvider>{children}</AuthModalProvider>
+      </body>
     </html>
   );
 }

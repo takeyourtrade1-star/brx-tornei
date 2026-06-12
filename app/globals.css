@@ -68,18 +68,38 @@
   font-weight: bold !important;
 }
 
-/* Sfumatura header dal blu a trasparente con sfocatura progressiva (gradual backdrop-blur) */
+/* Sfumatura header — il gradiente è su ::before così i dropdown figli non vengono mascherati */
 .header-gradient {
+  position: relative;
+  isolation: isolate;
+}
+
+.header-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(29, 49, 96, 0.85) 0%,
-    rgba(29, 49, 96, 0.45) 55%,
+    rgba(29, 49, 96, 0.92) 0%,
+    rgba(29, 49, 96, 0.55) 55%,
     rgba(29, 49, 96, 0) 100%
   );
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+/* Pannello dropdown / popover — opaco e leggibile su sfondo gradiente */
+.brx-dropdown-panel {
+  background: rgba(15, 23, 42, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 24px 64px -12px rgba(0, 0, 0, 0.75);
 }
 
 /* Glass scuro Ebartex (da auth-glass.ts AUTH_GLASS_DARK) — pannelli su sfondo gradiente */
@@ -152,6 +172,36 @@
       0 8px 20px rgba(0, 0, 0, 0.35),
       0 0 18px rgba(255, 115, 0, 0.55) !important;
     transform: translateY(-2px) scale(1.02);
+  }
+
+  @keyframes format-scroll-hint-left {
+    0%, 100% {
+      transform: translateX(0);
+      opacity: 0.45;
+    }
+    50% {
+      transform: translateX(-5px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes format-scroll-hint-right {
+    0%, 100% {
+      transform: translateX(0);
+      opacity: 0.45;
+    }
+    50% {
+      transform: translateX(5px);
+      opacity: 1;
+    }
+  }
+
+  .format-scroll-hint-chevron-left {
+    animation: format-scroll-hint-left 1.9s ease-in-out infinite;
+  }
+
+  .format-scroll-hint-chevron-right {
+    animation: format-scroll-hint-right 1.9s ease-in-out infinite;
   }
 }
 

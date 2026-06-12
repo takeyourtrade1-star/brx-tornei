@@ -25,5 +25,7 @@ export interface Tournament {
   maxPlayers: number;
   participants: Participant[];
   createdAt: string; // ISO
+  /** Inizio previsto del torneo (ISO). */
+  startsAt: string;
   isPrivate?: boolean; // Partita privata con lucchetto
 }

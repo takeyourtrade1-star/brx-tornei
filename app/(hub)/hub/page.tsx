@@ -76,7 +76,7 @@ export default async function HubPage({ searchParams }: PageProps) {
             <ModeCard
               title="Crea il tuo torneo"
               description="Regole e inviti su misura, in modalità Heads-Up"
-              href={`/tornei?format=${selected.id}&mode=heads-up`}
+              href={`/tornei/nuovo?format=${selected.id}&mode=heads-up`}
               available
               index={MODES.length}
               bgImage="/images/modes/crea-partita.jpeg"

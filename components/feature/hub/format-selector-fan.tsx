@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { FormatScrollHint } from '@/components/feature/hub/format-scroll-hint';
 
 interface FormatItem {
   readonly id: string;
@@ -39,6 +40,7 @@ const FORMAT_IMAGES: Record<string, string> = {
 
 export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const scrollToModalita = useCallback(() => {
     setTimeout(() => {
@@ -50,7 +52,11 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
   const isAnyCardHovered = hoveredIndex !== null;
 
   return (
-    <div className="w-full py-4 overflow-x-auto scrollbar-none snap-x snap-mandatory">
+    <div className="w-full">
+      <div
+        ref={scrollRef}
+        className="w-full overflow-x-auto py-4 scrollbar-none snap-x snap-mandatory"
+      >
       <div
         onMouseLeave={() => setHoveredIndex(null)}
         className="flex flex-row flex-nowrap justify-start lg:justify-center gap-4 px-4 sm:px-6 py-2 min-w-max lg:min-w-0"
@@ -107,6 +113,8 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
           );
         })}
       </div>
+      </div>
+      <FormatScrollHint scrollRef={scrollRef} />
     </div>
   );
 }

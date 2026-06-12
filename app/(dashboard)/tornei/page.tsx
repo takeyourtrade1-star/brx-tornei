@@ -5,6 +5,7 @@ import { getTournaments } from '@/lib/data/tournaments';
 import { parseSelection } from '@/lib/validations/selection';
 import { getFormat, getMode } from '@/lib/data/catalog';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
+import { SiteHeader } from '@/components/layout/SiteHeader';
 import { TournamentsTable } from '@/components/feature/tornei/tournaments-table';
 import { CreateTournamentButton } from '@/components/feature/tornei/create-tournament-button';
 
@@ -15,44 +16,57 @@ interface PageProps {
 }
 
 /**
- * Dashboard Tornei (main view) — tutto server-side:
- * sessione dal cookie, selezione dai searchParams, dati dal data layer.
+ * Dashboard Tornei — browsing pubblico; azioni (crea/partecipa) richiedono login via popup.
  */
 export default async function TorneiPage({ searchParams }: PageProps) {
   const selection = parseSelection(await searchParams);
-  if (!selection) redirect('/hub'); // selezione assente/invalida → hub
+  if (!selection) redirect('/hub');
 
   const session = await getSession();
-  if (!session) redirect('/login'); // token presente ma non valido → login
-
   const format = getFormat(selection.format)!;
   const mode = getMode(selection.mode)!;
   const tournaments = await getTournaments(selection);
 
   return (
     <>
-      <DashboardHeader
-        user={session.user}
-        formatId={format.id}
-        formatName={format.name}
-        modeName={mode.name}
-      />
+      {session ? (
+        <DashboardHeader
+          user={session.user}
+          formatName={format.name}
+          modeName={mode.name}
+          selection={selection}
+          activeNav="tornei"
+        />
+      ) : (
+        <SiteHeader
+          selection={selection}
+          formatName={format.name}
+          modeName={mode.name}
+        />
+      )}
 
-      <main className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pb-16 sm:px-6">
-        {/* Barra titolo + azione principale */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl font-black uppercase tracking-wide text-white drop-shadow">
+      <main className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pb-16 sm:gap-8 sm:px-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <div className="min-w-0 space-y-1.5">
+            <h1 className="font-display text-2xl font-black uppercase tracking-wide text-white drop-shadow sm:text-3xl">
               Tornei <span className="text-primary">{format.name}</span>
             </h1>
-            <p className="mt-1 text-sm text-white/60">
+            <p className="text-sm text-white/60">
               {mode.name} · Buy-In <span className="font-bold text-marquee">For Fun</span>
             </p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
+              {tournaments.length}{' '}
+              {tournaments.length === 1 ? 'torneo disponibile' : 'tornei disponibili'}
+            </p>
           </div>
-          <CreateTournamentButton selection={selection} />
+          <CreateTournamentButton
+            selection={selection}
+            isLoggedIn={!!session}
+            className="shrink-0 sm:min-w-[11rem]"
+          />
         </div>
 
-        <TournamentsTable tournaments={tournaments} />
+        <TournamentsTable tournaments={tournaments} isLoggedIn={!!session} />
       </main>
     </>
   );

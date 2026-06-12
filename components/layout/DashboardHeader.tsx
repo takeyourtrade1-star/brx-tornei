@@ -1,101 +1,132 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronRight, Home, Layers, LogOut, Swords } from 'lucide-react';
+import { Home, Layers, LogOut, Swords } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
+import { SelectionDropdown } from '@/components/layout/selection-dropdown';
 import { getCdnImageUrl } from '@/lib/config';
+import type { Selection } from '@/lib/validations/selection';
+import { selectionQuery } from '@/lib/validations/selection';
+import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/types/auth';
+
+type DashboardNav = 'tornei' | 'mazzi' | 'partite';
 
 interface DashboardHeaderProps {
   user: SessionUser;
-  formatId: string;
   formatName: string;
   modeName: string;
+  selection: Selection;
+  activeNav?: DashboardNav;
 }
 
-const CHIP_CLASS =
-  'rounded-full bg-white/10 px-4 py-1.5 font-sans text-sm font-bold uppercase tracking-wide text-white ring-1 ring-white/20 transition-colors hover:bg-white/20';
+const NAV_BTN =
+  'flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-bold uppercase tracking-wide transition-colors sm:px-4';
 
 /**
- * Header di stato della dashboard — speculare all'header Ebartex
- * (.header-gradient, font-display, logo CDN) con la riga del mockup:
- * [home] [formato scelto] [tipologia scelta] · utente · [I miei mazzi] [Le mie partite]
+ * Header dashboard — due righe su mobile per evitare overflow.
  */
-export function DashboardHeader({ user, formatId, formatName, modeName }: DashboardHeaderProps) {
+export function DashboardHeader({
+  user,
+  formatName,
+  modeName,
+  selection,
+  activeNav,
+}: DashboardHeaderProps) {
   const logoUrl = getCdnImageUrl('logo.png');
   const displayName = user.name ?? user.email;
   const initial = (displayName[0] ?? '?').toUpperCase();
+  const selectionQs = selectionQuery(selection);
+  const partiteQs = `${selectionQs}&tab=attive`.replace('?&', '?');
 
   return (
-    <header className="header-gradient sticky top-0 z-50 w-full pb-8 font-sans text-white">
-      <div className="mx-auto flex max-w-content flex-wrap items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6">
-        {/* Logo + home (riporta alla home, dal mockup) */}
-        <Link href="/" aria-label="Home" className="transition-opacity hover:opacity-90 overflow-visible py-1 flex items-center justify-center">
-          <Image
-            src={logoUrl}
-            alt="Ebartex"
-            width={110}
-            height={48}
-            className="h-12 w-auto object-contain block align-middle"
-            priority
-            unoptimized
+    <header className="header-gradient sticky top-0 z-50 w-full overflow-visible pb-4 font-sans text-white sm:pb-6">
+      <div className="mx-auto flex max-w-content flex-col gap-2 px-4 py-2 sm:gap-3 sm:px-6">
+        {/* Riga 1: logo + utente */}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            aria-label="Home"
+            className="flex shrink-0 items-center justify-center overflow-visible py-1 transition-opacity hover:opacity-90"
+          >
+            <Image
+              src={logoUrl}
+              alt="Ebartex"
+              width={110}
+              height={48}
+              className="block h-10 w-auto object-contain align-middle sm:h-12"
+              priority
+              unoptimized
+            />
+          </Link>
+
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+            <span className="flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-2 ring-1 ring-white/15 sm:pr-3">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                {initial}
+              </span>
+              <span className="hidden max-w-[8rem] truncate text-sm font-semibold sm:inline md:max-w-[10rem]">
+                {displayName}
+              </span>
+            </span>
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                aria-label="Esci"
+                className="rounded-full bg-white/10 p-2 ring-1 ring-white/15 transition-colors hover:bg-destructive/80"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Riga 2: navigazione + dropdown */}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/hub"
+            aria-label="Torna alla selezione"
+            className="shrink-0 rounded-full bg-white/10 p-2 ring-1 ring-white/20 transition-colors hover:bg-white/20"
+          >
+            <Home className="h-4 w-4" />
+          </Link>
+
+          <SelectionDropdown
+            selection={selection}
+            formatName={formatName}
+            modeName={modeName}
+            className="min-w-0 flex-1"
           />
-        </Link>
-        <Link
-          href="/hub"
-          aria-label="Torna alla selezione"
-          className="rounded-full bg-white/10 p-2 ring-1 ring-white/20 transition-colors hover:bg-white/20"
-        >
-          <Home className="h-4 w-4" />
-        </Link>
-
-        {/* Formato scelto / tipologia scelta — chip cliccabili per cambiare */}
-        <Link href="/hub" className={CHIP_CLASS} title="Cambia formato">
-          {formatName}
-        </Link>
-        <ChevronRight className="h-4 w-4 text-white/50 shrink-0" />
-        <Link
-          href={`/hub?format=${formatId}#modalita`}
-          className={CHIP_CLASS}
-          title="Cambia modalità"
-        >
-          {modeName}
-        </Link>
-
-        {/* Lato destro: utente + azioni del mockup */}
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <span className="hidden items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-white/15 md:flex">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold">
-              {initial}
-            </span>
-            <span className="max-w-[10rem] truncate font-sans text-sm font-semibold">
-              {displayName}
-            </span>
-          </span>
 
           <Link
-            href="/mazzi"
-            className="flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-sm uppercase tracking-wide text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+            href={`/mazzi${selectionQs}`}
+            aria-current={activeNav === 'mazzi' ? 'page' : undefined}
+            aria-label="I miei mazzi"
+            title="I miei mazzi"
+            className={cn(
+              NAV_BTN,
+              activeNav === 'mazzi'
+                ? 'bg-primary text-primary-foreground shadow-lg hover:bg-primary/90'
+                : 'bg-white/10 ring-1 ring-white/20 hover:bg-white/20'
+            )}
           >
-            <Layers className="h-4 w-4" />
-            I miei mazzi
+            <Layers className="h-4 w-4 shrink-0" />
+            <span className="hidden lg:inline">I miei mazzi</span>
           </Link>
           <Link
-            href="/partite"
-            className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold uppercase tracking-wide ring-1 ring-white/20 transition-colors hover:bg-white/20"
+            href={`/partite${partiteQs}`}
+            aria-current={activeNav === 'partite' ? 'page' : undefined}
+            aria-label="Le mie partite"
+            title="Le mie partite"
+            className={cn(
+              NAV_BTN,
+              activeNav === 'partite'
+                ? 'bg-primary text-primary-foreground shadow-lg hover:bg-primary/90'
+                : 'bg-white/10 ring-1 ring-white/20 hover:bg-white/20'
+            )}
           >
-            <Swords className="h-4 w-4" />
-            Le mie partite
+            <Swords className="h-4 w-4 shrink-0" />
+            <span className="hidden lg:inline">Le mie partite</span>
           </Link>
-
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              aria-label="Esci"
-              className="rounded-full bg-white/10 p-2 ring-1 ring-white/15 transition-colors hover:bg-destructive/80"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </form>
         </div>
       </div>
     </header>

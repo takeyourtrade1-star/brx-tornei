@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config as appConfig } from '@/lib/config';
+import { isProtectedPath, isPublicPath } from '@/lib/auth/routes';
 
 /**
- * Protezione route + innesco SSO.
- * - Sessione presente (access cookie) → avanti.
- * - Solo refresh cookie (es. utente loggato sul sito principale, Domain=.ebartex.com)
- *   → /auth/bridge per il login trasparente.
- * - Nessuno dei due → /login.
+ * Protezione route selettiva + innesco SSO.
+ * - Route pubbliche (home, hub, tornei, auth) → accessibili senza login.
+ * - Route protette (mazzi, partite) → sessione obbligatoria.
+ * - Solo refresh cookie su route protette → /auth/bridge per SSO trasparente.
  */
 
 const ACCESS_COOKIE = appConfig.auth.accessCookie;
 const REFRESH_COOKIE = appConfig.auth.refreshCookie;
 
-const PUBLIC_PATHS = ['/login', '/registrati', '/auth/bridge'];
-
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  if (isPublicPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (!isProtectedPath(pathname)) {
     return NextResponse.next();
   }
 
@@ -31,7 +33,7 @@ export function middleware(request: NextRequest) {
     url.search = `next=${encodeURIComponent(pathname + search)}`;
   } else {
     url.pathname = '/login';
-    url.search = '';
+    url.search = `next=${encodeURIComponent(pathname + search)}`;
   }
   return NextResponse.redirect(url);
 }

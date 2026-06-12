@@ -72,6 +72,16 @@ export async function loginAction(formData: FormData): Promise<AuthActionState> 
   }
 
   await setSessionCookies(response as unknown as TokenResponse);
+
+  const stayOnPage = formData.get('stayOnPage') === 'true';
+  if (stayOnPage) {
+    return { success: true };
+  }
+
+  const next = formData.get('next');
+  if (typeof next === 'string' && next.startsWith('/') && !next.startsWith('//')) {
+    redirect(next);
+  }
   redirect('/hub');
 }
 
@@ -92,5 +102,5 @@ export async function logoutAction(): Promise<void> {
     }
   }
   await clearSessionCookies();
-  redirect('/login');
+  redirect('/hub');
 }
