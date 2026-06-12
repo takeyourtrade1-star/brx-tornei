@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
-import { getCdnImageUrl } from '@/lib/config';
+import { SITE_LOGO_SRC } from '@/lib/config';
 
 /**
  * Shell delle pagine auth — speculare a new_frontend_brx/components/layout/AuthShell.tsx
  * (versione server component, senza i18n per l'MVP).
  */
 export function AuthShell({ children }: { children: ReactNode }) {
-  const logoUrl = getCdnImageUrl('logo.png');
+  const logoUrl = SITE_LOGO_SRC;
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
@@ -18,7 +18,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <div className="flex justify-center px-4">
           <Link
             href="/"
-            className="relative block h-[80px] w-[200px] sm:h-[100px] sm:w-[260px]"
+            className="relative block h-[80px] w-[80px] sm:h-[100px] sm:w-[100px]"
             aria-label="Vai alla home"
           >
             <Image
@@ -27,8 +27,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
               fill
               className="object-contain object-center"
               priority
-              sizes="(max-width: 640px) 200px, 260px"
-              unoptimized
+              sizes="(max-width: 640px) 80px, 100px"
             />
           </Link>
         </div>

@@ -4,7 +4,7 @@ import { LogOut } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
 import { SelectionDropdown } from '@/components/layout/selection-dropdown';
 import { getSession } from '@/lib/auth/session';
-import { config, getCdnImageUrl } from '@/lib/config';
+import { config, SITE_LOGO_SRC } from '@/lib/config';
 import type { Selection } from '@/lib/validations/selection';
 
 const CHIP_CLASS =
@@ -21,7 +21,7 @@ interface SiteHeaderProps {
  * Header del sito (hub e browsing pubblico) — due righe su mobile quando c'è il dropdown.
  */
 export async function SiteHeader({ selection, formatName, modeName }: SiteHeaderProps = {}) {
-  const logoUrl = getCdnImageUrl('logo.png');
+  const logoUrl = SITE_LOGO_SRC;
   const session = await getSession();
   const displayName = session?.user.name ?? session?.user.email;
   const initial = displayName ? (displayName[0] ?? '?').toUpperCase() : '?';
@@ -39,11 +39,10 @@ export async function SiteHeader({ selection, formatName, modeName }: SiteHeader
             <Image
               src={logoUrl}
               alt="Ebartex"
-              width={120}
+              width={52}
               height={52}
               className="block h-10 w-auto object-contain align-middle sm:h-[3.25rem]"
               priority
-              unoptimized
             />
           </Link>
 

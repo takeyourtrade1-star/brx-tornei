@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Home, Layers, LogOut, Swords } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
 import { SelectionDropdown } from '@/components/layout/selection-dropdown';
-import { getCdnImageUrl } from '@/lib/config';
+import { SITE_LOGO_SRC } from '@/lib/config';
 import type { Selection } from '@/lib/validations/selection';
 import { selectionQuery } from '@/lib/validations/selection';
 import { cn } from '@/lib/utils';
@@ -32,7 +32,7 @@ export function DashboardHeader({
   selection,
   activeNav,
 }: DashboardHeaderProps) {
-  const logoUrl = getCdnImageUrl('logo.png');
+  const logoUrl = SITE_LOGO_SRC;
   const displayName = user.name ?? user.email;
   const initial = (displayName[0] ?? '?').toUpperCase();
   const selectionQs = selectionQuery(selection);
@@ -51,11 +51,10 @@ export function DashboardHeader({
             <Image
               src={logoUrl}
               alt="Ebartex"
-              width={110}
+              width={48}
               height={48}
               className="block h-10 w-auto object-contain align-middle sm:h-12"
               priority
-              unoptimized
             />
           </Link>
 

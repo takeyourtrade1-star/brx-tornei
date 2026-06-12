@@ -36,7 +36,10 @@ export const ASSETS = {
   imagesBaseUrl: cdnBase ? `${cdnBase}/images` : '',
 } as const;
 
-/** URL immagine UI condivisa (logo, icone) dal CDN Ebartex. */
+/** Logo ufficiale Ebartex — asset locale in public/images/. */
+export const SITE_LOGO_SRC = '/images/logo-ufficiale.png' as const;
+
+/** URL immagine UI condivisa (icone) dal CDN Ebartex. */
 export function getCdnImageUrl(path: string): string {
   const p = path.replace(/^\/+/, '');
   if (ASSETS.imagesBaseUrl) return `${ASSETS.imagesBaseUrl}/${p}`;
