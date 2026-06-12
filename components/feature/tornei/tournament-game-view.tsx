@@ -143,6 +143,11 @@ export function TournamentGameView({
             <CreateTournamentButton selection={selection} />
           </div>
 
+          {/* Invitation text to PC gaming version */}
+          <p className="text-center text-[10px] font-bold uppercase tracking-widest text-[#FF7300]/60 py-1 select-none">
+            🎮 Apri il sito sul PC e {"vivi l'esperienza"} del gaming
+          </p>
+
           <TournamentsTable tournaments={tournaments} />
         </main>
       </>
