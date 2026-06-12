@@ -2,8 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { createTournament } from '@/lib/data/tournaments';
+import { createTournament, addMockTournament, joinMockTournament } from '@/lib/data/tournaments';
 import { createTournamentSchema } from '@/lib/validations/tournament';
+import type { Tournament } from '@/types/tournament';
 
 export interface TournamentActionState {
   error?: string;
@@ -39,4 +40,33 @@ export async function createTournamentAction(
 
   revalidatePath('/tornei');
   return { createdId: tournament.id };
+}
+
+/**
+ * Aggiunge un torneo generato dal minigioco.
+ */
+export async function createTournamentFromGameAction(t: Tournament): Promise<TournamentActionState> {
+  const session = await getSession();
+  if (!session) {
+    return { error: 'Sessione scaduta: effettua di nuovo il login.' };
+  }
+
+  await addMockTournament(t);
+  revalidatePath('/tornei');
+  return {};
+}
+
+/**
+ * Registra la partecipazione dell'utente corrente a un torneo.
+ */
+export async function joinTournamentAction(id: string): Promise<TournamentActionState> {
+  const session = await getSession();
+  if (!session) {
+    return { error: 'Sessione scaduta: effettua di nuovo il login.' };
+  }
+
+  const username = session.user.name ?? session.user.email;
+  await joinMockTournament(id, username);
+  revalidatePath('/tornei');
+  return {};
 }

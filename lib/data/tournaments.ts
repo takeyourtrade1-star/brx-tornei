@@ -272,3 +272,22 @@ export async function createTournament(
   mockTournaments = [tournament, ...mockTournaments];
   return tournament;
 }
+
+/** Aggiunge un torneo creato nel minigioco */
+export async function addMockTournament(t: Tournament): Promise<void> {
+  await simulateLatency();
+  mockTournaments = [t, ...mockTournaments];
+}
+
+/** Partecipa a un torneo esistente dal minigioco */
+export async function joinMockTournament(id: string, username: string): Promise<void> {
+  await simulateLatency();
+  mockTournaments = mockTournaments.map((t) => {
+    if (t.id !== id) return t;
+    if (t.participants.some((p) => p.username === username)) return t;
+    const newParticipant: Participant = { id: `u-${Date.now()}`, username };
+    const participants = [...t.participants, newParticipant];
+    const status = participants.length >= t.maxPlayers ? 'iniziata' : t.status;
+    return { ...t, participants, status };
+  });
+}

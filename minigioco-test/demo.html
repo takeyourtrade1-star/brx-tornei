@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IsoRoomGame — anteprima</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0f1120; }
+    #root { height: 100vh; }
+    #err {
+      display: none; position: fixed; inset: 24px; z-index: 99; padding: 24px;
+      background: #2a1518; color: #ffd7d0; border: 2px solid #d94f46; border-radius: 12px;
+      font: 14px/1.6 system-ui, sans-serif; white-space: pre-wrap;
+    }
+    #err code { background: rgba(255,255,255,.12); padding: 2px 6px; border-radius: 5px; }
+  </style>
+  <!-- Solo per la DEMO: React UMD + Babel. Il componente vero non ha dipendenze extra. -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="err"></div>
+  <script>
+    const errBox = document.getElementById("err");
+    const fail = (msg) => {
+      errBox.style.display = "block";
+      errBox.textContent += (errBox.textContent ? "\n\n— — —\n\n" : "") + msg;
+    };
+    // mostra a schermo qualsiasi errore runtime (anche del game loop)
+    window.addEventListener("error", (e) => {
+      fail("ERRORE: " + e.message + "\n" + (e.error && e.error.stack ? e.error.stack : (e.filename + ":" + e.lineno)));
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      fail("PROMISE RIFIUTATA: " + (e.reason && e.reason.stack ? e.reason.stack : String(e.reason)));
+    });
+    const origConsoleError = console.error.bind(console);
+    console.error = (...args) => {
+      origConsoleError(...args);
+      fail(args.map((a) => (a && a.stack ? a.stack : typeof a === "object" ? JSON.stringify(a) : String(a))).join(" "));
+    };
+    (async () => {
+      try {
+        const res = await fetch("./IsoRoomGame.jsx");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        let src = await res.text();
+        // adatta il modulo all'ambiente UMD della demo
+        src = src
+          .replace(/^import React[^\n]*\n/m,
+            "const { useEffect, useRef, useState, useCallback } = React;\n")
+          .replace("export default function IsoRoomGame", "function IsoRoomGame");
+        const code = Babel.transform(src, { presets: ["react"], filename: "IsoRoomGame.jsx" }).code;
+        new Function("React", code + "\n;window.IsoRoomGame = IsoRoomGame;")(React);
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(React.createElement(window.IsoRoomGame, {
+          onCreateTournament: (t) => console.log("[demo] onCreateTournament:", t),
+          onJoinTournament: (id) => console.log("[demo] onJoinTournament:", id),
+          onCreateDeck: (d) => console.log("[demo] onCreateDeck:", d),
+        }));
+        console.log("[demo] IsoRoomGame montato ✔");
+      } catch (e) {
+        fail(
+          "Impossibile caricare IsoRoomGame.jsx (" + e.message + ").\n\n" +
+          "Se hai aperto il file con doppio click (file://), il browser blocca il fetch.\n" +
+          "Avvia un mini server nella cartella e riapri la pagina:\n\n" +
+          "  python -m http.server 8000\n  →  http://localhost:8000/demo.html\n\n" +
+          "oppure:\n\n  npx serve .\n"
+        );
+        console.error(e);
+      }
+    })();
+  </script>
+</body>
+</html>
