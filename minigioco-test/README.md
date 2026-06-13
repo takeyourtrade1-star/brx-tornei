@@ -53,7 +53,17 @@ La modale del PC replica la tabella tornei della dashboard (Buy-In · Forma · S
 
 ## Comandi di gioco
 
-Click/tap su un tile per muoverti (A* evita i mobili), WASD/frecce in alternativa, ESC o click fuori per chiudere le modali, 🔊 in alto a destra per il mute. Oggetti interattivi: PC → tornei live, tavolo → deck/inventario, bacheca → crea torneo. Cliccati da lontano: l'avatar cammina fino all'oggetto e poi parte lo zoom. Il PC è speciale: l'avatar si siede sulla sedia da ufficio prima che la camera zoomi sul monitor, e si rialza alla chiusura.
+Click/tap su un tile per muoverti (A* evita i mobili), WASD/frecce in alternativa, **1/2/3** per aprire direttamente PC/Tavolo/Bacheca, ESC o click fuori per chiudere le modali, 🔊 in alto a destra per il mute.
+
+## Vita nella stanza
+
+- **Ciclo giorno/notte** dall'ora locale: alba, giorno, tramonto e notte (luna, stelle, tinta ambiente, lampada potenziata). Ricontrollato ogni 30s.
+- **Missy la gatta** 🐱: dorme sul tappeto (zzz), vaga per la stanza, fa le fusa se lo accarezzi (cuori); dopo 3 carezze ti segue.
+- **Giradischi** (angolo in alto a destra): click per ciclare 3 tracce chiptune (Pixel Sunset / Mana Groove / Night Drive) e spegnere. Note fluttuanti e disco che gira.
+- **Easter egg**: pianta, lampada, telecamere, sedia, sgabelli, finestra e poster rispondono con battute.
+- **Clipboard statistiche** sulla parete sinistra (W/L e winrate, cliccabile). Valori passati via `opts`/mock.
+- **Citofono** sulla parete di fondo: click per un test → dopo 3s arriva una sfida mock (suono ding-dong, LED rosso, alert sul PC). Dall'esterno: `api.ring(msg)` e `api.notify()` — il componente li chiama da solo quando le props `tournaments` cambiano (nuovo torneo → citofono; torneo iniziato → glow sul PC).
+- **Idle reward**: dopo 45s di inattività l'avatar va a meditare sul tappeto (scintille/zzz); al primo input si sveglia con una battuta premio. Oggetti interattivi: PC → tornei live, tavolo → deck/inventario, bacheca → crea torneo. Cliccati da lontano: l'avatar cammina fino all'oggetto e poi parte lo zoom. Il PC è speciale: l'avatar si siede sulla sedia da ufficio prima che la camera zoomi sul monitor, e si rialza alla chiusura.
 
 ## Personalizzazione rapida
 

@@ -56,8 +56,8 @@ const FURN = [
   { key: "desk",  tiles: [[0, 3], [0, 4], [0, 5]], inter: "pc" },
   { key: "cam2",  tiles: [[1, 6]] },   // in diagonale, vista da dietro
   { key: "chair", tiles: [[1, 4]] },
-  { key: "table", tiles: [[6, 2], [7, 2], [8, 2], [6, 3], [7, 3], [8, 3], [6, 4], [7, 4], [8, 4]], inter: "decks" },
-  { key: "stool", tiles: [[5, 3]] },
+  { key: "table", tiles: [[7, 3], [8, 3], [7, 4], [8, 4]], inter: "decks" },
+  { key: "stool", tiles: [[6, 3]] },
   { key: "stool2",tiles: [[9, 4]] },
   { key: "lamp",  tiles: [[11, 0]] },
   { key: "turn",  tiles: [[10, 1]] },   // giradischi
@@ -69,9 +69,9 @@ const INTERACTIVES = {
            approach: [[1, 3], [1, 5]], footTiles: [[0, 3], [0, 4], [0, 5]],
            focus: { x: 200, y: 190, z: 1.62 }, faceTile: [0, 4] },
   decks: { name: "Tavolo delle carte", icon: "🃏", desc: "I miei Deck",
-           approach: [[5, 4], [9, 3], [9, 2], [6, 1], [7, 1], [8, 1], [6, 5], [7, 5], [8, 5], [5, 2]],
-           footTiles: [[6, 2], [7, 2], [8, 2], [6, 3], [7, 3], [8, 3], [6, 4], [7, 4], [8, 4]],
-           focus: { x: 464, y: 310, z: 1.45 }, faceTile: [7, 3] },
+           approach: [[6, 4], [9, 3], [7, 2], [8, 2], [7, 5], [8, 5]],
+           footTiles: [[7, 3], [8, 3], [7, 4], [8, 4]],
+           focus: { x: 464, y: 322, z: 1.55 }, faceTile: [7.5, 3.5] },
   board: { name: "Bacheca",          icon: "📌", desc: "Crea Torneo",
            approach: [[3, 0], [4, 0], [5, 0]], footTiles: [],
            focus: { x: 472, y: 158, z: 1.6 }, faceTile: null },
@@ -95,69 +95,12 @@ const EGG_LINES = {
   posterSynth: ["Synthwave: la colonna sonora dei top deck 🌴", "Anno 1986, meta ancora aperto."],
 };
 
-/* Battute per i poster dinamici (carta della settimana / ban hammer) */
-const BAN_LINES = [
-  "Bandita per «eccesso di divertimento altrui» ⚖️",
-  "Il giudice ha parlato: troppo forte perfino per il proprietario.",
-  "Tre turni, zero interazione: il martello era inevitabile 🔨",
-  "RIP. Era bella finché vinceva da sola.",
-];
-const WEEK_LINES = [
-  "⭐ La più venduta su ebartex! Le altre carte rosicano.",
-  "Vola in classifica vendite: il poster se l'è guadagnato.",
-  "Top seller della settimana. Sì, ne ho già tre copie.",
-];
-
-/* Battute misteriose della modalità Shadow Realm */
-const SHADOW_LINES = [
-  "Il meta è un'illusione…",
-  "Hai visto cosa c'è dietro il codice?",
-  "Le carte ci guardano da sempre. Ora lo sai.",
-  "Mezzanotte è solo un altro mulligan del tempo.",
-  "Qui ogni topdeck era già scritto.",
-  "Shhh… il Reame ascolta.",
-];
-
 /* Battute al risveglio dall'AFK (idle reward) */
 const AFK_LINES = [
   "Ho meditato: il prossimo mazzo sarà leggendario 🧘",
   "Che pisolino! Energie al 100% 🔋",
   "Nel sogno ho toppato la combo. Buon segno ✨",
   "Mente lucida, mana pieno. Si gioca.",
-];
-
-/* Carte di Magic per Missy */
-const MTG_CARDS = [
-  "Black Lotus",
-  "Ancestral Recall",
-  "Time Walk",
-  "Mox Sapphire",
-  "Lightning Bolt",
-  "Colossal Dreadmaw",
-  "Thassa's Oracle",
-  "Jace, the Mind Sculptor",
-  "Force of Will",
-  "Ragavan",
-  "Black Cat",
-  "Savannah Lions",
-  "Sol Ring",
-  "Tarmogoyf",
-  "Wrath of God",
-  "Nicol Bolas",
-  "Cruel Ultimatum",
-  "Gaea's Cradle",
-  "Sheoldred",
-  "Bolas's Citadel",
-  "Thoughtseize",
-  "Birds of Paradise"
-];
-
-const MTG_TEMPLATES = [
-  (card) => `Miao miao... ${card}... miao! 🐈`,
-  (card) => `Miao! ${card}! Purr... 🐾`,
-  (card) => `Miao miao, ${card}, purr miao! 🐱`,
-  (card) => `Miao... ${card}... miao miao. 🐈‍⬛`,
-  (card) => `Miao! ${card}! Miao! 🐾`
 ];
 
 /* Fase del giorno in base all'ora locale */
@@ -398,7 +341,7 @@ const wallL = (c, hh) => ({ x: -c * HTW + OX, y: c * HTH - hh + OY });
 const wallR = (c, hh) => ({ x: c * HTW + OX, y: c * HTH - hh + OY });
 
 /** disegna pavimento + pareti + finestra + poster + tappeto + luce nel bg */
-function buildBackground(phase = dayPhase(), stats = null, posters = null) {
+function buildBackground(phase = dayPhase(), stats = null) {
   const cv = mkCanvas(WW, WH);
   const ctx = cv.getContext("2d");
   ctx.imageSmoothingEnabled = false;
@@ -619,68 +562,6 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
     }
   }
 
-  /* E/F) poster dinamici collegati alle carte del TCG (parete di fondo, vicino all'angolo):
-     "Carta della Settimana" (top seller su ebartex) + "Ban Hammer" (carta bandita dal meta) */
-  if (posters) {
-    const WROT = Math.atan2(HTH, HTW); // inclinazione della parete di fondo
-    /* mini-carta sul poster: cornice, gem di rarità, barrette di testo */
-    const miniCard = (cpt, rar, banned) => {
-      const rc = (RAR[rar] || RAR.comune).c;
-      ctx.save();
-      ctx.translate(cpt.x, cpt.y);
-      ctx.rotate(WROT);
-      // carta
-      ctx.fillStyle = "#10142a"; ctx.fillRect(-8, -12, 16, 24);
-      ctx.fillStyle = "#f5f0e2"; ctx.fillRect(-7, -11, 14, 22);
-      ctx.fillStyle = rc; ctx.fillRect(-5, -9, 10, 9);
-      ctx.fillStyle = "rgba(255,255,255,0.65)"; ctx.fillRect(-3, -7, 3, 3);
-      ctx.fillStyle = "#2e2a3a";
-      ctx.fillRect(-5, 3, 10, 1.5); ctx.fillRect(-5, 6, 7, 1.5);
-      if (banned) {
-        // X rossa pixelata sopra la carta
-        ctx.fillStyle = "#e03a30";
-        for (let i = -2; i <= 2; i++) {
-          ctx.fillRect(i * 4 - 2, i * 4 - 2, 4, 4);
-          ctx.fillRect(-i * 4 - 2, i * 4 - 2, 4, 4);
-        }
-        ctx.fillStyle = "rgba(255,255,255,0.4)";
-        for (let i = -2; i <= 2; i++) ctx.fillRect(i * 4 - 2, i * 4 - 3, 4, 1);
-      }
-      ctx.restore();
-    };
-    /* — Carta della Settimana — */
-    if (posters.week) {
-      posterBg(wallR, 0.55, 1.6, 92, 42, "#1d2a4d");
-      quadFill(ctx, [wallR(0.63, 89), wallR(1.52, 89), wallR(1.52, 45), wallR(0.63, 45)], false, P.gold, 1);
-      // stellina in alto
-      const sw = wallR(1.07, 83);
-      ctx.fillStyle = P.gold;
-      ctx.fillRect(Math.round(sw.x) - 1, Math.round(sw.y) - 4, 2, 8);
-      ctx.fillRect(Math.round(sw.x) - 4, Math.round(sw.y) - 1, 8, 2);
-      ctx.fillRect(Math.round(sw.x) - 2, Math.round(sw.y) - 2, 4, 4);
-      miniCard(wallR(1.07, 66), posters.week.rarita, false);
-      band(wallR, 0.72, 1.42, 52, 49.5, "rgba(255,255,255,0.85)");
-      band(wallR, 0.82, 1.32, 47.5, 45.8, "rgba(243,199,106,0.7)");
-    }
-    /* — Ban Hammer — */
-    if (posters.ban) {
-      posterBg(wallR, 1.8, 2.85, 92, 42, "#33203a");
-      quadFill(ctx, [wallR(1.88, 89), wallR(2.77, 89), wallR(2.77, 45), wallR(1.88, 45)], false, "#a85a5a", 1);
-      miniCard(wallR(2.32, 66), posters.ban.rarita, true);
-      // martello da giudice appoggiato in basso a destra
-      const hm = wallR(2.62, 50);
-      ctx.save();
-      ctx.translate(hm.x, hm.y);
-      ctx.rotate(WROT - 0.7);
-      ctx.fillStyle = P.woodD; ctx.fillRect(-1.5, -2, 3, 16);   // manico
-      ctx.fillStyle = P.metal; ctx.fillRect(-6, -7, 12, 6);     // testa
-      ctx.fillStyle = P.metalL; ctx.fillRect(-6, -7, 12, 2);
-      ctx.restore();
-      band(wallR, 1.97, 2.67, 52, 49.5, "rgba(255,255,255,0.7)");
-      band(wallR, 2.07, 2.57, 47.5, 45.8, "rgba(224,58,48,0.8)");
-    }
-  }
-
   /* — battiscopa — */
   quadFill(ctx, [wallL(0, 10), wallL(ROWS, 10), wallL(ROWS, 0), wallL(0, 0)], P.baseDark);
   quadFill(ctx, [wallR(0, 10), wallR(COLS, 10), wallR(COLS, 0), wallR(0, 0)], P.base);
@@ -879,14 +760,14 @@ function buildFurniture() {
     isoBox(ctx, 0.68, 0.2, 0.12, 0.6, 24, "#46527a", { z: 16 });
   });
 
-  /* tavolo da gioco con panno verde, carte e deck (3x3: raddoppiato) */
-  const table = mkSprite(3, 3, 72, (ctx) => {
-    isoBox(ctx, 0, 0, 3, 3, 22, P.wood, { top: P.woodL });
+  /* tavolo da gioco con panno verde, carte e deck */
+  const table = mkSprite(2, 2, 72, (ctx) => {
+    isoBox(ctx, 0, 0, 2, 2, 22, P.wood, { top: P.woodL });
     const inset = (i, dy) => [
       { x: isoVec(i, i).x, y: isoVec(i, i).y - dy },
-      { x: isoVec(3 - i, i).x, y: isoVec(3 - i, i).y - dy },
-      { x: isoVec(3 - i, 3 - i).x, y: isoVec(3 - i, 3 - i).y - dy },
-      { x: isoVec(i, 3 - i).x, y: isoVec(i, 3 - i).y - dy },
+      { x: isoVec(2 - i, i).x, y: isoVec(2 - i, i).y - dy },
+      { x: isoVec(2 - i, 2 - i).x, y: isoVec(2 - i, 2 - i).y - dy },
+      { x: isoVec(i, 2 - i).x, y: isoVec(i, 2 - i).y - dy },
     ];
     quadFill(ctx, inset(0.16, 22), P.feltD);
     quadFill(ctx, inset(0.22, 22), P.felt);
@@ -916,18 +797,16 @@ function buildFurniture() {
     const pile = (tx, ty, n, col) => {
       for (let i = 0; i < n; i++) card(tx, ty, i === n - 1 ? "back" : "edge_back", col, i * 1.6);
     };
-    pile(0.63, 0.63, 5, P.red);
-    pile(0.57, 1.98, 4, "#4a7fd6");
-    pile(2.13, 0.69, 3, "#9a6ad6");
-    card(1.68, 1.68, "face", P.red);
-    card(2.25, 2.13, "back", "#4a7fd6");
-    card(1.42, 1.42, "face", "#9a6ad6", 0.6);
-    card(2.37, 1.5, "back", P.red);
-    card(0.7, 1.35, "back", "#5da24e");
-    card(1.95, 0.5, "face", "#f2b94b");
+    pile(0.42, 0.42, 5, P.red);
+    pile(0.38, 1.32, 4, "#4a7fd6");
+    pile(1.42, 0.46, 3, "#9a6ad6");
+    card(1.12, 1.12, "face", P.red);
+    card(1.5, 1.42, "back", "#4a7fd6");
+    card(0.95, 0.95, "face", "#9a6ad6", 0.6);
+    card(1.58, 1.0, "back", P.red);
     // dado
-    isoBox(ctx, 1.65, 2.43, 0.11, 0.11, 5, "#f5f0e2", { z: 23, noEdge: true });
-    const dc = isoVec(1.705, 2.485);
+    isoBox(ctx, 1.1, 1.62, 0.11, 0.11, 5, "#f5f0e2", { z: 23, noEdge: true });
+    const dc = isoVec(1.155, 1.675);
     ctx.fillStyle = "#333"; ctx.fillRect(Math.round(dc.x) - 1, Math.round(dc.y) - 30, 2, 2);
   });
 
@@ -1013,9 +892,8 @@ function buildFurniture() {
   return { desk, cam, camB, chair, table, stool, plant, lamp, turn, meta };
 }
 
-/* — bacheca di sughero (sulla parete di fondo) —
-   bracket=true: variante "tabellone torneo" con foglietti collegati da filo rosso */
-function buildBoard(bracket = false) {
+/* — bacheca di sughero (sulla parete di fondo) — */
+function buildBoard() {
   const pad = 6;
   const cv = mkCanvas(96, 116);
   const ctx = cv.getContext("2d");
@@ -1046,47 +924,14 @@ function buildBoard(bracket = false) {
     ctx.fillStyle = pin; ctx.beginPath(); ctx.arc(pp.x + 1, pp.y, 2.2, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fillRect(Math.round(pp.x), Math.round(pp.y) - 2, 1, 1);
   };
-  if (bracket) {
-    /* — tabellone torneo: 4 foglietti → 2 → 1, collegati da filo rosso — */
-    const slots = [
-      [3.22, 88, 0.42, 13], [3.22, 70, 0.42, 13],   // round 1 (alto/basso sinistra)
-      [3.22, 52, 0.42, 13], [3.22, 34 + 18, 0.42, 13],
-      [4.1, 80, 0.46, 14], [4.1, 56, 0.46, 14],     // semifinali
-      [5.0, 68, 0.5, 16],                            // finale
-    ];
-    const pinCols = [P.red, "#4a7fd6", P.leaf, P.gold, P.red, "#4a7fd6", P.gold];
-    const centers = [];
-    slots.forEach(([c0, h0, wc, hh], i) => {
-      sheet(c0, h0, wc, hh, i === 6 ? P.paperY : P.paper, pinCols[i]);
-      centers.push(wp(c0 + wc, h0 - hh / 2));
-    });
-    // filo rosso: r1 → semifinali → finale
-    ctx.strokeStyle = "rgba(217,79,70,0.85)"; ctx.lineWidth = 1.2;
-    const link = (a, b) => {
-      const pa = centers[a], pb = wp(slots[b][0], slots[b][1] - slots[b][3] / 2);
-      ctx.beginPath();
-      ctx.moveTo(pa.x, pa.y);
-      ctx.quadraticCurveTo((pa.x + pb.x) / 2, Math.max(pa.y, pb.y) + 3, pb.x, pb.y);
-      ctx.stroke();
-    };
-    link(0, 4); link(1, 4); link(2, 5); link(3, 5); link(4, 6); link(5, 6);
-    // coccarda LIVE sulla finale
-    const lv = wp(5.28, 80);
-    ctx.fillStyle = P.red;
-    ctx.fillRect(Math.round(lv.x) - 8, Math.round(lv.y) - 4, 17, 8);
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 5px 'Courier New', monospace";
-    ctx.fillText("LIVE", Math.round(lv.x) - 6, Math.round(lv.y) + 2);
-  } else {
-    sheet(3.18, 88, 0.55, 20, P.paper, P.red);
-    sheet(3.95, 91, 0.62, 24, P.paperY, "#4a7fd6");
-    sheet(4.78, 88, 0.55, 18, P.paperP, P.gold);
-    sheet(3.28, 60, 0.66, 22, P.paperY, P.leaf);
-    sheet(5.05, 62, 0.42, 20, P.paper, "#4a7fd6");
-    sheet(4.12, 64, 0.78, 30, P.paper, P.red);
-  }
+  sheet(3.18, 88, 0.55, 20, P.paper, P.red);
+  sheet(3.95, 91, 0.62, 24, P.paperY, "#4a7fd6");
+  sheet(4.78, 88, 0.55, 18, P.paperP, P.gold);
+  sheet(3.28, 60, 0.66, 22, P.paperY, P.leaf);
+  sheet(5.05, 62, 0.42, 20, P.paper, "#4a7fd6");
+  sheet(4.12, 64, 0.78, 30, P.paper, P.red);
   // mini trofeo sul foglio centrale
-  const tb = bracket ? wp(5.18, 56) : wp(4.51, 48);
+  const tb = wp(4.51, 48);
   ctx.fillStyle = P.gold;
   ctx.fillRect(Math.round(tb.x), Math.round(tb.y), 8, 6);
   ctx.fillRect(Math.round(tb.x) + 2, Math.round(tb.y) + 6, 4, 2);
@@ -1143,7 +988,7 @@ function buildIcons() {
 
 const ICON_POS = {
   pc: { x: 196, y: 148 },
-  decks: { x: 464, y: 284 },
+  decks: { x: 464, y: 302 },
   board: { x: 474, y: 106 },
 };
 
@@ -1444,44 +1289,30 @@ function makeAudio() {
       lead: [57, 0, 60, 64, 0, 60, 0, 64, 55, 0, 59, 62, 0, 59, 0, 62],
       bass: [33, 0, 0, 0, 31, 0, 0, 0, 29, 0, 0, 0, 31, 0, 0, 0] },
   ];
-  /* traccia segreta Shadow Realm: synthwave oscura e rallentata */
-  const DARK_TRK = {
-    name: "Anomalia Temporale", bpm: 58, type: "sawtooth",
-    lead: [45, 0, 0, 48, 0, 0, 44, 0, 45, 0, 0, 51, 0, 0, 50, 0],
-    bass: [21, 0, 0, 0, 24, 0, 0, 0, 20, 0, 0, 0, 19, 0, 0, 0],
-  };
-  let mTimer = null, mNext = 0, mStep = 0, mIdx = -1, mDark = false;
-  const stopTimer = () => { if (mTimer) { clearInterval(mTimer); mTimer = null; } };
-  const musicStop = () => { mIdx = -1; if (!mDark) stopTimer(); };
-  const startTimer = () => {
-    const c = ensure(); if (!c || mTimer) return;
-    mNext = c.currentTime + 0.1; mStep = 0;
-    mTimer = setInterval(() => {
-      if (muted || !ac || (mIdx < 0 && !mDark)) return;
-      const tr = mDark ? DARK_TRK : MTRK[mIdx];
-      const spb = 60 / tr.bpm / 4;
-      while (mNext < ac.currentTime + 0.3) {
-        const i = mStep % 16;
-        const dl = Math.max(0, mNext - ac.currentTime);
-        if (tr.lead[i]) tone({ f: m2f(tr.lead[i]), type: tr.type, dur: mDark ? 0.5 : 0.16, vol: tr.type === "sawtooth" ? 0.022 : 0.032, delay: dl });
-        if (tr.bass[i]) tone({ f: m2f(tr.bass[i]), type: "triangle", dur: mDark ? 0.7 : 0.3, vol: 0.05, delay: dl });
-        if (i % 4 === 2) noise({ dur: 0.025, freq: mDark ? 2400 : 6200, vol: 0.012, delay: dl });
-        mNext += spb; mStep++;
-      }
-    }, 110);
-  };
+  let mTimer = null, mNext = 0, mStep = 0, mIdx = -1;
+  const musicStop = () => { if (mTimer) { clearInterval(mTimer); mTimer = null; } mIdx = -1; };
   const musicToggle = () => {
-    if (muted || mDark) return null;
+    if (muted) return null;
     const c = ensure(); if (!c) return null;
     mIdx++;
     if (mIdx >= MTRK.length) { musicStop(); return null; }
-    startTimer();
+    if (!mTimer) {
+      mNext = c.currentTime + 0.1; mStep = 0;
+      mTimer = setInterval(() => {
+        if (muted || !ac || mIdx < 0) return;
+        const tr = MTRK[mIdx];
+        const spb = 60 / tr.bpm / 4;
+        while (mNext < ac.currentTime + 0.3) {
+          const i = mStep % 16;
+          const dl = Math.max(0, mNext - ac.currentTime);
+          if (tr.lead[i]) tone({ f: m2f(tr.lead[i]), type: tr.type, dur: 0.16, vol: tr.type === "sawtooth" ? 0.022 : 0.032, delay: dl });
+          if (tr.bass[i]) tone({ f: m2f(tr.bass[i]), type: "triangle", dur: 0.3, vol: 0.05, delay: dl });
+          if (i % 4 === 2) noise({ dur: 0.025, freq: 6200, vol: 0.012, delay: dl });
+          mNext += spb; mStep++;
+        }
+      }, 110);
+    }
     return MTRK[mIdx].name;
-  };
-  /* on=true: la chiptune si interrompe e parte la dark wave */
-  const musicShadow = (on) => {
-    if (on) { mDark = true; mIdx = -1; startTimer(); }
-    else { mDark = false; if (mIdx < 0) stopTimer(); }
   };
 
   return {
@@ -1497,30 +1328,10 @@ function makeAudio() {
     success() { tone({ f: 659, dur: 0.09, vol: 0.11 }); tone({ f: 880, dur: 0.14, vol: 0.11, delay: 0.09 }); },
     pin() { noise({ dur: 0.05, freq: 300, vol: 0.18 }); tone({ f: 170, type: "triangle", dur: 0.07, vol: 0.16 }); },
     error() { tone({ f: 240, f2: 160, type: "square", dur: 0.12, vol: 0.07 }); },
-    musicShadow,
-    /* — nuovi effetti — */
-    interference() {
-      for (let i = 0; i < 5; i++) noise({ dur: 0.09, freq: 900 + Math.random() * 2600, vol: 0.16, delay: i * 0.07 });
-      tone({ f: 1800, f2: 120, type: "sawtooth", dur: 0.4, vol: 0.05, delay: 0.1 });
-    },
-    alarm() {
-      tone({ f: 880, type: "square", dur: 0.14, vol: 0.07 });
-      tone({ f: 660, type: "square", dur: 0.14, vol: 0.07, delay: 0.16 });
-    },
-    shuffle() { for (let i = 0; i < 3; i++) noise({ dur: 0.07, freq: 2400, vol: 0.12, delay: i * 0.09 }); },
-    snap() { noise({ dur: 0.03, freq: 3200, vol: 0.14 }); tone({ f: 1600, type: "square", dur: 0.03, vol: 0.05 }); },
-    riser(k) { tone({ f: 240 * Math.pow(2, k / 5), type: "triangle", dur: 0.12, vol: 0.08 }); },
-    reveal(rarLevel) {
-      /* jingle crescente: più la carta è rara, più note */
-      const base = [659, 784, 988, 1319];
-      for (let i = 0; i <= rarLevel; i++) tone({ f: base[i], type: "triangle", dur: 0.14, vol: 0.1, delay: i * 0.09 });
-      if (rarLevel >= 3) tone({ f: 1760, dur: 0.5, vol: 0.08, delay: 0.4 });
-    },
-    whoosh() { noise({ dur: 0.3, freq: 600, vol: 0.14 }); tone({ f: 200, f2: 900, type: "sine", dur: 0.3, vol: 0.07 }); },
     purr() { for (let i = 0; i < 7; i++) tone({ f: 78 + (i % 2) * 8, type: "sawtooth", dur: 0.07, vol: 0.035, delay: i * 0.07 }); },
     meow() { tone({ f: 740, f2: 990, type: "triangle", dur: 0.13, vol: 0.06 }); tone({ f: 990, f2: 600, type: "triangle", dur: 0.22, vol: 0.055, delay: 0.12 }); },
     ding() { tone({ f: 784, type: "triangle", dur: 0.4, vol: 0.12 }); tone({ f: 659, type: "triangle", dur: 0.55, vol: 0.1, delay: 0.26 }); },
-    dispose() { mDark = false; musicStop(); stopTimer(); try { ac && ac.close(); } catch (e) { /* noop */ } ac = null; },
+    dispose() { musicStop(); try { ac && ac.close(); } catch (e) { /* noop */ } ac = null; },
   };
 }
 
@@ -1531,13 +1342,11 @@ const DEFAULT_CAM = { x: WW / 2, y: WH / 2 + 6, z: 1 };
 function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const ctx = canvas.getContext("2d");
   const stats = opts.stats || { giocati: 12, vinti: 7 };
-  const posters = opts.posters || null;   // { week: card, ban: card } per i poster dinamici
   let phase = dayPhase();
-  let bg = buildBackground(phase, stats, posters);
+  let bg = buildBackground(phase, stats);
   const F = buildFurniture();
   const catSp = buildCat();
-  let boardSp = buildBoard(false);
-  let bracketOn = false;
+  const boardSp = buildBoard();
   const icons = buildIcons();
   const avatar = buildAvatar();
   const sfx = makeAudio();
@@ -1643,19 +1452,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     { key: "posterSynth", rect: rectFromPts([wallR(6.3, 92), wallR(8.5, 92), wallR(8.5, 40), wallR(6.3, 40)]) },
     { key: "stats", rect: rectFromPts([wallL(3.3, 88), wallL(4.7, 88), wallL(4.7, 50), wallL(3.3, 50)]) },
   ];
-  if (posters && posters.week) eggs.push({ key: "posterWeek", rect: rectFromPts([wallR(0.55, 92), wallR(1.6, 92), wallR(1.6, 42), wallR(0.55, 42)]) });
-  if (posters && posters.ban) eggs.push({ key: "posterBan", rect: rectFromPts([wallR(1.8, 92), wallR(2.85, 92), wallR(2.85, 42), wallR(1.8, 42)]) });
-
-  /* — punto sul piano del tavolo (z=22 sopra il pavimento) — */
-  const tablePt = (tx, ty) => { const p = tileTop(tx, ty); return { x: p.x, y: p.y + HTH - 22 }; };
-  /* — centro dello schermo del PC (per lo zoom della Sequenza di Hype) — */
-  const scrCenter = {
-    x: (screenQuad[0].x + screenQuad[2].x) / 2,
-    y: (screenQuad[0].y + screenQuad[2].y) / 2,
-  };
-  /* — bustina del pack opening, appoggiata sul tavolo — */
-  const PACK_POS = tablePt(6.85, 2.7);
-  const packRect = { x: PACK_POS.x - 12, y: PACK_POS.y - 30, w: 24, h: 34 };
 
   /* — stato — */
   const st = {
@@ -1678,7 +1474,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     ring: null,                   // { until } citofono che suona
     ringTest: null,               // timer del test citofono
     eggCd: 0,                     // cooldown easter egg
-    lastAct: 0, afk: false, afkGoing: false, afkShuffle: null, afkShuffleGoing: false, shake: 0,
+    lastAct: 0, afk: false, afkGoing: false,
     nextNote: 0, phaseCheck: 30,
     countdown: null, cdRang: false,  // sveglia torneo sul tavolo
     ghost: null,                     // username dell'avversario fantasma
@@ -1689,19 +1485,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       from: { cx: 4, cy: 6 }, to: null, t: 0, fx: 4, fy: 6, queue: [],
       dir: "se", state: "sleep", until: 8 + Math.random() * 6, goal: null,
       pets: 0, follow: 0, nextZ: 0,
-      perch: null,                   // { key, tx, ty, lift, until } gatta sugli arredi
-      streak: 0, lastPet: -99,       // carezze consecutive (per lo Shadow Realm)
     },
-    cinematic: false,                // input bloccato durante le sequenze
-    chairSpin: -99,                  // t dell'ultima "girata" della sedia
-    scatter: [],                     // carte sparpagliate sul tavolo (fisica con attrito)
-    shadow: null,                    // { until } modalità Shadow Realm
-    matrix: [],                      // colonne della pioggia digitale alla finestra
-    packAvail: false, packAt: 20 + Math.random() * 60, // bustina sul tavolo (drop giornaliero mock)
-    pack: null,                      // sequenza di pack opening in corso
-    packFx: [],                      // particelle olografiche (screen-space)
-    hype: null,                      // sequenza di hype pre-match in corso
-    pointer: { x: 0.5, y: 0.5 },     // mouse normalizzato (riflessi olografici)
   };
   for (let i = 0; i < 14; i++) {
     st.motes.push({ u: Math.random(), v: Math.random(), sp: 0.03 + Math.random() * 0.05, ph: Math.random() * 6.28, lift: 8 + Math.random() * 48 });
@@ -1723,7 +1507,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   };
 
   /* — interazioni — */
-  const showBubble = (text, dur, target) => { st.bubble = { text, t0: st.t, dur, target }; };
+  const showBubble = (text, dur) => { st.bubble = { text, t0: st.t, dur }; };
   const hideHintOnce = () => {
     if (!st.hintHidden) { st.hintHidden = true; apiRef.current.hideHint && apiRef.current.hideHint(); }
   };
@@ -1820,82 +1604,26 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function hitDecor(sx, sy) {
     const w = unproject(sx, sy);
-    if (st.packAvail && inRect(w, packRect)) return { kind: "pack" };
     if (inRect(w, turnRect)) return { kind: "music" };
     if (inRect(w, intercomRect)) return { kind: "intercom" };
-    // gatto: cerchio attorno alla sua posizione (anche quando è appollaiata)
-    const lift = st.cat.perch ? st.cat.perch.lift : 0;
+    // gatto: cerchio attorno alla sua posizione
     const cp = tileTop(st.cat.fx, st.cat.fy);
-    if (Math.abs(w.x - cp.x) < 18 && Math.abs(w.y - (cp.y + HTH - 8 - lift)) < 16) return { kind: "cat" };
+    if (Math.abs(w.x - cp.x) < 18 && Math.abs(w.y - (cp.y + HTH - 8)) < 16) return { kind: "cat" };
     for (const eg of eggs) if (inRect(w, eg.rect)) return { kind: "egg", egg: eg };
     return null;
-  }
-
-  /* — Shadow Realm — */
-  function enterShadow() {
-    st.shadow = { until: st.t + 60, t0: st.t };
-    sfx.interference();
-    sfx.musicShadow(true);
-    st.matrix = [];
-    for (let i = 0; i < 14; i++) {
-      st.matrix.push({ u: Math.random(), y: Math.random(), sp: 0.25 + Math.random() * 0.5 });
-    }
-    // Inizializza le carte caotiche sullo sfondo dello Shadow Realm
-    const { w, h } = st.view;
-    st.shadowCards = [];
-    for (let i = 0; i < 24; i++) {
-      st.shadowCards.push({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 60 - 20, // drift leggermente verso sinistra/alto
-        vy: (Math.random() - 0.5) * 60 + 10,
-        rot: Math.random() * Math.PI * 2,
-        vr: (Math.random() - 0.5) * 1.5,
-        scale: 0.45 + Math.random() * 0.45,
-        type: "brx",
-        col: ["#a855f7", "#6366f1", P.gold, "#ec4899", "#14b8a6", "#22c55e", "#ef4444", "#f97316", "#06b6d4", "#f43f5e", "#3b82f6"][Math.floor(Math.random() * 11)]
-      });
-    }
-    showBubble("🌌 …Qualcosa si è incrinato. Benvenuta nel Reame.", 4);
-  }
-  function exitShadow() {
-    st.shadow = null;
-    st.shadowCards = null;
-    sfx.musicShadow(false);
-    sfx.interference();
-    showBubble("Tutto torna normale. …Per ora.", 3);
   }
 
   function petCat() {
     const cat = st.cat;
     sfx.purr();
-    const lift = cat.perch ? cat.perch.lift : 0;
     const cp = tileTop(cat.fx, cat.fy);
-    spawnFx("heart", cp.x, cp.y - 8 - lift, 3);
+    spawnFx("heart", cp.x, cp.y - 8, 3);
     if (cat.state === "sleep") { cat.state = "sit"; cat.until = st.t + 4; }
     cat.pets++;
-    
-    // Se viene accarezzata mentre è a terra, va direttamente sulla sedia
-    if (!cat.perch && !cat.to) {
-      cat.until = 0;
-      cat.forceChair = true;
-    }
-    
-    /* easter egg segreto: 7 carezze di fila, musica spenta, a notte fonda */
-    cat.streak = st.t - cat.lastPet < 5 ? cat.streak + 1 : 1;
-    cat.lastPet = st.t;
-    if (cat.streak >= 7 && !st.shadow && !sfx.musicOn() && phase.id === "night") {
-      cat.streak = 0;
-      enterShadow();
-      return;
-    }
     if (cat.pets % 3 === 0) {
-      // Evitiamo di sovrascrivere l'azione forzata della sedia se sta per partire
-      if (!cat.forceChair) {
-        cat.follow = 6;
-        sfx.meow();
-        showBubble(st.shadow ? "Missy vede oltre il velo… e ti segue. 🐈‍⬛" : "Missy ti segue! 🐱", 2.6);
-      }
+      cat.follow = 6;
+      sfx.meow();
+      showBubble("Missy ti segue! 🐱", 2.6);
     }
   }
 
@@ -1903,50 +1631,14 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (st.t < st.eggCd) return;
     st.eggCd = st.t + 1;
     sfx.click();
-    /* nello Shadow Realm tutte le battute diventano profetiche */
-    if (st.shadow) {
-      showBubble(SHADOW_LINES[Math.floor(Math.random() * SHADOW_LINES.length)], 3.2);
-      return;
-    }
     let key = eg.key;
     if (key === "window" && phase.id === "night") key = "windowNight";
     let lines = EGG_LINES[key] || EGG_LINES.window;
     if (eg.key === "stats") {
       const wr = stats.giocati ? Math.round((stats.vinti / stats.giocati) * 100) : 0;
       lines = ["🏅 " + stats.vinti + " vittorie su " + stats.giocati + " tornei · WR " + wr + "%"];
-    } else if (eg.key === "posterWeek" && posters && posters.week) {
-      lines = ["⭐ «" + posters.week.nome + "»: " + WEEK_LINES[Math.floor(Math.random() * WEEK_LINES.length)]];
-    } else if (eg.key === "posterBan" && posters && posters.ban) {
-      lines = ["🔨 «" + posters.ban.nome + "» — " + BAN_LINES[Math.floor(Math.random() * BAN_LINES.length)]];
     }
     showBubble(lines[Math.floor(Math.random() * lines.length)], 3.2);
-  }
-
-  /* — Pack opening: cammina al tavolo, poi sequenza cinematica — */
-  function startPackOpening() {
-    if (!st.packAvail || st.pack || st.hype || st.modal || st.lock) return;
-    sfx.click();
-    st.cinematic = true;
-    st.pending = null; st.sitTarget = false;
-    st.pack = { phase: "walk", t0: st.t, idx: -1, cards: [], halves: null };
-    const t0 = st.av.to || st.av.from;
-    let best = null;
-    for (const [x, y] of inter.decks.approach) {
-      if (t0.cx === x && t0.cy === y) { best = []; break; }
-      const p = findPath(t0, { cx: x, cy: y }, blocked);
-      if (p && (!best || p.length < best.length)) best = p;
-    }
-    st.av.queue = best || [];
-  }
-
-  /* — Sequenza di Hype: SFIDANTE TROVATO → shuffle → zoom nel PC — */
-  function startHype(opponent) {
-    if (st.hype || st.pack || st.modal || st.destroyed) return;
-    st.cinematic = true;
-    st.pending = null; st.sitTarget = false;
-    st.afk = false; st.afkGoing = false;
-    st.hype = { phase: "alarm", t0: st.t, opp: opponent || "Sfidante", nextBeep: 0, deals: null, puffs: 0 };
-    doRing("SFIDANTE TROVATO: " + (opponent || "???") + "! ⚔️");
   }
 
   /* — update — */
@@ -1961,9 +1653,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   }
 
   function update(dt) {
-    if (st.shake > 0) {
-      st.shake = Math.max(0, st.shake - dt * 26);
-    }
     const av = st.av;
     // tween camera
     const tw = st.cam.tween;
@@ -1993,23 +1682,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (av.to) {
       av.t += dt * SPEED;
       av.wt += dt * 8.5;
-      if (st.shadow) {
-        if (Math.random() < dt * 16) {
-          const ap = tileTop(av.fx, av.fy);
-          const shadowLift = Math.sin(st.t * 3.5) * 4 - 5;
-          st.fx.push({
-            ch: Math.random() < 0.35 ? "✦" : (Math.random() < 0.6 ? "✧" : "•"),
-            col: Math.random() < 0.5 ? "#c084fc" : "#818cf8",
-            size: 5 + Math.random() * 4,
-            rise: 4 + Math.random() * 6,
-            dur: 0.6 + Math.random() * 0.4,
-            x: ap.x + (Math.random() - 0.5) * 8,
-            y: ap.y + HTH + shadowLift + (Math.random() - 0.5) * 6,
-            t0: st.t,
-            ph: Math.random() * 6.28
-          });
-        }
-      }
       if (av.t >= 1) {
         const carry = av.t - 1;
         av.from = av.to; av.to = null; av.t = 0;
@@ -2039,11 +1711,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
             st.afkGoing = false;
             st.afk = true;
             av.dir = "nw";
-          } else if (st.afkShuffleGoing) {
-            // arrivato al tavolo: inizia lo smazzamento carte AFK
-            st.afkShuffleGoing = false;
-            st.afkShuffle = { t0: st.t, lastShuffle: 0 };
-            av.dir = "ne";
           } else if (st.sitTarget) {
             st.sitTarget = false;
             av.seated = true;
@@ -2082,91 +1749,34 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     // bolla
     if (st.bubble && st.t - st.bubble.t0 > st.bubble.dur) st.bubble = null;
 
-    /* — idle/AFK: dopo 45s di inattività si va a meditare sul tappeto o a smazzare carte al tavolo — */
-    if (!st.afk && !st.afkGoing && !st.afkShuffle && !st.afkShuffleGoing && !st.modal && !st.lock && !av.seated &&
-        !av.to && !av.queue.length && st.t - st.lastAct > 45 && st.introDone && !st.hype && !st.pack) {
+    /* — idle/AFK: dopo 45s di inattività si va a meditare sul tappeto — */
+    if (!st.afk && !st.afkGoing && !st.modal && !st.lock && !av.seated &&
+        !av.to && !av.queue.length && st.t - st.lastAct > 45 && st.introDone) {
       st.pending = null; st.sitTarget = false;
-      if (Math.random() < 0.5) {
-        if (walkToTile({ cx: 5, cy: 6 })) st.afkGoing = true;
-        else st.afk = true; // già lì (o tile occupato): medita sul posto
-      } else {
-        const t00 = av.to || av.from;
-        let best = null;
-        for (const [x, y] of inter.decks.approach) {
-          const p = findPath(t00, { cx: x, cy: y }, blocked);
-          if (p && (!best || p.length < best.length)) best = p;
-        }
-        if (best && best.length) {
-          av.queue = best;
-          st.afkShuffleGoing = true;
-          shiftStep();
-        } else {
-          if (walkToTile({ cx: 5, cy: 6 })) st.afkGoing = true;
-          else st.afk = true;
-        }
-      }
+      if (walkToTile({ cx: 5, cy: 6 })) st.afkGoing = true;
+      else st.afk = true; // già lì (o tile occupato): medita sul posto
     }
     if (st.afk && !reduced && Math.random() < dt * 0.8) {
       const ap = tileTop(av.fx, av.fy);
       spawnFx(Math.random() < 0.5 ? "spark" : "zzz", ap.x, ap.y - 30);
     }
-    if (st.afkShuffle) {
-      if (st.t - st.afkShuffle.lastShuffle > 6.0) {
-        st.afkShuffle.lastShuffle = st.t;
-        sfx.shuffle();
-      }
-      if (!reduced && Math.random() < dt * 0.8) {
-        const ap = tileTop(av.fx, av.fy);
-        spawnFx("spark", ap.x, ap.y - 30);
-      }
-    }
 
-    /* — test citofono programmato: parte la Sequenza di Hype (mock) — */
+    /* — test citofono programmato — */
     if (st.ringTest && st.t > st.ringTest) {
       st.ringTest = null;
-      startHype("Drakmor92");
+      doRing("Drakmor92 ti sfida in Heads-Up! 🔥");
     }
 
     /* — ricontrolla la fase del giorno (ogni 30s) — */
     if (st.t > st.phaseCheck) {
       st.phaseCheck = st.t + 30;
       const ph = dayPhase();
-      if (ph.id !== phase.id) { phase = ph; bg = buildBackground(phase, stats, posters); }
+      if (ph.id !== phase.id) { phase = ph; bg = buildBackground(phase, stats); }
     }
 
     /* — gatto: stati e movimento — */
     const cat = st.cat;
-    /* appollaiata su un arredo: sedia (che gira), tavolo (carte ovunque) o scrivania (PC caldo) */
-    if (cat.perch) {
-      const pc = cat.perch;
-      if (pc.key === "table" && !pc.scattered && st.t - pc.t0 > 0.6) {
-        pc.scattered = true;
-        sfx.shuffle();
-        const o = tablePt(7.0, 3.4);
-        for (let i = 0; i < 3; i++) {
-          const a = Math.random() * 6.28;
-          st.scatter.push({
-            x: o.x, y: o.y,
-            vx: Math.cos(a) * (40 + Math.random() * 50), vy: Math.sin(a) * (20 + Math.random() * 25) * 0.6,
-            rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 8,
-            col: [P.red, "#4a7fd6", "#9a6ad6"][i % 3], t0: st.t, snapped: false,
-          });
-        }
-        showBubble("Missy! Le mie carte! 🙀", 2.6);
-      }
-      if (pc.key === "desk" && cat.state === "sleep" && st.t > cat.nextZ && !reduced) {
-        cat.nextZ = st.t + 1.8;
-        const cp2 = tileTop(cat.fx, cat.fy);
-        spawnFx("zzz", cp2.x + 6, cp2.y - 6 - pc.lift);
-      }
-      if (st.t > pc.until) {
-        const land = pc.key === "chair" ? { cx: 2, cy: 4 } : pc.key === "table" ? { cx: 7, cy: 5 } : { cx: 1, cy: 5 };
-        cat.perch = null;
-        cat.from = land; cat.to = null; cat.t = 0; cat.queue = [];
-        cat.state = "sit"; cat.until = st.t + 2 + Math.random() * 3;
-        sfx.step(1);
-      }
-    } else if (cat.to) {
+    if (cat.to) {
       cat.t += dt * 2.4;
       if (cat.t >= 1) {
         cat.from = cat.to; cat.to = null; cat.t = 0;
@@ -2180,29 +1790,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           const dx = cat.to.cx - cat.from.cx, dy = cat.to.cy - cat.from.cy;
           cat.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
         } else {
-          if (cat.goal && cat.goal.startsWith("perch_")) {
-            const key = cat.goal.split("_")[1];
-            let lift = 22;
-            let tx = 7, ty = 3;
-            if (key === "chair") { lift = 21; tx = 1; ty = 4; }
-            else if (key === "desk") { lift = 24; tx = 0; ty = 4; }
-            cat.perch = { key, tx, ty, lift, t0: st.t, until: st.t + 15 + Math.random() * 20, scattered: false };
-            cat.from = { cx: tx, cy: ty };
-            cat.fx = tx; cat.fy = ty;
-            cat.state = key === "desk" ? "sleep" : "sit";
-            cat.goal = null;
-            if (key === "chair") {
-              st.chairSpin = st.t; // fa girare la sedia
-              sfx.click();
-              const card = MTG_CARDS[Math.floor(Math.random() * MTG_CARDS.length)];
-              const template = MTG_TEMPLATES[Math.floor(Math.random() * MTG_TEMPLATES.length)];
-              showBubble(template(card), 3.5, "cat");
-            }
-          } else {
-            cat.state = cat.goal || "sit";
-            cat.goal = null;
-            cat.until = st.t + (cat.state === "sleep" ? 18 + Math.random() * 22 : 3 + Math.random() * 5);
-          }
+          cat.state = cat.goal || "sit";
+          cat.goal = null;
+          cat.until = st.t + (cat.state === "sleep" ? 18 + Math.random() * 22 : 3 + Math.random() * 5);
         }
       }
     } else if (st.t > cat.until) {
@@ -2230,31 +1820,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       } else {
         const r = Math.random();
         const atHome = cat.from.cx === 4 && cat.from.cy === 6;
-        const force = cat.forceChair;
-        cat.forceChair = false;
-        
-        if (force && !st.av.seated && !st.sitTarget) {
-          catGo("perch_chair", { cx: 2, cy: 4 });
-        }
-        // Decidi se salire su un arredo (25% di probabilità)
-        else if (r < 0.25) {
-          const perches = ["chair", "table", "desk"];
-          const choice = perches[Math.floor(Math.random() * perches.length)];
-          
-          if (choice === "chair" && !st.av.seated && !st.sitTarget) {
-            catGo("perch_chair", { cx: 2, cy: 4 });
-          } else if (choice === "table") {
-            catGo("perch_table", { cx: 7, cy: 5 });
-          } else if (choice === "desk") {
-            catGo("perch_desk", { cx: 1, cy: 5 });
-          } else {
-            cat.state = "sit"; cat.until = st.t + 3;
-          }
-        }
-        else if (r < 0.55) {
+        if (r < 0.45) {
           if (atHome) { cat.state = "sleep"; cat.until = st.t + 18 + Math.random() * 22; }
           else catGo("sleep", { cx: 4, cy: 6 });
-        } else if (r < 0.85) {
+        } else if (r < 0.75) {
           // vaga verso un tile libero casuale
           let tgt = null;
           for (let tries = 0; tries < 8 && !tgt; tries++) {
@@ -2271,25 +1840,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (cat.state === "sleep" && !cat.to && st.t > cat.nextZ && !reduced) {
       cat.nextZ = st.t + 1.8;
       const cp = tileTop(cat.fx, cat.fy);
-      const lift = cat.perch ? cat.perch.lift : 0;
-      spawnFx("zzz", cp.x + 6, cp.y - 6 - lift);
+      spawnFx("zzz", cp.x + 6, cp.y - 6);
     }
-
-    /* — update carte sparpagliate — */
-    for (const card of st.scatter) {
-      if (Math.abs(card.vx) > 0.1 || Math.abs(card.vy) > 0.1) {
-        card.x += card.vx * dt;
-        card.y += card.vy * dt;
-        card.vx *= 0.90;
-        card.vy *= 0.90;
-        card.rot += card.vr * dt;
-        card.vr *= 0.90;
-      } else if (!card.snapped) {
-        card.snapped = true;
-        sfx.snap();
-      }
-    }
-    st.scatter = st.scatter.filter((card) => st.t - card.t0 < 12);
 
     /* — note musicali dal giradischi — */
     if (sfx.musicOn() && st.t > st.nextNote && !reduced) {
@@ -2309,190 +1861,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         st.cdRang = true;
         sfx.ding();
         showBubble("⏰ Il torneo inizia tra 1 minuto!", 4);
-      }
-    }
-
-    /* — gestione Shadow Realm — */
-    if (st.shadow) {
-      if (st.t > st.shadow.until) {
-        exitShadow();
-      } else {
-        for (const col of st.matrix) {
-          col.y += dt * col.sp * 0.8;
-          if (col.y > 1.2) {
-            col.y = -0.2;
-            col.u = Math.random();
-            col.sp = 0.25 + Math.random() * 0.5;
-          }
-        }
-        if (st.shadowCards) {
-          const w = st.view ? st.view.w : WW;
-          const h = st.view ? st.view.h : WH;
-          for (const card of st.shadowCards) {
-            card.x += card.vx * dt;
-            card.y += card.vy * dt;
-            card.rot += card.vr * dt;
-            if (card.x < -60) card.x = w + 60;
-            else if (card.x > w + 60) card.x = -60;
-            if (card.y < -85) card.y = h + 85;
-            else if (card.y > h + 85) card.y = -85;
-          }
-        }
-      }
-    }
-
-    /* — gestione automatic pack drop — */
-    if (!st.packAvail && st.t > st.packAt) {
-      st.packAvail = true;
-      showBubble("🎁 C'è un pacchetto omaggio sul tavolo delle carte!", 4.5);
-    }
-
-    /* — gestione sequenza Pack Opening — */
-    if (st.pack) {
-      const pk = st.pack;
-      if (pk.phase === "walk" && !av.to && !av.queue.length) {
-        pk.phase = "lift";
-        pk.t0 = st.t;
-        av.dir = "ne";
-      }
-      else if (pk.phase === "lift") {
-        const elapsed = st.t - pk.t0;
-        if (elapsed > 1.2) {
-          pk.phase = "rip";
-          pk.t0 = st.t;
-        }
-      }
-      else if (pk.phase === "reveal" && pk.cards) {
-        // Aggiorna le due metà
-        if (pk.halves) {
-          const halves = pk.halves;
-          halves.x1 += halves.vx1 * dt;
-          halves.x2 += halves.vx2 * dt;
-          halves.y1 += halves.vy * dt;
-          halves.y2 += halves.vy * dt;
-          halves.vy += 280 * dt;
-          halves.rot1 -= 3 * dt;
-          halves.rot2 += 3 * dt;
-        }
-        // Aggiorna le tre carte
-        pk.cards.forEach((pc) => {
-          const age = st.t - pk.t0;
-          if (age < 0.6) {
-            pc.x += pc.vx * dt;
-            pc.y += pc.vy * dt;
-            pc.vx *= 0.92;
-            pc.vy *= 0.92;
-            pc.scale = lerp(0.15, 1.0, age / 0.6);
-          } else {
-            pc.x = lerp(pc.x, pc.targetX, 0.12);
-            pc.y = lerp(pc.y, pc.targetY, 0.12);
-            pc.scale = lerp(pc.scale, 1.0, 0.12);
-          }
-          if (pc.revealed) {
-            pc.glowProgress = Math.min(1, pc.glowProgress + dt * 2.5);
-          }
-        });
-      }
-    }
-
-    /* — gestione sequenza Hype — */
-    if (st.hype) {
-      const hp = st.hype;
-      if (hp.phase === "alarm") {
-        if (st.t > hp.nextBeep) {
-          hp.nextBeep = st.t + 0.8;
-          sfx.alarm();
-        }
-        if (!hp.walking) {
-          hp.walking = true;
-          const t00 = av.to || av.from;
-          let best = null;
-          for (const [x, y] of inter.decks.approach) {
-            const p = findPath(t00, { cx: x, cy: y }, blocked);
-            if (p && (!best || p.length < best.length)) best = p;
-          }
-          if (best && best.length) {
-            av.queue = best;
-            shiftStep();
-          }
-        }
-        if (hp.walking && !av.to && !av.queue.length) {
-          const elapsed = st.t - hp.t0;
-          if (elapsed > 2.0) {
-            av.dir = "ne";
-            hp.phase = "nod";
-            hp.t0 = st.t;
-          }
-        }
-      }
-      else if (hp.phase === "nod") {
-        av.dir = "sw";
-        const elapsed = st.t - hp.t0;
-        if (elapsed > 0.4 && !hp.sparked) {
-          hp.sparked = true;
-          const ap = tileTop(av.fx, av.fy);
-          spawnFx("spark", ap.x - 4, ap.y - 32, 3);
-          sfx.success();
-          showBubble("👍 Fatti sotto! Pronto al match!", 2.5);
-        }
-        if (elapsed > 1.8) {
-          hp.phase = "split";
-          hp.t0 = st.t;
-          sfx.shuffle();
-        }
-      }
-      else if (hp.phase === "split") {
-        const elapsed = st.t - hp.t0;
-        if (elapsed > 1.0) {
-          hp.phase = "deal";
-          hp.t0 = st.t;
-          hp.deals = [];
-          hp.nextDeal = 0;
-        }
-      }
-      else if (hp.phase === "deal" && hp.deals) {
-        const elapsed = st.t - hp.t0;
-        if (hp.deals.length < 4 && st.t > hp.nextDeal) {
-          hp.nextDeal = st.t + 0.22;
-          const angle = Math.random() * Math.PI * 2;
-          const speed = 70 + Math.random() * 50;
-          const tCenter = tablePt(7.0, 3.0);
-          hp.deals.push({
-            x: tCenter.x, y: tCenter.y,
-            vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed * 0.6,
-            rot: 0, vr: (Math.random() - 0.5) * 12,
-            color: ["#d94f46", "#4a7fd6", "#9a6ad6", P.gold][hp.deals.length]
-          });
-          sfx.snap();
-        }
-        for (const card of hp.deals) {
-          card.x += card.vx * dt;
-          card.y += card.vy * dt;
-          card.vx *= 0.90;
-          card.vy *= 0.90;
-          card.rot += card.vr * dt;
-          card.vr *= 0.90;
-        }
-        if (elapsed > 1.8) {
-          hp.phase = "zoom";
-          hp.t0 = st.t;
-          sfx.whoosh();
-        }
-      }
-      else if (hp.phase === "zoom") {
-        const elapsed = st.t - hp.t0;
-        const k = clamp(elapsed / 1.0, 0, 1);
-        st.cam.x = lerp(DEFAULT_CAM.x, scrCenter.x, k);
-        st.cam.y = lerp(DEFAULT_CAM.y, scrCenter.y, k);
-        st.cam.z = lerp(1, 14, k * k);
-        if (elapsed > 1.0) {
-          st.hype = null;
-          st.cinematic = false;
-          st.cam.x = DEFAULT_CAM.x;
-          st.cam.y = DEFAULT_CAM.y;
-          st.cam.z = 1;
-          if (apiRef.current.openModal) apiRef.current.openModal("pc");
-        }
       }
     }
 
@@ -2526,22 +1894,16 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const c = tileTop(cat.fx, cat.fy);
     const cxp = c.x, cyp = c.y + HTH;
     const moving = !!cat.to;
-    const lift = cat.perch ? cat.perch.lift : 0;
-    
-    // ombra a terra
-    const shadowAlpha = lift > 0 ? 0.12 : 0.22;
-    wctx.fillStyle = "rgba(25,22,40," + shadowAlpha + ")";
-    wctx.beginPath();
-    wctx.ellipse(cxp, cyp + 4, lift > 0 ? 6.5 : 9, lift > 0 ? 2.5 : 3.5, 0, 0, Math.PI * 2);
-    wctx.fill();
-    
+    // ombra
+    wctx.fillStyle = "rgba(25,22,40,0.22)";
+    wctx.beginPath(); wctx.ellipse(cxp, cyp + 4, 9, 3.5, 0, 0, Math.PI * 2); wctx.fill();
     const flip = cat.dir === "nw" || cat.dir === "sw" ? 2 : 0;
     let fr;
     if (moving) fr = catSp.walk[flip + (Math.floor(st.t * 7) % 2)];
     else if (cat.state === "sleep") fr = catSp.sleep[flip + (Math.floor(st.t * 0.9) % 2)];
     else fr = catSp.sit[flip + (Math.floor(st.t * 1.4) % 2)];
     const bob = moving ? -Math.abs(Math.sin(cat.t * Math.PI * 2)) * 1 : 0;
-    wctx.drawImage(fr.cv, Math.round(cxp - fr.feet.x), Math.round(cyp + 4 - fr.feet.y + bob - lift));
+    wctx.drawImage(fr.cv, Math.round(cxp - fr.feet.x), Math.round(cyp + 4 - fr.feet.y + bob));
   }
 
   /** contenuto acceso del monitor: 3 micro-scene a ciclo (UI, grafico, screensaver DVD) */
@@ -2602,7 +1964,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function drawTableClock() {
     if (!st.countdown) return;
     const rem = Math.max(0, st.countdown - Date.now());
-    const c = tileTop(8.4, 3.6);
+    const c = tileTop(8, 4);
     const urgent = rem < 60000;
     const shake = urgent ? Math.round(Math.sin(st.t * 30)) : 0;
     wctx.save();
@@ -2628,15 +1990,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const cxp = c.x, cyp = c.y + HTH;
     const moving = !!av.to;
     const seated = (av.seated || st.afk) && !moving;
-    if (st.shadow && (!seated || st.afk)) {
-      // aura scura/viola pulsante
-      const pulse = 1 + 0.15 * Math.sin(st.t * 3);
-      const auraG = wctx.createRadialGradient(cxp, cyp + 5, 2, cxp, cyp + 5, 16 * pulse);
-      auraG.addColorStop(0, "rgba(128, 0, 255, 0.45)");
-      auraG.addColorStop(1, "rgba(0, 0, 0, 0)");
-      wctx.fillStyle = auraG;
-      wctx.beginPath(); wctx.ellipse(cxp, cyp + 5, 16 * pulse, 6.5 * pulse, 0, 0, Math.PI * 2); wctx.fill();
-    } else if (!seated || st.afk) {
+    if (!seated || st.afk) {
       wctx.fillStyle = "rgba(25,22,40,0.28)";
       wctx.beginPath(); wctx.ellipse(cxp, cyp + 5, 12.5, 5, 0, 0, Math.PI * 2); wctx.fill();
     }
@@ -2644,15 +1998,14 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (seated) sp = avatar.sit[Math.floor(st.t * 1.2) % 2];
     else {
       const D = avatar[av.dir];
-      if (moving && !st.shadow) sp = D.walk[Math.floor(av.wt) % 4];
+      if (moving) sp = D.walk[Math.floor(av.wt) % 4];
       else if (st.t < av.blinkUntil && (av.dir === "se" || av.dir === "sw")) sp = D.blink;
       else sp = D.idle[Math.floor(st.t * 1.3) % 2];
     }
-    const bob = (moving && !st.shadow) ? -Math.abs(Math.sin(av.t * Math.PI)) * 1.6
+    const bob = moving ? -Math.abs(Math.sin(av.t * Math.PI)) * 1.6
       : st.afk ? Math.sin(st.t * 1.6) * 1.2 : 0; // respiro lento in meditazione
-    const shadowLift = st.shadow && !seated ? Math.sin(st.t * 3.5) * 4 - 5 : 0; // fluttua nello Shadow Realm
     const lift = seated ? (st.afk ? 5 : 21) : 0; // sedia vs tappeto
-    wctx.drawImage(sp.cv, Math.round(cxp - sp.feet.x), Math.round(cyp + 6 - sp.feet.y + bob - lift + shadowLift));
+    wctx.drawImage(sp.cv, Math.round(cxp - sp.feet.x), Math.round(cyp + 6 - sp.feet.y + bob - lift));
     st.avDraw = sp; // per il riflesso nella finestra
   }
 
@@ -2679,484 +2032,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     wctx.fillText(st.ghost, Math.round(cxp - tw / 2), y - 5);
   }
 
-  const drawPackGraphics = (c, dx, dy) => {
-    c.fillStyle = "#1e2230"; c.fillRect(dx - 14, dy - 22, 28, 44);
-    c.fillStyle = P.metal; c.fillRect(dx - 12, dy - 20, 24, 40);
-    c.fillStyle = "#FF7300"; c.fillRect(dx - 9, dy - 10, 18, 20);
-    c.fillStyle = P.gold; c.fillRect(dx - 9, dy - 10, 18, 2); c.fillRect(dx - 9, dy + 8, 18, 2);
-    c.fillStyle = "#ffffff"; c.fillRect(dx - 4, dy - 4, 8, 8);
-    c.fillStyle = "#d94f46"; c.fillRect(dx - 2, dy - 2, 4, 4);
-  };
-
-  const drawShadowCard = (c, card) => {
-    c.save();
-    c.translate(card.x, card.y);
-    c.rotate(card.rot);
-    c.scale(card.scale, card.scale);
-    
-    // Ombra/glow soffusa viola dietro la carta
-    const cardGlow = c.createRadialGradient(0, 0, 2, 0, 0, 16);
-    cardGlow.addColorStop(0, "rgba(128, 0, 255, 0.35)");
-    cardGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
-    c.fillStyle = cardGlow;
-    c.beginPath();
-    c.arc(0, 0, 16, 0, Math.PI * 2);
-    c.fill();
-
-    // Corpo carta
-    c.fillStyle = "#120a1c"; // sfondo scuro esoterico
-    rr(c, -11, -17, 22, 34, 3);
-    c.fill();
-    
-    // Bordo colorato
-    c.strokeStyle = card.col;
-    c.lineWidth = 1;
-    rr(c, -10, -16, 20, 32, 2.5);
-    c.stroke();
-    
-    // Logo "E" o "BRX"
-    c.fillStyle = card.col;
-    c.textAlign = "center";
-    c.textBaseline = "middle";
-    if (card.type === "ebartex") {
-      c.font = "bold 9px 'Segoe UI', system-ui, sans-serif";
-      c.fillText("E", 0, -1);
-    } else {
-      c.font = "bold 6px 'Press Start 2P', monospace";
-      c.fillText("BRX", 0, 0);
-    }
-    
-    // Piccoli dettagli decorativi retro carta
-    c.fillStyle = "rgba(255, 255, 255, 0.12)";
-    c.fillRect(-7, -13, 14, 1);
-    c.fillRect(-7, 12, 14, 1);
-    
-    c.restore();
-  };
-
-  const drawPackHalf = (c, dx, dy, left) => {
-    c.fillStyle = "#1e2230";
-    if (left) {
-      c.fillRect(dx - 14, dy - 22, 14, 44);
-      c.fillStyle = P.metal; c.fillRect(dx - 12, dy - 20, 12, 40);
-      c.fillStyle = "#FF7300"; c.fillRect(dx - 9, dy - 10, 9, 20);
-    } else {
-      c.fillRect(dx, dy - 22, 14, 44);
-      c.fillStyle = P.metal; c.fillRect(dx, dy - 20, 12, 40);
-      c.fillStyle = "#FF7300"; c.fillRect(dx, dy - 10, 9, 20);
-    }
-  };
-
-  const drawCardArtwork = (c, dx, dy, sig) => {
-    const artY = dy - 39, artH = 39;
-    const baseColors = {
-      flame: ["#3d0f11", "#a82e2e"], 
-      star: ["#0a0720", "#2c1a60"],  
-      shield: ["#1e202b", "#3d425c"], 
-      sun: ["#3d2508", "#8c5b1b"],    
-      bolt: ["#142535", "#06b6d4"],   
-      wave: ["#061a29", "#1d5c80"],   
-      leaf: ["#0d2011", "#1d5828"],   
-      moon: ["#110920", "#3d1b58"]    
-    };
-    
-    const colors = baseColors[sig] || baseColors.star;
-    const g = c.createLinearGradient(dx, artY, dx, artY + artH);
-    g.addColorStop(0, colors[0]);
-    g.addColorStop(1, colors[1]);
-    c.fillStyle = g;
-    c.fillRect(dx - 24, artY, 48, artH);
-    
-    c.lineWidth = 1.5;
-    if (sig === "flame") {
-      c.fillStyle = "#FF7300";
-      c.beginPath();
-      c.moveTo(dx - 18, artY + artH);
-      c.lineTo(dx - 4, artY + 16);
-      c.lineTo(dx + 4, artY + 16);
-      c.lineTo(dx + 18, artY + artH);
-      c.closePath(); c.fill();
-      
-      c.fillStyle = P.gold;
-      c.beginPath();
-      c.moveTo(dx - 10, artY + artH);
-      c.lineTo(dx, artY + 22);
-      c.lineTo(dx + 10, artY + artH);
-      c.closePath(); c.fill();
-      
-      c.fillStyle = "#ffffff";
-      c.fillRect(dx - 2, artY + 10, 2, 2);
-      c.fillRect(dx + 4, artY + 8, 1.5, 1.5);
-    }
-    else if (sig === "star") {
-      c.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      c.beginPath();
-      c.moveTo(dx - 16, artY + 12); c.lineTo(dx, artY + 28);
-      c.lineTo(dx + 16, artY + 16); c.lineTo(dx - 6, artY + 34);
-      c.stroke();
-      
-      c.fillStyle = "#ffffff";
-      c.fillRect(dx - 17, artY + 11, 3, 3);
-      c.fillRect(dx - 1, artY + 27, 3, 3);
-      c.fillRect(dx + 15, artY + 15, 3, 3);
-      c.fillRect(dx - 7, artY + 33, 3, 3);
-      
-      c.fillStyle = "#c084fc";
-      c.beginPath();
-      c.arc(dx + 10, artY + 28, 4, 0, Math.PI * 2);
-      c.fill();
-    }
-    else if (sig === "shield") {
-      c.fillStyle = "#838da1";
-      c.beginPath();
-      c.moveTo(dx - 10, artY + 12);
-      c.lineTo(dx + 10, artY + 12);
-      c.lineTo(dx + 10, artY + 24);
-      c.quadraticCurveTo(dx + 10, artY + 34, dx, artY + 37);
-      c.quadraticCurveTo(dx - 10, artY + 34, dx - 10, artY + 24);
-      c.closePath(); c.fill();
-      c.strokeStyle = P.gold; c.lineWidth = 1; c.stroke();
-      
-      c.strokeStyle = "#ffe9b0";
-      c.beginPath();
-      c.moveTo(dx, artY + 16); c.lineTo(dx, artY + 32);
-      c.moveTo(dx - 6, artY + 22); c.lineTo(dx + 6, artY + 22);
-      c.stroke();
-    }
-    else if (sig === "sun") {
-      c.fillStyle = P.gold;
-      c.beginPath();
-      c.arc(dx, artY + artH, 14, Math.PI, 0);
-      c.fill();
-      
-      c.strokeStyle = "#ffe9b0";
-      c.lineWidth = 1.5;
-      for (let a = Math.PI; a <= Math.PI * 2; a += Math.PI / 6) {
-        c.beginPath();
-        c.moveTo(dx + Math.cos(a) * 14, artY + artH + Math.sin(a) * 14);
-        c.lineTo(dx + Math.cos(a) * 22, artY + artH + Math.sin(a) * 22);
-        c.stroke();
-      }
-    }
-    else if (sig === "bolt") {
-      c.fillStyle = P.gold;
-      c.beginPath();
-      c.moveTo(dx + 4, artY + 6);
-      c.lineTo(dx - 8, artY + 22);
-      c.lineTo(dx - 1, artY + 22);
-      c.lineTo(dx - 6, artY + 36);
-      c.lineTo(dx + 8, artY + 18);
-      c.lineTo(dx + 1, artY + 18);
-      c.closePath(); c.fill();
-      
-      c.strokeStyle = "#ffffff";
-      c.lineWidth = 1;
-      c.stroke();
-    }
-    else if (sig === "wave") {
-      c.fillStyle = "#1d5c80";
-      c.fillRect(dx - 24, artY + 24, 48, artH - 24);
-      
-      c.fillStyle = "#38bdf8";
-      c.beginPath();
-      c.moveTo(dx - 24, artY + 24);
-      c.bezierCurveTo(dx - 12, artY + 14, dx - 12, artY + 34, dx, artY + 24);
-      c.bezierCurveTo(dx + 12, artY + 14, dx + 12, artY + 34, dx + 24, artY + 24);
-      c.lineTo(dx + 24, artY + artH);
-      c.lineTo(dx - 24, artY + artH);
-      c.closePath(); c.fill();
-      
-      c.fillStyle = "#ffffff";
-      c.fillRect(dx - 16, artY + 19, 3, 2);
-      c.fillRect(dx + 10, artY + 19, 3, 2);
-    }
-    else if (sig === "leaf") {
-      c.fillStyle = "#22c55e";
-      c.beginPath();
-      c.moveTo(dx, artY + 10);
-      c.quadraticCurveTo(dx + 12, artY + 20, dx, artY + 34);
-      c.quadraticCurveTo(dx - 12, artY + 20, dx, artY + 10);
-      c.closePath(); c.fill();
-      
-      c.strokeStyle = "#15803d";
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(dx, artY + 10); c.lineTo(dx, artY + 34);
-      c.stroke();
-    }
-    else if (sig === "moon") {
-      c.fillStyle = "#e2e8f0";
-      c.beginPath();
-      c.arc(dx, artY + 20, 10, 0, Math.PI * 2);
-      c.fill();
-      
-      c.fillStyle = colors[0];
-      c.beginPath();
-      c.arc(dx - 4, artY + 18, 9, 0, Math.PI * 2);
-      c.fill();
-      
-      c.fillStyle = "#ffffff";
-      c.fillRect(dx + 12, artY + 12, 2, 2);
-      c.fillRect(dx - 14, artY + 30, 2, 2);
-    }
-  };
-
-  const drawLargeCardBack = (c, dx, dy) => {
-    // 1. Bordo esterno scuro strutturato
-    c.fillStyle = "#0f111a";
-    rr(c, dx - 32, dy - 47, 64, 94, 6);
-    c.fill();
-    
-    // 2. Sfondo primario retro - gradiente profondo rosso/viola
-    const bgGrad = c.createLinearGradient(dx, dy - 44, dx, dy + 44);
-    bgGrad.addColorStop(0, "#8f1d3b"); 
-    bgGrad.addColorStop(1, "#201235"); 
-    c.fillStyle = bgGrad;
-    rr(c, dx - 29, dy - 44, 58, 88, 4);
-    c.fill();
-    
-    // 3. Cornice dorata interna ornamentale con angoli tratteggiati
-    c.strokeStyle = P.gold;
-    c.lineWidth = 1.5;
-    rr(c, dx - 24, dy - 39, 48, 78, 3);
-    c.stroke();
-    
-    // Dettagli angoli cornici (piccole borchie o croci)
-    c.fillStyle = "#ffe9b0";
-    for (const ox of [-24, 23]) {
-      for (const oy of [-39, 38]) {
-        c.fillRect(dx + ox, dy + oy, 2, 2);
-      }
-    }
-    
-    // 4. Linee geometriche esoteriche o di scansione retro
-    c.strokeStyle = "rgba(255, 233, 176, 0.15)";
-    c.lineWidth = 1;
-    c.beginPath();
-    c.moveTo(dx - 24, dy - 39); c.lineTo(dx + 24, dy + 39);
-    c.moveTo(dx + 24, dy - 39); c.lineTo(dx - 24, dy + 39);
-    c.stroke();
-    
-    // 5. Emblema Centrale (Cerchio Runicio + Scudo BRX)
-    c.fillStyle = "#120d24";
-    c.beginPath();
-    c.arc(dx, dy, 16, 0, Math.PI * 2);
-    c.fill();
-    c.strokeStyle = P.gold;
-    c.lineWidth = 1;
-    c.stroke();
-    
-    c.strokeStyle = "rgba(242, 185, 75, 0.4)";
-    for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
-      c.beginPath();
-      c.moveTo(dx + Math.cos(a) * 16, dy + Math.sin(a) * 16);
-      c.lineTo(dx + Math.cos(a) * 22, dy + Math.sin(a) * 22);
-      c.stroke();
-    }
-    
-    c.fillStyle = "#1e163b";
-    c.beginPath();
-    c.arc(dx, dy, 11, 0, Math.PI * 2);
-    c.fill();
-    
-    c.fillStyle = P.gold;
-    c.font = "bold 6px 'Press Start 2P', monospace";
-    c.textAlign = "center";
-    c.textBaseline = "middle";
-    c.fillText("BRX", dx, dy + 0.5);
-    c.textBaseline = "alphabetic";
-  };
-
-  const drawLargeCard = (c, dx, dy, card, progress) => {
-    const { w } = st.view;
-    const rar = card.rarita.toLowerCase();
-    const isHolo = rar === "epica" || rar === "leggendaria";
-    
-    // 1. Outline principale della carta
-    c.fillStyle = "#0f111a";
-    rr(c, dx - 32, dy - 47, 64, 94, 5);
-    c.fill();
-    
-    // 2. Colore di sfondo della carta
-    const cardBgCol = isHolo ? "#f1ebdf" : (rar === "rara" ? "#f3f5fa" : "#fdfbf7");
-    c.fillStyle = cardBgCol;
-    rr(c, dx - 29, dy - 44, 58, 88, 4);
-    c.fill();
-    
-    // 3. Cornice interna sottile della rarità
-    const rarCol = rar === "leggendaria" ? P.gold : (rar === "epica" ? "#a855f7" : (rar === "rara" ? "#3b82f6" : "#8a94a6"));
-    c.strokeStyle = rarCol;
-    c.lineWidth = 1;
-    rr(c, dx - 27, dy - 42, 54, 84, 3);
-    c.stroke();
-    
-    // 4. Box dell'Artwork (Clipped & disegnato)
-    const artY = dy - 39, artH = 39;
-    c.save();
-    rr(c, dx - 24, artY, 48, artH, 2);
-    c.clip();
-    drawCardArtwork(c, dx, dy, card.sig);
-    
-    if (isHolo) {
-      c.save();
-      c.globalCompositeOperation = "lighter";
-      c.globalAlpha = 0.38;
-      const angle = (st.t * 1.5 + (st.pointer.x / w) * 2.0) % (Math.PI * 2);
-      const holoG = c.createLinearGradient(dx - 24, artY, dx + 24, artY + artH);
-      holoG.addColorStop(0, "hsl(" + ((st.t * 50) % 360) + ", 80%, 75%)");
-      holoG.addColorStop(0.5, "hsl(" + (((st.t * 50) + 120) % 360) + ", 80%, 75%)");
-      holoG.addColorStop(1, "hsl(" + (((st.t * 50) + 240) % 360) + ", 80%, 75%)");
-      c.fillStyle = holoG;
-      c.fillRect(dx - 24, artY, 48, artH);
-      c.restore();
-    }
-    c.restore();
-    
-    c.strokeStyle = "#0f111a";
-    c.lineWidth = 1.2;
-    rr(c, dx - 24, artY, 48, artH, 2);
-    c.stroke();
-
-    // 5. Nome Carta
-    c.fillStyle = "#0f111a";
-    c.font = "bold 8px 'Segoe UI', system-ui, sans-serif";
-    c.textAlign = "center";
-    c.fillText(card.nome, dx, dy + 11);
-    
-    // 6. Barra del Tipo (Creatura, Incantesimo, ecc.)
-    const typeY = dy + 18, typeH = 9;
-    c.fillStyle = "rgba(15, 17, 26, 0.07)";
-    c.fillRect(dx - 24, typeY, 48, typeH);
-    c.strokeStyle = "rgba(15, 17, 26, 0.2)";
-    c.lineWidth = 0.5;
-    c.strokeRect(dx - 24, typeY, 48, typeH);
-    
-    c.fillStyle = "#334155";
-    c.font = "italic 6px 'Segoe UI', system-ui, sans-serif";
-    c.textBaseline = "middle";
-    c.fillText(card.tipo, dx, typeY + typeH / 2);
-    c.textBaseline = "alphabetic";
-
-    // 7. Descrizione finta (righe di testo)
-    c.fillStyle = "rgba(15, 17, 26, 0.4)";
-    c.fillRect(dx - 20, dy + 32, 40, 1.2);
-    c.fillRect(dx - 20, dy + 36, 34, 1.2);
-    c.fillRect(dx - 20, dy + 40, 26, 1.2);
-
-    // 8. Costo di Mana (Bolla in alto a sinistra)
-    const costX = dx - 24, costY = dy - 39;
-    c.fillStyle = "#2d3748";
-    c.beginPath();
-    c.arc(costX, costY, 6, 0, Math.PI * 2);
-    c.fill();
-    c.strokeStyle = P.gold;
-    c.lineWidth = 0.8;
-    c.stroke();
-    
-    c.fillStyle = "#ffffff";
-    c.font = "bold 7px 'Segoe UI', system-ui, sans-serif";
-    c.textAlign = "center";
-    c.textBaseline = "middle";
-    c.fillText(card.costo, costX, costY + 0.5);
-    c.textBaseline = "alphabetic";
-
-    // 9. Gemma della Rarità (in basso al centro)
-    const gemX = dx, gemY = dy + 28;
-    c.fillStyle = rarCol;
-    c.beginPath();
-    c.moveTo(gemX, gemY - 3);
-    c.lineTo(gemX + 4, gemY);
-    c.lineTo(gemX, gemY + 3);
-    c.lineTo(gemX - 4, gemY);
-    c.closePath();
-    c.fill();
-    c.strokeStyle = "#0f111a";
-    c.lineWidth = 0.6;
-    c.stroke();
-    
-    if (rar === "leggendaria") {
-      c.strokeStyle = P.gold;
-      c.lineWidth = 1.5;
-      rr(c, dx - 28, dy - 43, 56, 86, 3.5);
-      c.stroke();
-    }
-    
-    c.textAlign = "left";
-  };
-
   function render() {
     const { w, h, dpr, scale } = st.view;
     /* — mondo — */
     wctx.clearRect(0, 0, WW, WH);
     wctx.drawImage(bg, 0, 0);
-
-    /* — Shadow Realm: finestra dinamica + poster glifi — */
-    if (st.shadow) {
-      wctx.save();
-      wctx.beginPath();
-      const g0 = wallL(5.82, 86), g1 = wallL(7.58, 86), g2 = wallL(7.58, 34), g3 = wallL(5.82, 34);
-      wctx.moveTo(g0.x, g0.y); wctx.lineTo(g1.x, g1.y); wctx.lineTo(g2.x, g2.y); wctx.lineTo(g3.x, g3.y);
-      wctx.closePath(); wctx.clip();
-      
-      // Sfondo scuro
-      wctx.fillStyle = "#0c0214";
-      wctx.fillRect(0, 0, WW, WH);
-      
-      // Nebula viola dello spazio profondo
-      const nebulaX = WW / 2 + Math.sin(st.t * 0.3) * 60;
-      const nebulaY = WH / 2 + Math.cos(st.t * 0.2) * 30;
-      const radG = wctx.createRadialGradient(nebulaX, nebulaY, 10, nebulaX, nebulaY, 80);
-      radG.addColorStop(0, "rgba(128,0,255,0.45)");
-      radG.addColorStop(0.5, "rgba(64,0,128,0.22)");
-      radG.addColorStop(1, "rgba(0,0,0,0)");
-      wctx.fillStyle = radG;
-      wctx.fillRect(0, 0, WW, WH);
-      
-      // Pioggia matrix verde
-      wctx.fillStyle = "#39ff14";
-      for (let i = 0; i < st.matrix.length; i++) {
-        const col = st.matrix[i];
-        const wx = lerp(g0.x, g1.x, col.u);
-        const wy = lerp(g0.y, g3.y, col.y);
-        for (let j = 0; j < 5; j++) {
-          wctx.globalAlpha = (1 - j * 0.2) * 0.85;
-          wctx.fillRect(wx, wy - j * 9, 2, 6);
-        }
-      }
-      wctx.restore();
-      wctx.globalAlpha = 1;
-      
-      // Disegna i glifi esoterici sui poster
-      const drawPosterGlyph = (rect, col) => {
-        const cx = rect.x + rect.w / 2;
-        const cy = rect.y + rect.h / 2;
-        wctx.save();
-        wctx.strokeStyle = col;
-        wctx.lineWidth = 1.5;
-        wctx.shadowColor = col;
-        wctx.shadowBlur = 6;
-        wctx.globalAlpha = 0.5 + 0.3 * Math.sin(st.t * 6);
-        wctx.beginPath();
-        wctx.moveTo(cx, cy - 10);
-        wctx.lineTo(cx - 8, cy + 6);
-        wctx.lineTo(cx + 8, cy + 6);
-        wctx.closePath();
-        wctx.stroke();
-        wctx.beginPath();
-        wctx.arc(cx, cy + 1, 3, 0, Math.PI * 2);
-        wctx.fillStyle = col;
-        wctx.fill();
-        wctx.restore();
-      };
-      
-      const brandEgg = eggs.find((eg) => eg.key === "posterBrand");
-      const synthEgg = eggs.find((eg) => eg.key === "posterSynth");
-      const tcgEgg = eggs.find((eg) => eg.key === "posterTcg");
-      if (brandEgg) drawPosterGlyph(brandEgg.rect, "#ff00ff");
-      if (synthEgg) drawPosterGlyph(synthEgg.rect, "#00ffff");
-      if (tcgEgg) drawPosterGlyph(tcgEgg.rect, "#ffaa00");
-    }
-
     // orme sul tappeto (svaniscono in 4s)
     for (const pr of st.prints) {
       const k = (st.t - pr.t0) / 4;
@@ -3211,137 +2091,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         drawGlow(sils[e.inter], x, y, e.inter === "pc" && pcAlert ? 1.9 : 1);
       }
       if (e.key === "turn" && (st.hover.decor === "music" || sfx.musicOn())) drawGlow(turnSil, x, y, sfx.musicOn() ? 0.6 : 1);
-      
-      // Sedia rotante (oscillazione ammortizzata se urtata)
-      let angle = 0;
-      if (e.key === "chair" && st.chairSpin > 0 && st.t - st.chairSpin < 2.5) {
-        const elapsed = st.t - st.chairSpin;
-        angle = Math.sin(elapsed * 10) * 0.16 * Math.exp(-elapsed * 1.5);
-      }
-      
-      wctx.save();
-      if (angle !== 0) {
-        const cx = e.anchor.x;
-        const cy = e.anchor.y - 12;
-        wctx.translate(cx, cy);
-        wctx.rotate(angle);
-        wctx.translate(-cx, -cy);
-      }
       wctx.drawImage(spr.cv, x, y);
-      wctx.restore();
-      
       if (e.key === "desk") drawMonitorScreen(flick || pcAlert);
-      if (e.key === "table") {
-        drawTableClock();
-        
-        // Disegna la bustina sul tavolo se disponibile e non ancora al centro
-        if (st.packAvail && (!st.pack || st.pack.phase === "walk")) {
-          wctx.save();
-          const shake = (st.pack && st.pack.phase === "walk") ? 0 : Math.sin(st.t * 12) * 0.8;
-          wctx.translate(PACK_POS.x + shake, PACK_POS.y - 12);
-          const pgG = wctx.createRadialGradient(0, 0, 2, 0, 0, 16);
-          pgG.addColorStop(0, "rgba(243, 199, 106, 0.5)");
-          pgG.addColorStop(1, "rgba(243, 199, 106, 0)");
-          wctx.fillStyle = pgG;
-          wctx.beginPath(); wctx.ellipse(0, 4, 12, 5, 0, 0, Math.PI * 2); wctx.fill();
-          drawPackGraphics(wctx, 0, -4);
-          wctx.restore();
-        }
-        
-        // Disegna le carte sparpagliate da Missy
-        for (const card of st.scatter) {
-          const age = st.t - card.t0;
-          wctx.save();
-          wctx.translate(card.x, card.y);
-          wctx.rotate(card.rot);
-          wctx.globalAlpha = clamp((12 - age) * 0.5, 0, 1);
-          wctx.fillStyle = "#10142a";
-          wctx.fillRect(-4, -6, 8, 12);
-          wctx.fillStyle = "#f5f0e2";
-          wctx.fillRect(-3, -5, 6, 10);
-          wctx.fillStyle = card.col;
-          wctx.fillRect(-2, -3, 4, 6);
-          wctx.restore();
-        }
-        wctx.globalAlpha = 1;
-
-        // Disegna l'animazione di smazzata se siamo AFK al tavolo
-        if (st.afkShuffle) {
-          const tCenter = tablePt(7.0, 3.0);
-          const drawMiniDeck = (dx, dy, col, n = 4) => {
-            for (let i = 0; i < n; i++) {
-              wctx.fillStyle = "#10142a";
-              wctx.fillRect(dx - 5, dy - 7 - i * 1.5, 10, 14);
-              wctx.fillStyle = col;
-              wctx.fillRect(dx - 4, dy - 6 - i * 1.5, 8, 12);
-            }
-          };
-          const elapsed = st.t - st.afkShuffle.t0;
-          const p1 = { x: tCenter.x - 26, y: tCenter.y };
-          const p2 = { x: tCenter.x + 26, y: tCenter.y };
-          const midX = (p1.x + p2.x) / 2;
-          
-          drawMiniDeck(p1.x, p1.y, "#d94f46", 2);
-          drawMiniDeck(p2.x, p2.y, "#4a7fd6", 2);
-          
-          const nCards = 6;
-          for (let i = 0; i < nCards; i++) {
-            const tCard = (elapsed * 2.5 - (i / nCards)) % 1;
-            if (tCard < 0 || tCard > 1) continue;
-            const side = i % 2 === 0 ? -1 : 1;
-            const startX = midX + side * 26;
-            const x = lerp(startX, midX, tCard);
-            const h = Math.sin(tCard * Math.PI) * 16;
-            const y = tCenter.y - h;
-            
-            wctx.save();
-            wctx.translate(x, y);
-            wctx.rotate(tCard * side * 0.8);
-            wctx.fillStyle = i % 2 === 0 ? "#d94f46" : "#4a7fd6";
-            wctx.fillRect(-4, -6, 8, 12);
-            wctx.fillStyle = "#fff";
-            wctx.fillRect(-3, -5, 6, 10);
-            wctx.restore();
-          }
-          drawMiniDeck(midX, tCenter.y, P.gold, Math.floor((elapsed * 4) % 12));
-        }
-
-        // Disegna le fasi di Hype (split, deal) sul tavolo
-        if (st.hype) {
-          const tCenter = tablePt(7.0, 3.0);
-          const drawMiniDeck = (dx, dy, col, n = 4) => {
-            for (let i = 0; i < n; i++) {
-              wctx.fillStyle = "#10142a";
-              wctx.fillRect(dx - 5, dy - 7 - i * 1.5, 10, 14);
-              wctx.fillStyle = col;
-              wctx.fillRect(dx - 4, dy - 6 - i * 1.5, 8, 12);
-            }
-          };
-          
-          if (st.hype.phase === "split") {
-            const elapsed = st.t - st.hype.t0;
-            const k = clamp(elapsed / 1.0, 0, 1);
-            const dx = k * 12;
-            const lift = Math.sin(k * Math.PI) * 4;
-            drawMiniDeck(tCenter.x - 14 - dx, tCenter.y - lift, "#d94f46");
-            drawMiniDeck(tCenter.x + 14 + dx, tCenter.y - lift, "#4a7fd6");
-          }
-          else if (st.hype.phase === "deal" && st.hype.deals) {
-            for (const card of st.hype.deals) {
-              wctx.save();
-              wctx.translate(card.x, card.y);
-              wctx.rotate(card.rot);
-              wctx.fillStyle = "#10142a";
-              wctx.fillRect(-5, -7.5, 10, 15);
-              wctx.fillStyle = "#f5f0e2";
-              wctx.fillRect(-4, -6.5, 8, 13);
-              wctx.fillStyle = card.color;
-              wctx.fillRect(-2.5, -4.5, 5, 9);
-              wctx.restore();
-            }
-          }
-        }
-      }
+      if (e.key === "table") drawTableClock();
     }
     /* — riflesso notturno dell'avatar nella finestra — */
     if (phase.id === "night" && st.avDraw) {
@@ -3453,27 +2205,14 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     /* — compositing su schermo — */
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Disegna le carte caotiche sullo schermo intero sotto la stanza
-    if (st.shadow && st.shadowCards) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      for (const card of st.shadowCards) {
-        drawShadowCard(ctx, card);
-      }
-    }
-
     const s = scale * st.cam.z * dpr;
     ctx.imageSmoothingEnabled = scale * st.cam.z < 1;
-    const shX = st.shake > 0 ? (Math.random() - 0.5) * st.shake : 0;
-    const shY = st.shake > 0 ? (Math.random() - 0.5) * st.shake : 0;
-    ctx.setTransform(s, 0, 0, s, canvas.width / 2 - st.cam.x * s + shX, canvas.height / 2 - st.cam.y * s + shY);
+    ctx.setTransform(s, 0, 0, s, canvas.width / 2 - st.cam.x * s, canvas.height / 2 - st.cam.y * s);
     ctx.drawImage(world, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
 
     /* — layer schermo: tooltip + fumetto (testo nitido) — */
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
     if (st.nearObj && !st.modal && !st.lock && !st.photoHide) {
       const o = st.nearObj;
       const a = clamp((st.t - st.nearSince) * 5, 0, 1);
@@ -3509,10 +2248,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       const age = st.t - st.bubble.t0;
       const pop = easeOutBack(clamp(age * 4, 0, 1));
       const fade = clamp((st.bubble.dur - age) * 2, 0, 1);
-      const isCat = st.bubble.target === "cat";
-      const c = isCat ? tileTop(st.cat.fx, st.cat.fy) : tileTop(st.av.fx, st.av.fy);
-      const lift = (isCat && st.cat.perch) ? st.cat.perch.lift : 0;
-      const pt = project(c.x, c.y + HTH - 48 - lift);
+      const c = tileTop(st.av.fx, st.av.fy);
+      const pt = project(c.x, c.y + HTH - 48);
       ctx.font = "600 13px 'Segoe UI', system-ui, sans-serif";
       const tw2 = ctx.measureText(st.bubble.text).width;
       const bw = (tw2 + 24) * pop, bh = 30 * pop;
@@ -3540,154 +2277,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
       ctx.globalAlpha = 1;
     }
-    /* — pack opening fullscreen overlay — */
-    if (st.pack && st.pack.phase !== "walk") {
-      ctx.save();
-      if (st.shake > 0) {
-        const sx = (Math.random() - 0.5) * st.shake;
-        const sy = (Math.random() - 0.5) * st.shake;
-        ctx.translate(sx, sy);
-      }
-      ctx.fillStyle = "rgba(10, 12, 22, 0.82)";
-      ctx.fillRect(0, 0, w, h);
-      
-      const centerX = w / 2;
-      const centerY = h / 2;
-      
-      if (st.pack.phase === "lift") {
-        const elapsed = st.t - st.pack.t0;
-        const k = clamp(elapsed / 1.2, 0, 1);
-        const scaleFactor = k * 3.5;
-        const shake = Math.sin(st.t * 36) * 1.5;
-        const yOffset = -k * 40;
-        
-        ctx.save();
-        ctx.translate(centerX + shake, centerY + yOffset);
-        ctx.scale(scaleFactor, scaleFactor);
-        drawPackGraphics(ctx, 0, 0);
-        ctx.restore();
-      }
-      else if (st.pack.phase === "rip") {
-        ctx.save();
-        ctx.translate(centerX, centerY - 40);
-        ctx.scale(3.5, 3.5);
-        drawPackGraphics(ctx, 0, 0);
-        ctx.restore();
-        
-        ctx.fillStyle = "#ffe9b0";
-        ctx.font = "bold 10px 'Press Start 2P', monospace";
-        ctx.textAlign = "center";
-        ctx.fillText("CLICCA PER APRIRE 🎴", centerX, centerY + 80);
-      }
-      else if (st.pack.phase === "reveal" && st.pack.cards) {
-        if (st.pack.halves) {
-          const halves = st.pack.halves;
-          if (halves.y1 < h + 50) {
-            ctx.save();
-            ctx.translate(halves.x1, halves.y1);
-            ctx.rotate(halves.rot1);
-            ctx.scale(3.5, 3.5);
-            drawPackHalf(ctx, 0, 0, true);
-            ctx.restore();
-            
-            ctx.save();
-            ctx.translate(halves.x2, halves.y2);
-            ctx.rotate(halves.rot2);
-            ctx.scale(3.5, 3.5);
-            drawPackHalf(ctx, 0, 0, false);
-            ctx.restore();
-          }
-        }
-        
-        st.pack.cards.forEach((pc) => {
-          ctx.save();
-          ctx.translate(pc.x, pc.y);
-          ctx.scale(pc.scale, pc.scale);
-          
-          if (pc.revealed) {
-            drawLargeCard(ctx, 0, 0, pc.card, pc.glowProgress);
-            
-            const rar = pc.card.rarita.toLowerCase();
-            const isRare = rar === "rara" || rar === "epica" || rar === "leggendaria";
-            if (isRare && Math.random() < 0.22) {
-              const col = rar === "leggendaria" ? P.gold : (rar === "epica" ? "#c084fc" : "#60a5fa");
-              pc.particles.push({
-                x: (Math.random() - 0.5) * 64,
-                y: 32 + (Math.random() - 0.5) * 88,
-                vx: (Math.random() - 0.5) * 30,
-                vy: -40 - Math.random() * 40,
-                size: 2 + Math.random() * 3,
-                color: col,
-                alpha: 1,
-                dur: 0.6 + Math.random() * 0.4,
-                t0: st.t
-              });
-            }
-          } else {
-            drawLargeCardBack(ctx, 0, 0);
-            const isHover = Math.abs(st.pointer.x - pc.x) < 32 && Math.abs(st.pointer.y - pc.y) < 47;
-            if (isHover) {
-              ctx.strokeStyle = P.gold;
-              ctx.lineWidth = 2.5;
-              rr(ctx, -34, -49, 68, 98, 6);
-              ctx.stroke();
-            }
-          }
-          
-          pc.particles = pc.particles.filter((pt) => st.t - pt.t0 < pt.dur);
-          for (const pt of pc.particles) {
-            const k = (st.t - pt.t0) / pt.dur;
-            ctx.fillStyle = pt.color;
-            ctx.globalAlpha = (1 - k) * pt.alpha;
-            ctx.fillRect(pt.x + pt.vx * k, pt.y + pt.vy * k, pt.size, pt.size);
-          }
-          ctx.restore();
-        });
-        
-        const allRevealed = st.pack.cards.every(pc => pc.revealed);
-        if (allRevealed) {
-          ctx.fillStyle = "#d94f46";
-          rr(ctx, centerX - 50, centerY + 85, 100, 24, 6);
-          ctx.fill();
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 9px 'Press Start 2P', monospace";
-          ctx.textAlign = "center";
-          ctx.fillText("CHIUDI ✖", centerX, centerY + 101);
-        }
-      }
-      ctx.restore();
-    }
-
-    /* — particelle olografiche screen-space — */
-    st.packFx = st.packFx.filter((p) => st.t - p.t0 < p.dur);
-    for (const p of st.packFx) {
-      const k = (st.t - p.t0) / p.dur;
-      ctx.globalAlpha = Math.max(0, 1 - k);
-      if (p.ring) {
-        ctx.strokeStyle = p.col;
-        ctx.lineWidth = 2.5 * (1 - k);
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.maxRadius * k, 0, Math.PI * 2);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = p.col;
-        const gy = p.grav ? p.grav * k * k : 0;
-        ctx.fillRect(p.x + p.vx * k, p.y + p.vy * k + gy, p.size, p.size);
-      }
-    }
-    ctx.globalAlpha = 1;
-
     /* — flash della foto — */
     if (st.flash && st.t - st.flash < 0.25) {
       ctx.fillStyle = "rgba(255,255,255," + (0.5 * (1 - (st.t - st.flash) / 0.25)).toFixed(3) + ")";
       ctx.fillRect(0, 0, w, h);
     }
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
   }
 
   /* — modalità foto: PNG del canvas con watermark ebartex ♥ — */
@@ -3750,10 +2344,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     return { x: e.clientX - (r.left || 0), y: e.clientY - (r.top || 0) };
   }
   function wakeAfk() {
-    if (!st.afk && !st.afkGoing && !st.afkShuffle && !st.afkShuffleGoing) return;
-    const wasMeditating = st.afk || st.afkShuffle;
+    if (!st.afk && !st.afkGoing) return;
+    const wasMeditating = st.afk;
     st.afk = false; st.afkGoing = false;
-    st.afkShuffle = null; st.afkShuffleGoing = false;
     if (wasMeditating) {
       sfx.success();
       showBubble(AFK_LINES[Math.floor(Math.random() * AFK_LINES.length)], 3.5);
@@ -3764,140 +2357,14 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function onPointerDown(e) {
     sfx.ensure();
-    if (st.destroyed) return;
-    
-    // Intercetta i click se la sequenza di pack opening è attiva
-    if (st.pack && st.pack.phase !== "walk") {
-      const p = pointerPos(e);
-      const hx = p.x;
-      const hy = p.y;
-      const w = st.view.w;
-      const h = st.view.h;
-      
-      if (st.pack.phase === "rip") {
-        sfx.success();
-        st.shake = 18;
-        st.pack.halves = {
-          x1: w / 2, y1: h / 2 - 40, vx1: -160,
-          x2: w / 2, y2: h / 2 - 40, vx2: 160,
-          vy: -100, rot1: 0, rot2: 0
-        };
-        
-        // Genera scintille dorate lungo la linea dello strappo
-        for (let i = 0; i < 20; i++) {
-          const angle = (Math.random() - 0.5) * Math.PI;
-          const speed = 60 + Math.random() * 80;
-          st.packFx.push({
-            x: w / 2, y: h / 2 - 40 + (Math.random() - 0.5) * 35,
-            vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 40,
-            col: Math.random() < 0.55 ? P.gold : "#ffffff",
-            size: 2 + Math.random() * 3,
-            dur: 0.7 + Math.random() * 0.5,
-            t0: st.t,
-            grav: 40
-          });
-        }
-        
-        const cardsPool = opts.cards || mockCards();
-        const rolled = [];
-        for (let i = 0; i < 3; i++) {
-          let rCard = cardsPool[Math.floor(Math.random() * cardsPool.length)];
-          if (i === 1) {
-            const highRar = cardsPool.filter(c => ["rara", "epica", "leggendaria"].includes(c.rarita.toLowerCase()));
-            if (highRar.length) rCard = highRar[Math.floor(Math.random() * highRar.length)];
-          }
-          rolled.push(rCard);
-        }
-        
-        st.pack.cards = rolled.map((card, i) => {
-          const targetX = w / 2 + (i - 1) * 82;
-          const targetY = h / 2 - 20;
-          const angle = -Math.PI / 2 + (i - 1) * 0.45;
-          const speed = 120 + Math.random() * 40;
-          return {
-            card,
-            x: w / 2,
-            y: h / 2 - 40,
-            targetX,
-            targetY,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 60,
-            scale: 0.15,
-            revealed: false,
-            glowProgress: 0,
-            particles: []
-          };
-        });
-        st.pack.phase = "reveal";
-        st.pack.t0 = st.t;
-        sfx.open(); // rip sound
-        return;
-      }
-      
-      if (st.pack.phase === "reveal") {
-        let clickedCard = false;
-        st.pack.cards.forEach((pc) => {
-          if (!pc.revealed && Math.abs(hx - pc.x) < 32 && Math.abs(hy - pc.y) < 47) {
-            pc.revealed = true;
-            clickedCard = true;
-            const rar = pc.card.rarita.toLowerCase();
-            const rarLevel = rar === "leggendaria" ? 3 : (rar === "epica" ? 2 : (rar === "rara" ? 1 : 0));
-            sfx.reveal(rarLevel);
-            
-            st.shake = rar === "leggendaria" ? 12 : (rar === "epica" ? 8 : 5);
-            
-            // Shockwave ring
-            st.packFx.push({
-              x: pc.x, y: pc.y,
-              ring: true,
-              maxRadius: rar === "leggendaria" ? 80 : (rar === "epica" ? 65 : 45),
-              col: rar === "leggendaria" ? P.gold : (rar === "epica" ? "#a855f7" : "#3b82f6"),
-              dur: 0.6 + (rarLevel * 0.1),
-              t0: st.t
-            });
-            
-            // Esplosione di particelle con gravità
-            const nPart = rar === "leggendaria" ? 35 : (rar === "epica" ? 25 : 16);
-            for (let i = 0; i < nPart; i++) {
-              const angle = Math.random() * Math.PI * 2;
-              const speed = (rar === "leggendaria" ? 70 : 45) + Math.random() * (rar === "leggendaria" ? 80 : 50);
-              st.packFx.push({
-                x: pc.x, y: pc.y,
-                vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 15,
-                col: rar === "leggendaria" ? P.gold : (rar === "epica" ? "#c084fc" : (rar === "rara" ? "#60a5fa" : "#e2e8f0")),
-                size: (rar === "leggendaria" ? 3.5 : 2.5) + Math.random() * 3,
-                dur: 0.7 + Math.random() * 0.6,
-                t0: st.t,
-                grav: 60
-              });
-            }
-          }
-        });
-        
-        if (clickedCard) return;
-        
-        const allRevealed = st.pack.cards.every(pc => pc.revealed);
-        if (allRevealed) {
-          const btnX = w / 2, btnY = h / 2 + 97;
-          if (Math.abs(hx - btnX) < 50 && Math.abs(hy - btnY) < 18) {
-            st.pack = null;
-            st.packAvail = false;
-            st.cinematic = false;
-            st.packAt = st.t + 45 + Math.random() * 90;
-            sfx.click();
-          }
-        }
-        return;
-      }
-    }
-
-    if (st.modal || st.lock) return;
+    if (st.destroyed || st.modal || st.lock) return;
     st.lastAct = st.t;
     wakeAfk();
     const p = pointerPos(e);
+    const obj = hitObject(p.x, p.y);
+    if (obj) { clickObject(obj); return; }
     const dec = hitDecor(p.x, p.y);
     if (dec) {
-      if (dec.kind === "pack") { startPackOpening(); return; }
       if (dec.kind === "music") { clickObject({ ...MUSIC_OBJ }); return; }
       if (dec.kind === "cat") { petCat(); return; }
       if (dec.kind === "intercom") {
@@ -3910,8 +2377,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
       if (dec.kind === "egg") { eggClick(dec.egg); return; }
     }
-    const obj = hitObject(p.x, p.y);
-    if (obj) { clickObject(obj); return; }
     const wpt = unproject(p.x, p.y);
     const tl = worldToTile(wpt.x, wpt.y);
     if (inGrid(tl.cx, tl.cy) && !blocked.has(tkey(tl.cx, tl.cy))) {
@@ -3926,14 +2391,12 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function onPointerMove(e) {
     if (st.destroyed) return;
     const p = pointerPos(e);
-    st.pointer.x = p.x;
-    st.pointer.y = p.y;
-    const dec = hitDecor(p.x, p.y);
-    const obj = dec ? null : hitObject(p.x, p.y);
-    st.hover.decor = dec ? dec.kind : null;
+    const obj = hitObject(p.x, p.y);
     st.hover.obj = obj ? obj.id : null;
+    const dec = obj ? null : hitDecor(p.x, p.y);
+    st.hover.decor = dec ? dec.kind : null;
     canvas.style.cursor = (obj || dec) && !st.modal && !st.lock ? "pointer" : "default";
-    if (!obj && !dec) {
+    if (!obj) {
       const wpt = unproject(p.x, p.y);
       const tl = worldToTile(wpt.x, wpt.y);
       st.hover.tile = inGrid(tl.cx, tl.cy) && !blocked.has(tkey(tl.cx, tl.cy)) ? tl : null;
@@ -4016,14 +2479,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     ring(msg) { if (!st.destroyed) doRing(msg || "C'è qualcuno al citofono!"); },
     setCountdown(epochMs) { st.countdown = epochMs || null; st.cdRang = false; },
     setGhost(name) { st.ghost = name || null; },
-    setBracket(on) {
-      if (st.destroyed) return;
-      if (bracketOn === on) return;
-      bracketOn = on;
-      boardSp = buildBoard(on);
-      inter.board.hitRect = { x: boardSp.wx, y: boardSp.wy, w: boardSp.cv.width, h: boardSp.cv.height * 0.64 };
-      sils.board = makeSil({ cv: boardSp.cv });
-    },
     takePhoto,
     zoomOut() {
       if (st.destroyed) return;
@@ -4871,7 +3326,7 @@ export default function IsoRoomGame({
     injectCss();
     let game = null;
     try {
-      game = createGame(canvasRef.current, wrapRef.current, apiRef, __debug, { stats: statsRef.current, cards: data.cards });
+      game = createGame(canvasRef.current, wrapRef.current, apiRef, __debug, { stats: statsRef.current });
     } catch (err) {
       console.error("[IsoRoomGame] inizializzazione fallita:", err);
     }
@@ -4906,8 +3361,6 @@ export default function IsoRoomGame({
         g.setCountdown(null);
       }
     }
-    const activeStarted = mine.some((t) => t.status === "iniziata");
-    if (g.setBracket) g.setBracket(activeStarted);
   }, [data.tournaments, username]);
 
   const playSfx = useCallback((name) => {
