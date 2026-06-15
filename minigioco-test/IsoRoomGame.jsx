@@ -10,16 +10,17 @@
  *   username            string   — username del giocatore (default "PrincessLeo")
  *   tournaments         array    — sovrascrive i tornei mock (shape identica a
  *                                  tournaments-live-frontend/types/tournament.ts)
- *   decks               array    — sovrascrive i deck mock
- *   cards               array    — sovrascrive l'inventario carte mock
+ *   inventory           array    — inventario reale dell'utente per il deck builder
  *   onCreateTournament  (t)=>{}  — chiamata alla pubblicazione di un torneo
  *   onJoinTournament    (id)=>{} — chiamata all'iscrizione a un torneo
- *   onCreateDeck        (d)=>{}  — chiamata alla creazione di un deck
  *
  * Rendering: Canvas 2D puro, grafica 100% procedurale (nessun asset esterno,
  * solo Google Font "Press Start 2P" per i titoli). Niente localStorage.
  */
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-config";
+import { DecksModal } from "./decks-modal";
+import { StyledSelect } from "./styled-select";
 
 /* ============================== 1. CONFIG ============================== */
 
@@ -190,21 +191,6 @@ const mockTournaments = () => [
     participants: [] },
   { id: "t7", format: "premodern",  mode: "heads-up", buyIn: "for_fun", bestOf: "BO3", status: "in_registrazione", maxPlayers: 2, createdAt: "2026-06-12T11:20:00Z",
     participants: [tu("p12", "VecchiaScuola68")] },
-];
-
-const mockDecks = () => [
-  { id: 1, nome: "Aggro Infernale",    carte: 40, colore: "#e0564d", sig: "flame" },
-  { id: 2, nome: "Controllo Abissale", carte: 60, colore: "#4a7fd6", sig: "wave" },
-  { id: 3, nome: "Midrange Selvaggio", carte: 40, colore: "#5da24e", sig: "leaf" },
-  { id: 4, nome: "Combo Astrale",      carte: 40, colore: "#9a6ad6", sig: "star" },
-];
-
-const POPULAR_DECKS = [
-  { id: 1, nome: "Tempesta di Rune",  autore: "Drakmor92",   uso: 18, winrate: 64, colore: "#4a7fd6", sig: "bolt" },
-  { id: 2, nome: "Eredi del Sole",    autore: "LunaMaga",    uso: 14, winrate: 61, colore: "#f2b94b", sig: "sun" },
-  { id: 3, nome: "Sciame Famelico",   autore: "Tarlo_TCG",   uso: 11, winrate: 58, colore: "#5da24e", sig: "leaf" },
-  { id: 4, nome: "Requiem d'Ombra",   autore: "NottePiena",  uso: 9,  winrate: 66, colore: "#9a6ad6", sig: "moon" },
-  { id: 5, nome: "Muraglia Eterna",   autore: "Bastione77",  uso: 7,  winrate: 52, colore: "#9aa3ad", sig: "shield" },
 ];
 
 const CARD_DEFS = [
@@ -1627,8 +1613,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const world = mkCanvas(WW, WH);
   const wctx = world.getContext("2d");
   wctx.imageSmoothingEnabled = false;
-  const reduced = typeof window !== "undefined" && typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let fx = opts.fx || getFxFlags("high");
 
   /* — tile bloccati e entità — */
   const blocked = new Set();
@@ -1840,7 +1825,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   /* — camera — */
   const camTo = (to, dur, cb) => {
-    st.cam.tween = { fx: st.cam.x, fy: st.cam.y, fz: st.cam.z, tx: to.x, ty: to.y, tz: to.z, t: 0, dur: reduced ? dur * 0.35 : dur, cb };
+    st.cam.tween = { fx: st.cam.x, fy: st.cam.y, fz: st.cam.z, tx: to.x, ty: to.y, tz: to.z, t: 0, dur: fx.cssAnimations ? dur : dur * 0.35, cb };
   };
   const project = (wx, wy) => {
     const s = st.view.scale * st.cam.z;
@@ -1920,7 +1905,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   /* — helper feature nuove — */
   const inRect = (w, r) => w.x >= r.x && w.x <= r.x + r.w && w.y >= r.y && w.y <= r.y + r.h;
+  const ALWAYS_FX = new Set(["heart"]);
   const spawnFx = (kind, x, y, n = 1) => {
+    if (!fx.particles && !ALWAYS_FX.has(kind)) return;
     const DEF = {
       heart: { ch: "♥", col: "#ff6b8a", size: 9, rise: 26, dur: 1.3 },
       zzz: { ch: "z", col: "#cfd6f5", size: 9, rise: 22, dur: 1.8 },
@@ -2154,7 +2141,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (av.to) {
       av.t += dt * SPEED;
       av.wt += dt * 8.5;
-      if (st.shadow) {
+      if (st.shadow && fx.shadowEffects) {
         if (Math.random() < dt * 16) {
           const ap = tileTop(av.fx, av.fy);
           const shadowLift = Math.sin(st.t * 3.5) * 4 - 5;
@@ -2175,7 +2162,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         const carry = av.t - 1;
         av.from = av.to; av.to = null; av.t = 0;
         av.stepN++; sfx.step(av.stepN);
-        if (onRug(av.from.cx, av.from.cy)) {
+        if (onRug(av.from.cx, av.from.cy) && fx.prints) {
           const fp = tileTop(av.from.cx, av.from.cy);
           st.prints.push({ x: fp.x + (av.stepN % 2 ? 5 : -5), y: fp.y + HTH, t0: st.t, s: 1 });
           if (st.prints.length > 40) st.prints.shift();
@@ -2237,7 +2224,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     // flicker lampada (raro e breve)
     if (st.t > st.lampF.next) { st.lampF.until = st.t + 0.05 + Math.random() * 0.12; st.lampF.next = st.t + 2.4 + Math.random() * 4.5; }
     // pulviscolo
-    if (!reduced) for (const m of st.motes) { m.v += m.sp * dt * 4; if (m.v > 1) { m.v -= 1; m.u = Math.random(); } }
+    if (fx.motes) for (const m of st.motes) { m.v += m.sp * dt * 4; if (m.v > 1) { m.v -= 1; m.u = Math.random(); } }
     // ripples
     st.ripples = st.ripples.filter((r) => st.t - r.t0 < 0.45);
     // bolla
@@ -2267,7 +2254,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         }
       }
     }
-    if (st.afk && !reduced && Math.random() < dt * 0.8) {
+    if (st.afk && fx.particles && Math.random() < dt * 0.8) {
       const ap = tileTop(av.fx, av.fy);
       spawnFx(Math.random() < 0.5 ? "spark" : "zzz", ap.x, ap.y - 30);
     }
@@ -2276,7 +2263,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         st.afkShuffle.lastShuffle = st.t;
         sfx.shuffle();
       }
-      if (!reduced && Math.random() < dt * 0.8) {
+      if (fx.particles && Math.random() < dt * 0.8) {
         const ap = tileTop(av.fx, av.fy);
         spawnFx("spark", ap.x, ap.y - 30);
       }
@@ -2495,7 +2482,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           }
           showBubble("Missy! Le mie carte! 🙀", 2.6);
         }
-        if (pc.key === "desk" && cat.state === "sleep" && st.t > cat.nextZ && !reduced) {
+        if (pc.key === "desk" && cat.state === "sleep" && st.t > cat.nextZ && fx.petParticles) {
           cat.nextZ = st.t + 1.8;
           const cp2 = tileTop(cat.fx, cat.fy);
           spawnFx("zzz", cp2.x + 6, cp2.y - 6 - pc.lift);
@@ -2511,7 +2498,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         cat.t += dt * 2.4;
         if (cat.t >= 1) {
           cat.from = cat.to; cat.to = null; cat.t = 0;
-          if (onRug(cat.from.cx, cat.from.cy)) {
+          if (onRug(cat.from.cx, cat.from.cy) && fx.prints) {
             const fp = tileTop(cat.from.cx, cat.from.cy);
             st.prints.push({ x: fp.x + (Math.random() < 0.5 ? 3 : -3), y: fp.y + HTH, t0: st.t, s: 0.55 });
             if (st.prints.length > 40) st.prints.shift();
@@ -2605,7 +2592,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
       cat.fx = cat.to ? lerp(cat.from.cx, cat.to.cx, cat.t) : cat.from.cx;
       cat.fy = cat.to ? lerp(cat.from.cy, cat.to.cy, cat.t) : cat.from.cy;
-      if (cat.state === "sleep" && !cat.to && st.t > cat.nextZ && !reduced) {
+      if (cat.state === "sleep" && !cat.to && st.t > cat.nextZ && fx.petParticles) {
         cat.nextZ = st.t + 1.8;
         const cp = tileTop(cat.fx, cat.fy);
         const lift = cat.perch ? cat.perch.lift : 0;
@@ -2618,7 +2605,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         dog.t += dt * 2.2;
         if (dog.t >= 1) {
           dog.from = dog.to; dog.to = null; dog.t = 0;
-          if (onRug(dog.from.cx, dog.from.cy)) {
+          if (onRug(dog.from.cx, dog.from.cy) && fx.prints) {
             const fp = tileTop(dog.from.cx, dog.from.cy);
             st.prints.push({ x: fp.x + (Math.random() < 0.5 ? 2 : -2), y: fp.y + HTH, t0: st.t, s: 0.6 });
             if (st.prints.length > 40) st.prints.shift();
@@ -2676,7 +2663,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
       dog.fx = dog.to ? lerp(dog.from.cx, dog.to.cx, dog.t) : dog.from.cx;
       dog.fy = dog.to ? lerp(dog.from.cy, dog.to.cy, dog.t) : dog.from.cy;
-      if (dog.state === "sleep" && !dog.to && st.t > dog.nextZ && !reduced) {
+      if (dog.state === "sleep" && !dog.to && st.t > dog.nextZ && fx.petParticles) {
         dog.nextZ = st.t + 2.0;
         const cp = tileTop(dog.fx, dog.fy);
         spawnFx("zzz", cp.x + 6, cp.y - 6);
@@ -2700,7 +2687,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     st.scatter = st.scatter.filter((card) => st.t - card.t0 < 12);
 
     /* — note musicali dal giradischi — */
-    if (sfx.musicOn() && st.t > st.nextNote && !reduced) {
+    if (sfx.musicOn() && st.t > st.nextNote && fx.particles) {
       st.nextNote = st.t + 0.7;
       spawnFx("note", turnTop.x, turnTop.y);
     }
@@ -2922,6 +2909,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   };
 
   function drawGlow(sil, x, y, k = 1) {
+    if (!fx.glows) return;
     wctx.save();
     wctx.globalAlpha = Math.min(0.85, (0.26 + 0.16 * Math.sin(st.t * 4.2)) * k);
     wctx.globalCompositeOperation = "lighter";
@@ -3428,7 +3416,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.clip();
     drawCardArtwork(c, dx, dy, card.sig);
     
-    if (isHolo) {
+    if (isHolo && fx.holo) {
       c.save();
       c.globalCompositeOperation = "lighter";
       c.globalAlpha = 0.38;
@@ -3522,7 +3510,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     wctx.drawImage(bg, 0, 0);
 
     /* — Shadow Realm: finestra dinamica + poster glifi — */
-    if (st.shadow) {
+    if (st.shadow && fx.shadowEffects) {
       wctx.save();
       wctx.beginPath();
       const g0 = wallL(5.82, 86), g1 = wallL(7.58, 86), g2 = wallL(7.58, 34), g3 = wallL(5.82, 34);
@@ -3589,7 +3577,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     }
 
     // orme sul tappeto (svaniscono in 4s)
-    for (const pr of st.prints) {
+    if (fx.prints) for (const pr of st.prints) {
       const k = (st.t - pr.t0) / 4;
       if (k >= 1) continue;
       wctx.globalAlpha = (1 - k) * 0.2;
@@ -3647,7 +3635,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       
       // Sedia rotante (oscillazione ammortizzata se urtata)
       let angle = 0;
-      if (e.key === "chair" && st.chairSpin > 0 && st.t - st.chairSpin < 2.5) {
+      if (e.key === "chair" && fx.chairSpin && st.chairSpin > 0 && st.t - st.chairSpin < 2.5) {
         const elapsed = st.t - st.chairSpin;
         angle = Math.sin(elapsed * 10) * 0.16 * Math.exp(-elapsed * 1.5);
       }
@@ -3663,7 +3651,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       wctx.drawImage(spr.cv, x, y);
       wctx.restore();
       
-      if (e.key === "desk") drawMonitorScreen(flick || pcAlert);
+      if (e.key === "desk") drawMonitorScreen(fx.flicker && (flick || pcAlert));
       if (e.key === "table") {
         drawTableClock();
         
@@ -3682,7 +3670,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         }
         
         // Disegna le carte sparpagliate da Missy
-        for (const card of st.scatter) {
+        if (fx.scatter) for (const card of st.scatter) {
           const age = st.t - card.t0;
           wctx.save();
           wctx.translate(card.x, card.y);
@@ -3699,7 +3687,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         wctx.globalAlpha = 1;
 
         // Disegna l'animazione di smazzata se siamo AFK al tavolo
-        if (st.afkShuffle) {
+        if (st.afkShuffle && fx.cssAnimations) {
           const tCenter = tablePt(7.0, 3.0);
           const drawMiniDeck = (dx, dy, col, n = 4) => {
             for (let i = 0; i < n; i++) {
@@ -3777,7 +3765,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
     }
     /* — riflesso notturno dell'avatar nella finestra — */
-    if (phase.id === "night" && st.avDraw) {
+    if (phase.id === "night" && st.avDraw && fx.reflections) {
       wctx.save();
       wctx.beginPath();
       const g0 = wallL(5.82, 86), g1 = wallL(7.58, 86), g2 = wallL(7.58, 34), g3 = wallL(5.82, 34);
@@ -3794,6 +3782,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     /* — tinta ambiente (giorno/notte), prima dei bagliori — */
     if (phase.amb) { wctx.fillStyle = phase.amb; wctx.fillRect(0, 0, WW, WH); }
     /* — dinamici — */
+    if (fx.glows) {
     // glow del monitor
     const sc = qlerp(0.5, 0.5);
     const mg = wctx.createRadialGradient(sc.x, sc.y, 2, sc.x, sc.y, 54);
@@ -3830,8 +3819,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     wctx.fillStyle = pg;
     wctx.beginPath(); wctx.ellipse(lampGlow.x, lampFloor.y, 32, 13, 0, 0, Math.PI * 2); wctx.fill();
     wctx.restore();
+    }
     // pulviscolo nella luce
-    if (!reduced) {
+    if (fx.motes) {
       const A = wallL(5.9, 0), B = wallL(7.5, 0);
       for (const m of st.motes) {
         const bx = lerp(A.x, B.x, m.u), by = lerp(A.y, B.y, m.u);
@@ -4411,7 +4401,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   /* — resize — */
   function resize() {
     const w = Math.max(1, wrap.clientWidth || 1), h = Math.max(1, wrap.clientHeight || 1);
-    const dpr = Math.min((typeof window !== "undefined" && window.devicePixelRatio) || 1, 2);
+    const dpr = fx.dpr;
     canvas.width = Math.max(1, Math.round(w * dpr));
     canvas.height = Math.max(1, Math.round(h * dpr));
     st.view = { w, h, dpr, scale: Math.max(0.3, Math.min(w / WW, h / WH)) * 0.97 };
@@ -4446,6 +4436,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const api = {
     sfx,
     setMuted: (v) => sfx.setMuted(v),
+    setQuality(q) {
+      if (st.destroyed) return;
+      fx = getFxFlags(q);
+      resize();
+    },
     /* eventi diegetici dall'esterno (cambi nei tornei, sfide, ecc.) */
     notify() { if (!st.destroyed) { st.alert = st.t + 6; sfx.success(); } },
     ring(msg) { if (!st.destroyed) doRing(msg || "C'è qualcuno al citofono!"); },
@@ -4509,12 +4504,20 @@ const CSS_TEXT = [
   "color:#ffe9b0;border-radius:10px;padding:9px 12px;font-family:'Press Start 2P','Courier New',monospace;",
   "font-size:9px;letter-spacing:.5px;backdrop-filter:blur(4px);}",
   ".irg-title{top:12px;left:172px;display:flex;align-items:center;gap:8px;}",
-  ".irg-mute{position:absolute;top:12px;right:16px;z-index:50;width:32px;height:32px;border:0;",
-  "border-radius:999px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;",
-  "display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;",
-  "transition:color .2s,background-color .2s,transform .15s ease;}",
-  ".irg-mute:hover{color:#fff;background-color:rgba(255,255,255,.1);transform:scale(1.05);}",
+  ".irg-controls{position:absolute;top:12px;right:16px;z-index:10;display:flex;align-items:center;gap:18px;padding:8px 14px;background:rgba(10,12,22,.55);border:1px solid rgba(255,255,255,.12);border-radius:14px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}",
+  ".irg-mute{width:40px;height:40px;border:0;border-radius:10px;background:rgba(255,255,255,.06);",
+  "color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;",
+  "line-height:0;transition:color .2s,background-color .2s,transform .15s ease,border-color .2s;",
+  "border:1px solid rgba(255,255,255,.08);}",
+  ".irg-mute:hover{color:#fff;background-color:rgba(255,115,0,.2);border-color:rgba(255,115,0,.4);transform:scale(1.05);}",
   ".irg-mute:active{transform:scale(.95);}",
+  ".irg-quality{height:40px;border:0;border-radius:10px;background:rgba(255,255,255,.06);",
+  "border:1px solid rgba(255,255,255,.12);color:#ffe9b0;cursor:pointer;display:flex;align-items:center;",
+  "justify-content:center;gap:5px;padding:0 16px;font-family:'Press Start 2P','Courier New',monospace;",
+  "font-size:9px;letter-spacing:.6px;line-height:1;",
+  "transition:color .2s,background-color .2s,transform .15s ease,border-color .2s;}",
+  ".irg-quality:hover{background:rgba(255,115,0,.18);border-color:rgba(255,115,0,.45);transform:scale(1.05);}",
+  ".irg-quality:active{transform:scale(.95);}",
   ".irg-hint{bottom:14px;left:50%;transform:translateX(-50%);color:#cfd6f5;font-size:8px;",
   "animation:irgHintPulse 2.2s ease-in-out infinite;transition:opacity .6s ease;white-space:nowrap;}",
   ".irg-hint.irg-off{opacity:0;pointer-events:none;}",
@@ -4540,15 +4543,17 @@ const CSS_TEXT = [
   ".irg-closing .irg-modal{animation:irgOut .16s ease forwards;}",
   "@keyframes irgIn{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:scale(1) translateY(0)}}",
   "@keyframes irgOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.94) translateY(8px)}}",
-  ".irg-x{position:absolute;top:10px;right:10px;z-index:5;width:32px;height:32px;border:0;border-radius:9px;",
-  "background:rgba(0,0,0,.3);color:#fff;font-size:15px;line-height:1;cursor:pointer;",
-  "transition:transform .15s ease,background .15s ease;}",
-  ".irg-x:hover{background:rgba(0,0,0,.5);transform:rotate(8deg) scale(1.08);}",
-  ".irg-esc{font-size:10px;opacity:.55;margin-left:8px;font-family:'Segoe UI',sans-serif;letter-spacing:0;}",
+  ".irg-x{position:absolute;top:10px;right:10px;z-index:5;width:34px;height:34px;border:0;border-radius:10px;",
+  "background:rgba(255,255,255,.08);color:#ffe9b0;font-size:16px;line-height:1;cursor:pointer;",
+  "border:1px solid rgba(242,185,75,.35);",
+  "transition:transform .15s ease,background .15s ease,border-color .15s ease,color .15s ease;}",
+  ".irg-x:hover{background:rgba(255,115,0,.2);color:#fff;border-color:#FF7300;transform:rotate(8deg) scale(1.08);}",
+  ".irg-esc{font-family:'Press Start 2P','Courier New',monospace;font-size:8px;opacity:.6;margin-left:8px;letter-spacing:.5px;}",
   ".irg-mtitle{font-family:'Press Start 2P','Courier New',monospace;font-size:13px;display:flex;align-items:center;gap:10px;}",
   /* — scrollbar — */
   ".irg-modal ::-webkit-scrollbar,.irg-modal::-webkit-scrollbar{width:9px;height:9px;}",
-  ".irg-modal ::-webkit-scrollbar-thumb,.irg-modal::-webkit-scrollbar-thumb{background:rgba(0,0,0,.35);border-radius:8px;}",
+  ".irg-modal ::-webkit-scrollbar-thumb,.irg-modal::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(242,185,75,.5),rgba(242,185,75,.25));border-radius:8px;}",
+  ".irg-modal ::-webkit-scrollbar-track,.irg-modal::-webkit-scrollbar-track{background:rgba(0,0,0,.2);}",
   /* — modale bacheca — */
   ".irg-m-board{width:560px;max-width:100%;border:11px solid #7c5331;background:",
   "radial-gradient(rgba(86,55,25,.16) 1px,transparent 1.6px) 0 0/7px 7px,#bd8c5a;",
@@ -4589,11 +4594,12 @@ const CSS_TEXT = [
   ".irg-ok{font-family:'Press Start 2P',monospace;font-size:11px;color:#3f7d2f;margin:16px 0 4px;text-align:center;",
   "animation:irgPop .4s .3s cubic-bezier(.34,1.8,.64,1) backwards;}",
   "@keyframes irgPop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}",
-  /* — modale deck (glass blu/oro, fantasy leggero) — */
+  /* — modale deck (pannello a tema blu/oro, cornice pixel) — */
   ".irg-m-decks{width:680px;max-width:100%;color:#eef2ff;padding:20px 18px;border-radius:18px;",
-  "background:linear-gradient(180deg, rgba(61, 101, 198, 0.45) 0%, rgba(29, 49, 96, 0.55) 100%);",
-  "backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);",
-  "box-shadow:inset 0 0 44px rgba(15,20,55,.6),inset 0 0 0 1px rgba(255,255,255,.15),0 24px 70px rgba(0,0,0,.55);}",
+  "background:linear-gradient(180deg, rgba(20,28,58,.95) 0%, rgba(8,10,22,.98) 100%);",
+  "border:2px solid rgba(242,185,75,.35);",
+  "box-shadow:inset 0 1px 0 rgba(255,215,128,.2),inset 0 -1px 0 rgba(255,115,0,.08),",
+  "0 24px 70px rgba(0,0,0,.7),0 0 0 1px rgba(255,115,0,.08);}",
   ".irg-tabs{display:flex;gap:8px;margin:16px 0 12px;flex-wrap:wrap;}",
   ".irg-tab{border:0;cursor:pointer;font-size:11.5px;font-weight:800;letter-spacing:.4px;",
   "color:rgba(255,255,255,.72);background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);",
@@ -4602,6 +4608,8 @@ const CSS_TEXT = [
   ".irg-tab.irg-on{background:rgba(243,199,106,.16);color:#F3C76A;box-shadow:inset 0 0 0 1px rgba(243,199,106,.45);}",
   ".irg-panel{background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);",
   "border-radius:18px;padding:14px;min-height:300px;max-height:min(480px,58vh);overflow:auto;}",
+  ".irg-m-decks-wide{width:min(1200px,96vw);max-width:96vw;}",
+  ".irg-m-decks-wide .irg-panel{max-height:min(680px,70vh);}",
   ".irg-gem{width:10px;height:10px;border-radius:2.5px;transform:rotate(45deg);display:inline-block;flex:0 0 auto;",
   "box-shadow:0 0 8px rgba(255,255,255,.2),inset 0 0 0 1.5px rgba(255,255,255,.35);}",
   ".irg-deckgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;}",
@@ -4645,93 +4653,123 @@ const CSS_TEXT = [
   "background-size:240% 100%;animation:irgSheen 2.6s ease-in-out infinite;}",
   "@keyframes irgSheen{0%{background-position:130% 0}55%,100%{background-position:-60% 0}}",
   /* — modale PC/CRT — */
-  ".irg-m-pc{width:min(1500px,96vw);max-width:96vw;height:calc(100% - 78px);max-height:calc(100% - 78px);align-self:flex-start;margin-top:48px;display:flex;flex-direction:column;background:rgba(35,38,47,0.45);border:0;border-radius:18px;padding:18px 18px 34px;",
-  "backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);",
-  "box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 24px 70px rgba(0,0,0,.6);}",
+  ".irg-m-pc{width:min(1500px,96vw);max-width:96vw;height:calc(100% - 78px);max-height:calc(100% - 78px);align-self:flex-start;margin-top:48px;display:flex;flex-direction:column;border-radius:18px;padding:18px 18px 34px;",
+  "background:linear-gradient(180deg, rgba(20,28,58,.95) 0%, rgba(8,10,22,.98) 100%);",
+  "border:2px solid rgba(242,185,75,.35);",
+  "box-shadow:inset 0 1px 0 rgba(255,215,128,.2),inset 0 -1px 0 rgba(255,115,0,.08),",
+  "0 24px 70px rgba(0,0,0,.7),0 0 0 1px rgba(255,115,0,.08);}",
   ".irg-m-pc .irg-brand{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);",
   "font-family:'Press Start 2P',monospace;font-size:7px;color:#8c94a0;letter-spacing:2px;}",
   ".irg-m-pc .irg-led{position:absolute;bottom:9px;right:18px;width:7px;height:7px;border-radius:50%;",
   "background:#51e3a4;box-shadow:0 0 7px #51e3a4;animation:irgLed 2.4s ease-in-out infinite;}",
   "@keyframes irgLed{0%,100%{opacity:1}50%{opacity:.45}}",
-  ".irg-screen{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;border-radius:10px;border:2px solid #0a0a16;overflow:hidden;",
-  "background:linear-gradient(180deg,#3d65c6 0%,#1d3160 100%);",
-  "box-shadow:inset 0 0 44px rgba(15,20,55,.6);}",
-  ".irg-screen:after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:8px;z-index:50;",
+  ".irg-screen{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;border-radius:12px;border:2px solid rgba(242,185,75,.45);overflow:hidden;",
+  "background:linear-gradient(180deg,#3a5fbe 0%,#1a2a52 100%);",
+  "box-shadow:inset 0 0 44px rgba(15,20,55,.7),inset 0 1px 0 rgba(255,215,128,.25);}",
+  ".irg-screen:after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:10px;z-index:50;",
   "background:repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px);",
   "animation:irgCrt 9s linear infinite;}",
   "@keyframes irgCrt{0%,100%{opacity:.85}50%{opacity:1}}",
-  ".irg-pcwrap{padding:18px 16px 16px;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}",
-  ".irg-ebx-h1{font-size:21px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#fff;",
-  "text-shadow:0 2px 8px rgba(0,0,0,.45);}",
-  ".irg-ebx-h1 b{color:#FF7300;}",
-  ".irg-ebx-sub{margin-top:3px;font-size:12px;color:rgba(255,255,255,.6);}",
-  ".irg-ebx-sub b{color:#F3C76A;}",
-  ".irg-glass{margin-top:14px;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);",
-  "border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 20px 50px -20px rgba(0,0,0,.55);}",
-  ".irg-tablewrap{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;border-radius:22px;}",
-  ".irg-ebx-table{width:100%;min-width:620px;border-collapse:collapse;text-align:left;color:#fff;font-size:13px;}",
-  ".irg-ebx-table th{position:sticky;top:0;z-index:2;background:rgba(29,49,96,.94);",
-  "font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#F3C76A;",
-  "padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.15);}",
-  ".irg-ebx-table td{padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle;}",
+  ".irg-pcwrap{padding:22px 20px 18px;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}",
+  ".irg-ebx-h1{font-family:'Press Start 2P','Courier New',monospace;font-size:18px;font-weight:400;",
+  "text-transform:uppercase;letter-spacing:1.5px;color:#F3C76A;",
+  "text-shadow:0 2px 0 rgba(0,0,0,.6),0 0 12px rgba(255,115,0,.25);",
+  "display:flex;align-items:center;gap:10px;}",
+  ".irg-ebx-h1 b{color:#FF7300;text-shadow:0 0 14px rgba(255,115,0,.55);}",
+  ".irg-ebx-sub{margin-top:8px;font-size:12px;color:rgba(255,255,255,.7);letter-spacing:.3px;",
+  "display:flex;align-items:center;flex-wrap:wrap;gap:6px;}",
+  ".irg-ebx-sub b{color:#F3C76A;font-weight:700;}",
+  ".irg-glass{margin-top:16px;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;",
+  "background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.03) 100%);",
+  "border:1px solid rgba(242,185,75,.28);",
+  "border-radius:16px;",
+  "box-shadow:inset 0 0 0 1px rgba(255,215,128,.08),inset 0 1px 0 rgba(255,255,255,.06),0 16px 40px -16px rgba(0,0,0,.6);}",
+  ".irg-tablewrap{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;border-radius:14px;",
+  "scrollbar-color:rgba(242,185,75,.4) transparent;}",
+  ".irg-ebx-table{width:100%;min-width:620px;border-collapse:separate;border-spacing:0;text-align:left;color:#fff;font-size:13px;}",
+  ".irg-ebx-table thead th{position:sticky;top:0;z-index:2;",
+  "background:linear-gradient(180deg,rgba(242,185,75,.18) 0%,rgba(242,185,75,.08) 100%);",
+  "font-family:'Press Start 2P','Courier New',monospace;font-size:9px;font-weight:400;",
+  "text-transform:uppercase;letter-spacing:1.5px;color:#F3C76A;",
+  "padding:14px 16px;border-bottom:1.5px solid rgba(242,185,75,.35);",
+  "text-shadow:0 1px 2px rgba(0,0,0,.5);}",
+  ".irg-ebx-table thead th:first-child{border-top-left-radius:14px;}",
+  ".irg-ebx-table thead th:last-child{border-top-right-radius:14px;}",
+  ".irg-ebx-table td{padding:14px 16px;border-bottom:1px solid rgba(242,185,75,.12);vertical-align:middle;}",
   ".irg-ebx-table tbody tr{transition:background .15s;}",
-  ".irg-ebx-table tbody tr:hover{background:rgba(255,255,255,.06);}",
+  ".irg-ebx-table tbody tr:hover{background:rgba(255,115,0,.08);}",
   ".irg-ebx-table tbody tr:last-child td{border-bottom:0;}",
   ".irg-buyin{color:#F3C76A;font-weight:700;text-transform:uppercase;letter-spacing:.6px;font-size:12.5px;}",
-  ".irg-forma{font-size:17px;font-weight:700;color:rgba(255,255,255,.9);}",
-  ".irg-regnum{font-size:17px;font-weight:700;color:rgba(255,255,255,.9);font-variant-numeric:tabular-nums;}",
+  ".irg-forma{font-size:17px;font-weight:700;color:#fff;}",
+  ".irg-regnum{font-size:17px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;}",
   ".irg-sb{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;",
-  "font-size:11px;font-weight:800;white-space:nowrap;}",
-  ".irg-sb.reg{background:rgba(243,199,106,.15);color:#F3C76A;box-shadow:inset 0 0 0 1px rgba(243,199,106,.3);}",
-  ".irg-sb.live{background:rgba(239,68,68,.15);color:#fca5a5;box-shadow:inset 0 0 0 1px rgba(248,113,113,.3);}",
-  ".irg-sb.end{background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);}",
-  ".irg-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:irgPulseDot 1.6s ease-in-out infinite;}",
+  "font-family:'Press Start 2P','Courier New',monospace;font-size:9px;font-weight:400;letter-spacing:.5px;",
+  "white-space:nowrap;text-transform:uppercase;}",
+  ".irg-sb.reg{background:linear-gradient(135deg,rgba(242,185,75,.2),rgba(242,185,75,.08));color:#F3C76A;",
+  "box-shadow:inset 0 0 0 1px rgba(242,185,75,.4),0 0 8px rgba(242,185,75,.15);}",
+  ".irg-sb.live{background:linear-gradient(135deg,rgba(239,68,68,.22),rgba(239,68,68,.08));color:#fca5a5;",
+  "box-shadow:inset 0 0 0 1px rgba(248,113,113,.45),0 0 10px rgba(239,68,68,.2);}",
+  ".irg-sb.end{background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);",
+  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);}",
+  ".irg-dot{width:6px;height:6px;border-radius:50%;background:currentColor;",
+  "box-shadow:0 0 8px currentColor;animation:irgPulseDot 1.6s ease-in-out infinite;}",
   ".irg-pulse{animation:irgPulseDot 1.6s ease-in-out infinite;}",
-  "@keyframes irgPulseDot{0%,100%{opacity:1}50%{opacity:.35}}",
+  "@keyframes irgPulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}",
   ".irg-tip{position:relative;display:inline-flex;align-items:center;}",
   ".irg-tip>.irg-pop{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);",
   "display:none;z-index:40;flex-direction:column;align-items:center;}",
   ".irg-tip:hover>.irg-pop{display:flex;animation:irgPopIn .16s ease;}",
   "@keyframes irgPopIn{from{opacity:0;transform:translateX(-50%) translateY(-4px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}",
-  ".irg-poparrow{width:8px;height:8px;background:rgba(4,8,22,.96);border-left:1px solid rgba(255,255,255,.2);",
-  "border-top:1px solid rgba(255,255,255,.2);transform:rotate(45deg);margin-bottom:-4px;}",
-  ".irg-popcard{background:rgba(4,8,22,.96);border:1px solid rgba(255,255,255,.2);border-radius:14px;",
-  "box-shadow:0 18px 40px rgba(0,0,0,.5);padding:10px;width:190px;text-align:left;font-size:11px;color:#fff;}",
+  ".irg-poparrow{width:8px;height:8px;background:rgba(8,10,22,.98);border-left:1px solid rgba(242,185,75,.4);",
+  "border-top:1px solid rgba(242,185,75,.4);transform:rotate(45deg);margin-bottom:-4px;}",
+  ".irg-popcard{background:linear-gradient(180deg,rgba(20,28,58,.98) 0%,rgba(8,10,22,.98) 100%);",
+  "border:1px solid rgba(242,185,75,.35);border-radius:14px;",
+  "box-shadow:0 18px 40px rgba(0,0,0,.6),0 0 0 1px rgba(255,115,0,.1);",
+  "padding:10px;width:190px;text-align:left;font-size:11px;color:#fff;}",
   ".irg-popmini{width:auto;padding:5px 10px;border-radius:9px;font-size:10px;font-weight:700;white-space:nowrap;}",
   ".irg-eye{color:rgba(255,255,255,.7);cursor:pointer;display:inline-flex;transition:color .15s;}",
-  ".irg-tip:hover .irg-eye{color:#fff;}",
+  ".irg-tip:hover .irg-eye{color:#FF7300;}",
   ".irg-plist{display:flex;flex-wrap:wrap;gap:7px;align-items:center;list-style:none;margin:0;padding:0;}",
-  ".irg-ppill{position:relative;display:inline-flex;align-items:center;border-radius:999px;background:rgba(255,255,255,.1);",
-  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);padding:3px 10px;font-size:11px;font-weight:600;",
-  "color:rgba(255,255,255,.85);cursor:help;}",
+  ".irg-ppill{position:relative;display:inline-flex;align-items:center;border-radius:999px;",
+  "background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(242,185,75,.3);",
+  "padding:3px 10px;font-size:11px;font-weight:600;color:#fff;cursor:help;",
+  "transition:background .15s,border-color .15s;}",
+  ".irg-ppill:hover{background:rgba(255,115,0,.15);}",
   ".irg-pchead{display:flex;justify-content:space-between;align-items:center;gap:6px;",
-  "border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px;margin-bottom:5px;font-weight:800;font-size:11px;}",
-  ".irg-flagchip{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.1);",
-  "padding:2px 6px;border-radius:6px;font-size:10px;font-weight:800;color:rgba(255,255,255,.8);}",
+  "border-bottom:1px solid rgba(242,185,75,.2);padding-bottom:5px;margin-bottom:5px;font-weight:800;font-size:11px;}",
+  ".irg-flagchip{display:inline-flex;align-items:center;gap:4px;background:rgba(242,185,75,.15);",
+  "padding:2px 6px;border-radius:6px;font-size:10px;font-weight:800;color:#F3C76A;",
+  "box-shadow:inset 0 0 0 1px rgba(242,185,75,.3);}",
   ".irg-pcrow{display:flex;justify-content:space-between;color:rgba(255,255,255,.7);font-size:10px;margin-top:3px;}",
   ".irg-pcrow b{color:#fff;}",
   ".irg-pcrow .irg-on{color:#34d399;}",
-  ".irg-pclab{display:block;margin-top:7px;padding-top:5px;border-top:1px solid rgba(255,255,255,.08);",
+  ".irg-pclab{display:block;margin-top:7px;padding-top:5px;border-top:1px solid rgba(242,185,75,.15);",
   "font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.5);}",
   ".irg-pcdeck{display:block;margin-top:2px;font-size:11.5px;font-weight:800;color:#F3C76A;}",
-  ".irg-ebx-join{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 13px;",
-  "font-size:11px;font-weight:800;color:#fff;cursor:pointer;",
-  "background:linear-gradient(135deg,rgba(255,115,0,.42),rgba(255,115,0,.16));",
-  "border:1.5px solid rgba(255,115,0,.6);",
-  "box-shadow:inset 0 1px 1.5px rgba(255,255,255,.35),0 4px 12px rgba(0,0,0,.25),0 0 10px rgba(255,115,0,.25);",
+  ".irg-ebx-join{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 14px;",
+  "font-family:'Press Start 2P','Courier New',monospace;font-size:9px;letter-spacing:.5px;",
+  "color:#fff;cursor:pointer;text-transform:uppercase;",
+  "background:linear-gradient(135deg,rgba(255,115,0,.5),rgba(255,115,0,.18));",
+  "border:1.5px solid rgba(255,115,0,.65);",
+  "box-shadow:inset 0 1px 1.5px rgba(255,255,255,.4),0 4px 12px rgba(0,0,0,.3),0 0 12px rgba(255,115,0,.3);",
   "transition:all .15s ease;}",
-  ".irg-ebx-join:hover{background:linear-gradient(135deg,rgba(255,115,0,.55),rgba(255,115,0,.25));",
-  "box-shadow:inset 0 1px 2px rgba(255,255,255,.45),0 8px 20px rgba(0,0,0,.35),0 0 18px rgba(255,115,0,.55);",
+  ".irg-ebx-join:hover{background:linear-gradient(135deg,rgba(255,115,0,.6),rgba(255,115,0,.28));",
+  "box-shadow:inset 0 1px 2px rgba(255,255,255,.5),0 8px 20px rgba(0,0,0,.4),0 0 22px rgba(255,115,0,.6);",
   "transform:translateY(-2px) scale(1.02);}",
   ".irg-ebx-join:active{transform:translateY(0) scale(.98);}",
-  ".irg-ebx-empty{padding:44px 20px;text-align:center;}",
-  ".irg-ebx-empty p{margin:0;font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.8);}",
-  ".irg-ebx-empty span{display:block;margin-top:6px;font-size:12px;color:rgba(255,255,255,.55);}",
-  ".irg-mut{color:rgba(255,255,255,.35);}",
+  ".irg-ebx-empty{padding:48px 20px;text-align:center;}",
+  ".irg-ebx-empty p{margin:0;font-family:'Press Start 2P','Courier New',monospace;font-size:13px;",
+  "text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.75);}",
+  ".irg-ebx-empty span{display:block;margin-top:10px;font-size:12px;color:rgba(255,255,255,.5);}",
+  ".irg-mut{color:rgba(255,255,255,.3);}",
   /* — responsive — */
+  "@media (max-width:900px){",
+  ".irg-m-decks-wide{width:100%;max-width:100%;}",
+  "}",
   "@media (max-width:600px){",
   ".irg-grid2{grid-template-columns:1fr;}",
   ".irg-m-decks{padding:12px;}",
+  ".irg-m-decks-wide .irg-panel{max-height:min(520px,62vh);}",
   ".irg-hide-sm{display:none;}",
   ".irg-ebx-table{font-size:12px;}",
   ".irg-mtitle{font-size:11px;}",
@@ -4749,6 +4787,82 @@ const CSS_TEXT = [
   ".irg-fmtlabel{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:16px 8px 6px;",
   "font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#fff;text-align:center;",
   "text-shadow:0 1px 4px rgba(0,0,0,.85);background:linear-gradient(to top,rgba(0,0,0,.78),transparent);}",
+  /* — modalità leggera — */
+  ".irg-quality-low .irg-backdrop,.irg-quality-low .irg-m-decks,.irg-quality-low .irg-m-pc{",
+  "backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(10,12,22,.94);}",
+  ".irg-quality-low .irg-screen:after{display:none;}",
+  ".irg-quality-low .irg-led{animation:none;}",
+  ".irg-quality-low .irg-dot,.irg-quality-low .irg-pulse{animation:none;}",
+  ".irg-quality-low .irg-card.irg-r-leggendaria .irg-cardart:after{display:none;}",
+  ".irg-quality-low .irg-fmtcard video{display:none;}",
+  /* — Select stilizzato (coerente col minigioco) — */
+  ".irg-select{position:relative;width:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;}",
+  ".irg-select-trigger{width:100%;display:flex;align-items:center;gap:8px;",
+  "padding:9px 12px;border-radius:10px;",
+  "background:rgba(10,12,22,.72);border:1px solid rgba(255,255,255,.18);",
+  "color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;",
+  "transition:border-color .15s,background .15s,box-shadow .15s;",
+  "box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 2px 6px rgba(0,0,0,.25);}",
+  ".irg-select-trigger:hover{border-color:rgba(255,115,0,.55);background:rgba(10,12,22,.86);}",
+  ".irg-select-open .irg-select-trigger{border-color:#FF7300;",
+  "box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 2px rgba(255,115,0,.25),0 4px 12px rgba(0,0,0,.35);}",
+  ".irg-select-trigger:disabled{opacity:.5;cursor:not-allowed;}",
+  ".irg-select-value{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}",
+  ".irg-select-swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto;",
+  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 0 6px currentColor;}",
+  ".irg-select-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+  ".irg-select-placeholder{color:rgba(255,255,255,.45);font-style:italic;}",
+  ".irg-select-arrow{color:#FF7300;font-size:11px;line-height:1;",
+  "transition:transform .18s ease;text-shadow:0 0 6px rgba(255,115,0,.6);}",
+  ".irg-select-arrow-up{transform:rotate(180deg);}",
+  ".irg-select-menu{position:fixed;z-index:9999;margin:0;padding:6px;list-style:none;",
+  "background:linear-gradient(180deg,#1a1f3a 0%,#0d111c 100%);",
+  "border:1px solid rgba(255,255,255,.18);border-radius:12px;",
+  "box-shadow:0 12px 30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);",
+  "overflow-y:auto;",
+  "animation:irgSelectIn .14s ease;}",
+  "@keyframes irgSelectIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}",
+  ".irg-select-menu::-webkit-scrollbar{width:8px;}",
+  ".irg-select-menu::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6px;}",
+  ".irg-select-option{display:flex;align-items:center;gap:9px;",
+  "padding:8px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.85);",
+  "font-size:13px;font-weight:600;",
+  "transition:background .12s,color .12s;outline:none;}",
+  ".irg-select-option:hover,.irg-select-option:focus{",
+  "background:rgba(255,115,0,.16);color:#fff;}",
+  ".irg-select-option-active{background:rgba(255,115,0,.22);color:#fff;}",
+  ".irg-select-option-active::before{content:'';position:absolute;left:0;width:3px;height:60%;",
+  "top:20%;background:#FF7300;border-radius:0 2px 2px 0;}",
+  ".irg-select-option{position:relative;}",
+  ".irg-select-option-text{display:flex;flex-direction:column;flex:1;min-width:0;}",
+  ".irg-select-option-label{font-weight:700;}",
+  ".irg-select-option-hint{font-size:10.5px;font-weight:500;color:rgba(255,255,255,.5);",
+  "letter-spacing:.2px;margin-top:1px;}",
+  ".irg-select-check{color:#FF7300;font-size:12px;font-weight:900;",
+  "text-shadow:0 0 8px rgba(255,115,0,.7);}",
+  /* adatta lo stile anche dentro la modale deck */
+  ".irg-m-decks .irg-select-trigger{background:rgba(255,255,255,.07);",
+  "border:1px solid rgba(255,255,255,.15);}",
+  ".irg-m-decks .irg-select-trigger:hover{background:rgba(255,255,255,.1);}",
+  /* adatta lo stile dentro la modale bacheca (carta / sughero) */
+  ".irg-m-board .irg-select-trigger{background:rgba(253,248,236,.8);",
+  "border:1.5px dashed #cdb088;color:#3c2a18;",
+  "box-shadow:inset 0 1px 0 rgba(255,255,255,.6);}",
+  ".irg-m-board .irg-select-trigger:hover{background:#fdf8ec;border-color:#d94f46;}",
+  ".irg-m-board .irg-select-open .irg-select-trigger{border-style:solid;border-color:#d94f46;",
+  "box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 0 2px rgba(217,79,70,.18);}",
+  ".irg-m-board .irg-select-label{color:#3c2a18;}",
+  ".irg-m-board .irg-select-arrow{color:#d94f46;text-shadow:none;}",
+  ".irg-m-board .irg-select-menu{background:linear-gradient(180deg,#fdf8ec 0%,#f5ecd5 100%);",
+  "border:1.5px solid #cdb088;",
+  "box-shadow:0 12px 30px rgba(60,35,10,.45),inset 0 1px 0 rgba(255,255,255,.5);}",
+  ".irg-m-board .irg-select-option{color:#3c2a18;}",
+  ".irg-m-board .irg-select-option:hover,.irg-m-board .irg-select-option:focus{",
+  "background:rgba(217,79,70,.12);color:#3c2a18;}",
+  ".irg-m-board .irg-select-option-active{background:rgba(217,79,70,.18);color:#3c2a18;}",
+  ".irg-m-board .irg-select-option-active::before{background:#d94f46;}",
+  ".irg-m-board .irg-select-check{color:#d94f46;text-shadow:none;}",
+  ".irg-m-board .irg-select-option-hint{color:rgba(60,42,24,.55);}",
 ].join("\n");
 
 let cssRefs = 0;
@@ -4868,12 +4982,50 @@ function ModalShell({ id, closing, onClose, className, children }) {
 /* — 1. Bacheca: crea torneo — */
 const BOARD_GIOCHI = ["Modern", "Standard", "Commander", "Legacy", "Pioneer", "Premodern", "Old School"];
 const TIPI_TORNEO = ["Eliminazione diretta", "Doppia eliminazione", "Gironi"];
+const BOARD_FORMAT_META = {
+  "Modern": { color: "#06b6d4", hint: "da 2003 a oggi" },
+  "Standard": { color: "#9aa3ad", hint: "rotazione biennale" },
+  "Commander": { color: "#22c55e", hint: "100 carte · multiplayer" },
+  "Legacy": { color: "#a855f7", hint: "tutte le carte" },
+  "Pioneer": { color: "#3b82f6", hint: "da 2012 a oggi" },
+  "Premodern": { color: "#7a5a2e", hint: "1995–2003" },
+  "Old School": { color: "#a86b32", hint: "1993–1997 · carte originali" },
+};
+const BOARD_TIPO_META = {
+  "Eliminazione diretta": { color: "#d94f46", hint: "single elimination" },
+  "Doppia eliminazione": { color: "#f2b94b", hint: "loser bracket" },
+  "Gironi": { color: "#4a7fd6", hint: "round robin" },
+};
+const BOARD_MAX_META = {
+  2: { color: "#3b82f6", hint: "Heads-Up" },
+  4: { color: "#22c55e", hint: "piccolo" },
+  8: { color: "#f2b94b", hint: "medio" },
+  16: { color: "#a855f7", hint: "grande" },
+};
+const BOARD_GIOCHI_OPTIONS = BOARD_GIOCHI.map((g) => ({
+  value: g,
+  label: g,
+  color: BOARD_FORMAT_META[g]?.color,
+  hint: BOARD_FORMAT_META[g]?.hint,
+}));
+const TIPI_TORNEO_OPTIONS = TIPI_TORNEO.map((t) => ({
+  value: t,
+  label: t,
+  color: BOARD_TIPO_META[t]?.color,
+  hint: BOARD_TIPO_META[t]?.hint,
+}));
+const MAX_OPTIONS = [2, 4, 8, 16].map((n) => ({
+  value: String(n),
+  label: String(n),
+  color: BOARD_MAX_META[n]?.color,
+  hint: BOARD_MAX_META[n]?.hint,
+}));
 const defaultDateIso = () => new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
 const itDate = (iso) => (iso && iso.includes("-") ? iso.split("-").reverse().join("/") : iso);
 
 function BoardModal({ onPublish, onClose, playSfx }) {
   const [form, setForm] = useState({
-    nome: "", gioco: BOARD_GIOCHI[0], tipo: TIPI_TORNEO[0], max: 2, data: defaultDateIso(), premio: "",
+    nome: "", gioco: BOARD_GIOCHI[0], tipo: TIPI_TORNEO[0], max: "2", data: defaultDateIso(), premio: "",
   });
   const [err, setErr] = useState(false);
   const [done, setDone] = useState(null);
@@ -4927,24 +5079,33 @@ function BoardModal({ onPublish, onClose, playSfx }) {
           </div>
           <div className="irg-field" style={{ marginBottom: 2 }}>
             <label htmlFor="irg-gioco">Gioco / formato carte</label>
-            <select id="irg-gioco" className="irg-input" value={form.gioco} onChange={set("gioco")}>
-              {BOARD_GIOCHI.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
+            <StyledSelect
+              value={form.gioco}
+              onChange={(v) => setForm((f) => ({ ...f, gioco: v }))}
+              options={BOARD_GIOCHI_OPTIONS}
+              placeholder="Scegli formato…"
+            />
           </div>
         </div>
         <div className="irg-paper irg-tilt-r">
           <div className="irg-grid2">
             <div className="irg-field">
               <label htmlFor="irg-tipo">Tipo torneo</label>
-              <select id="irg-tipo" className="irg-input" value={form.tipo} onChange={set("tipo")}>
-                {TIPI_TORNEO.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <StyledSelect
+                value={form.tipo}
+                onChange={(v) => setForm((f) => ({ ...f, tipo: v }))}
+                options={TIPI_TORNEO_OPTIONS}
+                placeholder="Scegli tipo…"
+              />
             </div>
             <div className="irg-field">
               <label htmlFor="irg-max">Max partecipanti</label>
-              <select id="irg-max" className="irg-input" value={form.max} onChange={set("max")}>
-                {[2, 4, 8, 16].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+              <StyledSelect
+                value={form.max}
+                onChange={(v) => setForm((f) => ({ ...f, max: v }))}
+                options={MAX_OPTIONS}
+                placeholder="Scegli max…"
+              />
             </div>
             <div className="irg-field">
               <label htmlFor="irg-data">Data di inizio</label>
@@ -4961,94 +5122,6 @@ function BoardModal({ onPublish, onClose, playSfx }) {
           <button type="submit" className="irg-btn irg-wide">📌 Pubblica torneo</button>
         </div>
       </form>
-    </>
-  );
-}
-
-/* — 2. Tavolo: i miei deck — */
-function DecksModal({ decks, cards, popular, onCreateDeck, newDeckId }) {
-  const [tab, setTab] = useState("decks");
-  const TABS = [["decks", "I miei deck"], ["pop", "Deck popolari"], ["inv", "Inventario"]];
-  return (
-    <>
-      <div className="irg-ebx-h1">I Miei <b>Deck</b></div>
-      <div className="irg-ebx-sub">Collezione e mazzi da torneo <span className="irg-esc">ESC per chiudere</span></div>
-      <div className="irg-tabs">
-        {TABS.map(([id, label]) => (
-          <button key={id} type="button" className={"irg-tab" + (tab === id ? " irg-on" : "")}
-            onClick={() => setTab(id)}>{label}</button>
-        ))}
-      </div>
-      <div className="irg-panel">
-        {tab === "decks" && (
-          <>
-            <button type="button" className="irg-ebx-join" onClick={onCreateDeck}
-              style={{ width: "100%", justifyContent: "center", padding: "10px 14px", fontSize: 12, marginBottom: 12 }}>
-              <IcoPlus /> Crea nuovo deck
-            </button>
-            <div className="irg-deckgrid">
-              {decks.map((d) => (
-                <div key={d.id} className={"irg-deck" + (d.id === newDeckId ? " irg-new" : "")}
-                  style={{ "--dc": d.colore }}>
-                  <div className="irg-deckname">
-                    <i className="irg-gem" style={{ background: d.colore }} />
-                    {d.nome}
-                  </div>
-                  <div className="irg-deckmeta">
-                    <span>{d.carte} carte</span>
-                    <span className={"irg-deckok " + (d.carte >= 40 ? "si" : "no")}>
-                      {d.carte >= 40 ? "Legale" : "In costruzione"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-        {tab === "pop" && (
-          <div>
-            {popular.map((d, i) => (
-              <div key={d.id} className="irg-poprow">
-                <div className="irg-rank">#{i + 1}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="irg-popname">
-                    <i className="irg-gem" style={{ background: d.colore }} />
-                    {d.nome}
-                  </div>
-                  <div className="irg-popauth">di @{d.autore} · usato dal {d.uso}% dei giocatori</div>
-                  <div className="irg-bar"><i style={{ width: (d.uso * 5) + "%" }} /></div>
-                </div>
-                <div className="irg-wr">WR {d.winrate}%</div>
-              </div>
-            ))}
-          </div>
-        )}
-        {tab === "inv" && (
-          <div className="irg-cardgrid">
-            {cards.map((c) => {
-              const r = RAR[c.rarita] || RAR.comune;
-              return (
-                <div key={c.id} className={"irg-card irg-r-" + c.rarita} title={c.nome + " — " + r.label}>
-                  <div className="irg-cardart" style={{
-                    background: "radial-gradient(120% 120% at 30% 18%," + hexA(r.c, 0.42) + " 0%," +
-                      hexA(r.c, 0.12) + " 55%,rgba(10,6,24,.35) 100%)",
-                  }}>
-                    <span style={{ opacity: 0.3, display: "inline-flex" }}>
-                      <Sigil type={c.sig} size={30} color="#ffffff" />
-                    </span>
-                    <div className="irg-cost">{c.costo}</div>
-                  </div>
-                  <div className="irg-cardname">{c.nome}</div>
-                  <div className="irg-rar" style={{ color: r.c }}>
-                    <i className="irg-gem" style={{ background: r.c }} />
-                    {r.label} · {c.tipo}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </>
   );
 }
@@ -5292,11 +5365,11 @@ export default function IsoRoomGame({
   formatName = "",
   modeName = "Heads-Up",
   tournaments: pTournaments,
-  decks: pDecks,
-  cards: pCards,
+  inventory: pInventory = [],
   onCreateTournament,
   onJoinTournament,
   onCreateDeck,
+  quality: qualityProp = "auto",
   __debug,
 }) {
   const wrapRef = useRef(null);
@@ -5311,11 +5384,15 @@ export default function IsoRoomGame({
   const [muted, setMuted] = useState(false);
   const [hint, setHint] = useState(true);
   const [newDeckId, setNewDeckId] = useState(null);
+  const [quality, setQuality] = useState(() => {
+    const saved = loadQuality();
+    return resolveQuality(saved || qualityProp);
+  });
+  const fx = useMemo(() => getFxFlags(quality), [quality]);
   const [data, setData] = useState(() => ({
     tournaments: pTournaments || mockTournaments(),
-    decks: pDecks || mockDecks(),
-    cards: pCards || mockCards(),
   }));
+  const inventory = pInventory || [];
 
   apiRef.current.openModal = (id) => { if (mountedRef.current) setModal(id); };
   apiRef.current.hideHint = () => { if (mountedRef.current) setHint(false); };
@@ -5334,6 +5411,7 @@ export default function IsoRoomGame({
 
   /* sync con le props (se fornite dal backend) */
   useEffect(() => { if (pTournaments) setData((d) => ({ ...d, tournaments: pTournaments })); }, [pTournaments]);
+  useEffect(() => { if (pInventory) setData((d) => ({ ...d })); }, [pInventory]);
 
   /* eventi diegetici: nuovi tornei o tornei appena iniziati → citofono / alert PC */
   const prevTRef = useRef(null);
@@ -5351,8 +5429,7 @@ export default function IsoRoomGame({
     }
     if (pTournaments) prevTRef.current = pTournaments;
   }, [pTournaments]);
-  useEffect(() => { if (pDecks) setData((d) => ({ ...d, decks: pDecks })); }, [pDecks]);
-  useEffect(() => { if (pCards) setData((d) => ({ ...d, cards: pCards })); }, [pCards]);
+
 
   /* mount/unmount del gioco */
   useEffect(() => {
@@ -5360,7 +5437,10 @@ export default function IsoRoomGame({
     injectCss();
     let game = null;
     try {
-      game = createGame(canvasRef.current, wrapRef.current, apiRef, __debug, { stats: statsRef.current, cards: data.cards });
+      game = createGame(canvasRef.current, wrapRef.current, apiRef, __debug, {
+        stats: statsRef.current,
+        fx,
+      });
     } catch (err) {
       console.error("[IsoRoomGame] inizializzazione fallita:", err);
     }
@@ -5413,7 +5493,6 @@ export default function IsoRoomGame({
       if (!mountedRef.current) return;
       setClosing(false);
       setModal(null);
-      setNewDeckId(null);
       if (gameRef.current) gameRef.current.zoomOut();
     }, 150);
   }, []);
@@ -5459,21 +5538,6 @@ export default function IsoRoomGame({
     if (onJoinTournament) onJoinTournament(id);
   }, [onJoinTournament, playSfx, username]);
 
-  const handleCreateDeck = useCallback(() => {
-    const palette = ["#e0564d", "#4a7fd6", "#5da24e", "#9a6ad6", "#f2b94b", "#46b8a5"];
-    const d2 = {
-      id: Date.now(),
-      nome: "Nuovo Deck",
-      carte: 0,
-      colore: palette[Math.floor(Math.random() * palette.length)],
-      sig: ["star", "bolt", "moon", "shield"][Math.floor(Math.random() * 4)],
-    };
-    setData((d) => ({ ...d, decks: [...d.decks, d2] }));
-    setNewDeckId(d2.id);
-    playSfx("success");
-    if (onCreateDeck) onCreateDeck(d2);
-  }, [onCreateDeck, playSfx]);
-
   const toggleMute = useCallback(() => {
     setMuted((m) => {
       const nm = !m;
@@ -5482,18 +5546,45 @@ export default function IsoRoomGame({
     });
   }, []);
 
+  const toggleQuality = useCallback(() => {
+    setQuality((q) => {
+      const next = q === "low" ? "high" : "low";
+      saveQuality(next);
+      if (gameRef.current && gameRef.current.setQuality) {
+        gameRef.current.setQuality(next);
+      }
+      return next;
+    });
+  }, []);
+
   const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
 
   return (
-    <div ref={wrapRef} className="irg-root">
+    <div ref={wrapRef} className={"irg-root" + (quality === "low" ? " irg-quality-low" : "")}>
       <canvas ref={canvasRef} className="irg-canvas" />
 
       {/* HUD */}
       <div className="irg-chip irg-title"><span aria-hidden>🏆</span>{roomName}</div>
-      <button type="button" className="irg-mute" onClick={toggleMute}
-        aria-label={muted ? "Riattiva audio" : "Silenzia audio"}>
-        {muted ? "🔇" : "🔊"}
-      </button>
+      <div className="irg-controls">
+        <button type="button" className="irg-quality" onClick={toggleQuality}
+          aria-label={quality === "low" ? "Attiva qualità alta" : "Attiva qualità leggera"}>
+          HD{quality === "high" ? " ✓" : ""}
+        </button>
+        <button type="button" className="irg-mute" onClick={toggleMute}
+          aria-label={muted ? "Riattiva audio" : "Silenzia audio"}>
+          {muted ? (
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 6.5h2.5L9.5 3v12L5.5 11.5H3z" fill="currentColor" fillOpacity="0.25" />
+              <path d="M12.5 6.2l3.5 5.6M16 6.2l-3.5 5.6" />
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 6.5h2.5L9.5 3v12L5.5 11.5H3z" fill="currentColor" fillOpacity="0.25" />
+              <path d="M12 6a4 4 0 0 1 0 6M14 4a6.5 6.5 0 0 1 0 10" />
+            </svg>
+          )}
+        </button>
+      </div>
       <div className={"irg-chip irg-hint" + (hint ? "" : " irg-off")}>
         {isTouch ? "TOCCA PER MUOVERTI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
       </div>
@@ -5511,9 +5602,8 @@ export default function IsoRoomGame({
         </ModalShell>
       )}
       {modal === "decks" && (
-        <ModalShell id="decks" closing={closing} onClose={closeModal} className="irg-m-decks">
-          <DecksModal decks={data.decks} cards={data.cards} popular={POPULAR_DECKS}
-            onCreateDeck={handleCreateDeck} newDeckId={newDeckId} />
+        <ModalShell id="decks" closing={closing} onClose={closeModal} className="irg-m-decks irg-m-decks-wide">
+          <DecksModal inventory={inventory} />
         </ModalShell>
       )}
       {modal === "pc" && (

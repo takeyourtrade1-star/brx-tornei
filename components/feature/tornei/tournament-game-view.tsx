@@ -13,6 +13,7 @@ import { CreateTournamentButton } from './create-tournament-button';
 import { WebcamLinkModal } from './webcam-link-modal';
 import dynamic from 'next/dynamic';
 import type { Tournament } from '@/types/tournament';
+import type { InventoryItem } from '@/types/inventory';
 import type { Selection } from '@/lib/validations/selection';
 import { createTournamentFromGameAction, joinTournamentAction } from '@/actions/tournaments';
 
@@ -23,6 +24,7 @@ const IsoRoomGame = dynamic(() => import('@/minigioco-test/IsoRoomGame'), {
 
 interface TournamentGameViewProps {
   tournaments: Tournament[];
+  inventory: InventoryItem[];
   selection: Selection;
   user: any;
   formatId: string;
@@ -37,6 +39,7 @@ type PendingAction =
 
 export function TournamentGameView({
   tournaments,
+  inventory,
   selection,
   user,
   formatId,
@@ -199,6 +202,7 @@ export function TournamentGameView({
             formatName={formatName}
             modeName={modeName}
             tournaments={tournaments}
+            inventory={inventory}
             onCreateTournament={handleCreateTournament}
             onJoinTournament={handleJoinTournament}
           />

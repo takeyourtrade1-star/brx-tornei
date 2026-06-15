@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Tournament } from '@/types/tournament';
+import type { InventoryItem } from '@/types/inventory';
 
 export interface IsoRoomGameProps {
   roomName?: string;
@@ -7,11 +8,10 @@ export interface IsoRoomGameProps {
   formatName?: string;
   modeName?: string;
   tournaments?: Tournament[];
-  decks?: any[];
-  cards?: any[];
+  /** Inventario reale dell'utente, usato per costruire i mazzi. */
+  inventory?: InventoryItem[];
   onCreateTournament?: (tournament: any) => void;
   onJoinTournament?: (id: string) => void;
-  onCreateDeck?: (deck: any) => void;
   __debug?: boolean;
 }
 

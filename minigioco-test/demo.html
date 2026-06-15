@@ -18,6 +18,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="./quality-config.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -48,7 +49,9 @@
         // adatta il modulo all'ambiente UMD della demo
         src = src
           .replace(/^import React[^\n]*\n/m,
-            "const { useEffect, useRef, useState, useCallback } = React;\n")
+            "const { useEffect, useRef, useState, useCallback, useMemo } = React;\n")
+          .replace(/^import .*quality-config.*\n/m,
+            "const { resolveQuality, getFxFlags, loadQuality, saveQuality } = window.IsoRoomGameQuality;\n")
           .replace("export default function IsoRoomGame", "function IsoRoomGame");
         const code = Babel.transform(src, { presets: ["react"], filename: "IsoRoomGame.jsx" }).code;
         new Function("React", code + "\n;window.IsoRoomGame = IsoRoomGame;")(React);

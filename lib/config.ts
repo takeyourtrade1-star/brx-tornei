@@ -31,6 +31,46 @@ const cdnBase = normalizeURL(
   process.env.NEXT_PUBLIC_CDN_URL || (isDevelopment ? EBARTEX_CDN_FALLBACK_DEV : '')
 );
 
+/** URL del microservizio Sync (BRX Sync) — usato per l'inventario utente. */
+const getSyncApiURL = (): string => {
+  const envUrl =
+    process.env.NEXT_PUBLIC_SYNC_API_URL || process.env.SYNC_API_URL || '';
+  if (!envUrl && isDevelopment) {
+    console.warn('[Config] NEXT_PUBLIC_SYNC_API_URL non configurato.');
+  }
+  return normalizeURL(envUrl);
+};
+
+/** Configurazione Meilisearch per il catalogo carte (server-only). */
+const getMeilisearchHost = (): string => {
+  const url =
+    process.env.MEILISEARCH_URL ||
+    process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
+    process.env.MEILI_URL ||
+    '';
+  if (!url && isDevelopment) {
+    console.warn('[Config] MEILISEARCH_URL non configurato.');
+  }
+  return normalizeURL(url);
+};
+
+const getMeilisearchApiKey = (): string => {
+  return (
+    process.env.MEILISEARCH_API_KEY ||
+    process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
+    process.env.MEILI_API_KEY ||
+    ''
+  );
+};
+
+const getMeilisearchIndex = (): string => {
+  return (
+    process.env.MEILISEARCH_INDEX ||
+    process.env.NEXT_PUBLIC_MEILISEARCH_INDEX ||
+    'cards'
+  );
+};
+
 export const ASSETS = {
   cdnUrl: cdnBase,
   imagesBaseUrl: cdnBase ? `${cdnBase}/images` : '',
@@ -46,7 +86,13 @@ export function getCdnImageUrl(path: string): string {
 export const config = {
   api: {
     baseURL: getAuthApiURL(),
+    syncBaseURL: getSyncApiURL(),
     timeout: 30000,
+  },
+  meilisearch: {
+    host: getMeilisearchHost(),
+    apiKey: getMeilisearchApiKey(),
+    indexName: getMeilisearchIndex(),
   },
   auth: {
     /** Stessi nomi cookie del proxy del sito principale → SSO cross-subdomain. */

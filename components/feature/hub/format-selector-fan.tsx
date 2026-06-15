@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -17,13 +17,13 @@ interface FormatSelectorFanProps {
 
 /** Colore accent per ogni formato (derivato dai gradienti del design system). */
 const CARD_META: Record<string, { accent: string; label: string }> = {
-  'old-school':  { accent: '#FF9F5A', label: 'Classico' },
-  'premodern':   { accent: '#4EEAEC', label: 'Nostalgico' },
-  'pioneer':     { accent: '#FF5A92', label: 'Non Rotante' },
-  'modern':      { accent: '#C89CFF', label: 'Dinamico' },
-  'standard':    { accent: '#4EEAEC', label: 'In Rotazione' },
-  'legacy':      { accent: '#FFB86A', label: 'Eterno' },
-  'commander':   { accent: '#FF6BA0', label: 'Multiplayer' },
+  'old-school': { accent: '#FF9F5A', label: 'Classico' },
+  'premodern': { accent: '#4EEAEC', label: 'Nostalgico' },
+  'pioneer': { accent: '#FF5A92', label: 'Non Rotante' },
+  'modern': { accent: '#C89CFF', label: 'Dinamico' },
+  'standard': { accent: '#4EEAEC', label: 'In Rotazione' },
+  'legacy': { accent: '#FFB86A', label: 'Eterno' },
+  'commander': { accent: '#FF6BA0', label: 'Multiplayer' },
 };
 
 /** Mappatura degli ID dei formati ai rispettivi file immagine. */
@@ -37,8 +37,43 @@ const FORMAT_IMAGES: Record<string, string> = {
   'commander': '/images/formats/commander.png',
 };
 
+/** Mappatura degli ID dei formati ai rispettivi file video verticali. */
+const FORMAT_VIDEOS: Record<string, string> = {
+  'old-school': '/video-animazione-verticale/old-school-ver.mp4',
+  'premodern': '/video-animazione-verticale/pre-modern-ver.mp4',
+  'pioneer': '/video-animazione-verticale/piooner-ver.mp4',
+  'modern': '/video-animazione-verticale/modern-ver.mp4',
+  'standard': '/video-animazione-verticale/standard-ver.mp4',
+  'legacy': '/video-animazione-verticale/legacy-ver.mp4',
+  'commander': '/video-animazione-verticale/commander-ver.mp4',
+};
+
 export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+
+  const playVideo = useCallback((id: string) => {
+    const video = videoRefs.current.get(id);
+    if (!video) return;
+    try {
+      video.currentTime = 0;
+      const promise = video.play();
+      if (promise && promise.catch) promise.catch(() => {});
+    } catch {
+      /* autoplay interrotto dal browser: lasciamo l'immagine statica */
+    }
+  }, []);
+
+  const pauseVideo = useCallback((id: string) => {
+    const video = videoRefs.current.get(id);
+    if (!video) return;
+    try {
+      video.pause();
+      video.currentTime = 0;
+    } catch {
+      /* noop */
+    }
+  }, []);
 
   const scrollToModalita = useCallback(() => {
     setTimeout(() => {
@@ -60,15 +95,16 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
           const isHovered = hoveredIndex === index;
           const meta = CARD_META[format.id] || { accent: '#ffffff', label: '' };
           const imagePath = FORMAT_IMAGES[format.id] || `/images/formats/${format.id}.png`;
+          const videoPath = FORMAT_VIDEOS[format.id];
 
           // Regola opacità per evidenziare la selezione e l'hover
-          let opacityClass = "opacity-90";
+          let opacityClass = 'opacity-90';
           if (isSelected) {
-            opacityClass = "opacity-100";
+            opacityClass = 'opacity-100';
           } else if (hasSelection) {
-            opacityClass = "opacity-45 hover:opacity-85";
+            opacityClass = 'opacity-45 hover:opacity-85';
           } else if (isAnyCardHovered) {
-            opacityClass = isHovered ? "opacity-100" : "opacity-60";
+            opacityClass = isHovered ? 'opacity-100' : 'opacity-60';
           }
 
           const cardStyle = {
@@ -76,8 +112,8 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
             boxShadow: isSelected
               ? `0 0 25px ${meta.accent}60, 0 0 50px ${meta.accent}20, inset 0 0 15px ${meta.accent}10`
               : isHovered
-              ? `0 0 20px ${meta.accent}40, 0 0 35px ${meta.accent}15`
-              : 'none',
+                ? `0 0 20px ${meta.accent}40, 0 0 35px ${meta.accent}15`
+                : 'none',
           } as React.CSSProperties;
 
           return (
@@ -86,12 +122,19 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
               href={`/hub?format=${format.id}#modalita`}
               scroll={false}
               onClick={scrollToModalita}
-              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseEnter={() => {
+                setHoveredIndex(index);
+                playVideo(format.id);
+              }}
+              onMouseLeave={() => {
+                setHoveredIndex(null);
+                pauseVideo(format.id);
+              }}
               style={cardStyle}
               className={cn(
-                "relative rounded-2xl overflow-hidden border-[1.5px] select-none cursor-pointer transition-all duration-300 ease-out snap-center",
-                "w-[125px] sm:w-[145px] md:w-[155px] aspect-[357/933] shrink-0",
-                "hover:-translate-y-2.5",
+                'group relative rounded-2xl overflow-hidden border-[1.5px] select-none cursor-pointer transition-all duration-300 ease-out snap-center',
+                'w-[125px] sm:w-[145px] md:w-[155px] aspect-[357/933] shrink-0',
+                'hover:-translate-y-2.5 hover:scale-[1.04]',
                 opacityClass
               )}
             >
@@ -101,8 +144,27 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
                 width={357}
                 height={933}
                 priority={index < 4}
-                className="object-cover w-full h-full"
+                className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
               />
+              {videoPath && (
+                <video
+                  ref={(el) => {
+                    if (el) videoRefs.current.set(format.id, el);
+                    else videoRefs.current.delete(format.id);
+                  }}
+                  src={videoPath}
+                  poster={imagePath}
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className={cn(
+                    'absolute inset-0 z-10 object-cover w-full h-full transition-all duration-300',
+                    isHovered ? 'opacity-100 scale-110' : 'opacity-0 scale-100'
+                  )}
+                  aria-hidden="true"
+                />
+              )}
             </Link>
           );
         })}
