@@ -1663,6 +1663,39 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   inter.pc.hitRect = rectOf(entities.find((e) => e.key === "desk"));
   inter.decks.hitRect = rectOf(entities.find((e) => e.key === "table"));
   inter.board.hitRect = { x: boardSp.wx, y: boardSp.wy, w: boardSp.cv.width, h: boardSp.cv.height * 0.64 };
+  // canvas sorgente per l'hit-test pixel-preciso (l'area cliccabile segue la sagoma reale)
+  inter.pc.hitCv = (entities.find((e) => e.key === "desk").spr || {}).cv || null;
+  inter.decks.hitCv = (entities.find((e) => e.key === "table").spr || {}).cv || null;
+  inter.board.hitCv = boardSp.cv;
+
+  /* — Hit-test pixel-preciso ——————————————————————————————————————————————
+     Il rettangolo dello sprite include il padding trasparente: cliccando vicino
+     a un oggetto si "beccava" l'oggetto sbagliato (es. la sedia al posto del PC).
+     Qui leggiamo l'alfa reale del pixel: l'area cliccabile coincide con la sagoma.
+     La maschera viene letta una volta e messa in cache sul canvas.            */
+  const HIT_ALPHA = 24; // ignora i bordi anti-alias semi-trasparenti
+  function spriteMask(cv) {
+    if (cv._hitMask !== undefined) return cv._hitMask;
+    let mask = null;
+    try {
+      const data = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+      mask = { w: cv.width, h: cv.height, data };
+    } catch (e) {
+      mask = null; // canvas non leggibile → fallback al rettangolo
+    }
+    cv._hitMask = mask;
+    return mask;
+  }
+  function solidInRect(w, r, cv) {
+    if (!(w.x >= r.x && w.x <= r.x + r.w && w.y >= r.y && w.y <= r.y + r.h)) return false;
+    if (!cv) return true;
+    const m = spriteMask(cv);
+    if (!m || !m.data) return true; // fallback: comportamento a rettangolo
+    const px = Math.floor(w.x - r.x);
+    const py = Math.floor(w.y - r.y);
+    if (px < 0 || py < 0 || px >= m.w || py >= m.h) return false;
+    return m.data[(py * m.w + px) * 4 + 3] >= HIT_ALPHA;
+  }
 
   const sils = {
     pc: makeSil(sprMap.desk),
@@ -1712,14 +1745,16 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const intercomLed = wallR(11.0, 60);
 
   /* — easter egg: oggetti decorativi cliccabili — */
+  const findEnt = (k) => entities.find((e) => e.key === k);
+  const spriteCvOf = (e) => (e ? (e.frames ? e.frames[0].cv : e.spr ? e.spr.cv : null) : null);
   const eggs = [
-    { key: "plant", rect: rectOf(entities.find((e) => e.key === "plant")) },
-    { key: "lamp", rect: rectOf(lampEnt) },
-    { key: "cam", rect: rectOf(entities.find((e) => e.key === "cam")) },
-    { key: "cam2", rect: rectOf(entities.find((e) => e.key === "cam2")) },
-    { key: "chair", rect: rectOf(entities.find((e) => e.key === "chair")) },
-    { key: "stool", rect: rectOf(entities.find((e) => e.key === "stool")) },
-    { key: "stool", rect: rectOf(entities.find((e) => e.key === "stool2")) },
+    { key: "plant", rect: rectOf(findEnt("plant")), cv: spriteCvOf(findEnt("plant")) },
+    { key: "lamp", rect: rectOf(lampEnt), cv: spriteCvOf(lampEnt) },
+    { key: "cam", rect: rectOf(findEnt("cam")), cv: spriteCvOf(findEnt("cam")) },
+    { key: "cam2", rect: rectOf(findEnt("cam2")), cv: spriteCvOf(findEnt("cam2")) },
+    { key: "chair", rect: rectOf(findEnt("chair")), cv: spriteCvOf(findEnt("chair")) },
+    { key: "stool", rect: rectOf(findEnt("stool")), cv: spriteCvOf(findEnt("stool")) },
+    { key: "stool", rect: rectOf(findEnt("stool2")), cv: spriteCvOf(findEnt("stool2")) },
     { key: "window", rect: rectFromPts([wallL(7.7, 92), wallL(5.7, 92), wallL(5.7, 24), wallL(7.7, 24)]) },
     { key: "posterBrand", rect: rectFromPts([wallL(1.0, 96), wallL(2.7, 96), wallL(2.7, 48), wallL(1.0, 48)]) },
     { key: "posterTcg", rect: rectFromPts([wallL(8.2, 92), wallL(9.7, 92), wallL(9.7, 42), wallL(8.2, 42)]) },
@@ -1878,8 +1913,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function hitObject(sx, sy) {
     const w = unproject(sx, sy);
     for (const id of ["pc", "decks", "board"]) {
-      const r = inter[id].hitRect;
-      if (w.x >= r.x && w.x <= r.x + r.w && w.y >= r.y && w.y <= r.y + r.h) return inter[id];
+      if (solidInRect(w, inter[id].hitRect, inter[id].hitCv)) return inter[id];
     }
     return null;
   }
@@ -1917,7 +1951,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function hitDecor(sx, sy) {
     const w = unproject(sx, sy);
     if (st.packAvail && inRect(w, packRect)) return { kind: "pack" };
-    if (inRect(w, turnRect)) return { kind: "music" };
+    if (solidInRect(w, turnRect, turnFrames[0] && turnFrames[0].cv)) return { kind: "music" };
     if (inRect(w, intercomRect)) return { kind: "intercom" };
     // gatto: cerchio attorno alla sua posizione (anche quando è appollaiata)
     const lift = st.cat.perch ? st.cat.perch.lift : 0;
@@ -1927,7 +1961,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const d_lift = st.dog.perch ? st.dog.perch.lift : 0;
     const d_cp = tileTop(st.dog.fx, st.dog.fy);
     if (Math.abs(w.x - d_cp.x) < 22 && Math.abs(w.y - (d_cp.y + HTH - 8 - d_lift)) < 20) return { kind: "dog" };
-    for (const eg of eggs) if (inRect(w, eg.rect)) return { kind: "egg", egg: eg };
+    for (const eg of eggs) if (eg.cv ? solidInRect(w, eg.rect, eg.cv) : inRect(w, eg.rect)) return { kind: "egg", egg: eg };
     return null;
   }
 
@@ -4611,7 +4645,7 @@ const CSS_TEXT = [
   "background-size:240% 100%;animation:irgSheen 2.6s ease-in-out infinite;}",
   "@keyframes irgSheen{0%{background-position:130% 0}55%,100%{background-position:-60% 0}}",
   /* — modale PC/CRT — */
-  ".irg-m-pc{width:900px;max-width:100%;background:rgba(35,38,47,0.45);border-radius:18px;padding:16px 16px 24px;",
+  ".irg-m-pc{width:min(1500px,96vw);max-width:96vw;height:calc(100% - 78px);max-height:calc(100% - 78px);align-self:flex-start;margin-top:48px;display:flex;flex-direction:column;background:rgba(35,38,47,0.45);border:0;border-radius:18px;padding:18px 18px 34px;",
   "backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);",
   "box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 24px 70px rgba(0,0,0,.6);}",
   ".irg-m-pc .irg-brand{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);",
@@ -4619,22 +4653,22 @@ const CSS_TEXT = [
   ".irg-m-pc .irg-led{position:absolute;bottom:9px;right:18px;width:7px;height:7px;border-radius:50%;",
   "background:#51e3a4;box-shadow:0 0 7px #51e3a4;animation:irgLed 2.4s ease-in-out infinite;}",
   "@keyframes irgLed{0%,100%{opacity:1}50%{opacity:.45}}",
-  ".irg-screen{position:relative;border-radius:10px;border:2px solid #0a0a16;overflow:hidden;",
+  ".irg-screen{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;border-radius:10px;border:2px solid #0a0a16;overflow:hidden;",
   "background:linear-gradient(180deg,#3d65c6 0%,#1d3160 100%);",
   "box-shadow:inset 0 0 44px rgba(15,20,55,.6);}",
   ".irg-screen:after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:8px;z-index:50;",
   "background:repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px);",
   "animation:irgCrt 9s linear infinite;}",
   "@keyframes irgCrt{0%,100%{opacity:.85}50%{opacity:1}}",
-  ".irg-pcwrap{padding:18px 16px 16px;}",
+  ".irg-pcwrap{padding:18px 16px 16px;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}",
   ".irg-ebx-h1{font-size:21px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#fff;",
   "text-shadow:0 2px 8px rgba(0,0,0,.45);}",
   ".irg-ebx-h1 b{color:#FF7300;}",
   ".irg-ebx-sub{margin-top:3px;font-size:12px;color:rgba(255,255,255,.6);}",
   ".irg-ebx-sub b{color:#F3C76A;}",
-  ".irg-glass{margin-top:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);",
+  ".irg-glass{margin-top:14px;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);",
   "border-radius:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 20px 50px -20px rgba(0,0,0,.55);}",
-  ".irg-tablewrap{max-height:min(700px,75vh);overflow:auto;border-radius:22px;}",
+  ".irg-tablewrap{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;border-radius:22px;}",
   ".irg-ebx-table{width:100%;min-width:620px;border-collapse:collapse;text-align:left;color:#fff;font-size:13px;}",
   ".irg-ebx-table th{position:sticky;top:0;z-index:2;background:rgba(29,49,96,.94);",
   "font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#F3C76A;",
@@ -4702,6 +4736,19 @@ const CSS_TEXT = [
   ".irg-ebx-table{font-size:12px;}",
   ".irg-mtitle{font-size:11px;}",
   "}",
+  /* — Tornei Live: 7 card formati orizzontali con video all'hover — */
+  ".irg-fmts{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin:16px 0 4px;}",
+  ".irg-fmtcard{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;cursor:pointer;",
+  "background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 8px 18px rgba(0,0,0,.4);",
+  "transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s ease;will-change:transform;}",
+  ".irg-fmtcard:hover{transform:scale(1.3);z-index:10;",
+  "box-shadow:inset 0 0 0 1px rgba(255,115,0,.55),0 16px 34px rgba(0,0,0,.55),0 0 22px rgba(255,115,0,.35);}",
+  ".irg-fmtimg,.irg-fmtvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}",
+  ".irg-fmtvid{opacity:0;transition:opacity .25s ease;}",
+  ".irg-fmtcard:hover .irg-fmtvid{opacity:1;}",
+  ".irg-fmtlabel{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:16px 8px 6px;",
+  "font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#fff;text-align:center;",
+  "text-shadow:0 1px 4px rgba(0,0,0,.85);background:linear-gradient(to top,rgba(0,0,0,.78),transparent);}",
 ].join("\n");
 
 let cssRefs = 0;
@@ -5071,6 +5118,42 @@ function MiniTip({ text }) {
   );
 }
 
+/* — Tornei Live: 7 formati orizzontali (immagine + video all'hover) — */
+const FORMATS_OR = [
+  { key: "old-school", label: "Old School", img: "/immagini-formato-orizzontale/old-school-or.jpeg", vid: "/video-animazione-orizzontale/animazione-old-school.mp4" },
+  { key: "pre-modern", label: "Pre-Modern", img: "/immagini-formato-orizzontale/pre-modern-or.jpeg", vid: "/video-animazione-orizzontale/animazione-pre-modern.mp4" },
+  { key: "pioneer", label: "Pioneer", img: "/immagini-formato-orizzontale/pioneer-or.jpeg", vid: "/video-animazione-orizzontale/animazione-piooner.mp4" },
+  { key: "modern", label: "Modern", img: "/immagini-formato-orizzontale/modern-or.jpeg", vid: "/video-animazione-orizzontale/animazione-modern.mp4" },
+  { key: "standard", label: "Standard", img: "/immagini-formato-orizzontale/standard-or.jpeg", vid: "/video-animazione-orizzontale/animazione-standard.mp4" },
+  { key: "legacy", label: "Legacy", img: "/immagini-formato-orizzontale/legacy-or.jpeg", vid: "/video-animazione-orizzontale/animazione-legacy.mp4" },
+  { key: "commander", label: "Commander", img: "/immagini-formato-orizzontale/commander-or.jpeg", vid: "/video-animazione-orizzontale/animazione-commander.mp4" },
+];
+
+function FormatCard({ fmt }) {
+  const vref = React.useRef(null);
+  const onEnter = () => {
+    const v = vref.current;
+    if (!v) return;
+    try {
+      v.currentTime = 0;
+      const p = v.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* play interrotto */ }
+  };
+  const onLeave = () => {
+    const v = vref.current;
+    if (!v) return;
+    try { v.pause(); v.currentTime = 0; } catch (e) { /* noop */ }
+  };
+  return (
+    <div className="irg-fmtcard" onMouseEnter={onEnter} onMouseLeave={onLeave}>
+      <img className="irg-fmtimg" src={fmt.img} alt={fmt.label} loading="lazy" draggable="false" />
+      <video ref={vref} className="irg-fmtvid" src={fmt.vid} muted loop playsInline preload="none" />
+      <span className="irg-fmtlabel">{fmt.label}</span>
+    </div>
+  );
+}
+
 function PcModal({ tournaments, onJoin, me, formatName, modeName }) {
   return (
     <>
@@ -5080,6 +5163,11 @@ function PcModal({ tournaments, onJoin, me, formatName, modeName }) {
           <div className="irg-ebx-sub">
             {formatName && <>{formatName} · </>}
             {modeName} · Buy-In <b>For Fun</b> <span className="irg-esc">ESC per chiudere</span>
+          </div>
+          <div className="irg-fmts">
+            {FORMATS_OR.map((f) => (
+              <FormatCard key={f.key} fmt={f} />
+            ))}
           </div>
           {tournaments.length === 0 ? (
             <div className="irg-glass irg-ebx-empty">

@@ -12,7 +12,9 @@ import { config as appConfig } from '@/lib/config';
 const ACCESS_COOKIE = appConfig.auth.accessCookie;
 const REFRESH_COOKIE = appConfig.auth.refreshCookie;
 
-const PUBLIC_PATHS = ['/login', '/registrati', '/auth/bridge'];
+// `/tornei/webcam/[id]` è la pagina aperta dal telefono dopo la scansione del
+// QR: deve essere raggiungibile senza login (il telefono non è autenticato).
+const PUBLIC_PATHS = ['/login', '/registrati', '/auth/bridge', '/tornei/webcam'];
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

@@ -1,5 +1,6 @@
 import type { BestOf, Tournament } from '@/types/tournament';
 import { StatusBadge } from './status-badge';
+import { MobileJoinButton } from './mobile-join-button';
 import { Eye, Lock, Plus, UserPlus } from 'lucide-react';
 
 /** "Forma" dal mockup: best-of mostrato come frazione (2/3, 3/5). */
@@ -175,17 +176,7 @@ export function TournamentsTable({ tournaments }: { tournaments: Tournament[] })
                     
                     {t.status === 'in_registrazione' && !isFull && (
                       <div>
-                        {t.isPrivate ? (
-                          <button className="brx-liquid-glass-btn flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold text-white transition-all shadow-md active:scale-95">
-                            <UserPlus className="h-3.5 w-3.5 shrink-0" />
-                            Chiedi di partecipare
-                          </button>
-                        ) : (
-                          <button className="brx-liquid-glass-btn flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold text-white transition-all shadow-md active:scale-95">
-                            <Plus className="h-3.5 w-3.5 shrink-0" />
-                            Partecipa
-                          </button>
-                        )}
+                        <MobileJoinButton isPrivate={t.isPrivate} />
                       </div>
                     )}
                   </div>

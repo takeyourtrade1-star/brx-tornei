@@ -4,12 +4,13 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, LogOut } from 'lucide-react';
+import { Home, LogOut, Smartphone } from 'lucide-react';
 import { getCdnImageUrl } from '@/lib/config';
 import { logoutAction } from '@/actions/auth';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { TournamentsTable } from './tournaments-table';
 import { CreateTournamentButton } from './create-tournament-button';
+import { WebcamLinkModal } from './webcam-link-modal';
 import dynamic from 'next/dynamic';
 import type { Tournament } from '@/types/tournament';
 import type { Selection } from '@/lib/validations/selection';
@@ -29,6 +30,11 @@ interface TournamentGameViewProps {
   modeName: string;
 }
 
+/** Azione in attesa del passo "webcam via QR" prima di essere eseguita. */
+type PendingAction =
+  | { kind: 'create'; tournament: Tournament }
+  | { kind: 'join'; id: string };
+
 export function TournamentGameView({
   tournaments,
   selection,
@@ -38,8 +44,9 @@ export function TournamentGameView({
   modeName,
 }: TournamentGameViewProps) {
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  const [pending, setPending] = useState<PendingAction | null>(null);
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const [creating, startTransition] = useTransition();
   const logoUrl = getCdnImageUrl('logo.png');
 
   useEffect(() => {
@@ -53,17 +60,37 @@ export function TournamentGameView({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // "Crea Torneo": prima il QR per collegare la webcam del telefono, poi la
+  // creazione vera (alla conferma del modale).
   const handleCreateTournament = (t: Tournament) => {
-    startTransition(async () => {
-      await createTournamentFromGameAction(t);
-      router.refresh();
-    });
+    setPending({ kind: 'create', tournament: t });
   };
 
+  // "Partecipa": stesso passo QR prima dell'iscrizione. I tornei privati
+  // ("Chiedi di partecipare") inviano solo la richiesta: il QR andrà mostrato
+  // dopo l'approvazione (hook da collegare quando esisterà quel flusso).
   const handleJoinTournament = (id: string) => {
+    const t = tournaments.find((x) => x.id === id);
+    if (t?.isPrivate) {
+      startTransition(async () => {
+        await joinTournamentAction(id);
+        router.refresh();
+      });
+      return;
+    }
+    setPending({ kind: 'join', id });
+  };
+
+  const confirmPending = () => {
+    if (!pending) return;
     startTransition(async () => {
-      await joinTournamentAction(id);
+      if (pending.kind === 'create') {
+        await createTournamentFromGameAction(pending.tournament);
+      } else {
+        await joinTournamentAction(pending.id);
+      }
       router.refresh();
+      setPending(null);
     });
   };
 
@@ -143,10 +170,18 @@ export function TournamentGameView({
             <CreateTournamentButton selection={selection} />
           </div>
 
-          {/* Invitation text to PC gaming version */}
-          <p className="text-center text-[10px] font-bold uppercase tracking-widest text-[#FF7300]/60 py-1 select-none">
-            🎮 Apri il sito sul PC e {"vivi l'esperienza"} del gaming
-          </p>
+          {/* Nota mobile: i tornei si giocano da PC, il telefono fa da webcam */}
+          <div className="brx-glass flex items-start gap-3 rounded-2xl border border-[#FF7300]/25 p-4">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#FF7300]/40 bg-[#FF7300]/15 text-[#FF7300]">
+              <Smartphone className="h-4 w-4" />
+            </div>
+            <p className="text-sm leading-relaxed text-white/75">
+              I tornei si giocano <span className="font-bold text-white">dal PC</span>. Il tuo
+              telefono può però fare da <span className="font-bold text-[#FF7300]">webcam</span>:
+              apri i tornei sul computer e, quando crei la partita, inquadra il QR per usare
+              questa fotocamera.
+            </p>
+          </div>
 
           <TournamentsTable tournaments={tournaments} />
         </main>
@@ -155,55 +190,65 @@ export function TournamentGameView({
   }
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-[#191b2e] z-40 overflow-hidden select-none animate-auth-enter">
-      <div className="w-full h-full relative">
-        <IsoRoomGame
-          roomName={`Sala Tornei · ${formatName}`}
-          username={username}
-          formatName={formatName}
-          modeName={modeName}
-          tournaments={tournaments}
-          onCreateTournament={handleCreateTournament}
-          onJoinTournament={handleJoinTournament}
-        />
-      </div>
-
-      {/* Floating Overlays */}
-      {/* Logo & Home button overlay (top-left, left of the shifted title chip) */}
-      <div className="absolute top-[12px] left-[16px] z-50 flex items-center gap-4">
-        <Link href="/" className="transition-opacity hover:opacity-90 flex items-center justify-center">
-          <Image
-            src={logoUrl}
-            alt="Ebartex"
-            width={90}
-            height={32}
-            className="h-8 w-auto object-contain block"
-            priority
-            unoptimized
+    <>
+      <div className="fixed inset-0 w-screen h-screen bg-[#191b2e] z-40 overflow-hidden select-none animate-auth-enter">
+        <div className="w-full h-full relative">
+          <IsoRoomGame
+            roomName={`Sala Tornei · ${formatName}`}
+            username={username}
+            formatName={formatName}
+            modeName={modeName}
+            tournaments={tournaments}
+            onCreateTournament={handleCreateTournament}
+            onJoinTournament={handleJoinTournament}
           />
-        </Link>
-        <Link
-          href="/hub"
-          aria-label="Torna alla selezione"
-          className="text-white/60 hover:text-white transition-colors duration-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
-        >
-          <Home className="h-5 w-5" />
-        </Link>
+        </div>
+
+        {/* Floating Overlays */}
+        {/* Logo & Home button overlay (top-left, left of the shifted title chip) */}
+        <div className="absolute top-[12px] left-[16px] z-50 flex items-center gap-4">
+          <Link href="/" className="transition-opacity hover:opacity-90 flex items-center justify-center">
+            <Image
+              src={logoUrl}
+              alt="Ebartex"
+              width={90}
+              height={32}
+              className="h-8 w-auto object-contain block"
+              priority
+              unoptimized
+            />
+          </Link>
+          <Link
+            href="/hub"
+            aria-label="Torna alla selezione"
+            className="text-white/60 hover:text-white transition-colors duration-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
+          >
+            <Home className="h-5 w-5" />
+          </Link>
+        </div>
+
+        {/* Email & Logout overlay (top-right, left of the mute button) */}
+        <div className="absolute top-[12px] right-[60px] z-50 flex items-center gap-4 text-sm font-semibold text-white/50 select-none h-8">
+          <span className="flex items-center">{user.email}</span>
+          <form action={logoutAction} className="flex items-center">
+            <button
+              type="submit"
+              aria-label="Esci"
+              className="text-white/60 hover:text-red-400 transition-colors duration-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </form>
+        </div>
       </div>
 
-      {/* Email & Logout overlay (top-right, left of the mute button) */}
-      <div className="absolute top-[12px] right-[60px] z-50 flex items-center gap-4 text-sm font-semibold text-white/50 select-none h-8">
-        <span className="flex items-center">{user.email}</span>
-        <form action={logoutAction} className="flex items-center">
-          <button
-            type="submit"
-            aria-label="Esci"
-            className="text-white/60 hover:text-red-400 transition-colors duration-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
-        </form>
-      </div>
-    </div>
+      <WebcamLinkModal
+        open={!!pending}
+        busy={creating}
+        confirmLabel={pending?.kind === 'join' ? 'Partecipa' : 'Crea Torneo'}
+        onConfirm={confirmPending}
+        onCancel={() => setPending(null)}
+      />
+    </>
   );
 }
