@@ -1387,6 +1387,78 @@ function buildCat() {
   return { walk: pose(walkFr), sit: pose(sitFr), sleep: pose(sleepFr) };
 }
 
+/* ====================== 5c. CANE HUSKY (pixel-art) ========================= */
+/* "Cookie", husky grigia/bianca. Pose: sleep / sit / walk. */
+
+function buildDog() {
+  const C = { fur: "#4a4e59", dark: "#2c2e35", belly: "#ffffff", ear: "#383b43", eye: "#825329", nose: "#1d1e22" };
+  const mk = (draw, flip) => {
+    const raw = { cv: mkCanvas(32, 26), ax: 0, ay: 0 };
+    const ctx = raw.cv.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.save();
+    if (flip) { ctx.translate(32, 0); ctx.scale(-1, 1); }
+    const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+    draw(px);
+    ctx.restore();
+    const sp = outlined(raw);
+    sp.feet = { x: 16, y: 26 };
+    return sp;
+  };
+  const walkFr = (f) => (px) => {
+    // corpo, testa a destra
+    px(4, 9, 17, 9, C.fur);
+    px(5, 15, 15, 3, C.belly);
+    px(4, 9, 8, 5, C.dark);
+    // zampe
+    px(5 + (f ? 2 : 0), 18, 2, 6, C.fur); px(5 + (f ? 2 : 0), 23, 2, 1, C.belly);
+    px(10 - (f ? 2 : 0), 18, 2, 6, C.fur); px(10 - (f ? 2 : 0), 23, 2, 1, C.belly);
+    px(15 + (f ? -2 : 0), 18, 2, 6, C.fur); px(15 + (f ? -2 : 0), 23, 2, 1, C.belly);
+    px(19 + (f ? 2 : 0), 18, 2, 6, C.fur); px(19 + (f ? 2 : 0), 23, 2, 1, C.belly);
+    // coda
+    px(1, 4 + (f ? 1 : 0), 4, 7, C.fur); px(2, 3 + (f ? 1 : 0), 2, 2, C.belly);
+    // testa (faccia bianca, retro scuro)
+    px(20, 3, 9, 9, C.belly);
+    px(20, 3, 3, 9, C.fur);
+    px(20, 0, 3, 4, C.dark); px(25, 0, 3, 4, C.dark);
+    px(21, 1, 1, 3, C.belly); px(26, 1, 1, 3, C.belly);
+    px(22, 5, 1, 2, C.eye); px(26, 5, 1, 2, C.eye);
+    px(27, 8, 3, 2, C.nose);
+  };
+  const sitFr = (f) => (px) => {
+    px(8, 9, 13, 12, C.fur);
+    px(8, 9, 10, 5, C.dark);
+    px(10, 14, 8, 7, C.belly);
+    // zampe
+    px(9, 21, 3, 3, C.fur); px(9, 23, 3, 1, C.belly);
+    px(16, 21, 3, 3, C.fur); px(16, 23, 3, 1, C.belly);
+    // coda
+    px(21 + (f ? 1 : 0), 14 - (f ? 1 : 0), 4, 7, C.fur); px(22 + (f ? 1 : 0), 13 - (f ? 1 : 0), 3, 3, C.belly);
+    // testa (maschera bianca husky)
+    px(10, 2, 10, 9, C.belly);
+    px(10, 2, 10, 2, C.fur);
+    px(10, 4, 1, 5, C.fur); px(19, 4, 1, 5, C.fur);
+    px(10, 0, 3, 3, C.dark); px(17, 0, 3, 3, C.dark);
+    px(11, 1, 1, 2, C.belly); px(18, 1, 1, 2, C.belly);
+    px(12, 4, 1, 2, C.eye); px(16, 4, 1, 2, C.eye);
+    px(14, 7, 3, 2, C.nose);
+  };
+  const sleepFr = (f) => (px) => {
+    const b = f ? 1 : 0;
+    px(6, 12 - b, 20, 9 + b, C.fur);
+    px(6, 12 - b, 15, 5, C.dark);
+    px(11, 15 - b, 10, 4, C.belly);
+    // testa
+    px(18, 8 - b, 10, 8, C.belly);
+    px(18, 8 - b, 4, 8, C.fur);
+    px(18, 5 - b, 3, 4, C.dark); px(24, 5 - b, 3, 4, C.dark);
+    px(21, 11 - b, 2, 1, C.dark); px(24, 11 - b, 2, 1, C.dark);
+    px(5, 17, 15, 4, C.fur); px(4, 18, 4, 3, C.belly);
+  };
+  const pose = (fr) => [mk(fr(0), false), mk(fr(1), false), mk(fr(0), true), mk(fr(1), true)];
+  return { walk: pose(walkFr), sit: pose(sitFr), sleep: pose(sleepFr) };
+}
+
 /* ============================ 6. AUDIO ================================= */
 
 function makeAudio() {
@@ -1519,6 +1591,16 @@ function makeAudio() {
     whoosh() { noise({ dur: 0.3, freq: 600, vol: 0.14 }); tone({ f: 200, f2: 900, type: "sine", dur: 0.3, vol: 0.07 }); },
     purr() { for (let i = 0; i < 7; i++) tone({ f: 78 + (i % 2) * 8, type: "sawtooth", dur: 0.07, vol: 0.035, delay: i * 0.07 }); },
     meow() { tone({ f: 740, f2: 990, type: "triangle", dur: 0.13, vol: 0.06 }); tone({ f: 990, f2: 600, type: "triangle", dur: 0.22, vol: 0.055, delay: 0.12 }); },
+    bark() {
+      tone({ f: 380, f2: 480, type: "triangle", dur: 0.09, vol: 0.08 });
+      tone({ f: 480, f2: 220, type: "triangle", dur: 0.14, vol: 0.07, delay: 0.07 });
+      noise({ dur: 0.1, freq: 1100, vol: 0.08 });
+    },
+    pant() {
+      for (let i = 0; i < 3; i++) {
+        noise({ dur: 0.05, freq: 1500, vol: 0.02, delay: i * 0.12 });
+      }
+    },
     ding() { tone({ f: 784, type: "triangle", dur: 0.4, vol: 0.12 }); tone({ f: 659, type: "triangle", dur: 0.55, vol: 0.1, delay: 0.26 }); },
     dispose() { mDark = false; musicStop(); stopTimer(); try { ac && ac.close(); } catch (e) { /* noop */ } ac = null; },
   };
@@ -1536,6 +1618,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   let bg = buildBackground(phase, stats, posters);
   const F = buildFurniture();
   const catSp = buildCat();
+  const dogSp = buildDog();
   let boardSp = buildBoard(false);
   let bracketOn = false;
   const icons = buildIcons();
@@ -1691,7 +1774,18 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       pets: 0, follow: 0, nextZ: 0,
       perch: null,                   // { key, tx, ty, lift, until } gatta sugli arredi
       streak: 0, lastPet: -99,       // carezze consecutive (per lo Shadow Realm)
+      pendingChairAt: null,          // timer per ritardare la salita sulla sedia
     },
+    dog: {
+      from: { cx: 5, cy: 7 }, to: null, t: 0, fx: 5, fy: 7, queue: [],
+      dir: "se", state: "sleep", until: 6 + Math.random() * 8, goal: null,
+      pets: 0, follow: 0, nextZ: 0,
+      perch: null,
+      streak: 0, lastPet: -99,
+      pendingChairAt: null,
+    },
+    petInteraction: null,            // { type: "chase"|"fight", stage: number, t0: number, runnerTarget?: {cx, cy}, until?: number }
+    nextPetInteraction: 60 + Math.random() * 60, // primo check dopo 60-120s
     cinematic: false,                // input bloccato durante le sequenze
     chairSpin: -99,                  // t dell'ultima "girata" della sedia
     scatter: [],                     // carte sparpagliate sul tavolo (fisica con attrito)
@@ -1798,6 +1892,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       zzz: { ch: "z", col: "#cfd6f5", size: 9, rise: 22, dur: 1.8 },
       note: { ch: "♪", col: "#ffd76e", size: 10, rise: 30, dur: 1.6 },
       spark: { ch: "✦", col: "#ffe9b0", size: 9, rise: 24, dur: 1.2 },
+      dust: { ch: "💨", col: "#d4d8e5", size: 10, rise: 15, dur: 0.8 },
+      clash: { ch: "💥", col: "#ffb454", size: 11, rise: 18, dur: 0.6 },
     };
     const d = DEF[kind];
     for (let i = 0; i < n; i++) {
@@ -1827,6 +1923,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const lift = st.cat.perch ? st.cat.perch.lift : 0;
     const cp = tileTop(st.cat.fx, st.cat.fy);
     if (Math.abs(w.x - cp.x) < 18 && Math.abs(w.y - (cp.y + HTH - 8 - lift)) < 16) return { kind: "cat" };
+    // cane Cookie
+    const d_lift = st.dog.perch ? st.dog.perch.lift : 0;
+    const d_cp = tileTop(st.dog.fx, st.dog.fy);
+    if (Math.abs(w.x - d_cp.x) < 22 && Math.abs(w.y - (d_cp.y + HTH - 8 - d_lift)) < 20) return { kind: "dog" };
     for (const eg of eggs) if (inRect(w, eg.rect)) return { kind: "egg", egg: eg };
     return null;
   }
@@ -1875,10 +1975,12 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (cat.state === "sleep") { cat.state = "sit"; cat.until = st.t + 4; }
     cat.pets++;
     
-    // Se viene accarezzata mentre è a terra, va direttamente sulla sedia
+    let isPendingChair = false;
+    // Se viene accarezzata mentre è a terra, prenota il salto sulla sedia dopo un breve ritardo
+    // per non interrompere la catena di carezze dell'easter egg
     if (!cat.perch && !cat.to) {
-      cat.until = 0;
-      cat.forceChair = true;
+      cat.pendingChairAt = st.t + 1.5;
+      isPendingChair = true;
     }
     
     /* easter egg segreto: 7 carezze di fila, musica spenta, a notte fonda */
@@ -1886,15 +1988,40 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     cat.lastPet = st.t;
     if (cat.streak >= 7 && !st.shadow && !sfx.musicOn() && phase.id === "night") {
       cat.streak = 0;
+      cat.pendingChairAt = null;
       enterShadow();
       return;
     }
     if (cat.pets % 3 === 0) {
       // Evitiamo di sovrascrivere l'azione forzata della sedia se sta per partire
-      if (!cat.forceChair) {
+      if (!cat.forceChair && !isPendingChair) {
         cat.follow = 6;
         sfx.meow();
         showBubble(st.shadow ? "Missy vede oltre il velo… e ti segue. 🐈‍⬛" : "Missy ti segue! 🐱", 2.6);
+      }
+    }
+  }
+
+  function petDog() {
+    const dog = st.dog;
+    sfx.pant();
+    const lift = dog.perch ? dog.perch.lift : 0;
+    const cp = tileTop(dog.fx, dog.fy);
+    spawnFx("heart", cp.x, cp.y - 8 - lift, 3);
+    if (dog.state === "sleep") { dog.state = "sit"; dog.until = st.t + 4; }
+    dog.pets++;
+    
+    let isPendingChair = false;
+    if (!dog.perch && !dog.to) {
+      dog.pendingChairAt = st.t + 1.5;
+      isPendingChair = true;
+    }
+    
+    if (dog.pets % 3 === 0) {
+      if (!dog.forceChair && !isPendingChair) {
+        dog.follow = 6;
+        sfx.bark();
+        showBubble("Cookie ti segue scodinzolando! 🐶", 2.6);
       }
     }
   }
@@ -2135,144 +2262,391 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     }
 
     /* — gatto: stati e movimento — */
-    const cat = st.cat;
-    /* appollaiata su un arredo: sedia (che gira), tavolo (carte ovunque) o scrivania (PC caldo) */
-    if (cat.perch) {
-      const pc = cat.perch;
-      if (pc.key === "table" && !pc.scattered && st.t - pc.t0 > 0.6) {
-        pc.scattered = true;
-        sfx.shuffle();
-        const o = tablePt(7.0, 3.4);
-        for (let i = 0; i < 3; i++) {
-          const a = Math.random() * 6.28;
-          st.scatter.push({
-            x: o.x, y: o.y,
-            vx: Math.cos(a) * (40 + Math.random() * 50), vy: Math.sin(a) * (20 + Math.random() * 25) * 0.6,
-            rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 8,
-            col: [P.red, "#4a7fd6", "#9a6ad6"][i % 3], t0: st.t, snapped: false,
-          });
-        }
-        showBubble("Missy! Le mie carte! 🙀", 2.6);
-      }
-      if (pc.key === "desk" && cat.state === "sleep" && st.t > cat.nextZ && !reduced) {
-        cat.nextZ = st.t + 1.8;
-        const cp2 = tileTop(cat.fx, cat.fy);
-        spawnFx("zzz", cp2.x + 6, cp2.y - 6 - pc.lift);
-      }
-      if (st.t > pc.until) {
-        const land = pc.key === "chair" ? { cx: 2, cy: 4 } : pc.key === "table" ? { cx: 7, cy: 5 } : { cx: 1, cy: 5 };
-        cat.perch = null;
-        cat.from = land; cat.to = null; cat.t = 0; cat.queue = [];
-        cat.state = "sit"; cat.until = st.t + 2 + Math.random() * 3;
-        sfx.step(1);
-      }
-    } else if (cat.to) {
-      cat.t += dt * 2.4;
-      if (cat.t >= 1) {
-        cat.from = cat.to; cat.to = null; cat.t = 0;
-        if (onRug(cat.from.cx, cat.from.cy)) {
-          const fp = tileTop(cat.from.cx, cat.from.cy);
-          st.prints.push({ x: fp.x + (Math.random() < 0.5 ? 3 : -3), y: fp.y + HTH, t0: st.t, s: 0.55 });
-          if (st.prints.length > 40) st.prints.shift();
-        }
-        if (cat.queue.length) {
-          cat.to = cat.queue.shift();
-          const dx = cat.to.cx - cat.from.cx, dy = cat.to.cy - cat.from.cy;
-          cat.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
-        } else {
-          if (cat.goal && cat.goal.startsWith("perch_")) {
-            const key = cat.goal.split("_")[1];
-            let lift = 22;
-            let tx = 7, ty = 3;
-            if (key === "chair") { lift = 21; tx = 1; ty = 4; }
-            else if (key === "desk") { lift = 24; tx = 0; ty = 4; }
-            cat.perch = { key, tx, ty, lift, t0: st.t, until: st.t + 15 + Math.random() * 20, scattered: false };
-            cat.from = { cx: tx, cy: ty };
-            cat.fx = tx; cat.fy = ty;
-            cat.state = key === "desk" ? "sleep" : "sit";
-            cat.goal = null;
-            if (key === "chair") {
-              st.chairSpin = st.t; // fa girare la sedia
-              sfx.click();
-              const card = MTG_CARDS[Math.floor(Math.random() * MTG_CARDS.length)];
-              const template = MTG_TEMPLATES[Math.floor(Math.random() * MTG_TEMPLATES.length)];
-              showBubble(template(card), 3.5, "cat");
-            }
-          } else {
-            cat.state = cat.goal || "sit";
-            cat.goal = null;
-            cat.until = st.t + (cat.state === "sleep" ? 18 + Math.random() * 22 : 3 + Math.random() * 5);
-          }
-        }
-      }
-    } else if (st.t > cat.until) {
-      const catGo = (goal, target) => {
-        const path = findPath(cat.from, target, blocked);
-        if (path && path.length) {
-          cat.queue = path;
-          cat.to = cat.queue.shift();
-          const dx = cat.to.cx - cat.from.cx, dy = cat.to.cy - cat.from.cy;
-          cat.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
-          cat.goal = goal;
-        } else { cat.state = "sit"; cat.until = st.t + 4; }
-      };
-      const avT = st.av.to || st.av.from;
-      const dCat = Math.abs(avT.cx - cat.from.cx) + Math.abs(avT.cy - cat.from.cy);
-      if ((cat.follow > 0 || st.afk) && dCat > 1) {
-        // raggiunge il giocatore (tile libero adiacente)
-        let best = null;
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nx = avT.cx + dx, ny = avT.cy + dy;
-          if (inGrid(nx, ny) && !blocked.has(tkey(nx, ny))) { best = { cx: nx, cy: ny }; break; }
-        }
-        if (best) { catGo("sit", best); cat.follow = Math.max(0, cat.follow - 1); }
-        else cat.until = st.t + 3;
-      } else {
-        const r = Math.random();
-        const atHome = cat.from.cx === 4 && cat.from.cy === 6;
-        const force = cat.forceChair;
-        cat.forceChair = false;
+    /* — pet interaction check — */
+    if (!st.petInteraction && st.t > st.nextPetInteraction) {
+      st.nextPetInteraction = st.t + 110 + Math.random() * 90; // tra 1.8 e 3.3 minuti
+      const catEligible = !st.cat.perch && st.cat.follow === 0 && (st.t - st.cat.lastPet > 6);
+      const dogEligible = !st.dog.perch && st.dog.follow === 0 && (st.t - st.dog.lastPet > 6);
+      if (catEligible && dogEligible && Math.random() < 0.6) {
+        // iniziamo un inseguimento!
+        st.petInteraction = {
+          type: "chase",
+          stage: 0,
+          t0: st.t,
+          runner: "cat",
+          chaser: "dog"
+        };
+        // Reset normal states and align positions to grid cells
+        st.cat.state = "sit";
+        st.cat.to = null;
+        st.cat.queue = [];
+        st.cat.t = 0;
+        st.cat.fx = st.cat.from.cx;
+        st.cat.fy = st.cat.from.cy;
         
-        if (force && !st.av.seated && !st.sitTarget) {
-          catGo("perch_chair", { cx: 2, cy: 4 });
-        }
-        // Decidi se salire su un arredo (25% di probabilità)
-        else if (r < 0.25) {
-          const perches = ["chair", "table", "desk"];
-          const choice = perches[Math.floor(Math.random() * perches.length)];
-          
-          if (choice === "chair" && !st.av.seated && !st.sitTarget) {
-            catGo("perch_chair", { cx: 2, cy: 4 });
-          } else if (choice === "table") {
-            catGo("perch_table", { cx: 7, cy: 5 });
-          } else if (choice === "desk") {
-            catGo("perch_desk", { cx: 1, cy: 5 });
-          } else {
-            cat.state = "sit"; cat.until = st.t + 3;
-          }
-        }
-        else if (r < 0.55) {
-          if (atHome) { cat.state = "sleep"; cat.until = st.t + 18 + Math.random() * 22; }
-          else catGo("sleep", { cx: 4, cy: 6 });
-        } else if (r < 0.85) {
-          // vaga verso un tile libero casuale
-          let tgt = null;
-          for (let tries = 0; tries < 8 && !tgt; tries++) {
-            const nx = Math.floor(Math.random() * COLS), ny = Math.floor(Math.random() * ROWS);
-            if (!blocked.has(tkey(nx, ny))) tgt = { cx: nx, cy: ny };
-          }
-          if (tgt) catGo("sit", tgt); else cat.until = st.t + 4;
-        } else { cat.state = "sit"; cat.until = st.t + 3 + Math.random() * 5; }
+        st.dog.state = "sit";
+        st.dog.to = null;
+        st.dog.queue = [];
+        st.dog.t = 0;
+        st.dog.fx = st.dog.from.cx;
+        st.dog.fy = st.dog.from.cy;
       }
     }
-    cat.fx = cat.to ? lerp(cat.from.cx, cat.to.cx, cat.t) : cat.from.cx;
-    cat.fy = cat.to ? lerp(cat.from.cy, cat.to.cy, cat.t) : cat.from.cy;
-    // zzz mentre dorme
-    if (cat.state === "sleep" && !cat.to && st.t > cat.nextZ && !reduced) {
-      cat.nextZ = st.t + 1.8;
-      const cp = tileTop(cat.fx, cat.fy);
-      const lift = cat.perch ? cat.perch.lift : 0;
-      spawnFx("zzz", cp.x + 6, cp.y - 6 - lift);
+
+    if (st.petInteraction) {
+      const pi = st.petInteraction;
+      if (pi.type === "chase") {
+        if (pi.stage === 0) {
+          if (st.t > pi.t0 + 0.1) {
+            sfx.bark();
+            showBubble("Cookie: Bau! Ti prendo! 🐶", 2.2, "dog");
+            sfx.meow();
+            showBubble("Missy: Miao! 🙀", 2.2, "cat");
+            pi.stage = 1;
+            pi.t0 = st.t + 1.2;
+          }
+        } else if (pi.stage === 1) {
+          if (st.t > pi.t0) {
+            // Missy decide dove scappare
+            let tgt = null;
+            for (let i = 0; i < 15 && !tgt; i++) {
+              const x = Math.floor(Math.random() * COLS);
+              const y = Math.floor(Math.random() * ROWS);
+              if (!blocked.has(tkey(x, y)) && (Math.abs(x - st.dog.from.cx) + Math.abs(y - st.dog.from.cy) > 1)) {
+                tgt = { cx: x, cy: y };
+              }
+            }
+            if (!tgt) {
+              for (let i = 0; i < 15 && !tgt; i++) {
+                const x = Math.floor(Math.random() * COLS);
+                const y = Math.floor(Math.random() * ROWS);
+                if (!blocked.has(tkey(x, y))) tgt = { cx: x, cy: y };
+              }
+            }
+            if (tgt) {
+              const path = findPath(st.cat.from, tgt, blocked);
+              if (path && path.length) {
+                st.cat.queue = path;
+                st.cat.to = st.cat.queue.shift();
+                const dx = st.cat.to.cx - st.cat.from.cx, dy = st.cat.to.cy - st.cat.from.cy;
+                st.cat.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
+                pi.runnerTarget = tgt;
+                pi.stage = 2;
+              } else {
+                pi.type = "fight"; pi.stage = 0; pi.t0 = st.t; pi.until = st.t + 2.8;
+              }
+            } else {
+              pi.type = "fight"; pi.stage = 0; pi.t0 = st.t; pi.until = st.t + 2.8;
+            }
+          }
+        } else if (pi.stage === 2) {
+          if (!st.cat.to) {
+            showBubble("Scappa! 🐈", 1.5, "cat");
+            const path = findPath(st.dog.from, pi.runnerTarget, blocked);
+            if (path && path.length) {
+              st.dog.queue = path;
+              st.dog.to = st.dog.queue.shift();
+              const dx = st.dog.to.cx - st.dog.from.cx, dy = st.dog.to.cy - st.dog.from.cy;
+              st.dog.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
+              pi.stage = 3;
+            } else {
+              pi.type = "fight"; pi.stage = 0; pi.t0 = st.t; pi.until = st.t + 2.8;
+            }
+          }
+        } else if (pi.stage === 3) {
+          if (!st.dog.to) {
+            pi.type = "fight";
+            pi.stage = 0;
+            pi.t0 = st.t;
+            pi.until = st.t + 2.8;
+            sfx.bark();
+            sfx.meow();
+            showBubble("Zuffa! 💥", 2.0, "cat");
+            showBubble("Bau! 💨", 2.0, "dog");
+          }
+        }
+      } else if (pi.type === "fight") {
+        st.cat.state = "sit";
+        st.dog.state = "sit";
+        const dx = st.dog.from.cx - st.cat.from.cx;
+        const dy = st.dog.from.cy - st.cat.from.cy;
+        st.cat.fx = st.cat.from.cx + Math.sin(st.t * 35) * 0.15;
+        st.cat.fy = st.cat.from.cy + Math.cos(st.t * 30) * 0.15;
+        st.dog.fx = st.cat.from.cx + (dx * 0.5) + Math.sin(st.t * 32 + 1.2) * 0.15;
+        st.dog.fy = st.cat.from.cy + (dy * 0.5) + Math.cos(st.t * 28 + 1.2) * 0.15;
+        
+        if (Math.random() < dt * 6) {
+          const cp = tileTop(st.cat.fx, st.cat.fy);
+          spawnFx(Math.random() < 0.5 ? "clash" : "dust", cp.x, cp.y + HTH);
+        }
+        if (Math.random() < dt * 1.5) {
+          if (Math.random() < 0.5) sfx.bark(); else sfx.meow();
+        }
+        
+        if (st.t > pi.until) {
+          st.cat.from = { cx: st.cat.from.cx, cy: st.cat.from.cy };
+          st.cat.fx = st.cat.from.cx; st.cat.fy = st.cat.from.cy;
+          
+          // Trova una cella adiacente libera per Cookie
+          let dogTile = { cx: st.cat.from.cx, cy: st.cat.from.cy };
+          for (const [adx, ady] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const nx = st.cat.from.cx + adx, ny = st.cat.from.cy + ady;
+            if (inGrid(nx, ny) && !blocked.has(tkey(nx, ny))) {
+              dogTile = { cx: nx, cy: ny };
+              break;
+            }
+          }
+          st.dog.from = dogTile;
+          st.dog.fx = dogTile.cx; st.dog.fy = dogTile.cy;
+          
+          st.cat.state = "sit"; st.cat.until = st.t + 4;
+          st.dog.state = "sit"; st.dog.until = st.t + 4;
+          showBubble("Purr... 🐾", 2.2, "cat");
+          showBubble("Pant pant! 👅", 2.2, "dog");
+          sfx.pant();
+          st.petInteraction = null;
+        }
+      }
+      
+      if (st.cat.to) {
+        st.cat.t += dt * 3.5;
+        if (st.cat.t >= 1) {
+          st.cat.from = st.cat.to; st.cat.to = null; st.cat.t = 0;
+          if (st.cat.queue.length) {
+            st.cat.to = st.cat.queue.shift();
+            const dx = st.cat.to.cx - st.cat.from.cx, dy = st.cat.to.cy - st.cat.from.cy;
+            st.cat.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
+          }
+        }
+        st.cat.fx = st.cat.to ? lerp(st.cat.from.cx, st.cat.to.cx, st.cat.t) : st.cat.from.cx;
+        st.cat.fy = st.cat.to ? lerp(st.cat.from.cy, st.cat.to.cy, st.cat.t) : st.cat.from.cy;
+      }
+      if (st.dog.to) {
+        st.dog.t += dt * 3.5;
+        if (st.dog.t >= 1) {
+          st.dog.from = st.dog.to; st.dog.to = null; st.dog.t = 0;
+          if (st.dog.queue.length) {
+            st.dog.to = st.dog.queue.shift();
+            const dx = st.dog.to.cx - st.dog.from.cx, dy = st.dog.to.cy - st.dog.from.cy;
+            st.dog.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
+          }
+        }
+        st.dog.fx = st.dog.to ? lerp(st.dog.from.cx, st.dog.to.cx, st.dog.t) : st.dog.from.cx;
+        st.dog.fy = st.dog.to ? lerp(st.dog.from.cy, st.dog.to.cy, st.dog.t) : st.dog.from.cy;
+      }
+    } else {
+      /* — gatto: stati e movimento normali — */
+      const cat = st.cat;
+      if (cat.pendingChairAt && st.t > cat.pendingChairAt) {
+        cat.pendingChairAt = null;
+        if (!cat.perch && !cat.to) {
+          cat.until = 0;
+          cat.forceChair = true;
+        }
+      }
+      if (cat.perch) {
+        const pc = cat.perch;
+        if (pc.key === "table" && !pc.scattered && st.t - pc.t0 > 0.6) {
+          pc.scattered = true;
+          sfx.shuffle();
+          const o = tablePt(7.0, 3.4);
+          for (let i = 0; i < 3; i++) {
+            const a = Math.random() * 6.28;
+            st.scatter.push({
+              x: o.x, y: o.y,
+              vx: Math.cos(a) * (40 + Math.random() * 50), vy: Math.sin(a) * (20 + Math.random() * 25) * 0.6,
+              rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 8,
+              col: [P.red, "#4a7fd6", "#9a6ad6"][i % 3], t0: st.t, snapped: false,
+            });
+          }
+          showBubble("Missy! Le mie carte! 🙀", 2.6);
+        }
+        if (pc.key === "desk" && cat.state === "sleep" && st.t > cat.nextZ && !reduced) {
+          cat.nextZ = st.t + 1.8;
+          const cp2 = tileTop(cat.fx, cat.fy);
+          spawnFx("zzz", cp2.x + 6, cp2.y - 6 - pc.lift);
+        }
+        if (st.t > pc.until) {
+          const land = pc.key === "chair" ? { cx: 2, cy: 4 } : pc.key === "table" ? { cx: 7, cy: 5 } : { cx: 1, cy: 5 };
+          cat.perch = null;
+          cat.from = land; cat.to = null; cat.t = 0; cat.queue = [];
+          cat.state = "sit"; cat.until = st.t + 2 + Math.random() * 3;
+          sfx.step(1);
+        }
+      } else if (cat.to) {
+        cat.t += dt * 2.4;
+        if (cat.t >= 1) {
+          cat.from = cat.to; cat.to = null; cat.t = 0;
+          if (onRug(cat.from.cx, cat.from.cy)) {
+            const fp = tileTop(cat.from.cx, cat.from.cy);
+            st.prints.push({ x: fp.x + (Math.random() < 0.5 ? 3 : -3), y: fp.y + HTH, t0: st.t, s: 0.55 });
+            if (st.prints.length > 40) st.prints.shift();
+          }
+          if (cat.queue.length) {
+            cat.to = cat.queue.shift();
+            const dx = cat.to.cx - cat.from.cx, dy = cat.to.cy - cat.from.cy;
+            cat.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
+          } else {
+            if (cat.goal && cat.goal.startsWith("perch_")) {
+              const key = cat.goal.split("_")[1];
+              let lift = 22;
+              let tx = 7, ty = 3;
+              if (key === "chair") { lift = 21; tx = 1; ty = 4; }
+              else if (key === "desk") { lift = 24; tx = 0; ty = 4; }
+              cat.perch = { key, tx, ty, lift, t0: st.t, until: st.t + 15 + Math.random() * 20, scattered: false };
+              cat.from = { cx: tx, cy: ty };
+              cat.fx = tx; cat.fy = ty;
+              cat.state = key === "desk" ? "sleep" : "sit";
+              cat.goal = null;
+              if (key === "chair") {
+                st.chairSpin = st.t;
+                sfx.click();
+                const card = MTG_CARDS[Math.floor(Math.random() * MTG_CARDS.length)];
+                const template = MTG_TEMPLATES[Math.floor(Math.random() * MTG_TEMPLATES.length)];
+                showBubble(template(card), 3.5, "cat");
+              }
+            } else {
+              cat.state = cat.goal || "sit";
+              cat.goal = null;
+              cat.until = st.t + (cat.state === "sleep" ? 18 + Math.random() * 22 : 3 + Math.random() * 5);
+            }
+          }
+        }
+      } else if (st.t > cat.until) {
+        const catGo = (goal, target) => {
+          const path = findPath(cat.from, target, blocked);
+          if (path && path.length) {
+            cat.queue = path;
+            cat.to = cat.queue.shift();
+            const dx = cat.to.cx - cat.from.cx, dy = cat.to.cy - cat.from.cy;
+            cat.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
+            cat.goal = goal;
+          } else { cat.state = "sit"; cat.until = st.t + 4; }
+        };
+        const avT = st.av.to || st.av.from;
+        const dCat = Math.abs(avT.cx - cat.from.cx) + Math.abs(avT.cy - cat.from.cy);
+        if ((cat.follow > 0 || st.afk) && dCat > 1) {
+          let best = null;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const nx = avT.cx + dx, ny = avT.cy + dy;
+            if (inGrid(nx, ny) && !blocked.has(tkey(nx, ny))) { best = { cx: nx, cy: ny }; break; }
+          }
+          if (best) { catGo("sit", best); cat.follow = Math.max(0, cat.follow - 1); }
+          else cat.until = st.t + 3;
+        } else {
+          const r = Math.random();
+          const atHome = cat.from.cx === 4 && cat.from.cy === 6;
+          const force = cat.forceChair;
+          cat.forceChair = false;
+          
+          if (force && !st.av.seated && !st.sitTarget) {
+            catGo("perch_chair", { cx: 2, cy: 4 });
+          }
+          else if (r < 0.25) {
+            const perches = ["chair", "table", "desk"];
+            const choice = perches[Math.floor(Math.random() * perches.length)];
+            
+            if (choice === "chair" && !st.av.seated && !st.sitTarget) {
+              catGo("perch_chair", { cx: 2, cy: 4 });
+            } else if (choice === "table") {
+              catGo("perch_table", { cx: 7, cy: 5 });
+            } else if (choice === "desk") {
+              catGo("perch_desk", { cx: 1, cy: 5 });
+            } else {
+              cat.state = "sit"; cat.until = st.t + 3;
+            }
+          }
+          else if (r < 0.55) {
+            if (atHome) { cat.state = "sleep"; cat.until = st.t + 18 + Math.random() * 22; }
+            else catGo("sleep", { cx: 4, cy: 6 });
+          } else if (r < 0.85) {
+            let tgt = null;
+            for (let tries = 0; tries < 8 && !tgt; tries++) {
+              const nx = Math.floor(Math.random() * COLS), ny = Math.floor(Math.random() * ROWS);
+              if (!blocked.has(tkey(nx, ny))) tgt = { cx: nx, cy: ny };
+            }
+            if (tgt) catGo("sit", tgt); else cat.until = st.t + 4;
+          } else { cat.state = "sit"; cat.until = st.t + 3 + Math.random() * 5; }
+        }
+      }
+      cat.fx = cat.to ? lerp(cat.from.cx, cat.to.cx, cat.t) : cat.from.cx;
+      cat.fy = cat.to ? lerp(cat.from.cy, cat.to.cy, cat.t) : cat.from.cy;
+      if (cat.state === "sleep" && !cat.to && st.t > cat.nextZ && !reduced) {
+        cat.nextZ = st.t + 1.8;
+        const cp = tileTop(cat.fx, cat.fy);
+        const lift = cat.perch ? cat.perch.lift : 0;
+        spawnFx("zzz", cp.x + 6, cp.y - 6 - lift);
+      }
+
+      /* — cane (Cookie): stati e movimento normali — */
+      const dog = st.dog;
+      if (dog.to) {
+        dog.t += dt * 2.2;
+        if (dog.t >= 1) {
+          dog.from = dog.to; dog.to = null; dog.t = 0;
+          if (onRug(dog.from.cx, dog.from.cy)) {
+            const fp = tileTop(dog.from.cx, dog.from.cy);
+            st.prints.push({ x: fp.x + (Math.random() < 0.5 ? 2 : -2), y: fp.y + HTH, t0: st.t, s: 0.6 });
+            if (st.prints.length > 40) st.prints.shift();
+          }
+          if (dog.queue.length) {
+            dog.to = dog.queue.shift();
+            const dx = dog.to.cx - dog.from.cx, dy = dog.to.cy - dog.from.cy;
+            dog.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
+          } else {
+            dog.state = dog.goal || "sit";
+            dog.goal = null;
+            dog.until = st.t + (dog.state === "sleep" ? 15 + Math.random() * 20 : 4 + Math.random() * 6);
+            if (dog.state === "sit" && Math.random() < 0.3) {
+              sfx.pant();
+            }
+          }
+        }
+      } else if (st.t > dog.until) {
+        const dogGo = (goal, target) => {
+          const path = findPath(dog.from, target, blocked);
+          if (path && path.length) {
+            dog.queue = path;
+            dog.to = dog.queue.shift();
+            const dx = dog.to.cx - dog.from.cx, dy = dog.to.cy - dog.from.cy;
+            dog.dir = dx === 1 ? "se" : dx === -1 ? "nw" : dy === 1 ? "sw" : "ne";
+            dog.goal = goal;
+          } else { dog.state = "sit"; dog.until = st.t + 3; }
+        };
+        const avT = st.av.to || st.av.from;
+        const dDog = Math.abs(avT.cx - dog.from.cx) + Math.abs(avT.cy - dog.from.cy);
+        if ((dog.follow > 0 || st.afk) && dDog > 1) {
+          let best = null;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const nx = avT.cx + dx, ny = avT.cy + dy;
+            if (inGrid(nx, ny) && !blocked.has(tkey(nx, ny))) { best = { cx: nx, cy: ny }; break; }
+          }
+          if (best) { dogGo("sit", best); dog.follow = Math.max(0, dog.follow - 1); }
+          else dog.until = st.t + 3;
+        } else {
+          const r = Math.random();
+          const atHome = dog.from.cx === 5 && dog.from.cy === 7;
+          
+          if (r < 0.45) {
+            if (atHome) { dog.state = "sleep"; dog.until = st.t + 15 + Math.random() * 20; }
+            else dogGo("sleep", { cx: 5, cy: 7 });
+          } else if (r < 0.8) {
+            let tgt = null;
+            for (let tries = 0; tries < 8 && !tgt; tries++) {
+              const nx = Math.floor(Math.random() * COLS), ny = Math.floor(Math.random() * ROWS);
+              if (!blocked.has(tkey(nx, ny))) tgt = { cx: nx, cy: ny };
+            }
+            if (tgt) dogGo("sit", tgt); else dog.until = st.t + 4;
+          } else { dog.state = "sit"; dog.until = st.t + 3 + Math.random() * 5; }
+        }
+      }
+      dog.fx = dog.to ? lerp(dog.from.cx, dog.to.cx, dog.t) : dog.from.cx;
+      dog.fy = dog.to ? lerp(dog.from.cy, dog.to.cy, dog.t) : dog.from.cy;
+      if (dog.state === "sleep" && !dog.to && st.t > dog.nextZ && !reduced) {
+        dog.nextZ = st.t + 2.0;
+        const cp = tileTop(dog.fx, dog.fy);
+        spawnFx("zzz", cp.x + 6, cp.y - 6);
+      }
     }
 
     /* — update carte sparpagliate — */
@@ -2541,6 +2915,29 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     else if (cat.state === "sleep") fr = catSp.sleep[flip + (Math.floor(st.t * 0.9) % 2)];
     else fr = catSp.sit[flip + (Math.floor(st.t * 1.4) % 2)];
     const bob = moving ? -Math.abs(Math.sin(cat.t * Math.PI * 2)) * 1 : 0;
+    wctx.drawImage(fr.cv, Math.round(cxp - fr.feet.x), Math.round(cyp + 4 - fr.feet.y + bob - lift));
+  }
+
+  function drawDogSprite() {
+    const dog = st.dog;
+    const c = tileTop(dog.fx, dog.fy);
+    const cxp = c.x, cyp = c.y + HTH;
+    const moving = !!dog.to;
+    const lift = dog.perch ? dog.perch.lift : 0;
+    
+    // ombra a terra
+    const shadowAlpha = lift > 0 ? 0.12 : 0.22;
+    wctx.fillStyle = "rgba(25,22,40," + shadowAlpha + ")";
+    wctx.beginPath();
+    wctx.ellipse(cxp, cyp + 4, lift > 0 ? 6.5 : 9, lift > 0 ? 2.5 : 3.5, 0, 0, Math.PI * 2);
+    wctx.fill();
+    
+    const flip = dog.dir === "nw" || dog.dir === "sw" ? 2 : 0;
+    let fr;
+    if (moving) fr = dogSp.walk[flip + (Math.floor(st.t * 7) % 2)];
+    else if (dog.state === "sleep") fr = dogSp.sleep[flip + (Math.floor(st.t * 0.9) % 2)];
+    else fr = dogSp.sit[flip + (Math.floor(st.t * 1.4) % 2)];
+    const bob = moving ? -Math.abs(Math.sin(dog.t * Math.PI * 2)) * 1 : 0;
     wctx.drawImage(fr.cv, Math.round(cxp - fr.feet.x), Math.round(cyp + 4 - fr.feet.y + bob - lift));
   }
 
@@ -3194,7 +3591,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const avDepthX = st.av.seated && !st.av.to ? st.av.fx - 0.31 : st.av.fx;
     const avBox = { avatar: true, minX: avDepthX - 0.01, maxX: avDepthX + 0.01, minY: st.av.fy - 0.01, maxY: st.av.fy + 0.01 };
     const catBox = { cat: true, minX: st.cat.fx - 0.01, maxX: st.cat.fx + 0.01, minY: st.cat.fy - 0.01, maxY: st.cat.fy + 0.01 };
-    const dyn = [avBox, catBox];
+    const dogBox = { dog: true, minX: st.dog.fx - 0.01, maxX: st.dog.fx + 0.01, minY: st.dog.fy - 0.01, maxY: st.dog.fy + 0.01 };
+    const dyn = [avBox, catBox, dogBox];
     if (st.ghost) dyn.push({ ghost: true, minX: GHOST_TILE.cx - 0.01, maxX: GHOST_TILE.cx + 0.01, minY: GHOST_TILE.cy - 0.01, maxY: GHOST_TILE.cy + 0.01 });
     const sorted = entities.concat(dyn).sort(cmpDepth);
     const plantIdx = [0, 1, 2, 1][Math.floor(st.t * 1.4) % 4];
@@ -3204,6 +3602,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     for (const e of sorted) {
       if (e.avatar) { drawAvatarSprite(); continue; }
       if (e.cat) { drawCatSprite(); continue; }
+      if (e.dog) { drawDogSprite(); continue; }
       if (e.ghost) { drawGhostSprite(); continue; }
       const spr = e.frames ? e.frames[e.key === "turn" ? turnIdx : plantIdx] : e.spr;
       const x = Math.round(e.anchor.x - spr.ax), y = Math.round(e.anchor.y - spr.ay);
@@ -3510,8 +3909,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       const pop = easeOutBack(clamp(age * 4, 0, 1));
       const fade = clamp((st.bubble.dur - age) * 2, 0, 1);
       const isCat = st.bubble.target === "cat";
-      const c = isCat ? tileTop(st.cat.fx, st.cat.fy) : tileTop(st.av.fx, st.av.fy);
-      const lift = (isCat && st.cat.perch) ? st.cat.perch.lift : 0;
+      const isDog = st.bubble.target === "dog";
+      const c = isCat ? tileTop(st.cat.fx, st.cat.fy) : (isDog ? tileTop(st.dog.fx, st.dog.fy) : tileTop(st.av.fx, st.av.fy));
+      const lift = (isCat && st.cat.perch) ? st.cat.perch.lift : ((isDog && st.dog.perch) ? st.dog.perch.lift : 0);
       const pt = project(c.x, c.y + HTH - 48 - lift);
       ctx.font = "600 13px 'Segoe UI', system-ui, sans-serif";
       const tw2 = ctx.measureText(st.bubble.text).width;
@@ -3900,6 +4300,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       if (dec.kind === "pack") { startPackOpening(); return; }
       if (dec.kind === "music") { clickObject({ ...MUSIC_OBJ }); return; }
       if (dec.kind === "cat") { petCat(); return; }
+      if (dec.kind === "dog") { petDog(); return; }
       if (dec.kind === "intercom") {
         sfx.click();
         if (!st.ringTest && !(st.ring && st.t < st.ring.until)) {
