@@ -126,6 +126,19 @@ const WEEK_LINES = [
   "Top seller della settimana. Sì, ne ho già tre copie.",
 ];
 
+/* Nomi torneo mock per il coupon della busta lettere */
+const MOCK_TOURNAMENT_NAMES = [
+  "Coppa del Weekend", "Grand Prix Notturno", "Challenge d'Autunno",
+  "Torneo dei Campioni", "Duello d'Estate", "Open del Venerdì",
+  "Coppa Ebartex", "Memorial del Meta", "Rush Hour Cup",
+];
+
+function mockCouponCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const seg = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return "EBX-" + seg() + "-" + seg();
+}
+
 /* Battute misteriose della modalità Shadow Realm */
 const SHADOW_LINES = [
   "Il meta è un'illusione…",
@@ -1730,9 +1743,16 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     x: (screenQuad[0].x + screenQuad[2].x) / 2,
     y: (screenQuad[0].y + screenQuad[2].y) / 2,
   };
-  /* — bustina del pack opening, appoggiata sul tavolo — */
-  const PACK_POS = tablePt(6.85, 2.7);
-  const packRect = { x: PACK_POS.x - 12, y: PACK_POS.y - 30, w: 24, h: 34 };
+  /* — busta lettere: scivola dalla porta sul pavimento — */
+  const LETTER_START = (() => {
+    const p = tileTop(10.2, 7.2);
+    return { x: p.x + 18, y: p.y + HTH - 8 };
+  })();
+  const LETTER_REST = (() => {
+    const p = tileTop(9.8, 8.0);
+    return { x: p.x, y: p.y + HTH - 4 };
+  })();
+  const letterHitRect = (lt) => ({ x: lt.x - 14, y: lt.y - 18, w: 28, h: 20 });
 
   /* — stato — */
   const st = {
@@ -1786,9 +1806,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     scatter: [],                     // carte sparpagliate sul tavolo (fisica con attrito)
     shadow: null,                    // { until } modalità Shadow Realm
     matrix: [],                      // colonne della pioggia digitale alla finestra
-    packAvail: false, packAt: 20 + Math.random() * 60, // bustina sul tavolo (drop giornaliero mock)
-    pack: null,                      // sequenza di pack opening in corso
-    packFx: [],                      // particelle olografiche (screen-space)
+    letterNextAt: 40 + Math.random() * 10, // busta lettere ogni 40-50s
+    letter: null,                    // busta attiva / sequenza coupon
+    letterFx: [],                    // particelle confetti (screen-space)
     hype: null,                      // sequenza di hype pre-match in corso
     pointer: { x: 0.5, y: 0.5 },     // mouse normalizzato (riflessi olografici)
   };
@@ -1797,6 +1817,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   }
   // ingresso in scena
   st.av.queue = findPath({ cx: 10, cy: 9 }, { cx: 5, cy: 6 }, blocked) || [];
+
+  const letterOverlayActive = () =>
+    st.letter && ["lift", "open", "reveal", "done"].includes(st.letter.phase);
 
   /* — camera — */
   const camTo = (to, dur, cb) => {
@@ -2041,7 +2064,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function hitDecor(sx, sy) {
     const w = unproject(sx, sy);
-    if (st.packAvail && inRect(w, packRect)) return { kind: "pack" };
+    if (st.letter && st.letter.phase === "idle" && inRect(w, letterHitRect(st.letter))) return { kind: "letter" };
     if (solidInRect(w, turnRect, turnFrames[0] && turnFrames[0].cv)) return { kind: "music" };
     if (inRect(w, intercomRect)) return { kind: "intercom" };
     // gatto: cerchio attorno alla sua posizione (anche quando è appollaiata)
@@ -2174,26 +2197,72 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     showBubble(lines[Math.floor(Math.random() * lines.length)], 3.2);
   }
 
-  /* — Pack opening: cammina al tavolo, poi sequenza cinematica — */
-  function startPackOpening() {
-    if (!st.packAvail || st.pack || st.hype || st.modal || st.lock) return;
+  /* — Busta lettere: click sulla busta a terra → sequenza coupon — */
+  function burstLetterFx(cx, cy, n = 24) {
+    for (let i = 0; i < n; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 50 + Math.random() * 90;
+      st.letterFx.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 30,
+        col: Math.random() < 0.55 ? P.gold : "#ffffff",
+        size: 2 + Math.random() * 3,
+        dur: 0.7 + Math.random() * 0.5,
+        t0: st.t,
+        grav: 45,
+      });
+    }
+  }
+
+  function spawnLetter() {
+    if (st.letter || st.modal || st.lock || st.cinematic || st.hype) return;
+    st.letter = {
+      phase: "slide",
+      t0: st.t,
+      x: LETTER_START.x,
+      y: LETTER_START.y,
+      rot: -0.14,
+      tournamentName: MOCK_TOURNAMENT_NAMES[Math.floor(Math.random() * MOCK_TOURNAMENT_NAMES.length)],
+      couponCode: mockCouponCode(),
+    };
+    sfx.whoosh();
+    showBubble("📬 Qualcuno ha lasciato una lettera alla porta!", 4.5);
+  }
+
+  function startLetterOpening() {
+    if (!st.letter || st.letter.phase !== "idle" || st.hype || st.modal || st.lock) return;
     sfx.click();
     st.cinematic = true;
-    st.pending = null; st.sitTarget = false;
-    st.pack = { phase: "walk", t0: st.t, idx: -1, cards: [], halves: null };
-    const t0 = st.av.to || st.av.from;
-    let best = null;
-    for (const [x, y] of inter.decks.approach) {
-      if (t0.cx === x && t0.cy === y) { best = []; break; }
-      const p = findPath(t0, { cx: x, cy: y }, blocked);
-      if (p && (!best || p.length < best.length)) best = p;
-    }
-    st.av.queue = best || [];
+    st.letter.phase = "lift";
+    st.letter.t0 = st.t;
+  }
+
+  function advanceLetterToReveal() {
+    const lt = st.letter;
+    if (!lt || lt.phase !== "open" || lt.flapBurst) return;
+    lt.flapBurst = true;
+    lt.phase = "reveal";
+    lt.t0 = st.t;
+    st.shake = 14;
+    sfx.success();
+    const { w, h } = st.view;
+    burstLetterFx(w / 2, h / 2 - 20, 30);
+    st.letterFx.push({
+      x: w / 2, y: h / 2 - 20,
+      ring: true, maxRadius: 70, col: P.gold, dur: 0.65, t0: st.t,
+    });
+  }
+
+  function closeLetterCoupon() {
+    st.letter = null;
+    st.cinematic = false;
+    st.letterNextAt = st.t + 40 + Math.random() * 10;
+    sfx.click();
   }
 
   /* — Sequenza di Hype: SFIDANTE TROVATO → shuffle → zoom nel PC — */
   function startHype(opponent) {
-    if (st.hype || st.pack || st.modal || st.destroyed) return;
+    if (st.hype || letterOverlayActive() || st.modal || st.destroyed) return;
     st.cinematic = true;
     st.pending = null; st.sitTarget = false;
     st.afk = false; st.afkGoing = false;
@@ -2338,7 +2407,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
     /* — idle/AFK: dopo 45s di inattività si va a meditare sul tappeto o a smazzare carte al tavolo — */
     if (!st.afk && !st.afkGoing && !st.afkShuffle && !st.afkShuffleGoing && !st.modal && !st.lock && !av.seated &&
-        !av.to && !av.queue.length && st.t - st.lastAct > 45 && st.introDone && !st.tut.active && !st.cinematic && !st.hype && !st.pack) {
+        !av.to && !av.queue.length && st.t - st.lastAct > 45 && st.introDone && !st.tut.active && !st.cinematic && !st.hype && !letterOverlayActive()) {
       st.pending = null; st.sitTarget = false;
       if (Math.random() < 0.5) {
         if (walkToTile({ cx: 5, cy: 6 })) st.afkGoing = true;
@@ -2842,57 +2911,40 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
     }
 
-    /* — gestione automatic pack drop — */
-    if (!st.packAvail && st.t > st.packAt) {
-      st.packAvail = true;
-      showBubble("🎁 C'è un pacchetto omaggio sul tavolo delle carte!", 4.5);
+    /* — busta lettere: spawn ogni 40-50s — */
+    if (!st.letter && st.t > st.letterNextAt && st.introDone && !st.modal && !st.lock && !st.cinematic && !st.hype) {
+      spawnLetter();
     }
 
-    /* — gestione sequenza Pack Opening — */
-    if (st.pack) {
-      const pk = st.pack;
-      if (pk.phase === "walk" && !av.to && !av.queue.length) {
-        pk.phase = "lift";
-        pk.t0 = st.t;
-        av.dir = "ne";
-      }
-      else if (pk.phase === "lift") {
-        const elapsed = st.t - pk.t0;
-        if (elapsed > 1.2) {
-          pk.phase = "rip";
-          pk.t0 = st.t;
+    /* — gestione sequenza busta lettere — */
+    if (st.letter) {
+      const lt = st.letter;
+      if (lt.phase === "slide") {
+        const elapsed = st.t - lt.t0;
+        const k = easeOutBack(clamp(elapsed / 1.2, 0, 1));
+        lt.x = lerp(LETTER_START.x, LETTER_REST.x, k);
+        lt.y = lerp(LETTER_START.y, LETTER_REST.y, k);
+        lt.rot = lerp(-0.14, 0, k);
+        if (elapsed >= 1.2) {
+          lt.phase = "idle";
+          lt.x = LETTER_REST.x;
+          lt.y = LETTER_REST.y;
+          lt.rot = 0;
+          lt.t0 = st.t;
         }
-      }
-      else if (pk.phase === "reveal" && pk.cards) {
-        // Aggiorna le due metà
-        if (pk.halves) {
-          const halves = pk.halves;
-          halves.x1 += halves.vx1 * dt;
-          halves.x2 += halves.vx2 * dt;
-          halves.y1 += halves.vy * dt;
-          halves.y2 += halves.vy * dt;
-          halves.vy += 280 * dt;
-          halves.rot1 -= 3 * dt;
-          halves.rot2 += 3 * dt;
+      } else if (lt.phase === "lift") {
+        if (st.t - lt.t0 > 0.9) {
+          lt.phase = "open";
+          lt.t0 = st.t;
         }
-        // Aggiorna le tre carte
-        pk.cards.forEach((pc) => {
-          const age = st.t - pk.t0;
-          if (age < 0.6) {
-            pc.x += pc.vx * dt;
-            pc.y += pc.vy * dt;
-            pc.vx *= 0.92;
-            pc.vy *= 0.92;
-            pc.scale = lerp(0.15, 1.0, age / 0.6);
-          } else {
-            pc.x = lerp(pc.x, pc.targetX, 0.12);
-            pc.y = lerp(pc.y, pc.targetY, 0.12);
-            pc.scale = lerp(pc.scale, 1.0, 0.12);
-          }
-          if (pc.revealed) {
-            pc.glowProgress = Math.min(1, pc.glowProgress + dt * 2.5);
-          }
-        });
+      } else if (lt.phase === "open") {
+        if (st.t - lt.t0 > 0.5 && !lt.flapBurst) advanceLetterToReveal();
+      } else if (lt.phase === "reveal") {
+        if (st.t - lt.t0 > 1.0) {
+          lt.phase = "done";
+          lt.t0 = st.t;
+          sfx.ding();
+        }
       }
     }
 
@@ -3204,13 +3256,100 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     wctx.fillText(st.ghost, Math.round(cxp - tw / 2), y - 5);
   }
 
-  const drawPackGraphics = (c, dx, dy) => {
-    c.fillStyle = "#1e2230"; c.fillRect(dx - 14, dy - 22, 28, 44);
-    c.fillStyle = P.metal; c.fillRect(dx - 12, dy - 20, 24, 40);
-    c.fillStyle = "#FF7300"; c.fillRect(dx - 9, dy - 10, 18, 20);
-    c.fillStyle = P.gold; c.fillRect(dx - 9, dy - 10, 18, 2); c.fillRect(dx - 9, dy + 8, 18, 2);
-    c.fillStyle = "#ffffff"; c.fillRect(dx - 4, dy - 4, 8, 8);
-    c.fillStyle = "#d94f46"; c.fillRect(dx - 2, dy - 2, 4, 4);
+  const drawLetterEnvelope = (c, dx, dy, flapOpen = 0, rot = 0) => {
+    c.save();
+    c.translate(dx, dy);
+    c.rotate(rot);
+    c.fillStyle = "rgba(0,0,0,0.16)";
+    c.beginPath();
+    c.ellipse(0, 8, 14, 5, 0, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "#e8dcc0";
+    c.fillRect(-16, -6, 32, 20);
+    c.fillStyle = "#dcc8a8";
+    c.fillRect(-16, 8, 32, 4);
+    c.strokeStyle = P.outline;
+    c.lineWidth = 1;
+    c.strokeRect(-16, -6, 32, 20);
+    const flapLift = flapOpen * -18;
+    c.fillStyle = "#f0e6d0";
+    c.beginPath();
+    c.moveTo(-16, -6 + flapLift);
+    c.lineTo(0, -14 + flapLift - flapOpen * 8);
+    c.lineTo(16, -6 + flapLift);
+    c.closePath();
+    c.fill();
+    c.stroke();
+    if (flapOpen < 0.45) {
+      c.fillStyle = "#FF7300";
+      c.beginPath();
+      c.arc(0, -2 + flapLift * 0.3, 5, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = "#ffffff";
+      c.font = "bold 7px 'Segoe UI', system-ui, sans-serif";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillText("E", 0, -2 + flapLift * 0.3);
+      c.textBaseline = "alphabetic";
+    }
+    c.restore();
+  };
+
+  const drawCouponTicket = (c, dx, dy, tournamentName, code, progress) => {
+    const k = clamp(progress, 0, 1);
+    const scale = easeOutBack(k);
+    c.save();
+    c.translate(dx, dy);
+    c.scale(scale, scale);
+    const tw = 148, th = 108;
+    c.fillStyle = "#0f111a";
+    rr(c, -tw / 2 - 2, -th / 2 - 2, tw + 4, th + 4, 8);
+    c.fill();
+    const tg = c.createLinearGradient(0, -th / 2, 0, th / 2);
+    tg.addColorStop(0, "#fff9eb");
+    tg.addColorStop(1, "#f5e6c8");
+    c.fillStyle = tg;
+    rr(c, -tw / 2, -th / 2, tw, th, 6);
+    c.fill();
+    c.strokeStyle = P.gold;
+    c.lineWidth = 2;
+    c.stroke();
+    c.strokeStyle = "rgba(242,185,75,0.35)";
+    c.setLineDash([4, 3]);
+    c.strokeRect(-tw / 2 + 6, -th / 2 + 6, tw - 12, th - 12);
+    c.setLineDash([]);
+    c.fillStyle = "#121e3d";
+    c.font = "900 11px 'Segoe UI', system-ui, sans-serif";
+    c.textAlign = "center";
+    c.fillText("ebartex", 0, -th / 2 + 22);
+    c.strokeStyle = "#FF7300";
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.moveTo(-28, -th / 2 + 26);
+    c.quadraticCurveTo(0, -th / 2 + 32, 28, -th / 2 + 24);
+    c.stroke();
+    c.fillStyle = "#23263c";
+    c.font = "700 9px 'Segoe UI', system-ui, sans-serif";
+    const title = "Hai vinto il torneo di";
+    c.fillText(title, 0, -8);
+    c.font = "800 10px 'Segoe UI', system-ui, sans-serif";
+    c.fillStyle = "#d94f46";
+    const name = tournamentName.length > 22 ? tournamentName.slice(0, 20) + "…" : tournamentName;
+    c.fillText(name + "!", 0, 6);
+    c.fillStyle = "#334155";
+    c.font = "600 8.5px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("Ecco il coupon", 0, 22);
+    c.fillStyle = "rgba(15,17,26,0.08)";
+    rr(c, -58, 30, 116, 18, 4);
+    c.fill();
+    c.strokeStyle = P.gold;
+    c.lineWidth = 1;
+    c.stroke();
+    c.fillStyle = "#1e293b";
+    c.font = "8px 'Press Start 2P', monospace";
+    c.fillText(code, 0, 43);
+    c.textAlign = "left";
+    c.restore();
   };
 
   const drawShadowCard = (c, card) => {
@@ -3257,356 +3396,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.fillRect(-7, 12, 14, 1);
     
     c.restore();
-  };
-
-  const drawPackHalf = (c, dx, dy, left) => {
-    c.fillStyle = "#1e2230";
-    if (left) {
-      c.fillRect(dx - 14, dy - 22, 14, 44);
-      c.fillStyle = P.metal; c.fillRect(dx - 12, dy - 20, 12, 40);
-      c.fillStyle = "#FF7300"; c.fillRect(dx - 9, dy - 10, 9, 20);
-    } else {
-      c.fillRect(dx, dy - 22, 14, 44);
-      c.fillStyle = P.metal; c.fillRect(dx, dy - 20, 12, 40);
-      c.fillStyle = "#FF7300"; c.fillRect(dx, dy - 10, 9, 20);
-    }
-  };
-
-  const drawCardArtwork = (c, dx, dy, sig) => {
-    const artY = dy - 39, artH = 39;
-    const baseColors = {
-      flame: ["#3d0f11", "#a82e2e"], 
-      star: ["#0a0720", "#2c1a60"],  
-      shield: ["#1e202b", "#3d425c"], 
-      sun: ["#3d2508", "#8c5b1b"],    
-      bolt: ["#142535", "#06b6d4"],   
-      wave: ["#061a29", "#1d5c80"],   
-      leaf: ["#0d2011", "#1d5828"],   
-      moon: ["#110920", "#3d1b58"]    
-    };
-    
-    const colors = baseColors[sig] || baseColors.star;
-    const g = c.createLinearGradient(dx, artY, dx, artY + artH);
-    g.addColorStop(0, colors[0]);
-    g.addColorStop(1, colors[1]);
-    c.fillStyle = g;
-    c.fillRect(dx - 24, artY, 48, artH);
-    
-    c.lineWidth = 1.5;
-    if (sig === "flame") {
-      c.fillStyle = "#FF7300";
-      c.beginPath();
-      c.moveTo(dx - 18, artY + artH);
-      c.lineTo(dx - 4, artY + 16);
-      c.lineTo(dx + 4, artY + 16);
-      c.lineTo(dx + 18, artY + artH);
-      c.closePath(); c.fill();
-      
-      c.fillStyle = P.gold;
-      c.beginPath();
-      c.moveTo(dx - 10, artY + artH);
-      c.lineTo(dx, artY + 22);
-      c.lineTo(dx + 10, artY + artH);
-      c.closePath(); c.fill();
-      
-      c.fillStyle = "#ffffff";
-      c.fillRect(dx - 2, artY + 10, 2, 2);
-      c.fillRect(dx + 4, artY + 8, 1.5, 1.5);
-    }
-    else if (sig === "star") {
-      c.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      c.beginPath();
-      c.moveTo(dx - 16, artY + 12); c.lineTo(dx, artY + 28);
-      c.lineTo(dx + 16, artY + 16); c.lineTo(dx - 6, artY + 34);
-      c.stroke();
-      
-      c.fillStyle = "#ffffff";
-      c.fillRect(dx - 17, artY + 11, 3, 3);
-      c.fillRect(dx - 1, artY + 27, 3, 3);
-      c.fillRect(dx + 15, artY + 15, 3, 3);
-      c.fillRect(dx - 7, artY + 33, 3, 3);
-      
-      c.fillStyle = "#c084fc";
-      c.beginPath();
-      c.arc(dx + 10, artY + 28, 4, 0, Math.PI * 2);
-      c.fill();
-    }
-    else if (sig === "shield") {
-      c.fillStyle = "#838da1";
-      c.beginPath();
-      c.moveTo(dx - 10, artY + 12);
-      c.lineTo(dx + 10, artY + 12);
-      c.lineTo(dx + 10, artY + 24);
-      c.quadraticCurveTo(dx + 10, artY + 34, dx, artY + 37);
-      c.quadraticCurveTo(dx - 10, artY + 34, dx - 10, artY + 24);
-      c.closePath(); c.fill();
-      c.strokeStyle = P.gold; c.lineWidth = 1; c.stroke();
-      
-      c.strokeStyle = "#ffe9b0";
-      c.beginPath();
-      c.moveTo(dx, artY + 16); c.lineTo(dx, artY + 32);
-      c.moveTo(dx - 6, artY + 22); c.lineTo(dx + 6, artY + 22);
-      c.stroke();
-    }
-    else if (sig === "sun") {
-      c.fillStyle = P.gold;
-      c.beginPath();
-      c.arc(dx, artY + artH, 14, Math.PI, 0);
-      c.fill();
-      
-      c.strokeStyle = "#ffe9b0";
-      c.lineWidth = 1.5;
-      for (let a = Math.PI; a <= Math.PI * 2; a += Math.PI / 6) {
-        c.beginPath();
-        c.moveTo(dx + Math.cos(a) * 14, artY + artH + Math.sin(a) * 14);
-        c.lineTo(dx + Math.cos(a) * 22, artY + artH + Math.sin(a) * 22);
-        c.stroke();
-      }
-    }
-    else if (sig === "bolt") {
-      c.fillStyle = P.gold;
-      c.beginPath();
-      c.moveTo(dx + 4, artY + 6);
-      c.lineTo(dx - 8, artY + 22);
-      c.lineTo(dx - 1, artY + 22);
-      c.lineTo(dx - 6, artY + 36);
-      c.lineTo(dx + 8, artY + 18);
-      c.lineTo(dx + 1, artY + 18);
-      c.closePath(); c.fill();
-      
-      c.strokeStyle = "#ffffff";
-      c.lineWidth = 1;
-      c.stroke();
-    }
-    else if (sig === "wave") {
-      c.fillStyle = "#1d5c80";
-      c.fillRect(dx - 24, artY + 24, 48, artH - 24);
-      
-      c.fillStyle = "#38bdf8";
-      c.beginPath();
-      c.moveTo(dx - 24, artY + 24);
-      c.bezierCurveTo(dx - 12, artY + 14, dx - 12, artY + 34, dx, artY + 24);
-      c.bezierCurveTo(dx + 12, artY + 14, dx + 12, artY + 34, dx + 24, artY + 24);
-      c.lineTo(dx + 24, artY + artH);
-      c.lineTo(dx - 24, artY + artH);
-      c.closePath(); c.fill();
-      
-      c.fillStyle = "#ffffff";
-      c.fillRect(dx - 16, artY + 19, 3, 2);
-      c.fillRect(dx + 10, artY + 19, 3, 2);
-    }
-    else if (sig === "leaf") {
-      c.fillStyle = "#22c55e";
-      c.beginPath();
-      c.moveTo(dx, artY + 10);
-      c.quadraticCurveTo(dx + 12, artY + 20, dx, artY + 34);
-      c.quadraticCurveTo(dx - 12, artY + 20, dx, artY + 10);
-      c.closePath(); c.fill();
-      
-      c.strokeStyle = "#15803d";
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(dx, artY + 10); c.lineTo(dx, artY + 34);
-      c.stroke();
-    }
-    else if (sig === "moon") {
-      c.fillStyle = "#e2e8f0";
-      c.beginPath();
-      c.arc(dx, artY + 20, 10, 0, Math.PI * 2);
-      c.fill();
-      
-      c.fillStyle = colors[0];
-      c.beginPath();
-      c.arc(dx - 4, artY + 18, 9, 0, Math.PI * 2);
-      c.fill();
-      
-      c.fillStyle = "#ffffff";
-      c.fillRect(dx + 12, artY + 12, 2, 2);
-      c.fillRect(dx - 14, artY + 30, 2, 2);
-    }
-  };
-
-  const drawLargeCardBack = (c, dx, dy) => {
-    // 1. Bordo esterno scuro strutturato
-    c.fillStyle = "#0f111a";
-    rr(c, dx - 32, dy - 47, 64, 94, 6);
-    c.fill();
-    
-    // 2. Sfondo primario retro - gradiente profondo rosso/viola
-    const bgGrad = c.createLinearGradient(dx, dy - 44, dx, dy + 44);
-    bgGrad.addColorStop(0, "#8f1d3b"); 
-    bgGrad.addColorStop(1, "#201235"); 
-    c.fillStyle = bgGrad;
-    rr(c, dx - 29, dy - 44, 58, 88, 4);
-    c.fill();
-    
-    // 3. Cornice dorata interna ornamentale con angoli tratteggiati
-    c.strokeStyle = P.gold;
-    c.lineWidth = 1.5;
-    rr(c, dx - 24, dy - 39, 48, 78, 3);
-    c.stroke();
-    
-    // Dettagli angoli cornici (piccole borchie o croci)
-    c.fillStyle = "#ffe9b0";
-    for (const ox of [-24, 23]) {
-      for (const oy of [-39, 38]) {
-        c.fillRect(dx + ox, dy + oy, 2, 2);
-      }
-    }
-    
-    // 4. Linee geometriche esoteriche o di scansione retro
-    c.strokeStyle = "rgba(255, 233, 176, 0.15)";
-    c.lineWidth = 1;
-    c.beginPath();
-    c.moveTo(dx - 24, dy - 39); c.lineTo(dx + 24, dy + 39);
-    c.moveTo(dx + 24, dy - 39); c.lineTo(dx - 24, dy + 39);
-    c.stroke();
-    
-    // 5. Emblema Centrale (Cerchio Runicio + Scudo BRX)
-    c.fillStyle = "#120d24";
-    c.beginPath();
-    c.arc(dx, dy, 16, 0, Math.PI * 2);
-    c.fill();
-    c.strokeStyle = P.gold;
-    c.lineWidth = 1;
-    c.stroke();
-    
-    c.strokeStyle = "rgba(242, 185, 75, 0.4)";
-    for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
-      c.beginPath();
-      c.moveTo(dx + Math.cos(a) * 16, dy + Math.sin(a) * 16);
-      c.lineTo(dx + Math.cos(a) * 22, dy + Math.sin(a) * 22);
-      c.stroke();
-    }
-    
-    c.fillStyle = "#1e163b";
-    c.beginPath();
-    c.arc(dx, dy, 11, 0, Math.PI * 2);
-    c.fill();
-    
-    c.fillStyle = P.gold;
-    c.font = "bold 6px 'Press Start 2P', monospace";
-    c.textAlign = "center";
-    c.textBaseline = "middle";
-    c.fillText("BRX", dx, dy + 0.5);
-    c.textBaseline = "alphabetic";
-  };
-
-  const drawLargeCard = (c, dx, dy, card, progress) => {
-    const { w } = st.view;
-    const rar = card.rarita.toLowerCase();
-    const isHolo = rar === "epica" || rar === "leggendaria";
-    
-    // 1. Outline principale della carta
-    c.fillStyle = "#0f111a";
-    rr(c, dx - 32, dy - 47, 64, 94, 5);
-    c.fill();
-    
-    // 2. Colore di sfondo della carta
-    const cardBgCol = isHolo ? "#f1ebdf" : (rar === "rara" ? "#f3f5fa" : "#fdfbf7");
-    c.fillStyle = cardBgCol;
-    rr(c, dx - 29, dy - 44, 58, 88, 4);
-    c.fill();
-    
-    // 3. Cornice interna sottile della rarità
-    const rarCol = rar === "leggendaria" ? P.gold : (rar === "epica" ? "#a855f7" : (rar === "rara" ? "#3b82f6" : "#8a94a6"));
-    c.strokeStyle = rarCol;
-    c.lineWidth = 1;
-    rr(c, dx - 27, dy - 42, 54, 84, 3);
-    c.stroke();
-    
-    // 4. Box dell'Artwork (Clipped & disegnato)
-    const artY = dy - 39, artH = 39;
-    c.save();
-    rr(c, dx - 24, artY, 48, artH, 2);
-    c.clip();
-    drawCardArtwork(c, dx, dy, card.sig);
-    
-    if (isHolo && fx.holo) {
-      c.save();
-      c.globalCompositeOperation = "lighter";
-      c.globalAlpha = 0.38;
-      const angle = (st.t * 1.5 + (st.pointer.x / w) * 2.0) % (Math.PI * 2);
-      const holoG = c.createLinearGradient(dx - 24, artY, dx + 24, artY + artH);
-      holoG.addColorStop(0, "hsl(" + ((st.t * 50) % 360) + ", 80%, 75%)");
-      holoG.addColorStop(0.5, "hsl(" + (((st.t * 50) + 120) % 360) + ", 80%, 75%)");
-      holoG.addColorStop(1, "hsl(" + (((st.t * 50) + 240) % 360) + ", 80%, 75%)");
-      c.fillStyle = holoG;
-      c.fillRect(dx - 24, artY, 48, artH);
-      c.restore();
-    }
-    c.restore();
-    
-    c.strokeStyle = "#0f111a";
-    c.lineWidth = 1.2;
-    rr(c, dx - 24, artY, 48, artH, 2);
-    c.stroke();
-
-    // 5. Nome Carta
-    c.fillStyle = "#0f111a";
-    c.font = "bold 8px 'Segoe UI', system-ui, sans-serif";
-    c.textAlign = "center";
-    c.fillText(card.nome, dx, dy + 11);
-    
-    // 6. Barra del Tipo (Creatura, Incantesimo, ecc.)
-    const typeY = dy + 18, typeH = 9;
-    c.fillStyle = "rgba(15, 17, 26, 0.07)";
-    c.fillRect(dx - 24, typeY, 48, typeH);
-    c.strokeStyle = "rgba(15, 17, 26, 0.2)";
-    c.lineWidth = 0.5;
-    c.strokeRect(dx - 24, typeY, 48, typeH);
-    
-    c.fillStyle = "#334155";
-    c.font = "italic 6px 'Segoe UI', system-ui, sans-serif";
-    c.textBaseline = "middle";
-    c.fillText(card.tipo, dx, typeY + typeH / 2);
-    c.textBaseline = "alphabetic";
-
-    // 7. Descrizione finta (righe di testo)
-    c.fillStyle = "rgba(15, 17, 26, 0.4)";
-    c.fillRect(dx - 20, dy + 32, 40, 1.2);
-    c.fillRect(dx - 20, dy + 36, 34, 1.2);
-    c.fillRect(dx - 20, dy + 40, 26, 1.2);
-
-    // 8. Costo di Mana (Bolla in alto a sinistra)
-    const costX = dx - 24, costY = dy - 39;
-    c.fillStyle = "#2d3748";
-    c.beginPath();
-    c.arc(costX, costY, 6, 0, Math.PI * 2);
-    c.fill();
-    c.strokeStyle = P.gold;
-    c.lineWidth = 0.8;
-    c.stroke();
-    
-    c.fillStyle = "#ffffff";
-    c.font = "bold 7px 'Segoe UI', system-ui, sans-serif";
-    c.textAlign = "center";
-    c.textBaseline = "middle";
-    c.fillText(card.costo, costX, costY + 0.5);
-    c.textBaseline = "alphabetic";
-
-    // 9. Gemma della Rarità (in basso al centro)
-    const gemX = dx, gemY = dy + 28;
-    c.fillStyle = rarCol;
-    c.beginPath();
-    c.moveTo(gemX, gemY - 3);
-    c.lineTo(gemX + 4, gemY);
-    c.lineTo(gemX, gemY + 3);
-    c.lineTo(gemX - 4, gemY);
-    c.closePath();
-    c.fill();
-    c.strokeStyle = "#0f111a";
-    c.lineWidth = 0.6;
-    c.stroke();
-    
-    if (rar === "leggendaria") {
-      c.strokeStyle = P.gold;
-      c.lineWidth = 1.5;
-      rr(c, dx - 28, dy - 43, 56, 86, 3.5);
-      c.stroke();
-    }
-    
-    c.textAlign = "left";
   };
 
   function render() {
@@ -3761,20 +3550,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       if (e.key === "table") {
         drawTableClock();
         
-        // Disegna la bustina sul tavolo se disponibile e non ancora al centro
-        if (st.packAvail && (!st.pack || st.pack.phase === "walk")) {
-          wctx.save();
-          const shake = (st.pack && st.pack.phase === "walk") ? 0 : Math.sin(st.t * 12) * 0.8;
-          wctx.translate(PACK_POS.x + shake, PACK_POS.y - 12);
-          const pgG = wctx.createRadialGradient(0, 0, 2, 0, 0, 16);
-          pgG.addColorStop(0, "rgba(243, 199, 106, 0.5)");
-          pgG.addColorStop(1, "rgba(243, 199, 106, 0)");
-          wctx.fillStyle = pgG;
-          wctx.beginPath(); wctx.ellipse(0, 4, 12, 5, 0, 0, Math.PI * 2); wctx.fill();
-          drawPackGraphics(wctx, 0, -4);
-          wctx.restore();
-        }
-        
         // Disegna le carte sparpagliate da Missy
         if (fx.scatter) for (const card of st.scatter) {
           const age = st.t - card.t0;
@@ -3869,6 +3644,21 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           }
         }
       }
+    }
+    /* — busta lettere sul pavimento (slide / idle) — */
+    if (st.letter && (st.letter.phase === "slide" || st.letter.phase === "idle")) {
+      const lt = st.letter;
+      wctx.save();
+      const glow = lt.phase === "idle" ? 0.35 + 0.15 * Math.sin(st.t * 8) : 0.2;
+      const pgG = wctx.createRadialGradient(lt.x, lt.y, 2, lt.x, lt.y, 18);
+      pgG.addColorStop(0, "rgba(243, 199, 106, " + glow + ")");
+      pgG.addColorStop(1, "rgba(243, 199, 106, 0)");
+      wctx.fillStyle = pgG;
+      wctx.beginPath();
+      wctx.ellipse(lt.x, lt.y + 6, 14, 5, 0, 0, Math.PI * 2);
+      wctx.fill();
+      drawLetterEnvelope(wctx, lt.x, lt.y, 0, lt.rot || 0);
+      wctx.restore();
     }
     /* — riflesso notturno dell'avatar nella finestra — */
     if (phase.id === "night" && st.avDraw && fx.reflections) {
@@ -4113,8 +3903,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
       ctx.globalAlpha = 1;
     }
-    /* — pack opening fullscreen overlay — */
-    if (st.pack && st.pack.phase !== "walk") {
+    /* — busta lettere: overlay coupon fullscreen — */
+    if (letterOverlayActive()) {
+      const lt = st.letter;
       ctx.save();
       if (st.shake > 0) {
         const sx = (Math.random() - 0.5) * st.shake;
@@ -4123,121 +3914,81 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
       ctx.fillStyle = "rgba(10, 12, 22, 0.82)";
       ctx.fillRect(0, 0, w, h);
-      
+
       const centerX = w / 2;
       const centerY = h / 2;
-      
-      if (st.pack.phase === "lift") {
-        const elapsed = st.t - st.pack.t0;
-        const k = clamp(elapsed / 1.2, 0, 1);
-        const scaleFactor = k * 3.5;
+
+      if (lt.phase === "lift") {
+        const elapsed = st.t - lt.t0;
+        const k = clamp(elapsed / 0.9, 0, 1);
+        const scaleFactor = lerp(1.2, 3.2, easeOutQuad(k));
         const shake = Math.sin(st.t * 36) * 1.5;
-        const yOffset = -k * 40;
-        
+        const yOffset = -k * 36;
         ctx.save();
         ctx.translate(centerX + shake, centerY + yOffset);
         ctx.scale(scaleFactor, scaleFactor);
-        drawPackGraphics(ctx, 0, 0);
+        drawLetterEnvelope(ctx, 0, 0, 0, 0);
         ctx.restore();
-      }
-      else if (st.pack.phase === "rip") {
+      } else if (lt.phase === "open") {
+        const elapsed = st.t - lt.t0;
+        const flapK = clamp(elapsed / 0.45, 0, 1);
         ctx.save();
-        ctx.translate(centerX, centerY - 40);
-        ctx.scale(3.5, 3.5);
-        drawPackGraphics(ctx, 0, 0);
+        ctx.translate(centerX, centerY - 30);
+        ctx.scale(3.2, 3.2);
+        drawLetterEnvelope(ctx, 0, 0, flapK, 0);
         ctx.restore();
-        
         ctx.fillStyle = "#ffe9b0";
-        ctx.font = "bold 10px 'Press Start 2P', monospace";
+        ctx.font = "bold 9px 'Press Start 2P', monospace";
         ctx.textAlign = "center";
-        ctx.fillText("CLICCA PER APRIRE 🎴", centerX, centerY + 80);
-      }
-      else if (st.pack.phase === "reveal" && st.pack.cards) {
-        if (st.pack.halves) {
-          const halves = st.pack.halves;
-          if (halves.y1 < h + 50) {
-            ctx.save();
-            ctx.translate(halves.x1, halves.y1);
-            ctx.rotate(halves.rot1);
-            ctx.scale(3.5, 3.5);
-            drawPackHalf(ctx, 0, 0, true);
-            ctx.restore();
-            
-            ctx.save();
-            ctx.translate(halves.x2, halves.y2);
-            ctx.rotate(halves.rot2);
-            ctx.scale(3.5, 3.5);
-            drawPackHalf(ctx, 0, 0, false);
-            ctx.restore();
-          }
-        }
-        
-        st.pack.cards.forEach((pc) => {
+        ctx.fillText("CLICCA PER APRIRE 📬", centerX, centerY + 72);
+      } else if (lt.phase === "reveal" || lt.phase === "done") {
+        const elapsed = st.t - lt.t0;
+        const revealK = lt.phase === "done" ? 1 : clamp(elapsed / 1.0, 0, 1);
+        if (revealK < 0.35) {
+          const flapK = lerp(1, 0, revealK / 0.35);
           ctx.save();
-          ctx.translate(pc.x, pc.y);
-          ctx.scale(pc.scale, pc.scale);
-          
-          if (pc.revealed) {
-            drawLargeCard(ctx, 0, 0, pc.card, pc.glowProgress);
-            
-            const rar = pc.card.rarita.toLowerCase();
-            const isRare = rar === "rara" || rar === "epica" || rar === "leggendaria";
-            if (isRare && Math.random() < 0.22) {
-              const col = rar === "leggendaria" ? P.gold : (rar === "epica" ? "#c084fc" : "#60a5fa");
-              pc.particles.push({
-                x: (Math.random() - 0.5) * 64,
-                y: 32 + (Math.random() - 0.5) * 88,
-                vx: (Math.random() - 0.5) * 30,
-                vy: -40 - Math.random() * 40,
-                size: 2 + Math.random() * 3,
-                color: col,
-                alpha: 1,
-                dur: 0.6 + Math.random() * 0.4,
-                t0: st.t
-              });
-            }
-          } else {
-            drawLargeCardBack(ctx, 0, 0);
-            const isHover = Math.abs(st.pointer.x - pc.x) < 32 && Math.abs(st.pointer.y - pc.y) < 47;
-            if (isHover) {
-              ctx.strokeStyle = P.gold;
-              ctx.lineWidth = 2.5;
-              rr(ctx, -34, -49, 68, 98, 6);
-              ctx.stroke();
-            }
-          }
-          
-          pc.particles = pc.particles.filter((pt) => st.t - pt.t0 < pt.dur);
-          for (const pt of pc.particles) {
-            const k = (st.t - pt.t0) / pt.dur;
-            ctx.fillStyle = pt.color;
-            ctx.globalAlpha = (1 - k) * pt.alpha;
-            ctx.fillRect(pt.x + pt.vx * k, pt.y + pt.vy * k, pt.size, pt.size);
-          }
+          ctx.translate(centerX, centerY - 50);
+          ctx.scale(2.4, 2.4);
+          drawLetterEnvelope(ctx, 0, 0, flapK, 0);
           ctx.restore();
-        });
-        
-        const allRevealed = st.pack.cards.every(pc => pc.revealed);
-        if (allRevealed) {
+        }
+        const couponY = centerY - 10 + (1 - easeOutBack(revealK)) * 40;
+        drawCouponTicket(ctx, centerX, couponY, lt.tournamentName, lt.couponCode, revealK);
+        if (fx.holo && revealK > 0.2) {
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.22 * revealK;
+          const sweepX = centerX - 90 + ((st.t * 120) % 180);
+          const sg = ctx.createLinearGradient(sweepX, couponY - 60, sweepX + 40, couponY + 60);
+          sg.addColorStop(0, "rgba(255,255,255,0)");
+          sg.addColorStop(0.5, "rgba(255,233,176,0.85)");
+          sg.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = sg;
+          ctx.fillRect(centerX - 90, couponY - 60, 180, 120);
+          ctx.restore();
+        }
+        if (lt.phase === "done") {
+          ctx.fillStyle = "rgba(255,255,255,0.65)";
+          ctx.font = "500 10px 'Segoe UI', system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("Riscatta il coupon entro 72h e usalo sul sito Ebartex.", centerX, centerY + 78);
           ctx.fillStyle = "#d94f46";
-          rr(ctx, centerX - 50, centerY + 85, 100, 24, 6);
+          rr(ctx, centerX - 50, centerY + 92, 100, 24, 6);
           ctx.fill();
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 1;
           ctx.stroke();
-          
           ctx.fillStyle = "#ffffff";
           ctx.font = "bold 9px 'Press Start 2P', monospace";
-          ctx.textAlign = "center";
-          ctx.fillText("CHIUDI ✖", centerX, centerY + 101);
+          ctx.fillText("CHIUDI ✖", centerX, centerY + 108);
         }
       }
       ctx.restore();
     }
 
-    /* — particelle olografiche screen-space — */
-    st.packFx = st.packFx.filter((p) => st.t - p.t0 < p.dur);
-    for (const p of st.packFx) {
+    /* — particelle confetti busta lettere (screen-space) — */
+    st.letterFx = st.letterFx.filter((p) => st.t - p.t0 < p.dur);
+    for (const p of st.letterFx) {
       const k = (st.t - p.t0) / p.dur;
       ctx.globalAlpha = Math.max(0, 1 - k);
       if (p.ring) {
@@ -4339,129 +4090,26 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     sfx.ensure();
     if (st.destroyed) return;
     
-    // Intercetta i click se la sequenza di pack opening è attiva
-    if (st.pack && st.pack.phase !== "walk") {
+    // Intercetta i click se la sequenza busta lettere è attiva (overlay)
+    if (letterOverlayActive()) {
       const p = pointerPos(e);
       const hx = p.x;
       const hy = p.y;
-      const w = st.view.w;
-      const h = st.view.h;
-      
-      if (st.pack.phase === "rip") {
-        sfx.success();
-        st.shake = 18;
-        st.pack.halves = {
-          x1: w / 2, y1: h / 2 - 40, vx1: -160,
-          x2: w / 2, y2: h / 2 - 40, vx2: 160,
-          vy: -100, rot1: 0, rot2: 0
-        };
-        
-        // Genera scintille dorate lungo la linea dello strappo
-        for (let i = 0; i < 20; i++) {
-          const angle = (Math.random() - 0.5) * Math.PI;
-          const speed = 60 + Math.random() * 80;
-          st.packFx.push({
-            x: w / 2, y: h / 2 - 40 + (Math.random() - 0.5) * 35,
-            vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 40,
-            col: Math.random() < 0.55 ? P.gold : "#ffffff",
-            size: 2 + Math.random() * 3,
-            dur: 0.7 + Math.random() * 0.5,
-            t0: st.t,
-            grav: 40
-          });
-        }
-        
-        const cardsPool = opts.cards || mockCards();
-        const rolled = [];
-        for (let i = 0; i < 3; i++) {
-          let rCard = cardsPool[Math.floor(Math.random() * cardsPool.length)];
-          if (i === 1) {
-            const highRar = cardsPool.filter(c => ["rara", "epica", "leggendaria"].includes(c.rarita.toLowerCase()));
-            if (highRar.length) rCard = highRar[Math.floor(Math.random() * highRar.length)];
-          }
-          rolled.push(rCard);
-        }
-        
-        st.pack.cards = rolled.map((card, i) => {
-          const targetX = w / 2 + (i - 1) * 82;
-          const targetY = h / 2 - 20;
-          const angle = -Math.PI / 2 + (i - 1) * 0.45;
-          const speed = 120 + Math.random() * 40;
-          return {
-            card,
-            x: w / 2,
-            y: h / 2 - 40,
-            targetX,
-            targetY,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 60,
-            scale: 0.15,
-            revealed: false,
-            glowProgress: 0,
-            particles: []
-          };
-        });
-        st.pack.phase = "reveal";
-        st.pack.t0 = st.t;
-        sfx.open(); // rip sound
+      const centerX = st.view.w / 2;
+      const centerY = st.view.h / 2;
+      const lt = st.letter;
+
+      if (lt.phase === "open") {
+        advanceLetterToReveal();
         return;
       }
-      
-      if (st.pack.phase === "reveal") {
-        let clickedCard = false;
-        st.pack.cards.forEach((pc) => {
-          if (!pc.revealed && Math.abs(hx - pc.x) < 32 && Math.abs(hy - pc.y) < 47) {
-            pc.revealed = true;
-            clickedCard = true;
-            const rar = pc.card.rarita.toLowerCase();
-            const rarLevel = rar === "leggendaria" ? 3 : (rar === "epica" ? 2 : (rar === "rara" ? 1 : 0));
-            sfx.reveal(rarLevel);
-            
-            st.shake = rar === "leggendaria" ? 12 : (rar === "epica" ? 8 : 5);
-            
-            // Shockwave ring
-            st.packFx.push({
-              x: pc.x, y: pc.y,
-              ring: true,
-              maxRadius: rar === "leggendaria" ? 80 : (rar === "epica" ? 65 : 45),
-              col: rar === "leggendaria" ? P.gold : (rar === "epica" ? "#a855f7" : "#3b82f6"),
-              dur: 0.6 + (rarLevel * 0.1),
-              t0: st.t
-            });
-            
-            // Esplosione di particelle con gravità
-            const nPart = rar === "leggendaria" ? 35 : (rar === "epica" ? 25 : 16);
-            for (let i = 0; i < nPart; i++) {
-              const angle = Math.random() * Math.PI * 2;
-              const speed = (rar === "leggendaria" ? 70 : 45) + Math.random() * (rar === "leggendaria" ? 80 : 50);
-              st.packFx.push({
-                x: pc.x, y: pc.y,
-                vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 15,
-                col: rar === "leggendaria" ? P.gold : (rar === "epica" ? "#c084fc" : (rar === "rara" ? "#60a5fa" : "#e2e8f0")),
-                size: (rar === "leggendaria" ? 3.5 : 2.5) + Math.random() * 3,
-                dur: 0.7 + Math.random() * 0.6,
-                t0: st.t,
-                grav: 60
-              });
-            }
-          }
-        });
-        
-        if (clickedCard) return;
-        
-        const allRevealed = st.pack.cards.every(pc => pc.revealed);
-        if (allRevealed) {
-          const btnX = w / 2, btnY = h / 2 + 97;
-          if (Math.abs(hx - btnX) < 50 && Math.abs(hy - btnY) < 18) {
-            st.pack = null;
-            st.packAvail = false;
-            st.cinematic = false;
-            st.packAt = st.t + 45 + Math.random() * 90;
-            sfx.click();
-          }
+      if (lt.phase === "done") {
+        if (Math.abs(hx - centerX) < 50 && Math.abs(hy - (centerY + 104)) < 18) {
+          closeLetterCoupon();
         }
         return;
       }
+      return;
     }
 
     if (st.modal || st.lock || st.cinematic) return;
@@ -4470,7 +4118,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const p = pointerPos(e);
     const dec = hitDecor(p.x, p.y);
     if (dec) {
-      if (dec.kind === "pack") { startPackOpening(); return; }
+      if (dec.kind === "letter") { startLetterOpening(); return; }
       if (dec.kind === "music") { clickObject({ ...MUSIC_OBJ }); return; }
       if (dec.kind === "cat") { petCat(); return; }
       if (dec.kind === "dog") { petDog(); return; }
