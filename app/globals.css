@@ -169,7 +169,7 @@
     font-family: var(--font-sans), serif;
     background-image:
       linear-gradient(rgba(15, 23, 42, 0.32), rgba(15, 23, 42, 0.48)),
-      url('/images/sfondo-tornei.png'),
+      url('/images/sfondo-tornei.webp'),
       linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
     background-repeat: no-repeat, no-repeat, no-repeat;
     background-size: cover, cover, cover;

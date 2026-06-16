@@ -29,26 +29,26 @@ const CARD_META: Record<string, { accent: string; label: string }> = {
 
 /** Mappatura degli ID dei formati ai rispettivi file immagine. */
 const FORMAT_IMAGES: Record<string, string> = {
-  'old-school': '/images/formats/old-school.png',
-  'premodern': '/images/formats/pre-modern.png',
-  'pioneer': '/images/formats/pioneer.png',
-  'modern': '/images/formats/modern.png',
-  'standard': '/images/formats/standard.png',
-  'legacy': '/images/formats/legacy.png',
-  'pauper': '/images/formats/pauper.png',
-  'commander': '/images/formats/commander.png',
+  'old-school': '/images/formats/old-school.webp',
+  'premodern': '/images/formats/pre-modern.webp',
+  'pioneer': '/images/formats/pioneer.webp',
+  'modern': '/images/formats/modern.webp',
+  'standard': '/images/formats/standard.webp',
+  'legacy': '/images/formats/legacy.webp',
+  'pauper': '/images/formats/pauper.webp',
+  'commander': '/images/formats/commander.webp',
 };
 
 /** Mappatura degli ID dei formati ai rispettivi file video verticali. */
 const FORMAT_VIDEOS: Record<string, string> = {
-  'old-school': '/video-animazione-verticale/old-school-ver.mp4',
-  'premodern': '/video-animazione-verticale/pre-modern-ver.mp4',
-  'pioneer': '/video-animazione-verticale/piooner-ver.mp4',
-  'modern': '/video-animazione-verticale/modern-ver.mp4',
-  'standard': '/video-animazione-verticale/standard-ver.mp4',
-  'legacy': '/video-animazione-verticale/legacy-ver.mp4',
-  'pauper': '/video-animazione-verticale/pauper-ver.mp4',
-  'commander': '/video-animazione-verticale/commander-ver.mp4',
+  'old-school': '/video-animazione-verticale/old-school-ver.webm',
+  'premodern': '/video-animazione-verticale/pre-modern-ver.webm',
+  'pioneer': '/video-animazione-verticale/piooner-ver.webm',
+  'modern': '/video-animazione-verticale/modern-ver.webm',
+  'standard': '/video-animazione-verticale/standard-ver.webm',
+  'legacy': '/video-animazione-verticale/legacy-ver.webm',
+  'pauper': '/video-animazione-verticale/pauper-ver.webm',
+  'commander': '/video-animazione-verticale/commander-ver.webm',
 };
 
 export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProps) {
@@ -97,7 +97,7 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
           const isSelected = selectedId === format.id;
           const isHovered = hoveredIndex === index;
           const meta = CARD_META[format.id] || { accent: '#ffffff', label: '' };
-          const imagePath = FORMAT_IMAGES[format.id] || `/images/formats/${format.id}.png`;
+          const imagePath = FORMAT_IMAGES[format.id] || `/images/formats/${format.id}.webp`;
           const videoPath = FORMAT_VIDEOS[format.id];
 
           // Regola opacità per evidenziare la selezione e l'hover

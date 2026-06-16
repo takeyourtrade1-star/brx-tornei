@@ -2243,14 +2243,28 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     lt.flapBurst = true;
     lt.phase = "reveal";
     lt.t0 = st.t;
-    st.shake = 14;
+    st.shake = 18;
     sfx.success();
+    sfx.open();
     const { w, h } = st.view;
-    burstLetterFx(w / 2, h / 2 - 20, 30);
+    const cy = h / 2 - 10;
+    burstLetterFx(w / 2, cy, 42);
     st.letterFx.push({
-      x: w / 2, y: h / 2 - 20,
-      ring: true, maxRadius: 70, col: P.gold, dur: 0.65, t0: st.t,
+      x: w / 2, y: cy,
+      ring: true, maxRadius: 110, col: P.gold, dur: 0.75, t0: st.t,
     });
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      st.letterFx.push({
+        x: w / 2 + Math.cos(a) * 6, y: cy + Math.sin(a) * 4,
+        vx: Math.cos(a) * 90, vy: Math.sin(a) * 70 - 40,
+        col: i % 2 ? "#FF7300" : P.gold,
+        size: 3 + Math.random() * 2,
+        dur: 0.55 + Math.random() * 0.35,
+        t0: st.t,
+        grav: 50,
+      });
+    }
   }
 
   function closeLetterCoupon() {
@@ -2933,14 +2947,20 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           lt.t0 = st.t;
         }
       } else if (lt.phase === "lift") {
-        if (st.t - lt.t0 > 0.9) {
+        if (st.t - lt.t0 > 1.05) {
           lt.phase = "open";
           lt.t0 = st.t;
+          sfx.open();
         }
       } else if (lt.phase === "open") {
-        if (st.t - lt.t0 > 0.5 && !lt.flapBurst) advanceLetterToReveal();
+        const openElapsed = st.t - lt.t0;
+        if (openElapsed > 0.22 && !lt.sealSfx) {
+          lt.sealSfx = true;
+          st.shake = 8;
+        }
+        if (openElapsed > 1.35 && !lt.flapBurst) advanceLetterToReveal();
       } else if (lt.phase === "reveal") {
-        if (st.t - lt.t0 > 1.0) {
+        if (st.t - lt.t0 > 1.35) {
           lt.phase = "done";
           lt.t0 = st.t;
           sfx.ding();
@@ -3256,98 +3276,168 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     wctx.fillText(st.ghost, Math.round(cxp - tw / 2), y - 5);
   }
 
-  const drawLetterEnvelope = (c, dx, dy, flapOpen = 0, rot = 0) => {
+  const drawLetterEnvelope = (c, dx, dy, opts = {}) => {
+    const flapOpen = opts.flapOpen || 0;
+    const sealBreak = opts.sealBreak || 0;
+    const rot = opts.rot || 0;
+    const scale = opts.scale != null ? opts.scale : 1;
+    const glow = opts.glow || 0;
+    const bw = 44, bh = 30, hinge = -9;
+
     c.save();
     c.translate(dx, dy);
     c.rotate(rot);
-    c.fillStyle = "rgba(0,0,0,0.16)";
+    c.scale(scale, scale);
+
+    if (glow > 0) {
+      const pg = c.createRadialGradient(0, 0, 4, 0, 0, 38);
+      pg.addColorStop(0, "rgba(255, 210, 100, " + (0.45 * glow).toFixed(3) + ")");
+      pg.addColorStop(1, "rgba(255, 200, 80, 0)");
+      c.fillStyle = pg;
+      c.beginPath();
+      c.arc(0, 0, 38, 0, Math.PI * 2);
+      c.fill();
+    }
+
+    c.fillStyle = "rgba(0,0,0,0.2)";
     c.beginPath();
-    c.ellipse(0, 8, 14, 5, 0, 0, Math.PI * 2);
+    c.ellipse(0, 16, 24, 8, 0, 0, Math.PI * 2);
     c.fill();
+
+    c.fillStyle = "#cfc0a0";
+    rr(c, -bw / 2 - 2, -bh / 2 + 3, bw + 4, bh + 5, 3);
+    c.fill();
+
     c.fillStyle = "#e8dcc0";
-    c.fillRect(-16, -6, 32, 20);
-    c.fillStyle = "#dcc8a8";
-    c.fillRect(-16, 8, 32, 4);
+    rr(c, -bw / 2, -bh / 2, bw, bh, 3);
+    c.fill();
     c.strokeStyle = P.outline;
-    c.lineWidth = 1;
-    c.strokeRect(-16, -6, 32, 20);
-    const flapLift = flapOpen * -18;
+    c.lineWidth = 1.3;
+    c.strokeRect(-bw / 2, -bh / 2, bw, bh);
+
+    c.fillStyle = "rgba(0,0,0,0.07)";
+    c.beginPath();
+    c.moveTo(-bw / 2, -bh / 2); c.lineTo(-bw / 2 + 8, 2); c.lineTo(-bw / 2, bh / 2);
+    c.closePath(); c.fill();
+    c.beginPath();
+    c.moveTo(bw / 2, -bh / 2); c.lineTo(bw / 2 - 8, 2); c.lineTo(bw / 2, bh / 2);
+    c.closePath(); c.fill();
+
+    if (flapOpen > 0.04) {
+      c.fillStyle = "#1a1610";
+      c.fillRect(-bw / 2 + 5, -bh / 2 + 5, bw - 10, bh - 10);
+      const ig = c.createRadialGradient(0, 2, 2, 0, 2, 22);
+      ig.addColorStop(0, "rgba(255, 220, 140, " + (0.65 * flapOpen).toFixed(3) + ")");
+      ig.addColorStop(1, "rgba(255, 180, 60, 0)");
+      c.fillStyle = ig;
+      c.fillRect(-bw / 2 + 6, -bh / 2 + 6, bw - 12, bh - 12);
+    }
+
+    c.save();
+    c.translate(0, hinge);
+    c.rotate(-flapOpen * 1.62);
+    c.translate(0, -hinge);
     c.fillStyle = "#f0e6d0";
     c.beginPath();
-    c.moveTo(-16, -6 + flapLift);
-    c.lineTo(0, -14 + flapLift - flapOpen * 8);
-    c.lineTo(16, -6 + flapLift);
+    c.moveTo(-bw / 2, hinge);
+    c.lineTo(0, hinge - 20);
+    c.lineTo(bw / 2, hinge);
     c.closePath();
     c.fill();
+    c.strokeStyle = P.outline;
+    c.lineWidth = 1.2;
     c.stroke();
-    if (flapOpen < 0.45) {
-      c.fillStyle = "#FF7300";
+    c.restore();
+
+    if (sealBreak < 0.92) {
+      const sealA = 1 - sealBreak;
+      const sealS = 1 - sealBreak * 0.75;
+      const sy = hinge + 3;
+      c.save();
+      c.translate(0, sy);
+      c.scale(sealS, sealS);
+      c.fillStyle = "rgba(255,115,0," + sealA + ")";
       c.beginPath();
-      c.arc(0, -2 + flapLift * 0.3, 5, 0, Math.PI * 2);
+      c.arc(0, 0, 8, 0, Math.PI * 2);
       c.fill();
-      c.fillStyle = "#ffffff";
-      c.font = "bold 7px 'Segoe UI', system-ui, sans-serif";
+      c.strokeStyle = "rgba(180,60,0," + sealA + ")";
+      c.lineWidth = 1;
+      c.stroke();
+      c.fillStyle = "rgba(255,255,255," + sealA + ")";
+      c.font = "bold 9px 'Segoe UI', system-ui, sans-serif";
       c.textAlign = "center";
       c.textBaseline = "middle";
-      c.fillText("E", 0, -2 + flapLift * 0.3);
+      c.fillText("E", 0, 0.5);
       c.textBaseline = "alphabetic";
+      c.restore();
+      if (sealBreak > 0.35) {
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2 + sealBreak * 2;
+          const dist = sealBreak * 14;
+          c.fillStyle = "rgba(255,115,0," + (sealA * 0.8) + ")";
+          c.fillRect(Math.cos(a) * dist - 1.5, sy + Math.sin(a) * dist - 1.5, 3, 3);
+        }
+      }
     }
+
     c.restore();
   };
 
-  const drawCouponTicket = (c, dx, dy, tournamentName, code, progress) => {
+  const drawCouponTicket = (c, dx, dy, tournamentName, code, progress, uiScale = 1) => {
     const k = clamp(progress, 0, 1);
-    const scale = easeOutBack(k);
+    const pop = easeOutBack(k);
+    const s = uiScale * pop;
     c.save();
     c.translate(dx, dy);
-    c.scale(scale, scale);
-    const tw = 148, th = 108;
+    c.scale(s, s);
+    const tw = 240, th = 172;
     c.fillStyle = "#0f111a";
-    rr(c, -tw / 2 - 2, -th / 2 - 2, tw + 4, th + 4, 8);
+    rr(c, -tw / 2 - 3, -th / 2 - 3, tw + 6, th + 6, 12);
     c.fill();
     const tg = c.createLinearGradient(0, -th / 2, 0, th / 2);
     tg.addColorStop(0, "#fff9eb");
-    tg.addColorStop(1, "#f5e6c8");
+    tg.addColorStop(0.5, "#fff3d6");
+    tg.addColorStop(1, "#f0ddb0");
     c.fillStyle = tg;
-    rr(c, -tw / 2, -th / 2, tw, th, 6);
+    rr(c, -tw / 2, -th / 2, tw, th, 10);
     c.fill();
     c.strokeStyle = P.gold;
-    c.lineWidth = 2;
+    c.lineWidth = 3;
     c.stroke();
-    c.strokeStyle = "rgba(242,185,75,0.35)";
-    c.setLineDash([4, 3]);
-    c.strokeRect(-tw / 2 + 6, -th / 2 + 6, tw - 12, th - 12);
+    c.strokeStyle = "rgba(242,185,75,0.4)";
+    c.lineWidth = 1.5;
+    c.setLineDash([6, 4]);
+    c.strokeRect(-tw / 2 + 10, -th / 2 + 10, tw - 20, th - 20);
     c.setLineDash([]);
     c.fillStyle = "#121e3d";
-    c.font = "900 11px 'Segoe UI', system-ui, sans-serif";
+    c.font = "900 18px 'Segoe UI', system-ui, sans-serif";
     c.textAlign = "center";
-    c.fillText("ebartex", 0, -th / 2 + 22);
+    c.fillText("ebartex", 0, -th / 2 + 34);
     c.strokeStyle = "#FF7300";
-    c.lineWidth = 1.5;
+    c.lineWidth = 2;
     c.beginPath();
-    c.moveTo(-28, -th / 2 + 26);
-    c.quadraticCurveTo(0, -th / 2 + 32, 28, -th / 2 + 24);
+    c.moveTo(-42, -th / 2 + 40);
+    c.quadraticCurveTo(0, -th / 2 + 50, 42, -th / 2 + 36);
     c.stroke();
     c.fillStyle = "#23263c";
-    c.font = "700 9px 'Segoe UI', system-ui, sans-serif";
-    const title = "Hai vinto il torneo di";
-    c.fillText(title, 0, -8);
-    c.font = "800 10px 'Segoe UI', system-ui, sans-serif";
+    c.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("Hai vinto il torneo di", 0, -6);
+    c.font = "800 17px 'Segoe UI', system-ui, sans-serif";
     c.fillStyle = "#d94f46";
-    const name = tournamentName.length > 22 ? tournamentName.slice(0, 20) + "…" : tournamentName;
-    c.fillText(name + "!", 0, 6);
+    const name = tournamentName.length > 26 ? tournamentName.slice(0, 24) + "…" : tournamentName;
+    c.fillText(name + "!", 0, 18);
     c.fillStyle = "#334155";
-    c.font = "600 8.5px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("Ecco il coupon", 0, 22);
+    c.font = "600 13px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("Ecco il coupon", 0, 42);
     c.fillStyle = "rgba(15,17,26,0.08)";
-    rr(c, -58, 30, 116, 18, 4);
+    rr(c, -92, 52, 184, 30, 6);
     c.fill();
     c.strokeStyle = P.gold;
-    c.lineWidth = 1;
+    c.lineWidth = 1.5;
     c.stroke();
     c.fillStyle = "#1e293b";
-    c.font = "8px 'Press Start 2P', monospace";
-    c.fillText(code, 0, 43);
+    c.font = "11px 'Press Start 2P', monospace";
+    c.fillText(code, 0, 72);
     c.textAlign = "left";
     c.restore();
   };
@@ -3657,7 +3747,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       wctx.beginPath();
       wctx.ellipse(lt.x, lt.y + 6, 14, 5, 0, 0, Math.PI * 2);
       wctx.fill();
-      drawLetterEnvelope(wctx, lt.x, lt.y, 0, lt.rot || 0);
+      drawLetterEnvelope(wctx, lt.x, lt.y, { rot: lt.rot || 0 });
       wctx.restore();
     }
     /* — riflesso notturno dell'avatar nella finestra — */
@@ -3912,75 +4002,87 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         const sy = (Math.random() - 0.5) * st.shake;
         ctx.translate(sx, sy);
       }
-      ctx.fillStyle = "rgba(10, 12, 22, 0.82)";
+      ctx.fillStyle = "rgba(10, 12, 22, 0.88)";
       ctx.fillRect(0, 0, w, h);
 
       const centerX = w / 2;
       const centerY = h / 2;
+      const uiS = Math.min(w / 340, h / 260, 2.8);
 
       if (lt.phase === "lift") {
         const elapsed = st.t - lt.t0;
-        const k = clamp(elapsed / 0.9, 0, 1);
-        const scaleFactor = lerp(1.2, 3.2, easeOutQuad(k));
-        const shake = Math.sin(st.t * 36) * 1.5;
-        const yOffset = -k * 36;
-        ctx.save();
-        ctx.translate(centerX + shake, centerY + yOffset);
-        ctx.scale(scaleFactor, scaleFactor);
-        drawLetterEnvelope(ctx, 0, 0, 0, 0);
-        ctx.restore();
+        const k = easeOutBack(clamp(elapsed / 1.05, 0, 1));
+        const envS = lerp(0.6, 5.2, easeOutQuad(k));
+        const yOff = lerp(h * 0.18, -24, k);
+        const rot = (1 - k) * 0.22 * Math.sin(elapsed * 9);
+        const glow = k * 0.35;
+        drawLetterEnvelope(ctx, centerX, centerY + yOff, {
+          scale: envS, rot, glow, flapOpen: 0, sealBreak: 0,
+        });
       } else if (lt.phase === "open") {
         const elapsed = st.t - lt.t0;
-        const flapK = clamp(elapsed / 0.45, 0, 1);
-        ctx.save();
-        ctx.translate(centerX, centerY - 30);
-        ctx.scale(3.2, 3.2);
-        drawLetterEnvelope(ctx, 0, 0, flapK, 0);
-        ctx.restore();
-        ctx.fillStyle = "#ffe9b0";
-        ctx.font = "bold 9px 'Press Start 2P', monospace";
-        ctx.textAlign = "center";
-        ctx.fillText("CLICCA PER APRIRE 📬", centerX, centerY + 72);
+        const openK = clamp(elapsed / 1.35, 0, 1);
+        const sealBreak = easeOutQuad(clamp(openK / 0.32, 0, 1));
+        const flapOpen = easeOutCubic(clamp((openK - 0.18) / 0.72, 0, 1));
+        const glow = flapOpen > 0.55 ? (flapOpen - 0.55) * 2.2 : sealBreak * 0.4;
+        const wobble = Math.sin(elapsed * 14) * (1 - flapOpen) * 2.5;
+        drawLetterEnvelope(ctx, centerX + wobble, centerY - 28, {
+          scale: 5.2, flapOpen, sealBreak, glow,
+        });
+        if (flapOpen < 0.95) {
+          ctx.fillStyle = "#ffe9b0";
+          ctx.font = "bold 11px 'Press Start 2P', monospace";
+          ctx.textAlign = "center";
+          ctx.globalAlpha = 0.85 + 0.15 * Math.sin(st.t * 6);
+          ctx.fillText("CLICCA PER APRIRE 📬", centerX, centerY + 100 * uiS);
+          ctx.globalAlpha = 1;
+        }
       } else if (lt.phase === "reveal" || lt.phase === "done") {
         const elapsed = st.t - lt.t0;
-        const revealK = lt.phase === "done" ? 1 : clamp(elapsed / 1.0, 0, 1);
-        if (revealK < 0.35) {
-          const flapK = lerp(1, 0, revealK / 0.35);
-          ctx.save();
-          ctx.translate(centerX, centerY - 50);
-          ctx.scale(2.4, 2.4);
-          drawLetterEnvelope(ctx, 0, 0, flapK, 0);
-          ctx.restore();
+        const revealK = lt.phase === "done" ? 1 : clamp(elapsed / 1.35, 0, 1);
+        const envFade = 1 - easeOutQuad(Math.min(revealK * 1.4, 1));
+        const envY = centerY + lerp(-28, 72, easeOutQuad(revealK));
+        const envS = lerp(5.2, 2.8, easeOutQuad(revealK));
+        if (envFade > 0.05) {
+          ctx.globalAlpha = envFade * 0.75;
+          drawLetterEnvelope(ctx, centerX, envY, {
+            scale: envS, flapOpen: 1, sealBreak: 1, glow: 0.15 * envFade,
+          });
+          ctx.globalAlpha = 1;
         }
-        const couponY = centerY - 10 + (1 - easeOutBack(revealK)) * 40;
-        drawCouponTicket(ctx, centerX, couponY, lt.tournamentName, lt.couponCode, revealK);
-        if (fx.holo && revealK > 0.2) {
+        const emerge = easeOutBack(revealK);
+        const couponY = centerY + lerp(48, -8, emerge);
+        drawCouponTicket(ctx, centerX, couponY, lt.tournamentName, lt.couponCode, revealK, uiS);
+        if (fx.holo && revealK > 0.15) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
-          ctx.globalAlpha = 0.22 * revealK;
-          const sweepX = centerX - 90 + ((st.t * 120) % 180);
-          const sg = ctx.createLinearGradient(sweepX, couponY - 60, sweepX + 40, couponY + 60);
+          ctx.globalAlpha = 0.28 * revealK;
+          const ticketH = 172 * uiS * emerge;
+          const sweepX = centerX - ticketH + ((st.t * 140) % (ticketH * 2.2));
+          const sg = ctx.createLinearGradient(sweepX, couponY - ticketH / 2, sweepX + 50, couponY + ticketH / 2);
           sg.addColorStop(0, "rgba(255,255,255,0)");
-          sg.addColorStop(0.5, "rgba(255,233,176,0.85)");
+          sg.addColorStop(0.5, "rgba(255,233,176,0.9)");
           sg.addColorStop(1, "rgba(255,255,255,0)");
           ctx.fillStyle = sg;
-          ctx.fillRect(centerX - 90, couponY - 60, 180, 120);
+          ctx.fillRect(centerX - 130 * uiS, couponY - 100 * uiS, 260 * uiS, 200 * uiS);
           ctx.restore();
         }
         if (lt.phase === "done") {
-          ctx.fillStyle = "rgba(255,255,255,0.65)";
-          ctx.font = "500 10px 'Segoe UI', system-ui, sans-serif";
+          const footY = couponY + 98 * uiS;
+          ctx.fillStyle = "rgba(255,255,255,0.7)";
+          ctx.font = "500 " + Math.round(12 * uiS) + "px 'Segoe UI', system-ui, sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText("Riscatta il coupon entro 72h e usalo sul sito Ebartex.", centerX, centerY + 78);
+          ctx.fillText("Riscatta il coupon entro 72h e usalo sul sito Ebartex.", centerX, footY);
+          const btnW = 120 * uiS, btnH = 30 * uiS;
           ctx.fillStyle = "#d94f46";
-          rr(ctx, centerX - 50, centerY + 92, 100, 24, 6);
+          rr(ctx, centerX - btnW / 2, footY + 14, btnW, btnH, 8);
           ctx.fill();
           ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1.5;
           ctx.stroke();
           ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 9px 'Press Start 2P', monospace";
-          ctx.fillText("CHIUDI ✖", centerX, centerY + 108);
+          ctx.font = "bold " + Math.round(10 * uiS) + "px 'Press Start 2P', monospace";
+          ctx.fillText("CHIUDI ✖", centerX, footY + 14 + btnH * 0.68);
         }
       }
       ctx.restore();
@@ -4099,12 +4201,23 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       const centerY = st.view.h / 2;
       const lt = st.letter;
 
+      if (lt.phase === "lift") {
+        lt.phase = "open";
+        lt.t0 = st.t - 1.1;
+        st.shake = 6;
+        return;
+      }
       if (lt.phase === "open") {
         advanceLetterToReveal();
         return;
       }
       if (lt.phase === "done") {
-        if (Math.abs(hx - centerX) < 50 && Math.abs(hy - (centerY + 104)) < 18) {
+        const uiS = Math.min(st.view.w / 340, st.view.h / 260, 2.8);
+        const couponY = centerY - 8;
+        const footY = couponY + 98 * uiS;
+        const btnW = 120 * uiS, btnH = 30 * uiS;
+        const btnCy = footY + 14 + btnH / 2;
+        if (Math.abs(hx - centerX) < btnW / 2 + 8 && Math.abs(hy - btnCy) < btnH / 2 + 8) {
           closeLetterCoupon();
         }
         return;
@@ -5085,13 +5198,13 @@ function MiniTip({ text }) {
 
 /* — Tornei Live: 7 formati orizzontali (immagine + video all'hover) — */
 const FORMATS_OR = [
-  { key: "old-school", label: "Old School", img: "/immagini-formato-orizzontale/old-school-or.jpeg", vid: "/video-animazione-orizzontale/animazione-old-school.mp4" },
-  { key: "pre-modern", label: "Pre-Modern", img: "/immagini-formato-orizzontale/pre-modern-or.jpeg", vid: "/video-animazione-orizzontale/animazione-pre-modern.mp4" },
-  { key: "pioneer", label: "Pioneer", img: "/immagini-formato-orizzontale/pioneer-or.jpeg", vid: "/video-animazione-orizzontale/animazione-piooner.mp4" },
-  { key: "modern", label: "Modern", img: "/immagini-formato-orizzontale/modern-or.jpeg", vid: "/video-animazione-orizzontale/animazione-modern.mp4" },
-  { key: "standard", label: "Standard", img: "/immagini-formato-orizzontale/standard-or.jpeg", vid: "/video-animazione-orizzontale/animazione-standard.mp4" },
-  { key: "legacy", label: "Legacy", img: "/immagini-formato-orizzontale/legacy-or.jpeg", vid: "/video-animazione-orizzontale/animazione-legacy.mp4" },
-  { key: "commander", label: "Commander", img: "/immagini-formato-orizzontale/commander-or.jpeg", vid: "/video-animazione-orizzontale/animazione-commander.mp4" },
+  { key: "old-school", label: "Old School", img: "/immagini-formato-orizzontale/old-school-or.webp", vid: "/video-animazione-orizzontale/animazione-old-school.webm" },
+  { key: "pre-modern", label: "Pre-Modern", img: "/immagini-formato-orizzontale/pre-modern-or.webp", vid: "/video-animazione-orizzontale/animazione-pre-modern.webm" },
+  { key: "pioneer", label: "Pioneer", img: "/immagini-formato-orizzontale/pioneer-or.webp", vid: "/video-animazione-orizzontale/animazione-piooner.webm" },
+  { key: "modern", label: "Modern", img: "/immagini-formato-orizzontale/modern-or.webp", vid: "/video-animazione-orizzontale/animazione-modern.webm" },
+  { key: "standard", label: "Standard", img: "/immagini-formato-orizzontale/standard-or.webp", vid: "/video-animazione-orizzontale/animazione-standard.webm" },
+  { key: "legacy", label: "Legacy", img: "/immagini-formato-orizzontale/legacy-or.webp", vid: "/video-animazione-orizzontale/animazione-legacy.webm" },
+  { key: "commander", label: "Commander", img: "/immagini-formato-orizzontale/commander-or.webp", vid: "/video-animazione-orizzontale/animazione-commander.webm" },
 ];
 
 function FormatCard({ fmt }) {

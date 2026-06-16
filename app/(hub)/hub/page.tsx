@@ -68,7 +68,7 @@ export default async function HubPage({ searchParams }: PageProps) {
                 available={mode.available}
                 badge={mode.badge}
                 index={i}
-                bgImage={mode.id === 'heads-up' ? '/images/modes/heads-up.jpeg' : '/images/modes/torneo.jpeg'}
+                bgImage={mode.id === 'heads-up' ? '/images/modes/heads-up.webp' : '/images/modes/torneo.webp'}
                 accent={mode.id === 'heads-up' ? '#FF7300' : '#C89CFF'}
               />
             ))}
@@ -79,7 +79,7 @@ export default async function HubPage({ searchParams }: PageProps) {
               href={`/tornei?format=${selected.id}&mode=heads-up`}
               available
               index={MODES.length}
-              bgImage="/images/modes/crea-partita.jpeg"
+              bgImage="/images/modes/crea-partita.webp"
               accent="#4EEAEC"
             />
           </div>
