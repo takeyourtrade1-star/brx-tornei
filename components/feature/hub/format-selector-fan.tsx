@@ -13,6 +13,8 @@ interface FormatItem {
 interface FormatSelectorFanProps {
   formats: readonly FormatItem[];
   selectedId?: string;
+  /** Se false, il click sul formato apre il login invece di proseguire nell'hub. */
+  isAuthenticated?: boolean;
 }
 
 /** Colore accent per ogni formato (derivato dai gradienti del design system). */
@@ -48,7 +50,11 @@ const FORMAT_VIDEOS: Record<string, string> = {
   'commander': '/video-animazione-verticale/commander-ver.mp4',
 };
 
-export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProps) {
+export function FormatSelectorFan({
+  formats,
+  selectedId,
+  isAuthenticated = false,
+}: FormatSelectorFanProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
@@ -116,12 +122,17 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
                 : 'none',
           } as React.CSSProperties;
 
+          const hubTarget = `/hub?format=${format.id}#modalita`;
+          const href = isAuthenticated
+            ? hubTarget
+            : `/login?next=${encodeURIComponent(hubTarget)}`;
+
           return (
             <Link
               key={format.id}
-              href={`/hub?format=${format.id}#modalita`}
+              href={href}
               scroll={false}
-              onClick={scrollToModalita}
+              onClick={isAuthenticated ? scrollToModalita : undefined}
               onMouseEnter={() => {
                 setHoveredIndex(index);
                 playVideo(format.id);

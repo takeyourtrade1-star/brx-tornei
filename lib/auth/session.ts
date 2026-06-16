@@ -3,6 +3,7 @@ import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { config } from '@/lib/config';
+import { isAccessTokenExpired } from '@/lib/auth/token';
 import type { Session, SessionUser, TokenResponse } from '@/types/auth';
 
 /**
@@ -69,14 +70,33 @@ function normalizeUser(payload: unknown): SessionUser | null {
   };
 }
 
-/**
- * Sessione corrente: valida l'access token con GET /api/auth/me.
- * `cache()` deduplica la chiamata all'interno della stessa request RSC.
- */
-export const getSession = cache(async (): Promise<Session | null> => {
-  const accessToken = await getAccessToken();
-  if (!accessToken || !config.api.baseURL) return null;
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken || !config.api.baseURL) return null;
 
+  try {
+    const res = await fetch(`${config.api.baseURL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(config.api.timeout),
+    });
+    const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const body = (raw.data && typeof raw.data === 'object' ? raw.data : raw) as Record<
+      string,
+      unknown
+    >;
+    if (!res.ok || typeof body.access_token !== 'string') return null;
+
+    await setSessionCookies(body as unknown as TokenResponse);
+    return body.access_token;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSession(accessToken: string): Promise<Session | null> {
   try {
     const res = await fetch(`${config.api.baseURL}/api/auth/me`, {
       headers: {
@@ -93,4 +113,27 @@ export const getSession = cache(async (): Promise<Session | null> => {
   } catch {
     return null;
   }
+}
+
+/**
+ * Sessione corrente: valida l'access token con GET /api/auth/me.
+ * Se l'access è scaduto ma il refresh (es. da ebartex.com) è valido, rinnova
+ * silenziosamente — stesso comportamento del bridge SSO.
+ * `cache()` deduplica la chiamata all'interno della stessa request RSC.
+ */
+export const getSession = cache(async (): Promise<Session | null> => {
+  if (!config.api.baseURL) return null;
+
+  let accessToken = await getAccessToken();
+  if (!accessToken || isAccessTokenExpired(accessToken)) {
+    accessToken = await refreshAccessToken();
+    if (!accessToken) return null;
+  }
+
+  const session = await fetchSession(accessToken);
+  if (session) return session;
+
+  const refreshed = await refreshAccessToken();
+  if (!refreshed || refreshed === accessToken) return null;
+  return fetchSession(refreshed);
 });

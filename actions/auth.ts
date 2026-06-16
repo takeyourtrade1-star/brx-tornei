@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
+import { sanitizeNext } from '@/lib/auth/next-path';
 import {
   clearSessionCookies,
   getRefreshToken,
@@ -72,7 +73,9 @@ export async function loginAction(formData: FormData): Promise<AuthActionState> 
   }
 
   await setSessionCookies(response as unknown as TokenResponse);
-  redirect('/hub');
+  const nextRaw = formData.get('next');
+  const next = sanitizeNext(typeof nextRaw === 'string' ? nextRaw : null);
+  redirect(next);
 }
 
 /** Logout: invalida la sessione sul backend e cancella i cookie parent-domain. */

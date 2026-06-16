@@ -139,7 +139,7 @@ export function WebcamLinkModal({
               </p>
               <p className="max-w-sm text-[13px] leading-relaxed text-white/65">
                 {lastError ??
-                  'Il telefono non si è collegato in tempo. Verifica che PC e telefono siano sulla stessa rete Wi-Fi e che la pagina sia aperta in HTTPS, poi genera un nuovo QR.'}
+                  'Il telefono non si è collegato in tempo. Il QR apre solo la pagina di setup: il video viaggia in diretto tra telefono e PC. Senza server TURN, telefono e PC devono essere sulla stessa rete Wi‑Fi (in dev: npm run dev:lan e IP del PC, non localhost).'}
               </p>
               <button
                 type="button"
@@ -222,7 +222,8 @@ export function WebcamLinkModal({
             {!hasTurn() && (
               <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-white/45">
                 <Wifi className="h-3.5 w-3.5" />
-                Per la latenza minima tieni telefono e PC sulla stessa rete Wi-Fi.
+                Il QR funziona da qualsiasi rete; il video in diretto sì solo sulla stessa Wi‑Fi
+                (oppure serve TURN in produzione).
               </p>
             )}
 

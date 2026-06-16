@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  * Unico punto interattivo dell'auth: form client → server action.
  * Lo stato è limitato a errore + pending; i token non toccano mai il client.
  */
-export function LoginForm() {
+export function LoginForm({ next = '/hub' }: { next?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -32,6 +32,7 @@ export function LoginForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+          <input type="hidden" name="next" value={next} />
           <Input
             name="identifier"
             type="text"

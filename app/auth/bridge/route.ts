@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
+import { sanitizeNext } from '@/lib/auth/next-path';
 import { getRefreshToken, setSessionCookies } from '@/lib/auth/session';
 import type { TokenResponse } from '@/types/auth';
 
@@ -12,15 +13,10 @@ export const dynamic = 'force-dynamic';
  * Tenta il refresh → se ok imposta i cookie di sessione e prosegue: login invisibile.
  */
 
-/** Solo path relativi interni: evita open redirect. */
-function sanitizeNext(next: string | null): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//')) return '/hub';
-  return next;
-}
-
 export async function GET(request: NextRequest) {
   const next = sanitizeNext(request.nextUrl.searchParams.get('next'));
   const loginUrl = new URL('/login', request.url);
+  loginUrl.search = `next=${encodeURIComponent(next)}`;
   const refreshToken = await getRefreshToken();
 
   if (!refreshToken || !config.api.baseURL) {
