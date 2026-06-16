@@ -4688,9 +4688,6 @@ const CSS_TEXT = [
   ".irg-keys{position:absolute;left:18px;bottom:18px;z-index:12;display:flex;",
   "flex-direction:column;gap:7px;font-family:'Press Start 2P','Courier New',monospace;",
   "color:#cfd6f5;user-select:none;pointer-events:none;letter-spacing:.5px;max-width:min(340px,72vw);}",
-  ".irg-keys-head{font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;font-size:11px;",
-  "letter-spacing:.2px;color:#ffe9b0;background:rgba(16,18,32,.6);border:1px solid rgba(255,214,110,.32);",
-  "border-radius:9px;padding:6px 9px;line-height:1.35;backdrop-filter:blur(3px);}",
   ".irg-key{display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;",
   "pointer-events:auto;background:rgba(16,18,32,.62);border:1px solid rgba(255,255,255,.14);",
   "border-radius:10px;padding:7px 10px;color:#eef2ff;backdrop-filter:blur(4px);",
@@ -5895,7 +5892,6 @@ export default function IsoRoomGame({
         {isTouch ? "TOCCA PER MUOVERTI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
       </div>
       <div className="irg-keys">
-        <div className="irg-keys-head" aria-hidden>👆 Clicca un tasto (o premi 1·2·3·P) per andarci in automatico</div>
         <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
           <b>Tasto 1</b><span>PC · Tornei</span>
         </button>
