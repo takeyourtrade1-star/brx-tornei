@@ -1,13 +1,10 @@
 'use client';
 
 /**
- * Holder globale del flusso "webcam telefono" attivo.
+ * Holder globale del flusso telefono (mani) attivo via WebRTC/QR.
  *
- * Quando il PC riceve il video del telefono e l'utente conferma, lo stream
- * (e la funzione per chiuderlo) vengono passati qui: così il resto dell'app
- * — la vista match dentro il minigioco — può consumarlo come webcam del
- * giocatore senza ri-negoziare la connessione. `subscribe` notifica subito
- * lo stato corrente.
+ * La webcam del volto (PC) si avvia localmente con `useLocalWebcam` nella
+ * vista match; non passa da qui.
  */
 
 type Listener = (stream: MediaStream | null) => void;

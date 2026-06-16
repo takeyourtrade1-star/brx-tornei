@@ -13,6 +13,8 @@ interface WebcamTileProps {
   badge?: string;
   /** Variante compatta per il Picture-in-Picture. */
   compact?: boolean;
+  /** Etichetta feed (es. "Volto · PC", "Mani · telefono"). */
+  feedLabel?: string;
   /** Mostra il badge LIVE in alto a sinistra (disattivato nel PiP). */
   showLiveBadge?: boolean;
 }
@@ -29,6 +31,7 @@ export function WebcamTile({
   deck,
   badge,
   compact = false,
+  feedLabel,
   showLiveBadge = true,
 }: WebcamTileProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -82,6 +85,16 @@ export function WebcamTile({
         >
           <Radio className={compact ? 'h-2.5 w-2.5 animate-pulse' : 'h-3 w-3 animate-pulse'} />
           LIVE
+        </div>
+      )}
+
+      {feedLabel && (
+        <div
+          className={`absolute right-2 top-2 rounded-full border border-white/20 bg-black/55 font-bold text-white/85 backdrop-blur-sm ${
+            compact ? 'px-1.5 py-0.5 text-[8px]' : 'px-2 py-0.5 text-[10px]'
+          }`}
+        >
+          {feedLabel}
         </div>
       )}
 

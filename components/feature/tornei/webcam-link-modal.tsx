@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   AlertTriangle,
@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useWebcamReceiver } from '@/hooks/use-webcam-receiver';
+import { PlayerDualWebcam } from '@/components/feature/tornei/match/player-dual-webcam';
 import { webcamLink } from '@/lib/webrtc/webcam-stream-store';
 import { hasTurn } from '@/lib/webrtc/ice-config';
 
@@ -52,7 +53,6 @@ export function WebcamLinkModal({
   const [url, setUrl] = useState('');
   /** La pagina è servita in modo che il telefono possa usarsi come webcam? */
   const [insecure, setInsecure] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -65,13 +65,6 @@ export function WebcamLinkModal({
     start();
     return () => stop();
   }, [open, sessionId, start, stop]);
-
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-      void videoRef.current.play().catch(() => {});
-    }
-  }, [stream]);
 
   if (!open) return null;
 
@@ -123,7 +116,7 @@ export function WebcamLinkModal({
               Usa il telefono come webcam
             </h2>
             <p className="mt-0.5 text-sm text-white/60">
-              Le webcam dei PC spesso sono scadenti: collega la fotocamera del telefono per un&apos;inquadratura nitida.
+              Telefono sul piano di gioco (mani) e webcam del PC sul volto.
             </p>
           </div>
         </header>
@@ -231,15 +224,14 @@ export function WebcamLinkModal({
           </section>
         ) : (
           <section className="space-y-4">
-            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-black/60">
-              <video
-                ref={videoRef}
-                className="aspect-video w-full object-cover"
-                muted
-                playsInline
-                autoPlay
+            <div className="relative min-h-[280px] overflow-hidden rounded-2xl border border-white/15 bg-black/60">
+              <PlayerDualWebcam
+                handsStream={stream}
+                username="Anteprima"
+                active={open && connected}
+                showSelfBadge={false}
               />
-              <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 backdrop-blur-sm">
+              <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 backdrop-blur-sm">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Connesso{rtt != null ? ` · ${rtt} ms` : ''}
               </div>
