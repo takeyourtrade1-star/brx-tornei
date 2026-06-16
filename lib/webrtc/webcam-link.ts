@@ -19,6 +19,8 @@ export type LinkState = 'idle' | 'connecting' | 'waiting' | 'connected' | 'faile
 
 const MAX_VIDEO_BITRATE = 2_500_000; // ~2.5 Mbps: nitido a 720p senza gonfiare il buffer
 const TARGET_FPS = 30;
+/** Oltre questo tempo senza connessione, il setup è considerato fallito. */
+const CONNECT_TIMEOUT_MS = 30_000;
 
 function newPc(): RTCPeerConnection {
   return new RTCPeerConnection({ iceServers: getIceServers(), bundlePolicy: 'max-bundle' });
@@ -86,6 +88,14 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
   const pending: RTCIceCandidateInit[] = [];
   let remoteSet = false;
   let statsTimer: ReturnType<typeof setInterval> | null = null;
+  let watchdog: ReturnType<typeof setTimeout> | null = null;
+
+  const clearWatchdog = () => {
+    if (watchdog) {
+      clearTimeout(watchdog);
+      watchdog = null;
+    }
+  };
 
   pc.addTransceiver('video', { direction: 'recvonly' });
 
@@ -107,7 +117,21 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
   pc.onicecandidate = (e) => {
     if (e.candidate) void sig.send('candidate', e.candidate.toJSON());
   };
-  pc.onconnectionstatechange = () => mapState(pc, h.onState);
+  pc.onconnectionstatechange = () => {
+    const st = pc.connectionState;
+    if (st === 'connected') {
+      clearWatchdog();
+      h.onState?.('connected');
+    } else if (st === 'failed') {
+      clearWatchdog();
+      h.onState?.('failed');
+    } else if (st === 'closed') {
+      clearWatchdog();
+      h.onState?.('closed');
+    }
+    // 'disconnected' è spesso transitorio in fase di setup: non lo trattiamo
+    // come fallimento, ci pensa il watchdog se non si riprende.
+  };
 
   const sig = new SignalingChannel(sessionId, 'host', async (m: SignalMessage) => {
     if (m.kind === 'answer') {
@@ -148,9 +172,17 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
     sig.start();
     h.onState?.('waiting');
     if (h.onRtt) statsTimer = setInterval(() => void reportRtt(pc, h.onRtt!), 2000);
+    // Se entro il timeout non si collega (telefono che non risponde, ICE che
+    // non passa, signaling non condiviso tra istanze in prod...) lo segnaliamo
+    // come fallimento invece di restare in caricamento all'infinito.
+    clearWatchdog();
+    watchdog = setTimeout(() => {
+      if (pc.connectionState !== 'connected') h.onState?.('failed');
+    }, CONNECT_TIMEOUT_MS);
   }
 
   function stop(): void {
+    clearWatchdog();
     if (statsTimer) clearInterval(statsTimer);
     void sig.send('bye', null);
     sig.stop();

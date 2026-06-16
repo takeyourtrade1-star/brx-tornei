@@ -12,6 +12,10 @@ export interface IsoRoomGameProps {
   inventory?: InventoryItem[];
   onCreateTournament?: (tournament: any) => void;
   onJoinTournament?: (id: string) => void;
+  /** Apre la vista match come osservatore di una partita live. */
+  onObserveTournament?: (id: string) => void;
+  /** Esce dal mini-gioco verso la "vista semplice" (pagina classica). */
+  onExitToSimple?: () => void;
   __debug?: boolean;
 }
 

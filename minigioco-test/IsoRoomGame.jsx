@@ -17,7 +17,7 @@
  * Rendering: Canvas 2D puro, grafica 100% procedurale (nessun asset esterno,
  * solo Google Font "Press Start 2P" per i titoli). Niente localStorage.
  */
-import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
 import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-config";
 import { DecksModal } from "./decks-modal";
 import { StyledSelect } from "./styled-select";
@@ -80,6 +80,23 @@ const INTERACTIVES = {
 
 /* Giradischi: interattivo "leggero" (toggle musica, nessuna modale) */
 const MUSIC_OBJ = { id: "music", approach: [[9, 1], [10, 2], [11, 2], [9, 0]], faceTile: [10, 1] };
+
+/* Passi del tutorial guidato: l'omino entra, saluta, e visita PC → bacheca → tavolo.
+   kind "say": battuta a tempo; kind "demo": cammina all'oggetto, apre la modale,
+   mostra una frase "inside" che spiega cosa farci, la tiene aperta `hold` secondi,
+   poi la chiude e passa al prossimo. Lo step con `intro:true` è il saluto grande
+   al centro dello schermo (poi la barra vola in alto e continua). */
+const TUT_STEPS = [
+  { kind: "say", intro: true, text: "Ciao! 👋 Benvenuto. Ti mostro la stanza in un lampo: guarda dove vado!", dur: 5.2 },
+  { kind: "demo", id: "pc",    text: "Andiamo al PC: qui partecipi ai tornei o guardi quelli in corso 🖥️",
+    inside: "Questa è la lista tornei: premi \"Partecipa\" per iscriverti, oppure l'occhio 👁️ per osservare una partita live.", hold: 7.0 },
+  { kind: "demo", id: "board", text: "Ora la bacheca: da qui crei i tuoi tornei 📌",
+    inside: "Crea un nuovo torneo, anche privato: scegli formato e modalità e inviti chi vuoi.", hold: 6.6 },
+  { kind: "demo", id: "decks", text: "Infine il tavolo: qui prepari i tuoi mazzi 🃏",
+    inside: "Apri il deck builder per montare e salvare il mazzo con cui scendere in battaglia.", hold: 6.6 },
+];
+/* Messaggio finale (cartello grande ri-ingrandito con i bottoni di scelta). */
+const TUT_OUTRO = "È tutto qui! Molto semplice 🎉 Divertiti a esplorare la stanza e benvenuto in Ebartex Tournaments!";
 
 /* Battute degli easter egg (oggetti decorativi cliccabili) */
 const EGG_LINES = {
@@ -1084,49 +1101,7 @@ function buildBoard(bracket = false) {
   return { cv, wx: base.x - pad, wy: base.y - pad };
 }
 
-/* — icone fluttuanti — */
-function buildIcons() {
-  const bang = mkCanvas(16, 22);
-  {
-    const c = bang.getContext("2d");
-    c.fillStyle = P.outline;
-    c.fillRect(4, 0, 8, 13); c.fillRect(4, 15, 8, 7);
-    c.fillStyle = P.gold;
-    c.fillRect(6, 2, 4, 9); c.fillRect(6, 17, 4, 3);
-    c.fillStyle = "#ffe9b0"; c.fillRect(6, 2, 1, 9);
-  }
-  const cards = mkCanvas(26, 22);
-  {
-    const c = cards.getContext("2d");
-    c.save(); c.translate(9, 11); c.rotate(-0.25);
-    c.fillStyle = P.outline; c.fillRect(-6, -8, 12, 16);
-    c.fillStyle = P.red; c.fillRect(-5, -7, 10, 14);
-    c.fillStyle = "rgba(255,255,255,0.8)"; c.fillRect(-2, -3, 4, 6);
-    c.restore();
-    c.save(); c.translate(16, 11); c.rotate(0.22);
-    c.fillStyle = P.outline; c.fillRect(-6, -8, 12, 16);
-    c.fillStyle = "#f5f0e2"; c.fillRect(-5, -7, 10, 14);
-    c.fillStyle = P.gold; c.fillRect(-2, -3, 4, 5);
-    c.restore();
-  }
-  const pin = mkCanvas(18, 24);
-  {
-    const c = pin.getContext("2d");
-    c.fillStyle = P.outline;
-    c.beginPath(); c.arc(9, 8, 7, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.moveTo(6, 13); c.lineTo(12, 13); c.lineTo(10, 22); c.lineTo(8, 22); c.closePath(); c.fill();
-    c.fillStyle = P.red;
-    c.beginPath(); c.arc(9, 8, 5.5, 0, Math.PI * 2); c.fill();
-    c.fillStyle = P.redD;
-    c.beginPath(); c.arc(10.5, 9.5, 4, 0, Math.PI * 2); c.fill();
-    c.fillStyle = P.red;
-    c.beginPath(); c.arc(8.5, 7.5, 3.5, 0, Math.PI * 2); c.fill();
-    c.fillStyle = "#ffd7d0"; c.fillRect(6, 5, 2, 2);
-    c.fillStyle = P.metalL; c.fillRect(8, 14, 2, 7);
-  }
-  return { pc: bang, decks: cards, board: pin };
-}
-
+/* — ancore (world-space) sopra cui si disegnano le frecce/etichette guida — */
 const ICON_POS = {
   pc: { x: 196, y: 148 },
   decks: { x: 464, y: 284 },
@@ -1607,7 +1582,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const dogSp = buildDog();
   let boardSp = buildBoard(false);
   let bracketOn = false;
-  const icons = buildIcons();
   const avatar = buildAvatar();
   const sfx = makeAudio();
   const world = mkCanvas(WW, WH);
@@ -1774,6 +1748,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     flicker: { next: 1.4, until: 0 },
     lampF: { next: 2.4, until: 0 },
     introDone: false, hintHidden: false,
+    tut: { active: true, i: 0, phase: "init", t: 0, announced: false }, // tutorial guidato (ad ogni accesso)
     keys: new Set(), lastKey: null,
     /* nuove feature */
     fx: [],                       // particelle (cuori, zzz, note, scintille)
@@ -1893,6 +1868,135 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     st.av.queue = best;
     st.pending = o;
     hideHintOnce();
+  }
+
+  /* ====================== TUTORIAL GUIDATO ====================== */
+  const avIdle = () => !st.av.to && !st.av.queue.length && !st.lock && !st.cam.tween;
+  const tutCaption = (text) => {
+    if (apiRef.current.setTutorialCaption) apiRef.current.setTutorialCaption(text || null);
+  };
+  const tutIntro = (on) => {
+    if (apiRef.current.setTutorialIntro) apiRef.current.setTutorialIntro(!!on);
+  };
+  const tutOutro = (on) => {
+    if (apiRef.current.setTutorialOutro) apiRef.current.setTutorialOutro(!!on);
+  };
+  function tutSay(text) {
+    showBubble(text, 999);
+    if (st.bubble) st.bubble.sticky = true;
+    tutCaption(text);
+  }
+  function tutBeginStep() {
+    const T = st.tut, step = TUT_STEPS[T.i];
+    if (!step) { tutShowOutro(); return; }
+    T.t = 0;
+    if (step.intro) {
+      // saluto grande al centro: niente fumetto sull'omino, solo il cartello centrale
+      tutIntro(true);
+      tutCaption(step.text);
+      if (st.bubble) st.bubble = null;
+    } else {
+      tutIntro(false);              // la barra "vola" in alto e prosegue
+      tutSay(step.text);
+    }
+    if (step.kind === "say") {
+      T.phase = "say";
+    } else {
+      T.phase = "walk";
+      clickObject(inter[step.id]);   // riusa tutta la coreografia (cammina, siede al PC, apre)
+    }
+  }
+  function tutAdvance() { st.tut.i++; tutBeginStep(); }
+  function tutTick(dt) {
+    const T = st.tut;
+    if (!T.active) return;
+    if (!T.announced) {
+      T.announced = true;
+      st.cinematic = true;                                   // blocca l'input manuale
+      if (apiRef.current.setTutorial) apiRef.current.setTutorial(true);
+      tutIntro(true);                                        // il banner nasce già grande al centro
+    }
+    if (T.phase === "init") {                                // aspetta che finisca l'ingresso in scena
+      if (avIdle()) tutBeginStep();
+      return;
+    }
+    if (T.phase === "outro") return;                         // cartello finale: aspetta la scelta dell'utente
+    const step = TUT_STEPS[T.i];
+    if (!step) { tutShowOutro(); return; }
+    T.t += dt;
+    if (step.kind === "say") {
+      if (T.t >= step.dur) tutAdvance();
+      return;
+    }
+    /* kind "demo" */
+    if (T.phase === "walk") {
+      if (st.modal === step.id) {
+        T.phase = "hold"; T.t = 0;
+        // modale aperta: spiega cosa farci dentro. Solo la barra in alto (il
+        // fumetto sull'omino sarebbe coperto dalla modale), niente bolla residua.
+        if (step.inside) { tutCaption(step.inside); st.bubble = null; }
+      }
+      else if (T.t > 9) { startInteract(inter[step.id]); }   // safety: forza l'apertura se il path è bloccato
+      return;
+    }
+    if (T.phase === "hold") {
+      if (T.t >= (step.hold || 3)) {
+        T.phase = "close"; T.t = 0;
+        if (apiRef.current.closeModal) apiRef.current.closeModal();
+        else { st.modal = null; }
+      }
+      return;
+    }
+    if (T.phase === "close") {
+      if ((st.modal === null && avIdle()) || T.t > 7) tutAdvance(); // attende chiusura + ritorno avatar
+      return;
+    }
+  }
+  /* Cartello finale: si ri-ingrandisce al centro e mostra i bottoni di scelta.
+     L'input resta bloccato (st.cinematic) finché l'utente non sceglie. */
+  function tutShowOutro() {
+    const T = st.tut;
+    T.phase = "outro";
+    T.t = 0;
+    st.cinematic = true;
+    st.sitTarget = false;
+    st.pending = null;
+    if (st.modal && apiRef.current.closeModal) apiRef.current.closeModal();
+    st.modal = null;
+    if (st.bubble) st.bubble = null;
+    tutIntro(true);            // ri-ingrandisce il pop-up
+    tutCaption(TUT_OUTRO);     // testo che si "scrive" lato React
+    tutOutro(true);            // mostra i bottoni di scelta
+  }
+  /* "Ripeti tutorial? Sì": ricomincia da capo. */
+  function tutRestart() {
+    st.tut = { active: true, i: 0, phase: "init", t: 0, announced: true };
+    st.cinematic = true;
+    st.modal = null;
+    st.pending = null;
+    st.sitTarget = false;
+    if (st.bubble) st.bubble = null;
+    tutOutro(false);
+    tutCaption(null);
+    tutIntro(true);
+    if (apiRef.current.setTutorial) apiRef.current.setTutorial(true);
+  }
+  function endTutorial() {
+    const T = st.tut;
+    if (!T.active) return;
+    T.active = false;
+    st.cinematic = false;
+    st.introDone = true;
+    st.lastAct = st.t;
+    st.pending = null;
+    st.sitTarget = false;
+    if (st.bubble) st.bubble.sticky = false;                 // lascia svanire la battuta corrente
+    if (st.modal && apiRef.current.closeModal) apiRef.current.closeModal(); // caso "Salta" a modale aperta
+    tutCaption(null);
+    tutIntro(false);
+    tutOutro(false);
+    if (apiRef.current.setTutorial) apiRef.current.setTutorial(false);
+    showBubble("Tocca a te! 🎮", 3);
   }
 
   function hitObject(sx, sy) {
@@ -2123,8 +2227,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       st.cam.z = lerp(tw.fz, tw.tz, k);
       if (tw.t >= tw.dur) { st.cam.tween = null; st.cam.x = tw.tx; st.cam.y = tw.ty; st.cam.z = tw.tz; tw.cb && tw.cb(); }
     }
+    // tutorial guidato (pilota cammino/modali, blocca input via st.cinematic)
+    if (st.tut.active) tutTick(dt);
     // tastiera
-    if (!av.to && !av.queue.length && !st.lock && !st.modal && st.keys.size) {
+    if (!av.to && !av.queue.length && !st.lock && !st.modal && !st.cinematic && st.keys.size) {
       const KMAP = {
         KeyW: [0, -1], ArrowUp: [0, -1], KeyS: [0, 1], ArrowDown: [0, 1],
         KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0],
@@ -2170,7 +2276,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         if (av.queue.length && !st.lock) { shiftStep(); av.t = carry; }
         else {
           // arrivo
-          if (!st.introDone) { st.introDone = true; showBubble("Benvenuto! Prova i tasti: 1 PC · 2 Tavolo · 3 Bacheca 👀", 5); }
+          if (!st.introDone && !st.tut.active) { st.introDone = true; showBubble("Benvenuto! Prova i tasti: 1 PC · 2 Tavolo · 3 Bacheca 👀", 5); }
           if (st.pending) {
             const p = st.pending; st.pending = null;
             if (p.approach.some(([x, y]) => x === av.from.cx && y === av.from.cy)) {
@@ -2201,7 +2307,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           }
         }
       }
-    } else if (!st.introDone && st.t > 3) {
+    } else if (!st.introDone && !st.tut.active && st.t > 3) {
       st.introDone = true; showBubble("Benvenuto! Prova i tasti: 1 PC · 2 Tavolo · 3 Bacheca 👀", 5);
     }
     const k = av.to && !av.queue.length ? easeOutQuad(av.t) : av.t;
@@ -2227,12 +2333,12 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (fx.motes) for (const m of st.motes) { m.v += m.sp * dt * 4; if (m.v > 1) { m.v -= 1; m.u = Math.random(); } }
     // ripples
     st.ripples = st.ripples.filter((r) => st.t - r.t0 < 0.45);
-    // bolla
-    if (st.bubble && st.t - st.bubble.t0 > st.bubble.dur) st.bubble = null;
+    // bolla (le battute "sticky" del tutorial non svaniscono da sole)
+    if (st.bubble && !st.bubble.sticky && st.t - st.bubble.t0 > st.bubble.dur) st.bubble = null;
 
     /* — idle/AFK: dopo 45s di inattività si va a meditare sul tappeto o a smazzare carte al tavolo — */
     if (!st.afk && !st.afkGoing && !st.afkShuffle && !st.afkShuffleGoing && !st.modal && !st.lock && !av.seated &&
-        !av.to && !av.queue.length && st.t - st.lastAct > 45 && st.introDone && !st.hype && !st.pack) {
+        !av.to && !av.queue.length && st.t - st.lastAct > 45 && st.introDone && !st.tut.active && !st.cinematic && !st.hype && !st.pack) {
       st.pending = null; st.sitTarget = false;
       if (Math.random() < 0.5) {
         if (walkToTile({ cx: 5, cy: 6 })) st.afkGoing = true;
@@ -3831,22 +3937,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         if (a > 0.02) { wctx.fillStyle = "rgba(255,250,225," + a.toFixed(3) + ")"; wctx.fillRect(Math.round(x), Math.round(y), 2, 2); }
       }
     }
-    // icone fluttuanti
-    for (const id of ["pc", "decks", "board"]) {
-      if (st.modal === id) continue;
-      const ic = icons[id], p = ICON_POS[id];
-      const ph = id === "pc" ? 0 : id === "decks" ? 2.1 : 4.2;
-      const alertMe = id === "pc" && st.alert > st.t;
-      const bounce = Math.sin(st.t * (alertMe ? 7 : 2.6) + ph) * (alertMe ? 5 : 3);
-      const nearMe = st.nearObj && st.nearObj.id === id;
-      const sc2 = alertMe ? 1.45 : nearMe ? 1.2 : 1;
-      const iw = ic.width * sc2, ih = ic.height * sc2;
-      wctx.globalAlpha = 0.18;
-      wctx.beginPath(); wctx.ellipse(p.x, p.y + 6, 5, 2, 0, 0, Math.PI * 2);
-      wctx.fillStyle = "#1a1a2a"; wctx.fill();
-      wctx.globalAlpha = 1;
-      wctx.drawImage(ic, Math.round(p.x - iw / 2), Math.round(p.y - ih + bounce - 4), Math.round(iw), Math.round(ih));
-    }
+    // frecce guida + etichette: disegnate in screen-space (testo nitido) più sotto
 
     /* — LED del citofono (verde fisso, rosso lampeggiante quando suona) — */
     {
@@ -3928,6 +4019,64 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       ctx.fillText(l2, bx + 11, by + 33);
       ctx.globalAlpha = 1;
     }
+
+    /* — frecce guida + etichette sopra gli oggetti (sempre visibili) — */
+    if (!st.photoHide) {
+      const GUIDE = {
+        pc:    "Partecipa ad un torneo",
+        board: "Crea un nuovo torneo privato",
+        decks: "Monta il tuo mazzo",
+      };
+      for (const id of ["pc", "decks", "board"]) {
+        if (st.modal === id) continue;
+        // niente doppione: se il tooltip di hover è già su questo oggetto, salta l'etichetta
+        if (st.nearObj && st.nearObj.id === id && !st.modal && !st.lock) continue;
+        const sp = project(ICON_POS[id].x, ICON_POS[id].y);
+        const alertMe = id === "pc" && st.alert > st.t;
+        const nearMe = st.nearObj && st.nearObj.id === id;
+        const ph = id === "pc" ? 0 : id === "decks" ? 2.1 : 4.2;
+        const bob = Math.sin(st.t * (alertMe ? 6 : 2.4) + ph) * (alertMe ? 5 : 3);
+        const accent = alertMe ? "#ff8a3d" : "#ffd76e";
+        const emph = alertMe || nearMe;
+        const tipY = sp.y + bob;          // punta della freccia (poco sopra l'oggetto)
+        // etichetta (un filo più grande e leggibile)
+        ctx.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+        const tw = ctx.measureText(GUIDE[id]).width;
+        const padX = 14, lh = 31, arrowH = 17, gap = 6;
+        const lw = tw + padX * 2;
+        const aBase = tipY - 4 - arrowH;          // base della freccia
+        let ly = aBase - gap - lh;                // top etichetta
+        let lx = clamp(sp.x - lw / 2, 8, w - lw - 8);
+        if (ly < 6) ly = 6;
+        // freccia (triangolo verso il basso) con bordo scuro
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+        ctx.beginPath();
+        ctx.moveTo(sp.x - 11, aBase);
+        ctx.lineTo(sp.x + 11, aBase);
+        ctx.lineTo(sp.x, tipY - 4);
+        ctx.closePath();
+        ctx.fillStyle = accent; ctx.fill();
+        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+        ctx.lineWidth = 2; ctx.strokeStyle = "rgba(20,16,30,0.85)"; ctx.stroke();
+        ctx.restore();
+        // pillola etichetta
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+        rr(ctx, lx, ly, lw, lh, 10);
+        ctx.fillStyle = "rgba(18,20,36,0.94)"; ctx.fill();
+        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+        ctx.lineWidth = emph ? 2 : 1.5;
+        ctx.strokeStyle = emph ? accent : "rgba(255,255,255,0.22)"; ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = "#fff3d6";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+        ctx.fillText(GUIDE[id], lx + lw / 2, ly + lh / 2 + 0.5);
+        ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      }
+    }
+
     if (st.bubble && !st.photoHide) {
       const age = st.t - st.bubble.t0;
       const pop = easeOutBack(clamp(age * 4, 0, 1));
@@ -3937,9 +4086,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       const c = isCat ? tileTop(st.cat.fx, st.cat.fy) : (isDog ? tileTop(st.dog.fx, st.dog.fy) : tileTop(st.av.fx, st.av.fy));
       const lift = (isCat && st.cat.perch) ? st.cat.perch.lift : ((isDog && st.dog.perch) ? st.dog.perch.lift : 0);
       const pt = project(c.x, c.y + HTH - 48 - lift);
-      ctx.font = "600 13px 'Segoe UI', system-ui, sans-serif";
+      ctx.font = "600 14px 'Segoe UI', system-ui, sans-serif";
       const tw2 = ctx.measureText(st.bubble.text).width;
-      const bw = (tw2 + 24) * pop, bh = 30 * pop;
+      const bw = (tw2 + 26) * pop, bh = 32 * pop;
       const bx = clamp(pt.x - bw / 2, 6, w - bw - 6), by = pt.y - bh - 8;
       ctx.globalAlpha = fade;
       ctx.fillStyle = "#ffffff";
@@ -3959,8 +4108,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       ctx.stroke();
       if (pop > 0.9) {
         ctx.fillStyle = "#23263c";
-        ctx.font = "600 " + Math.round(13 * pop) + "px 'Segoe UI', system-ui, sans-serif";
-        ctx.fillText(st.bubble.text, bx + 12, by + bh / 2 + 5);
+        ctx.font = "600 " + Math.round(14 * pop) + "px 'Segoe UI', system-ui, sans-serif";
+        ctx.fillText(st.bubble.text, bx + 13, by + bh / 2 + 5);
       }
       ctx.globalAlpha = 1;
     }
@@ -4315,7 +4464,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
     }
 
-    if (st.modal || st.lock) return;
+    if (st.modal || st.lock || st.cinematic) return;
     st.lastAct = st.t;
     wakeAfk();
     const p = pointerPos(e);
@@ -4367,7 +4516,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function onPointerLeave() { st.hover.tile = null; st.hover.obj = null; }
   function onKeyDown(e) {
     const tag = e.target && e.target.tagName;
-    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || st.modal) return;
+    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || st.modal || st.cinematic) return;
     /* P = modalità foto */
     if (e.code === "KeyP" && !st.lock) {
       e.preventDefault();
@@ -4455,6 +4604,19 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       sils.board = makeSil({ cv: boardSp.cv });
     },
     takePhoto,
+    skipTutorial() { if (!st.destroyed) endTutorial(); },
+    restartTutorial() { if (!st.destroyed) tutRestart(); },
+    /* stessa azione dei tasti 1/2/3/P, ma cliccando i badge a schermo */
+    hotkey(which) {
+      if (st.destroyed || st.modal || st.cinematic || st.lock) return;
+      sfx.ensure();
+      st.lastAct = st.t;
+      wakeAfk();
+      if (which === "P") { takePhoto(); return; }
+      clickObject(which === 1 ? inter.pc : which === 2 ? inter.decks : inter.board);
+      hideHintOnce();
+    },
+    powerOff() { if (!st.destroyed) sfx.close(); },
     zoomOut() {
       if (st.destroyed) return;
       sfx.close();
@@ -4522,16 +4684,98 @@ const CSS_TEXT = [
   "animation:irgHintPulse 2.2s ease-in-out infinite;transition:opacity .6s ease;white-space:nowrap;}",
   ".irg-hint.irg-off{opacity:0;pointer-events:none;}",
   "@keyframes irgHintPulse{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}",
-  /* — legenda tasti (sempre visibile, margine laterale vuoto) — */
-  ".irg-keys{position:absolute;left:16px;top:50%;transform:translateY(-50%);z-index:10;display:flex;",
-  "flex-direction:column;gap:8px;font-family:'Press Start 2P','Courier New',monospace;font-size:8px;",
-  "color:#cfd6f5;user-select:none;pointer-events:none;letter-spacing:.5px;}",
-  ".irg-keys>div{display:flex;align-items:center;gap:8px;background:rgba(16,18,32,.55);",
-  "border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 10px;backdrop-filter:blur(3px);}",
-  ".irg-keys b{display:inline-flex;width:18px;height:18px;align-items:center;justify-content:center;flex:0 0 auto;",
-  "background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:5px;",
-  "color:#ffe9b0;font-size:9px;font-weight:400;box-shadow:0 2px 0 rgba(0,0,0,.35);}",
+  /* — legenda tasti: in basso a sinistra, badge cliccabili per andare in automatico — */
+  ".irg-keys{position:absolute;left:18px;bottom:18px;z-index:12;display:flex;",
+  "flex-direction:column;gap:9px;font-family:'Press Start 2P','Courier New',monospace;",
+  "color:#cfd6f5;user-select:none;pointer-events:none;letter-spacing:.5px;max-width:min(340px,72vw);}",
+  ".irg-keys-head{font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;font-size:12px;",
+  "letter-spacing:.2px;color:#ffe9b0;background:rgba(16,18,32,.6);border:1px solid rgba(255,214,110,.32);",
+  "border-radius:10px;padding:8px 11px;line-height:1.35;backdrop-filter:blur(3px);}",
+  ".irg-key{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;",
+  "pointer-events:auto;background:rgba(16,18,32,.62);border:1px solid rgba(255,255,255,.14);",
+  "border-radius:12px;padding:10px 13px;color:#eef2ff;backdrop-filter:blur(4px);",
+  "transition:background-color .15s,border-color .15s,transform .1s,box-shadow .15s;}",
+  ".irg-key span{font-family:'Press Start 2P','Courier New',monospace;font-size:10px;line-height:1.3;}",
+  ".irg-key:hover{background:rgba(255,115,0,.18);border-color:rgba(255,214,110,.55);transform:translateX(3px);box-shadow:0 6px 18px rgba(0,0,0,.4);}",
+  ".irg-key:active{transform:translateX(1px) scale(.98);}",
+  ".irg-key b{display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;flex:0 0 auto;",
+  "background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:7px;",
+  "color:#ffe9b0;font-size:12px;font-weight:400;box-shadow:0 2px 0 rgba(0,0,0,.35);transition:background-color .15s,color .15s,border-color .15s;}",
+  ".irg-key:hover b{background:rgba(255,214,110,.92);color:#1a1205;border-color:#ffd76e;}",
   "@media (max-width:900px){.irg-keys{display:none;}}",
+  /* — bottone vista semplice (in basso a destra) — */
+  ".irg-simple-btn{position:absolute;right:18px;bottom:18px;z-index:12;display:inline-flex;align-items:center;gap:9px;",
+  "cursor:pointer;font-family:'Segoe UI',system-ui,sans-serif;font-weight:800;font-size:13.5px;letter-spacing:.2px;",
+  "color:#eef2ff;background:linear-gradient(180deg,rgba(28,32,54,.92),rgba(16,18,32,.92));",
+  "border:1px solid rgba(255,214,110,.4);border-radius:13px;padding:11px 16px;backdrop-filter:blur(6px);",
+  "box-shadow:0 10px 30px rgba(0,0,0,.45);transition:border-color .16s,transform .1s,box-shadow .16s;}",
+  ".irg-simple-btn svg{color:#ffd76e;}",
+  ".irg-simple-btn:hover{border-color:rgba(255,214,110,.78);transform:translateY(-2px);box-shadow:0 14px 36px rgba(0,0,0,.55);}",
+  ".irg-simple-btn:active{transform:translateY(0) scale(.98);}",
+  "@media (max-width:560px){.irg-simple-btn{font-size:12px;padding:9px 12px;right:12px;bottom:12px;}}",
+  /* — animazione schermo che si spegne (CRT) prima della vista semplice — */
+  ".irg-root.irg-powering{pointer-events:none;animation:irgPowerOff .64s cubic-bezier(.7,0,.3,1) forwards;transform-origin:center;background:#000;}",
+  "@keyframes irgPowerOff{0%{filter:brightness(1);transform:scale(1);opacity:1}",
+  "16%{filter:brightness(2.4) contrast(1.5);transform:scaleY(1.04)}",
+  "48%{filter:brightness(1.1);transform:scaleY(.012) scaleX(1);opacity:1}",
+  "64%{transform:scaleY(.012) scaleX(.4)}",
+  "100%{transform:scaleY(.002) scaleX(0);opacity:0}}",
+  /* — tutorial guidato: banner che diventa cartello grande (intro/outro) — */
+  ".irg-tut{position:absolute;top:64px;left:50%;transform:translateX(-50%);z-index:60;",
+  "width:min(700px,93vw);pointer-events:none;animation:irgTutIn .4s cubic-bezier(.34,1.45,.64,1);",
+  "transition:top .6s cubic-bezier(.4,0,.2,1),width .55s cubic-bezier(.4,0,.2,1);}",
+  ".irg-tut-bar{pointer-events:auto;display:flex;align-items:center;gap:14px;",
+  "background:linear-gradient(180deg,rgba(24,27,48,.97),rgba(13,15,28,.97));",
+  "border:1px solid rgba(129,140,248,.32);border-radius:16px;padding:13px 16px;",
+  "box-shadow:0 16px 44px rgba(0,0,0,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);",
+  "transition:padding .5s ease,border-radius .5s ease;}",
+  ".irg-tut-badge{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;",
+  "font-family:'Press Start 2P','Courier New',monospace;font-size:9px;letter-spacing:.5px;",
+  "color:#c7d2fe;background:rgba(99,102,241,.16);border:1px solid rgba(129,140,248,.42);",
+  "border-radius:10px;padding:9px 11px;line-height:1.3;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);",
+  "transition:font-size .4s ease,padding .4s ease;}",
+  ".irg-tut-hand{display:inline-block;font-size:13px;transform-origin:75% 80%;animation:irgWave 1.8s ease-in-out infinite;}",
+  ".irg-tut-text{flex:1 1 auto;color:#eef2ff;font-size:15px;font-weight:600;line-height:1.45;",
+  "transition:font-size .45s ease;min-height:1.2em;}",
+  ".irg-tut-caret{display:inline-block;width:2px;height:1.05em;margin-left:2px;vertical-align:-2px;",
+  "background:#a5b4fc;border-radius:1px;animation:irgCaret .8s steps(1) infinite;}",
+  ".irg-tut-skip{flex:0 0 auto;cursor:pointer;border:1px solid rgba(255,255,255,.22);",
+  "background:rgba(255,255,255,.06);color:#cfd6f5;border-radius:9px;padding:9px 13px;font-size:12.5px;",
+  "font-weight:700;transition:background-color .18s,color .18s,border-color .18s,transform .12s;white-space:nowrap;}",
+  ".irg-tut-skip:hover{background:rgba(255,115,0,.2);border-color:rgba(255,115,0,.45);color:#fff;transform:scale(1.04);}",
+  ".irg-tut-skip:active{transform:scale(.96);}",
+  /* stato grande: cartello al centro (intro e outro) */
+  ".irg-tut-intro{top:36%;width:min(780px,94vw);}",
+  ".irg-tut-intro .irg-tut-bar{flex-direction:column;text-align:center;gap:17px;padding:28px 30px;",
+  "border-radius:24px;border-color:rgba(129,140,248,.48);box-shadow:0 30px 80px rgba(0,0,0,.62);}",
+  ".irg-tut-intro .irg-tut-badge{font-size:11px;padding:11px 14px;}",
+  ".irg-tut-intro .irg-tut-hand{font-size:16px;}",
+  ".irg-tut-intro .irg-tut-text{font-size:24px;font-weight:800;line-height:1.34;min-height:2.4em;}",
+  ".irg-tut-intro .irg-tut-skip{display:none;}",
+  /* outro: cartello finale con i bottoni di scelta */
+  ".irg-tut-final{top:30%;}",
+  ".irg-tut-actions{display:flex;flex-direction:column;align-items:center;gap:13px;width:100%;margin-top:2px;}",
+  ".irg-tut-repeat{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}",
+  ".irg-tut-q{font-size:15px;font-weight:700;color:#cfd6f5;}",
+  ".irg-tut-btn{cursor:pointer;border-radius:11px;padding:11px 20px;font-size:14.5px;font-weight:800;",
+  "font-family:'Segoe UI',system-ui,sans-serif;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);",
+  "color:#eef2ff;transition:background-color .16s,border-color .16s,transform .1s,box-shadow .16s;}",
+  ".irg-tut-btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.45);}",
+  ".irg-tut-btn:active{transform:translateY(0) scale(.97);}",
+  ".irg-tut-yes{background:linear-gradient(180deg,#2fe08a,#10b46a);color:#06241a;border-color:rgba(255,255,255,.45);}",
+  ".irg-tut-yes:hover{border-color:#7dffc2;}",
+  ".irg-tut-no{min-width:62px;}",
+  ".irg-tut-no:hover{border-color:rgba(255,120,120,.6);background:rgba(255,90,90,.16);}",
+  ".irg-tut-simple{background:linear-gradient(180deg,#ff9a3d,#ff7300);color:#fff;border-color:rgba(255,255,255,.4);",
+  "box-shadow:0 8px 22px rgba(255,115,0,.35);}",
+  ".irg-tut-simple:hover{box-shadow:0 12px 30px rgba(255,115,0,.5);}",
+  "@keyframes irgWave{0%,60%,100%{transform:rotate(0)}10%{transform:rotate(16deg)}20%{transform:rotate(-8deg)}30%{transform:rotate(16deg)}40%{transform:rotate(-4deg)}50%{transform:rotate(12deg)}}",
+  "@keyframes irgCaret{0%{opacity:1}50%{opacity:0}}",
+  "@keyframes irgTutIn{from{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.96)}",
+  "to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}",
+  "@media (max-width:560px){.irg-tut{top:54px;}.irg-tut-text{font-size:13.5px;}",
+  ".irg-tut-intro{top:26%;}.irg-tut-intro .irg-tut-text{font-size:19px;}",
+  ".irg-tut-btn{font-size:13px;padding:10px 16px;}.irg-tut-q{font-size:13.5px;}}",
   /* — backdrop e modale — */
   ".irg-backdrop{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;",
   "background:rgba(10,12,22,.46);backdrop-filter:blur(2.5px) saturate(.92);animation:irgFade .25s ease;padding:18px;}",
@@ -4729,6 +4973,8 @@ const CSS_TEXT = [
   ".irg-popmini{width:auto;padding:5px 10px;border-radius:9px;font-size:10px;font-weight:700;white-space:nowrap;}",
   ".irg-eye{color:rgba(255,255,255,.7);cursor:pointer;display:inline-flex;transition:color .15s;}",
   ".irg-tip:hover .irg-eye{color:#FF7300;}",
+  ".irg-eyebtn{background:none;border:0;padding:0;margin:0;cursor:pointer;display:inline-flex;line-height:0;}",
+  ".irg-eyebtn:hover .irg-eye{color:#FF7300;}",
   ".irg-plist{display:flex;flex-wrap:wrap;gap:7px;align-items:center;list-style:none;margin:0;padding:0;}",
   ".irg-ppill{position:relative;display:inline-flex;align-items:center;border-radius:999px;",
   "background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(242,185,75,.3);",
@@ -5227,7 +5473,7 @@ function FormatCard({ fmt }) {
   );
 }
 
-function PcModal({ tournaments, onJoin, me, formatName, modeName }) {
+function PcModal({ tournaments, onJoin, onObserve, me, formatName, modeName }) {
   return (
     <>
       <div className="irg-screen">
@@ -5274,10 +5520,15 @@ function PcModal({ tournaments, onJoin, me, formatName, modeName }) {
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <StatusBadge status={t.status} />
                               {t.status === "iniziata" && (
-                                <span className="irg-tip">
+                                <button
+                                  type="button"
+                                  className="irg-tip irg-eyebtn"
+                                  onClick={() => onObserve && onObserve(t.id)}
+                                  aria-label="Osserva partita live"
+                                >
                                   <span className="irg-eye"><IcoEye /></span>
-                                  <MiniTip text="Guarda partita live" />
-                                </span>
+                                  <MiniTip text="Osserva partita live" />
+                                </button>
                               )}
                             </div>
                           </td>
@@ -5368,7 +5619,9 @@ export default function IsoRoomGame({
   inventory: pInventory = [],
   onCreateTournament,
   onJoinTournament,
+  onObserveTournament,
   onCreateDeck,
+  onExitToSimple,
   quality: qualityProp = "auto",
   __debug,
 }) {
@@ -5384,6 +5637,13 @@ export default function IsoRoomGame({
   const [muted, setMuted] = useState(false);
   const [hint, setHint] = useState(true);
   const [newDeckId, setNewDeckId] = useState(null);
+  const [tutorialActive, setTutorialActive] = useState(false);
+  const [tutorialCaption, setTutorialCaption] = useState(null);
+  const [tutorialIntro, setTutorialIntro] = useState(false);
+  const [tutorialOutro, setTutorialOutro] = useState(false);
+  const [typedCaption, setTypedCaption] = useState("");
+  const [typing, setTyping] = useState(false);
+  const [powering, setPowering] = useState(false);
   const [quality, setQuality] = useState(() => {
     const saved = loadQuality();
     return resolveQuality(saved || qualityProp);
@@ -5396,6 +5656,26 @@ export default function IsoRoomGame({
 
   apiRef.current.openModal = (id) => { if (mountedRef.current) setModal(id); };
   apiRef.current.hideHint = () => { if (mountedRef.current) setHint(false); };
+  apiRef.current.setTutorial = (v) => { if (mountedRef.current) { setTutorialActive(v); if (!v) { setTutorialIntro(false); setTutorialOutro(false); } } };
+  apiRef.current.setTutorialCaption = (t) => { if (mountedRef.current) setTutorialCaption(t); };
+  apiRef.current.setTutorialIntro = (v) => { if (mountedRef.current) setTutorialIntro(v); };
+  apiRef.current.setTutorialOutro = (v) => { if (mountedRef.current) setTutorialOutro(v); };
+
+  /* effetto "macchina da scrivere" morbido: ogni lettera compare con una
+     dissolvenza (vedi .irg-tut-ch), e qui la riveliamo a ritmo fluido */
+  useEffect(() => {
+    const chars = Array.from(tutorialCaption || "");
+    if (!chars.length) { setTypedCaption(""); setTyping(false); return; }
+    setTypedCaption("");
+    setTyping(true);
+    let i = 0;
+    const id = setInterval(() => {
+      i += 1;
+      setTypedCaption(chars.slice(0, i).join(""));
+      if (i >= chars.length) { clearInterval(id); setTyping(false); }
+    }, 22);
+    return () => clearInterval(id);
+  }, [tutorialCaption]);
 
   /* statistiche per il clipboard a muro (mock se non c'è storico reale) */
   const statsRef = useRef(null);
@@ -5496,6 +5776,26 @@ export default function IsoRoomGame({
       if (gameRef.current) gameRef.current.zoomOut();
     }, 150);
   }, []);
+  /* il motore chiude la modale (tutorial) tramite lo stesso percorso di chiusura React */
+  apiRef.current.closeModal = closeModal;
+
+  const skipTutorial = useCallback(() => {
+    if (gameRef.current && gameRef.current.skipTutorial) gameRef.current.skipTutorial();
+  }, []);
+
+  const repeatTutorial = useCallback(() => {
+    if (gameRef.current && gameRef.current.restartTutorial) gameRef.current.restartTutorial();
+  }, []);
+
+  /* "Vista semplice": spegne lo schermo (animazione CRT) e passa alla pagina classica */
+  const handleSimpleView = useCallback(() => {
+    setPowering((on) => {
+      if (on) return on;
+      if (gameRef.current && gameRef.current.powerOff) gameRef.current.powerOff();
+      setTimeout(() => { if (onExitToSimple) onExitToSimple(); }, 640);
+      return true;
+    });
+  }, [onExitToSimple]);
 
   const handlePublish = useCallback((form) => {
     const t = {
@@ -5538,6 +5838,11 @@ export default function IsoRoomGame({
     if (onJoinTournament) onJoinTournament(id);
   }, [onJoinTournament, playSfx, username]);
 
+  const handleObserve = useCallback((id) => {
+    playSfx("success");
+    if (onObserveTournament) onObserveTournament(id);
+  }, [onObserveTournament, playSfx]);
+
   const toggleMute = useCallback(() => {
     setMuted((m) => {
       const nm = !m;
@@ -5560,7 +5865,7 @@ export default function IsoRoomGame({
   const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
 
   return (
-    <div ref={wrapRef} className={"irg-root" + (quality === "low" ? " irg-quality-low" : "")}>
+    <div ref={wrapRef} className={"irg-root" + (quality === "low" ? " irg-quality-low" : "") + (powering ? " irg-powering" : "")}>
       <canvas ref={canvasRef} className="irg-canvas" />
 
       {/* HUD */}
@@ -5588,12 +5893,71 @@ export default function IsoRoomGame({
       <div className={"irg-chip irg-hint" + (hint ? "" : " irg-off")}>
         {isTouch ? "TOCCA PER MUOVERTI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
       </div>
-      <div className="irg-keys" aria-hidden>
-        <div><b>1</b> PC · Tornei</div>
-        <div><b>2</b> Tavolo · Deck</div>
-        <div><b>3</b> Bacheca · Crea</div>
-        <div><b>P</b> Foto 📸</div>
+      <div className="irg-keys">
+        <div className="irg-keys-head" aria-hidden>👆 Clicca un tasto (o premi 1·2·3·P) per andarci in automatico</div>
+        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
+          <b>1</b><span>PC · Tornei</span>
+        </button>
+        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(2)}>
+          <b>2</b><span>Tavolo · Deck</span>
+        </button>
+        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(3)}>
+          <b>3</b><span>Bacheca · Crea</span>
+        </button>
+        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey("P")}>
+          <b>P</b><span>Foto 📸</span>
+        </button>
       </div>
+
+      {/* passa alla vista semplice (pagina classica, senza mini-gioco) */}
+      <button
+        type="button"
+        className="irg-simple-btn"
+        onClick={handleSimpleView}
+        aria-label="Passa alla vista semplice, senza mini-gioco"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+          <rect x="2" y="2.5" width="12" height="11" rx="1.6" />
+          <path d="M2 6h12M5 9.2h6M5 11.2h4" strokeLinecap="round" />
+        </svg>
+        Vista semplice
+      </button>
+
+      {/* tutorial guidato: cartello di benvenuto al centro che poi vola in alto
+          come barra di narrazione; alla fine si ri-ingrandisce con le scelte */}
+      {tutorialActive && (
+        <div className={"irg-tut" + (tutorialIntro ? " irg-tut-intro" : "") + (tutorialOutro ? " irg-tut-final" : "")}>
+          <div className="irg-tut-bar">
+            <span className="irg-tut-badge">
+              <span className="irg-tut-hand" aria-hidden>👋</span>
+              <span>Tutorial</span>
+            </span>
+            <span className="irg-tut-text">
+              {!tutorialCaption && !typedCaption && "Ti mostro la stanza…"}
+              {Array.from(typedCaption).map((ch, i) => (
+                <span key={i} className="irg-tut-ch">{ch}</span>
+              ))}
+              {typing && <span className="irg-tut-caret" aria-hidden />}
+            </span>
+            {tutorialOutro ? (
+              <div className="irg-tut-actions">
+                <div className="irg-tut-repeat">
+                  <span className="irg-tut-q">Tutto chiaro?</span>
+                  <button type="button" className="irg-tut-btn irg-tut-yes" onClick={skipTutorial}>Sì</button>
+                  <button type="button" className="irg-tut-btn irg-tut-no" onClick={repeatTutorial}>No</button>
+                </div>
+                <button type="button" className="irg-tut-btn irg-tut-simple" onClick={handleSimpleView}>
+                  Passa alla modalità semplificata
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="irg-tut-skip" onClick={skipTutorial}>
+                Salta tutorial
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* modali */}
       {modal === "board" && (
@@ -5608,7 +5972,7 @@ export default function IsoRoomGame({
       )}
       {modal === "pc" && (
         <ModalShell id="pc" closing={closing} onClose={closeModal} className="irg-m-pc">
-          <PcModal tournaments={data.tournaments} onJoin={handleJoin} me={username} formatName={formatName} modeName={modeName} />
+          <PcModal tournaments={data.tournaments} onJoin={handleJoin} onObserve={handleObserve} me={username} formatName={formatName} modeName={modeName} />
         </ModalShell>
       )}
     </div>

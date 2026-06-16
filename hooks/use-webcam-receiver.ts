@@ -21,7 +21,7 @@ function makeSessionId(): string {
  * passare lo stream attivo al match dopo la conferma).
  */
 export function useWebcamReceiver() {
-  const [sessionId] = useState(makeSessionId);
+  const [sessionId, setSessionId] = useState(makeSessionId);
   const [state, setState] = useState<LinkState>('idle');
   const [rtt, setRtt] = useState<number | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -43,6 +43,20 @@ export function useWebcamReceiver() {
     setStream(null);
   }, []);
 
+  /**
+   * Riprova da capo: chiude la sessione corrente e ne genera una nuova (quindi
+   * un nuovo QR). Chi consuma l'hook deve ri-avviare `start()` quando cambia
+   * `sessionId` (lo fa già il modale tramite l'effetto su `sessionId`).
+   */
+  const restart = useCallback(() => {
+    ctrlRef.current?.stop();
+    ctrlRef.current = null;
+    setStream(null);
+    setState('idle');
+    setRtt(null);
+    setSessionId(makeSessionId());
+  }, []);
+
   /** Restituisce il controller e smette di gestirlo (niente stop alla pulizia). */
   const detach = useCallback((): LinkController | null => {
     const c = ctrlRef.current;
@@ -57,5 +71,5 @@ export function useWebcamReceiver() {
     };
   }, []);
 
-  return { sessionId, state, rtt, stream, start, stop, detach };
+  return { sessionId, state, rtt, stream, start, stop, detach, restart };
 }

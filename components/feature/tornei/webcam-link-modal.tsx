@@ -3,9 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   Loader2,
+  RefreshCw,
+  ScanLine,
+  ShieldAlert,
   Smartphone,
   Wifi,
   X,
@@ -23,6 +27,11 @@ interface WebcamLinkModalProps {
   busy?: boolean;
   /** Etichetta del bottone di conferma ("Crea Torneo" | "Partecipa"). */
   confirmLabel?: string;
+  /**
+   * "Salta": simula l'inquadratura del QR e prosegue aprendo la vista match.
+   * Se assente, il tasto skip non viene mostrato.
+   */
+  onSkip?: () => void;
 }
 
 /**
@@ -36,14 +45,22 @@ export function WebcamLinkModal({
   onCancel,
   busy,
   confirmLabel = 'Crea Torneo',
+  onSkip,
 }: WebcamLinkModalProps) {
-  const { sessionId, state, rtt, stream, start, stop, detach } = useWebcamReceiver();
+  const { sessionId, state, rtt, stream, start, stop, detach, restart } = useWebcamReceiver();
   const [url, setUrl] = useState('');
+  /** La pagina è servita in modo che il telefono possa usarsi come webcam? */
+  const [insecure, setInsecure] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setUrl(`${window.location.origin}/tornei/webcam/${sessionId}`);
+    // Il telefono può aprire la fotocamera solo in contesto sicuro (HTTPS) e
+    // un QR con host "localhost" non è raggiungibile da un altro dispositivo.
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    setInsecure(window.location.protocol !== 'https:' || isLocal);
     start();
     return () => stop();
   }, [open, sessionId, start, stop]);
@@ -58,6 +75,7 @@ export function WebcamLinkModal({
   if (!open) return null;
 
   const connected = state === 'connected' && !!stream;
+  const failed = state === 'failed' || state === 'closed';
 
   function handleConfirm() {
     // Mantiene vivo il link e cede lo stream al match prima di chiudere.
@@ -101,8 +119,54 @@ export function WebcamLinkModal({
           </div>
         </header>
 
-        {!connected ? (
+        {failed && !connected ? (
           <section className="space-y-4">
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-red-400/30 bg-red-500/10 p-5 text-center">
+              <div className="grid h-12 w-12 place-items-center rounded-full border border-red-400/40 bg-red-500/15">
+                <AlertTriangle className="h-5 w-5 text-red-300" />
+              </div>
+              <p className="text-sm font-semibold text-white">
+                Connessione col telefono non riuscita
+              </p>
+              <p className="max-w-sm text-[13px] leading-relaxed text-white/65">
+                Il telefono non si è collegato in tempo. Verifica che PC e telefono siano sulla
+                stessa rete Wi-Fi e che la pagina sia aperta in <b>HTTPS</b>, poi genera un nuovo QR.
+              </p>
+              <button
+                type="button"
+                onClick={restart}
+                disabled={busy}
+                className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#FF7300] px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Genera nuovo QR
+              </button>
+            </div>
+
+            {onSkip && (
+              <button
+                type="button"
+                onClick={onSkip}
+                disabled={busy}
+                className="brx-liquid-glass-btn flex w-full items-center justify-center gap-2 rounded-full px-6 py-2.5 font-sans text-sm font-bold uppercase tracking-wide text-white disabled:pointer-events-none disabled:opacity-50"
+              >
+                <ScanLine className="h-4 w-4" />
+                Skip (simula scansione)
+              </button>
+            )}
+          </section>
+        ) : !connected ? (
+          <section className="space-y-4">
+            {insecure && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3.5 py-2.5 text-[12px] leading-snug text-amber-200/90">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                <span>
+                  Per collegare il telefono serve una connessione <b>sicura (HTTPS)</b> e che i due
+                  dispositivi siano sulla stessa rete. Su <b>http</b> o <b>localhost</b> il telefono
+                  non riesce ad attivare la fotocamera o a raggiungere il PC.
+                </span>
+              </div>
+            )}
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
               <div className="rounded-2xl border border-white/15 bg-white p-3 shadow-inner">
                 {url ? (
@@ -134,6 +198,18 @@ export function WebcamLinkModal({
                 ? 'In attesa del telefono…'
                 : 'Preparazione del canale…'}
             </div>
+
+            {onSkip && (
+              <button
+                type="button"
+                onClick={onSkip}
+                disabled={busy}
+                className="brx-liquid-glass-btn flex w-full items-center justify-center gap-2 rounded-full px-6 py-2.5 font-sans text-sm font-bold uppercase tracking-wide text-white disabled:pointer-events-none disabled:opacity-50"
+              >
+                <ScanLine className="h-4 w-4" />
+                Skip (simula scansione)
+              </button>
+            )}
 
             {!hasTurn() && (
               <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-white/45">
