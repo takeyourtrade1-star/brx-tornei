@@ -47,7 +47,8 @@ export function WebcamLinkModal({
   confirmLabel = 'Crea Torneo',
   onSkip,
 }: WebcamLinkModalProps) {
-  const { sessionId, state, rtt, stream, start, stop, detach, restart } = useWebcamReceiver();
+  const { sessionId, state, rtt, stream, lastError, start, stop, detach, restart } =
+    useWebcamReceiver();
   const [url, setUrl] = useState('');
   /** La pagina è servita in modo che il telefono possa usarsi come webcam? */
   const [insecure, setInsecure] = useState(false);
@@ -74,8 +75,16 @@ export function WebcamLinkModal({
 
   if (!open) return null;
 
-  const connected = state === 'connected' && !!stream;
+  const hasVideo = !!stream;
+  const channelOpen = state === 'connected';
+  const connected = hasVideo;
   const failed = state === 'failed' || state === 'closed';
+
+  function statusMessage(): string {
+    if (state === 'waiting' || state === 'connecting') return 'In attesa del telefono…';
+    if (channelOpen && !hasVideo) return 'Canale aperto, ricezione video…';
+    return 'Preparazione del canale…';
+  }
 
   function handleConfirm() {
     // Mantiene vivo il link e cede lo stream al match prima di chiudere.
@@ -129,8 +138,8 @@ export function WebcamLinkModal({
                 Connessione col telefono non riuscita
               </p>
               <p className="max-w-sm text-[13px] leading-relaxed text-white/65">
-                Il telefono non si è collegato in tempo. Verifica che PC e telefono siano sulla
-                stessa rete Wi-Fi e che la pagina sia aperta in <b>HTTPS</b>, poi genera un nuovo QR.
+                {lastError ??
+                  'Il telefono non si è collegato in tempo. Verifica che PC e telefono siano sulla stessa rete Wi-Fi e che la pagina sia aperta in HTTPS, poi genera un nuovo QR.'}
               </p>
               <button
                 type="button"
@@ -163,7 +172,8 @@ export function WebcamLinkModal({
                 <span>
                   Per collegare il telefono serve una connessione <b>sicura (HTTPS)</b> e che i due
                   dispositivi siano sulla stessa rete. Su <b>http</b> o <b>localhost</b> il telefono
-                  non riesce ad attivare la fotocamera o a raggiungere il PC.
+                  non riesce ad attivare la fotocamera o a raggiungere il PC. In dev LAN usa{' '}
+                  <b>npm run dev:lan</b> e apri il sito dall&apos;IP del PC (non localhost).
                 </span>
               </div>
             )}
@@ -194,9 +204,7 @@ export function WebcamLinkModal({
 
             <div className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[12px] text-white/60">
               <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7300]" />
-              {state === 'waiting' || state === 'connecting'
-                ? 'In attesa del telefono…'
-                : 'Preparazione del canale…'}
+              {statusMessage()}
             </div>
 
             {onSkip && (

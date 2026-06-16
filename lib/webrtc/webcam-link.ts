@@ -33,6 +33,23 @@ function mapState(pc: RTCPeerConnection, cb?: (s: LinkState) => void): void {
   else if (st === 'disconnected' || st === 'closed') cb?.('closed');
 }
 
+function logNegotiationError(
+  sessionId: string,
+  side: 'host' | 'guest',
+  kind: string,
+  err: unknown,
+  pc: RTCPeerConnection,
+): void {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`[webcam-link:${side}] ${kind} fallito`, {
+      sessionId,
+      signalingState: pc.signalingState,
+      connectionState: pc.connectionState,
+      err,
+    });
+  }
+}
+
 /** Mette H.264/VP8 (encoder hardware diffusi sui telefoni) davanti agli altri. */
 function preferLowLatencyCodecs(pc: RTCPeerConnection): void {
   try {
@@ -70,9 +87,27 @@ async function reportRtt(pc: RTCPeerConnection, cb: (ms: number) => void): Promi
   }
 }
 
-export interface ReceiverHandlers {
-  onStream?: (s: MediaStream) => void;
+/** Track senza MediaStream associato: costruisce o estende un flusso locale. */
+function resolveInboundStream(
+  e: RTCTrackEvent,
+  inbound: MediaStream | null,
+): MediaStream | null {
+  if (e.streams[0]) return e.streams[0];
+  if (!e.track) return null;
+  const base = inbound ?? new MediaStream();
+  if (!base.getTracks().some((t) => t.id === e.track.id)) {
+    base.addTrack(e.track);
+  }
+  return base;
+}
+
+export interface LinkHandlers {
   onState?: (s: LinkState) => void;
+  onError?: (message: string) => void;
+}
+
+export interface ReceiverHandlers extends LinkHandlers {
+  onStream?: (s: MediaStream) => void;
   onRtt?: (ms: number) => void;
 }
 
@@ -87,8 +122,14 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
   const pc = newPc();
   const pending: RTCIceCandidateInit[] = [];
   let remoteSet = false;
+  let inboundStream: MediaStream | null = null;
   let statsTimer: ReturnType<typeof setInterval> | null = null;
   let watchdog: ReturnType<typeof setTimeout> | null = null;
+
+  const fail = (message: string) => {
+    h.onError?.(message);
+    h.onState?.('failed');
+  };
 
   const clearWatchdog = () => {
     if (watchdog) {
@@ -100,7 +141,6 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
   pc.addTransceiver('video', { direction: 'recvonly' });
 
   pc.ontrack = (e) => {
-    const stream = e.streams[0];
     // Buffer di jitter al minimo: privilegia la latenza sulla fluidità assoluta.
     try {
       (e.receiver as unknown as { jitterBufferTarget?: number }).jitterBufferTarget = 0;
@@ -112,7 +152,11 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
     } catch {
       /* non supportato */
     }
-    if (stream) h.onStream?.(stream);
+    const stream = resolveInboundStream(e, inboundStream);
+    if (stream) {
+      inboundStream = stream;
+      h.onStream?.(stream);
+    }
   };
   pc.onicecandidate = (e) => {
     if (e.candidate) void sig.send('candidate', e.candidate.toJSON());
@@ -138,15 +182,17 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
       if (pc.signalingState !== 'have-local-offer') return; // answer duplicata/fuori stato
       try {
         await pc.setRemoteDescription(m.data as RTCSessionDescriptionInit);
-      } catch {
+      } catch (err) {
+        logNegotiationError(sessionId, 'host', 'answer', err, pc);
+        fail('Impossibile applicare la risposta del telefono.');
         return;
       }
       remoteSet = true;
       for (const c of pending.splice(0)) {
         try {
           await pc.addIceCandidate(c);
-        } catch {
-          /* candidato obsoleto */
+        } catch (err) {
+          logNegotiationError(sessionId, 'host', 'candidate', err, pc);
         }
       }
     } else if (m.kind === 'candidate') {
@@ -154,8 +200,8 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
       if (remoteSet) {
         try {
           await pc.addIceCandidate(c);
-        } catch {
-          /* ignora */
+        } catch (err) {
+          logNegotiationError(sessionId, 'host', 'candidate', err, pc);
         }
       } else {
         pending.push(c);
@@ -166,9 +212,15 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
   async function start(): Promise<void> {
     h.onState?.('connecting');
     preferLowLatencyCodecs(pc);
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    await sig.send('offer', offer);
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await sig.send('offer', offer);
+    } catch (err) {
+      logNegotiationError(sessionId, 'host', 'offer', err, pc);
+      fail('Impossibile avviare la connessione webcam.');
+      return;
+    }
     sig.start();
     h.onState?.('waiting');
     if (h.onRtt) statsTimer = setInterval(() => void reportRtt(pc, h.onRtt!), 2000);
@@ -187,6 +239,7 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
     void sig.send('bye', null);
     sig.stop();
     pc.getReceivers().forEach((r) => r.track?.stop());
+    inboundStream = null;
     try {
       pc.close();
     } catch {
@@ -198,9 +251,7 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
   return { start: () => void start(), stop, pc };
 }
 
-export interface SenderHandlers {
-  onState?: (s: LinkState) => void;
-}
+export interface SenderHandlers extends LinkHandlers {}
 
 /** Telefono: cattura la fotocamera (stream passato) e la invia al PC. */
 export function createWebcamSender(
@@ -211,6 +262,11 @@ export function createWebcamSender(
   const pc = newPc();
   const pending: RTCIceCandidateInit[] = [];
   let remoteSet = false;
+
+  const fail = (message: string) => {
+    h.onError?.(message);
+    h.onState?.('failed');
+  };
 
   stream.getTracks().forEach((track) => {
     if (track.kind === 'video') track.contentHint = 'motion';
@@ -249,24 +305,25 @@ export function createWebcamSender(
         for (const c of pending.splice(0)) {
           try {
             await pc.addIceCandidate(c);
-          } catch {
-            /* candidato obsoleto */
+          } catch (err) {
+            logNegotiationError(sessionId, 'guest', 'candidate', err, pc);
           }
         }
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         await tuneSenders();
         await sig.send('answer', answer);
-      } catch {
-        /* offer fuori sequenza: ignora */
+      } catch (err) {
+        logNegotiationError(sessionId, 'guest', 'offer', err, pc);
+        fail('Impossibile rispondere all’offerta del PC.');
       }
     } else if (m.kind === 'candidate') {
       const c = m.data as RTCIceCandidateInit;
       if (remoteSet) {
         try {
           await pc.addIceCandidate(c);
-        } catch {
-          /* ignora */
+        } catch (err) {
+          logNegotiationError(sessionId, 'guest', 'candidate', err, pc);
         }
       } else {
         pending.push(c);

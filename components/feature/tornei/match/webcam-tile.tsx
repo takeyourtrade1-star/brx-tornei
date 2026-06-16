@@ -13,6 +13,8 @@ interface WebcamTileProps {
   badge?: string;
   /** Variante compatta per il Picture-in-Picture. */
   compact?: boolean;
+  /** Mostra il badge LIVE in alto a sinistra (disattivato nel PiP). */
+  showLiveBadge?: boolean;
 }
 
 /**
@@ -27,6 +29,7 @@ export function WebcamTile({
   deck,
   badge,
   compact = false,
+  showLiveBadge = true,
 }: WebcamTileProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -71,14 +74,16 @@ export function WebcamTile({
       )}
 
       {/* Badge LIVE */}
-      <div
-        className={`absolute left-2 top-2 flex items-center gap-1 rounded-full border border-red-400/40 bg-black/55 font-bold text-red-300 backdrop-blur-sm ${
-          compact ? 'px-1.5 py-0.5 text-[8px]' : 'px-2 py-1 text-[10px]'
-        }`}
-      >
-        <Radio className={compact ? 'h-2.5 w-2.5 animate-pulse' : 'h-3 w-3 animate-pulse'} />
-        LIVE
-      </div>
+      {showLiveBadge && (
+        <div
+          className={`absolute left-2 top-2 flex items-center gap-1 rounded-full border border-red-400/40 bg-black/55 font-bold text-red-300 backdrop-blur-sm ${
+            compact ? 'px-1.5 py-0.5 text-[8px]' : 'px-2 py-1 text-[10px]'
+          }`}
+        >
+          <Radio className={compact ? 'h-2.5 w-2.5 animate-pulse' : 'h-3 w-3 animate-pulse'} />
+          LIVE
+        </div>
+      )}
 
       {/* Barra inferiore: nome + mazzo / vita */}
       <div

@@ -69,7 +69,10 @@ export function WebcamPhonePublisher({ sessionId }: { sessionId: string }) {
         } catch {
           /* wake lock opzionale */
         }
-        const ctrl = createWebcamSender(sessionId, stream, { onState: setState });
+        const ctrl = createWebcamSender(sessionId, stream, {
+          onState: setState,
+          onError: setError,
+        });
         ctrlRef.current = ctrl;
         ctrl.start();
       } catch (err) {

@@ -4686,21 +4686,22 @@ const CSS_TEXT = [
   "@keyframes irgHintPulse{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}",
   /* — legenda tasti: in basso a sinistra, badge cliccabili per andare in automatico — */
   ".irg-keys{position:absolute;left:18px;bottom:18px;z-index:12;display:flex;",
-  "flex-direction:column;gap:9px;font-family:'Press Start 2P','Courier New',monospace;",
+  "flex-direction:column;gap:7px;font-family:'Press Start 2P','Courier New',monospace;",
   "color:#cfd6f5;user-select:none;pointer-events:none;letter-spacing:.5px;max-width:min(340px,72vw);}",
-  ".irg-keys-head{font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;font-size:12px;",
+  ".irg-keys-head{font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;font-size:11px;",
   "letter-spacing:.2px;color:#ffe9b0;background:rgba(16,18,32,.6);border:1px solid rgba(255,214,110,.32);",
-  "border-radius:10px;padding:8px 11px;line-height:1.35;backdrop-filter:blur(3px);}",
-  ".irg-key{display:flex;align-items:center;gap:11px;width:100%;text-align:left;cursor:pointer;",
+  "border-radius:9px;padding:6px 9px;line-height:1.35;backdrop-filter:blur(3px);}",
+  ".irg-key{display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;",
   "pointer-events:auto;background:rgba(16,18,32,.62);border:1px solid rgba(255,255,255,.14);",
-  "border-radius:12px;padding:10px 13px;color:#eef2ff;backdrop-filter:blur(4px);",
+  "border-radius:10px;padding:7px 10px;color:#eef2ff;backdrop-filter:blur(4px);",
   "transition:background-color .15s,border-color .15s,transform .1s,box-shadow .15s;}",
-  ".irg-key span{font-family:'Press Start 2P','Courier New',monospace;font-size:10px;line-height:1.3;}",
+  ".irg-key span{font-family:'Press Start 2P','Courier New',monospace;font-size:9px;line-height:1.3;}",
   ".irg-key:hover{background:rgba(255,115,0,.18);border-color:rgba(255,214,110,.55);transform:translateX(3px);box-shadow:0 6px 18px rgba(0,0,0,.4);}",
   ".irg-key:active{transform:translateX(1px) scale(.98);}",
-  ".irg-key b{display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;flex:0 0 auto;",
-  "background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:7px;",
-  "color:#ffe9b0;font-size:12px;font-weight:400;box-shadow:0 2px 0 rgba(0,0,0,.35);transition:background-color .15s,color .15s,border-color .15s;}",
+  ".irg-key b{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;",
+  "background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:6px;",
+  "color:#ffe9b0;font-size:7px;font-weight:400;padding:4px 6px;line-height:1.2;",
+  "box-shadow:0 2px 0 rgba(0,0,0,.35);transition:background-color .15s,color .15s,border-color .15s;white-space:nowrap;}",
   ".irg-key:hover b{background:rgba(255,214,110,.92);color:#1a1205;border-color:#ffd76e;}",
   "@media (max-width:900px){.irg-keys{display:none;}}",
   /* — bottone vista semplice (in basso a destra) — */
@@ -5896,16 +5897,16 @@ export default function IsoRoomGame({
       <div className="irg-keys">
         <div className="irg-keys-head" aria-hidden>👆 Clicca un tasto (o premi 1·2·3·P) per andarci in automatico</div>
         <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
-          <b>1</b><span>PC · Tornei</span>
+          <b>Tasto 1</b><span>PC · Tornei</span>
         </button>
         <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(2)}>
-          <b>2</b><span>Tavolo · Deck</span>
+          <b>Tasto 2</b><span>Tavolo · Deck</span>
         </button>
         <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(3)}>
-          <b>3</b><span>Bacheca · Crea</span>
+          <b>Tasto 3</b><span>Bacheca · Crea</span>
         </button>
         <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey("P")}>
-          <b>P</b><span>Foto 📸</span>
+          <b>Tasto P</b><span>Foto 📸</span>
         </button>
       </div>
 

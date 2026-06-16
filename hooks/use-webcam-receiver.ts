@@ -25,14 +25,17 @@ export function useWebcamReceiver() {
   const [state, setState] = useState<LinkState>('idle');
   const [rtt, setRtt] = useState<number | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
   const ctrlRef = useRef<LinkController | null>(null);
 
   const start = useCallback(() => {
     if (ctrlRef.current) return;
+    setLastError(null);
     ctrlRef.current = createWebcamReceiver(sessionId, {
       onStream: setStream,
       onState: setState,
       onRtt: setRtt,
+      onError: setLastError,
     });
     ctrlRef.current.start();
   }, [sessionId]);
@@ -54,6 +57,7 @@ export function useWebcamReceiver() {
     setStream(null);
     setState('idle');
     setRtt(null);
+    setLastError(null);
     setSessionId(makeSessionId());
   }, []);
 
@@ -71,5 +75,5 @@ export function useWebcamReceiver() {
     };
   }, []);
 
-  return { sessionId, state, rtt, stream, start, stop, detach, restart };
+  return { sessionId, state, rtt, stream, lastError, start, stop, detach, restart };
 }
