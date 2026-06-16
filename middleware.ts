@@ -1,26 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config as appConfig } from '@/lib/config';
-import { isAccessTokenExpired } from '@/lib/auth/token';
 
 /**
- * Protezione route + innesto SSO.
- * - Access token valido (non scaduto) → avanti.
- * - Access assente/scaduto + refresh cookie (es. login su ebartex.com con
- *   Domain=.ebartex.com) → /auth/bridge per il login trasparente.
- * - Nessun refresh valido → /login (con `next` per riprendere il flusso).
+ * Protezione route + innesco SSO.
+ * - Sessione presente (access cookie) → avanti.
+ * - Solo refresh cookie (es. utente loggato sul sito principale, Domain=.ebartex.com)
+ *   → /auth/bridge per il login trasparente.
+ * - Nessuno dei due → /login.
  */
 
 const ACCESS_COOKIE = appConfig.auth.accessCookie;
 const REFRESH_COOKIE = appConfig.auth.refreshCookie;
 
-// Route pubbliche: hub navigabile senza login; login al click sul formato.
-const PUBLIC_PATHS = [
-  '/login',
-  '/registrati',
-  '/auth/bridge',
-  '/tornei/webcam',
-  '/hub',
-];
+// `/tornei/webcam/[id]` è la pagina aperta dal telefono dopo la scansione del
+// QR: deve essere raggiungibile senza login (il telefono non è autenticato).
+const PUBLIC_PATHS = ['/login', '/registrati', '/auth/bridge', '/tornei/webcam'];
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -29,26 +23,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const access = request.cookies.get(ACCESS_COOKIE)?.value;
-  const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
-  const accessValid = access && !isAccessTokenExpired(access);
-
-  if (accessValid) {
+  if (request.cookies.has(ACCESS_COOKIE)) {
     return NextResponse.next();
   }
 
   const url = request.nextUrl.clone();
-  const returnTo = `${pathname}${search}`;
-
-  if (refresh) {
+  if (request.cookies.has(REFRESH_COOKIE)) {
     url.pathname = '/auth/bridge';
-    url.search = `next=${encodeURIComponent(returnTo)}`;
+    url.search = `next=${encodeURIComponent(pathname + search)}`;
   } else {
     url.pathname = '/login';
-    url.search =
-      returnTo && returnTo !== '/'
-        ? `next=${encodeURIComponent(returnTo)}`
-        : '';
+    url.search = '';
   }
   return NextResponse.redirect(url);
 }

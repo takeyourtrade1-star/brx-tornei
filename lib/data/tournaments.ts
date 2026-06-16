@@ -214,6 +214,33 @@ let mockTournaments: Tournament[] = [
     createdAt: '2026-06-07T11:00:00Z',
   },
 
+  // ── Pauper ──
+  {
+    id: 't-pau-1',
+    format: 'pauper',
+    mode: 'heads-up',
+    buyIn: 'for_fun',
+    bestOf: 'BO3',
+    status: 'in_registrazione',
+    maxPlayers: 2,
+    participants: [],
+    createdAt: '2026-06-10T10:00:00Z',
+  },
+  {
+    id: 't-pau-2',
+    format: 'pauper',
+    mode: 'heads-up',
+    buyIn: 'for_fun',
+    bestOf: 'BO5',
+    status: 'iniziata',
+    maxPlayers: 2,
+    participants: [
+      { id: 'u-17', username: 'faerie_king' },
+      { id: 'u-18', username: 'common_hero' },
+    ],
+    createdAt: '2026-06-09T14:00:00Z',
+  },
+
   // ── Commander ──
   {
     id: 't-cmd-1',

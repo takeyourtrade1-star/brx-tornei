@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { loginPathWithNext } from '@/lib/auth/next-path';
 import { getTournaments } from '@/lib/data/tournaments';
 import { getMyInventory } from '@/lib/data/inventory';
 import { parseSelection } from '@/lib/validations/selection';
@@ -19,18 +18,11 @@ interface PageProps {
  * sessione dal cookie, selezione dai searchParams, dati dal data layer.
  */
 export default async function TorneiPage({ searchParams }: PageProps) {
-  const rawParams = await searchParams;
-  const selection = parseSelection(rawParams);
+  const selection = parseSelection(await searchParams);
   if (!selection) redirect('/hub');
 
   const session = await getSession();
-  if (!session) {
-    const qs = new URLSearchParams();
-    if (typeof rawParams.format === 'string') qs.set('format', rawParams.format);
-    if (typeof rawParams.mode === 'string') qs.set('mode', rawParams.mode);
-    const search = qs.toString();
-    redirect(loginPathWithNext('/tornei', search ? `?${search}` : ''));
-  }
+  if (!session) redirect('/login');
 
   const format = getFormat(selection.format)!;
   const mode = getMode(selection.mode)!;

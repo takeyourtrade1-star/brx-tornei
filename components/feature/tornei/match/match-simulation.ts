@@ -78,6 +78,7 @@ const DECKS: Record<string, string[]> = {
   modern: ['Izzet Murktide', 'Temur Rhinos', 'Amulet Titan', 'Mono Black Coffers'],
   standard: ['Esper Midrange', 'Red Deck Wins', 'Domain Control', 'Golgari Midrange'],
   legacy: ['Delver of Secrets', 'Reanimator', 'Death and Taxes', 'Initiative Stompy'],
+  pauper: ['Mono Blue Faeries', 'Jund Wildfire', 'Grixis Affinity', 'Elves'],
   commander: ["Atraxa, Praetors' Voice", 'Urza, Lord High Artificer', 'Krenko, Mob Boss'],
 };
 

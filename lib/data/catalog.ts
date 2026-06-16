@@ -11,6 +11,7 @@ export const FORMATS = [
   { id: 'modern', name: 'Modern' },
   { id: 'standard', name: 'Standard' },
   { id: 'legacy', name: 'Legacy' },
+  { id: 'pauper', name: 'Pauper' },
   { id: 'commander', name: 'Commander' },
 ] as const;
 

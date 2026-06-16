@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { FORMATS, MODES, getFormat } from '@/lib/data/catalog';
-import { getSession } from '@/lib/auth/session';
 import { ModeCard } from '@/components/feature/hub/selection-card';
 import { FormatSelectorFan } from '@/components/feature/hub/format-selector-fan';
 
@@ -18,7 +17,6 @@ interface PageProps {
 export default async function HubPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const selected = getFormat(typeof params.format === 'string' ? params.format : '');
-  const session = await getSession();
 
   return (
     <section className="flex flex-col gap-10 pb-16">
@@ -43,11 +41,7 @@ export default async function HubPage({ searchParams }: PageProps) {
             Scegli il formato
           </h2>
         </div>
-        <FormatSelectorFan
-          formats={FORMATS}
-          selectedId={selected?.id}
-          isAuthenticated={!!session}
-        />
+        <FormatSelectorFan formats={FORMATS} selectedId={selected?.id} />
       </div>
 
       {/* Step 2: modalità — appare solo dopo la selezione del formato (come da mockup) */}
@@ -94,4 +88,3 @@ export default async function HubPage({ searchParams }: PageProps) {
     </section>
   );
 }
-

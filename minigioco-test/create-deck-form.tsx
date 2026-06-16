@@ -19,6 +19,7 @@ const FORMAT_META: Record<FormatId, { color: string; hint: string }> = {
   modern: { color: '#06b6d4', hint: 'da 2003 a oggi' },
   standard: { color: '#9aa3ad', hint: 'rotazione biennale' },
   legacy: { color: '#a855f7', hint: 'tutte le carte, no banlist ristretta' },
+  pauper: { color: '#78d64b', hint: 'solo carte comuni · 60 carte' },
   commander: { color: '#22c55e', hint: '100 carte · multiplayer' },
 };
 

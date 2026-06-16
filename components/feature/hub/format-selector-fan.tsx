@@ -13,8 +13,6 @@ interface FormatItem {
 interface FormatSelectorFanProps {
   formats: readonly FormatItem[];
   selectedId?: string;
-  /** Se false, il click sul formato apre il login invece di proseguire nell'hub. */
-  isAuthenticated?: boolean;
 }
 
 /** Colore accent per ogni formato (derivato dai gradienti del design system). */
@@ -25,6 +23,7 @@ const CARD_META: Record<string, { accent: string; label: string }> = {
   'modern': { accent: '#C89CFF', label: 'Dinamico' },
   'standard': { accent: '#4EEAEC', label: 'In Rotazione' },
   'legacy': { accent: '#FFB86A', label: 'Eterno' },
+  'pauper': { accent: '#78D64B', label: 'Solo Comuni' },
   'commander': { accent: '#FF6BA0', label: 'Multiplayer' },
 };
 
@@ -36,6 +35,7 @@ const FORMAT_IMAGES: Record<string, string> = {
   'modern': '/images/formats/modern.png',
   'standard': '/images/formats/standard.png',
   'legacy': '/images/formats/legacy.png',
+  'pauper': '/images/formats/pauper.png',
   'commander': '/images/formats/commander.png',
 };
 
@@ -47,14 +47,11 @@ const FORMAT_VIDEOS: Record<string, string> = {
   'modern': '/video-animazione-verticale/modern-ver.mp4',
   'standard': '/video-animazione-verticale/standard-ver.mp4',
   'legacy': '/video-animazione-verticale/legacy-ver.mp4',
+  'pauper': '/video-animazione-verticale/pauper-ver.mp4',
   'commander': '/video-animazione-verticale/commander-ver.mp4',
 };
 
-export function FormatSelectorFan({
-  formats,
-  selectedId,
-  isAuthenticated = false,
-}: FormatSelectorFanProps) {
+export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
@@ -122,17 +119,12 @@ export function FormatSelectorFan({
                 : 'none',
           } as React.CSSProperties;
 
-          const hubTarget = `/hub?format=${format.id}#modalita`;
-          const href = isAuthenticated
-            ? hubTarget
-            : `/login?next=${encodeURIComponent(hubTarget)}`;
-
           return (
             <Link
               key={format.id}
-              href={href}
+              href={`/hub?format=${format.id}#modalita`}
               scroll={false}
-              onClick={isAuthenticated ? scrollToModalita : undefined}
+              onClick={scrollToModalita}
               onMouseEnter={() => {
                 setHoveredIndex(index);
                 playVideo(format.id);
