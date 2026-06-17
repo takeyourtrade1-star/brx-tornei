@@ -4902,6 +4902,10 @@ const CSS_TEXT = [
   ".irg-tut-ch{display:inline-block;white-space:pre;animation:irgChIn .22s ease both;}",
   ".irg-tut-brand{color:#FF7300;text-shadow:0 0 12px rgba(255,115,0,.42);}",
   ".irg-tut-intro .irg-tut-brand,.irg-tut-final .irg-tut-brand{text-shadow:0 0 18px rgba(255,115,0,.52);}",
+  ".irg-tut-pill{display:inline-block;margin-right:.4em;padding:.2em .72em;border-radius:999px;vertical-align:baseline;",
+  "background:linear-gradient(180deg,rgba(255,154,61,.38),rgba(255,115,0,.24));",
+  "border:1px solid rgba(255,167,80,.52);box-shadow:0 2px 12px rgba(255,115,0,.22),inset 0 1px 0 rgba(255,255,255,.14);",
+  "font-weight:800;font-size:.9em;letter-spacing:.04em;color:#fff3e4;white-space:nowrap;}",
   "@keyframes irgChIn{from{opacity:0;transform:translateY(.16em) scale(.94);filter:blur(.5px)}to{opacity:1;transform:none;filter:none}}",
   ".irg-tut-caret{display:inline-block;width:2px;height:1.05em;margin-left:2px;vertical-align:-2px;",
   "background:#ffb060;border-radius:1px;animation:irgCaret .8s steps(1) infinite;}",
@@ -5469,8 +5473,34 @@ function tutBrandRange(text) {
   }
   return [-1, -1];
 }
+function tutStepPillRange(text) {
+  const chars = Array.from(text || "");
+  const m = (text || "").match(/[1-3] di 3/);
+  if (!m) return [-1, -1];
+  const pill = Array.from(m[0]);
+  outer: for (let i = 0; i <= chars.length - pill.length; i++) {
+    for (let j = 0; j < pill.length; j++) {
+      if (chars[i + j] !== pill[j]) continue outer;
+    }
+    return [i, i + pill.length];
+  }
+  return [-1, -1];
+}
+function renderTutReserve(full) {
+  const [pillStart, pillEnd] = tutStepPillRange(full);
+  const chars = Array.from(full);
+  if (pillStart < 0) return full;
+  return (
+    <>
+      {chars.slice(0, pillStart).join("")}
+      <span className="irg-tut-pill">{chars.slice(pillStart, pillEnd).join("")}</span>
+      {chars.slice(pillEnd).join("")}
+    </>
+  );
+}
 function renderTutTyped(typed, full) {
   const [brandStart, brandEnd] = tutBrandRange(full);
+  const [pillStart, pillEnd] = tutStepPillRange(full);
   const typedChars = Array.from(typed);
   const chCls = (idx) => {
     const brand = brandStart >= 0 && idx >= brandStart && idx < brandEnd;
@@ -5480,6 +5510,21 @@ function renderTutTyped(typed, full) {
   const nodes = [];
   let i = 0;
   while (i < typedChars.length) {
+    if (pillStart >= 0 && i >= pillStart && i < pillEnd) {
+      const pillChars = [];
+      while (i < typedChars.length && i < pillEnd) {
+        pillChars.push({ ch: typedChars[i], idx: i });
+        i += 1;
+      }
+      nodes.push(
+        <span key={"pill" + pillStart} className="irg-tut-pill">
+          {pillChars.map(({ ch, idx }) => (
+            <span key={idx} className={chCls(idx)}>{ch}</span>
+          ))}
+        </span>
+      );
+      continue;
+    }
     const ch = typedChars[i];
     if (ch === "\n") {
       nodes.push(<br key={"br" + i} />);
@@ -5494,9 +5539,11 @@ function renderTutTyped(typed, full) {
     const start = i;
     let word = "";
     while (i < typedChars.length && typedChars[i] !== "\n" && !/^\s$/.test(typedChars[i])) {
+      if (pillStart >= 0 && i >= pillStart && i < pillEnd) break;
       word += typedChars[i];
       i += 1;
     }
+    if (!word) continue;
     nodes.push(
       <span key={"w" + start} className="irg-tut-word">
         {Array.from(word).map((wc, j) => (
@@ -6415,7 +6462,7 @@ export default function IsoRoomGame({
               </svg>
             </span>
             <span className="irg-tut-text">
-              <span className="irg-tut-reserve" aria-hidden>{tutorialCaption || TUT_WAIT}</span>
+              <span className="irg-tut-reserve" aria-hidden>{tutorialCaption ? renderTutReserve(tutorialCaption) : TUT_WAIT}</span>
               <span className="irg-tut-typed">
                 {!tutorialCaption && !typedCaption && TUT_WAIT}
                 {tutorialCaption && renderTutTyped(typedCaption, tutorialCaption)}
