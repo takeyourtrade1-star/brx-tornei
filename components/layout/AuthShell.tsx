@@ -8,10 +8,16 @@ import { getCdnImageUrl } from '@/lib/config';
  * (versione server component, senza i18n per l'MVP).
  */
 export function AuthShell({ children }: { children: ReactNode }) {
+  const carouselBg = getCdnImageUrl('carousel/slide1.jpg');
   const logoUrl = getCdnImageUrl('logo.png');
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url("${carouselBg}")` }}
+        aria-hidden
+      />
       <div className="absolute inset-0 bg-[#2d2d2d]/30 backdrop-blur-sm" aria-hidden />
 
       <div className="relative z-10 flex min-h-screen flex-col pt-8">

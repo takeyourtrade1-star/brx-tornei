@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { AuthCard } from '@/components/layout/AuthCard';
+import { AUTH_APPLE_BUTTON, AUTH_LINK, AUTH_MUTED_TEXT } from '@/components/layout/auth-styles';
 import { config } from '@/lib/config';
 
 export const metadata: Metadata = { title: 'Registrati' };
@@ -8,23 +9,27 @@ export const metadata: Metadata = { title: 'Registrati' };
 /**
  * MVP: la registrazione (multi-step, verifica email) resta sul sito principale.
  * Grazie all'SSO cross-subdomain, dopo la registrazione l'utente torna qui già loggato.
- * In M2+ si potrà replicare il flusso registrati/* di Ebartex.
  */
 export default function RegistratiPage() {
+  const registerUrl = `${config.app.mainSiteUrl}/registrati`;
+
   return (
-    <Card className="brx-glass animate-auth-enter rounded-3xl border-2 border-white text-center">
-      <CardHeader>
-        <CardTitle className="text-white">Crea il tuo account Ebartex</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center gap-4">
-        <p className="text-sm text-white/75">
+    <AuthCard title="Crea il tuo account Ebartex">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <p className={`text-[14px] leading-relaxed ${AUTH_MUTED_TEXT}`}>
           La registrazione avviene sul sito principale. Al termine torna sui Tornei: sarai
           riconosciuto automaticamente.
         </p>
-        <Button asChild size="lg">
-          <a href={`${config.app.mainSiteUrl}/registrati`}>Registrati su Ebartex</a>
-        </Button>
-      </CardContent>
-    </Card>
+        <a href={registerUrl} className={`${AUTH_APPLE_BUTTON} inline-block text-center no-underline`}>
+          Registrati su Ebartex
+        </a>
+        <p className={`pt-2 ${AUTH_MUTED_TEXT}`}>
+          Hai già un account?{' '}
+          <Link href="/login?accesso=1" className={`text-[14px] font-semibold ${AUTH_LINK}`}>
+            Accedi
+          </Link>
+        </p>
+      </div>
+    </AuthCard>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config as appConfig } from '@/lib/config';
+import { buildLoginRedirectUrl } from '@/lib/auth/redirect';
 
 /**
  * Protezione route + innesco SSO.
@@ -33,7 +34,7 @@ export function middleware(request: NextRequest) {
     url.search = `next=${encodeURIComponent(pathname + search)}`;
   } else {
     url.pathname = '/login';
-    url.search = '';
+    url.search = buildLoginRedirectUrl(pathname, search);
   }
   return NextResponse.redirect(url);
 }

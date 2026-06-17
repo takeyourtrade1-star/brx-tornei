@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
 import { getRefreshToken, setSessionCookies } from '@/lib/auth/session';
+import { buildLoginRedirectUrl, sanitizeRedirect } from '@/lib/auth/redirect';
 import type { TokenResponse } from '@/types/auth';
 
 export const dynamic = 'force-dynamic';
@@ -12,15 +13,11 @@ export const dynamic = 'force-dynamic';
  * Tenta il refresh → se ok imposta i cookie di sessione e prosegue: login invisibile.
  */
 
-/** Solo path relativi interni: evita open redirect. */
-function sanitizeNext(next: string | null): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//')) return '/hub';
-  return next;
-}
-
 export async function GET(request: NextRequest) {
-  const next = sanitizeNext(request.nextUrl.searchParams.get('next'));
+  const next = sanitizeRedirect(request.nextUrl.searchParams.get('next'));
   const loginUrl = new URL('/login', request.url);
+  loginUrl.search = buildLoginRedirectUrl(next, '');
+
   const refreshToken = await getRefreshToken();
 
   if (!refreshToken || !config.api.baseURL) {
@@ -43,7 +40,6 @@ export async function GET(request: NextRequest) {
     >;
 
     if (!res.ok || typeof body.access_token !== 'string') {
-      // Refresh token scaduto/revocato → login esplicito.
       return NextResponse.redirect(loginUrl);
     }
 

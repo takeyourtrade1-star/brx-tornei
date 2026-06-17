@@ -28,4 +28,5 @@ export interface PreAuthTokenResponse {
 export interface AuthActionState {
   error?: string;
   mfaRequired?: boolean;
+  success?: boolean;
 }

@@ -85,18 +85,38 @@ const MUSIC_OBJ = { id: "music", approach: [[9, 1], [10, 2], [11, 2], [9, 0]], f
    kind "say": battuta a tempo; kind "demo": cammina all'oggetto, apre la modale,
    mostra una frase "inside" che spiega cosa farci, la tiene aperta `hold` secondi,
    poi la chiude e passa al prossimo. Lo step con `intro:true` è il saluto grande
-   al centro dello schermo (poi la barra vola in alto e continua). */
+   al centro dello schermo (poi la barra vola in alto e continua).
+   I "punti caldi" evidenziati dentro ogni modale sono definiti in TUT_HOTSPOTS. */
 const TUT_STEPS = [
-  { kind: "say", intro: true, text: "Ciao! 👋 Benvenuto. Ti mostro la stanza in un lampo: guarda dove vado!", dur: 5.2 },
-  { kind: "demo", id: "pc",    text: "Andiamo al PC: qui partecipi ai tornei o guardi quelli in corso 🖥️",
-    inside: "Questa è la lista tornei: premi \"Partecipa\" per iscriverti, oppure l'occhio 👁️ per osservare una partita live.", hold: 7.0 },
-  { kind: "demo", id: "board", text: "Ora la bacheca: da qui crei i tuoi tornei 📌",
-    inside: "Crea un nuovo torneo, anche privato: scegli formato e modalità e inviti chi vuoi.", hold: 6.6 },
-  { kind: "demo", id: "decks", text: "Infine il tavolo: qui prepari i tuoi mazzi 🃏",
-    inside: "Apri il deck builder per montare e salvare il mazzo con cui scendere in battaglia.", hold: 6.6 },
+  { kind: "say", intro: true, text: "Ciao! Sono Spettro 👻, la tua guida. In pochi secondi ti mostro i 3 punti chiave della stanza: seguimi!", dur: 4.6 },
+  { kind: "demo", id: "pc",    text: "1 di 3 · Il PC 🖥️ — qui partecipi ai tornei e segui le partite dal vivo.",
+    inside: "Scegli un formato in alto, poi premi Partecipa per iscriverti, oppure l'occhio 👁️ per guardare una live.", hold: 10.5 },
+  { kind: "demo", id: "board", text: "2 di 3 · La bacheca 📌 — qui crei i tuoi tornei, anche privati.",
+    inside: "Dai un nome, scegli formato e regole, poi premi Pubblica: il torneo comparirà subito sul PC.", hold: 10.5 },
+  { kind: "demo", id: "decks", text: "3 di 3 · Il tavolo 🃏 — qui costruisci e salvi i tuoi mazzi.",
+    inside: "Apri «Nuovo mazzo» per montarlo con le carte del tuo inventario e prepararti alla sfida.", hold: 9.5 },
 ];
 /* Messaggio finale (cartello grande ri-ingrandito con i bottoni di scelta). */
-const TUT_OUTRO = "È tutto qui! Molto semplice 🎉 Divertiti a esplorare la stanza e benvenuto in Ebartex Tournaments!";
+const TUT_OUTRO = "È tutto qui! 🎉 PC per giocare, bacheca per creare, tavolo per i mazzi. Ora esplora pure la stanza: benvenuto in Ebartex Tournaments!";
+
+/* Punti caldi evidenziati dentro le modali durante il tutorial: cerchio + cartello.
+   `sel` mira a un elemento col selettore CSS, `text` lo cerca per etichetta (utile
+   quando la modale non espone classi stabili). `side` posiziona il cartello. */
+const TUT_HOTSPOTS = {
+  pc: [
+    { sel: ".irg-fmts",     label: "I 7 formati: passaci sopra per l'anteprima animata", side: "bottom" },
+    { sel: ".irg-ebx-join", label: "Premi qui per iscriverti al torneo",                side: "left" },
+    { sel: ".irg-eyebtn",   label: "L'occhio apre la partita in diretta",               side: "left" },
+  ],
+  board: [
+    { sel: "#irg-nome", label: "Dai un nome al tuo torneo",                    side: "bottom" },
+    { sel: ".irg-grid2", label: "Imposta formato, tipo e numero di giocatori", side: "top" },
+    { sel: ".irg-wide",  label: "Pubblica: comparirà subito sul PC",           side: "top" },
+  ],
+  decks: [
+    { text: "nuovo mazzo", label: "Crea qui il tuo nuovo mazzo", side: "bottom" },
+  ],
+};
 
 /* Battute degli easter egg (oggetti decorativi cliccabili) */
 const EGG_LINES = {
@@ -109,8 +129,6 @@ const EGG_LINES = {
   window: ["Bella giornata… per stare al chiuso a giocare ☀️", "Là fuori c'è un mondo intero senza carte. Che tristezza."],
   windowNight: ["Le stelle stanno guardando. Niente pressione ✨", "Notte perfetta per un'ultima partita. L'ultima davvero, giuro."],
   posterBrand: ["Ebartex: dove i sogni diventano BO3 🧡", "Il poster del capo. Spolverato ogni giorno."],
-  posterTcg: ["Tre carte in ventaglio. La quarta è sempre quella che ti serviva.", "Arte astratta? No, topdeck."],
-  posterSynth: ["Synthwave: la colonna sonora dei top deck 🌴", "Anno 1986, meta ancora aperto."],
 };
 
 /* Battute per i poster dinamici (carta della settimana / ban hammer) */
@@ -555,57 +573,26 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
     ctx.restore();
   }
 
-  /* B) TCG: ventaglio di carte con glow (parete sinistra, oltre la finestra) */
-  posterBg(wallL, 8.2, 9.7, 92, 42, "#232847");
-  quadFill(ctx, [wallL(8.28, 89), wallL(9.62, 89), wallL(9.62, 45), wallL(8.28, 45)], false, P.gold, 1);
+  /* B) Specchio a parete (parete sinistra, oltre la finestra): personalizza l'avatar.
+     (Sostituisce il vecchio poster TCG, poco utile.) Hit-test in `eggs` → modale "mirror". */
+  quadFill(ctx, [wallL(8.05, 98), wallL(9.85, 98), wallL(9.85, 30), wallL(8.05, 30)], P.woodD);   // cornice esterna
+  quadFill(ctx, [wallL(8.18, 95), wallL(9.72, 95), wallL(9.72, 33), wallL(8.18, 33)], P.woodL);   // bisello chiaro
+  quadFill(ctx, [wallL(8.28, 93), wallL(9.62, 93), wallL(9.62, 35), wallL(8.28, 35)], P.woodD);   // bordo interno
   {
-    const cpt = wallL(8.95, 68);
-    const glow = ctx.createRadialGradient(cpt.x, cpt.y + 4, 2, cpt.x, cpt.y + 4, 22);
-    glow.addColorStop(0, "rgba(243,199,106,0.35)"); glow.addColorStop(1, "rgba(243,199,106,0)");
-    ctx.fillStyle = glow; ctx.fillRect(cpt.x - 24, cpt.y - 20, 48, 48);
-    const fanCard = (dx, dy, rot, col, face) => {
-      ctx.save(); ctx.translate(cpt.x + dx, cpt.y + dy); ctx.rotate(rot);
-      ctx.fillStyle = "#10142a"; ctx.fillRect(-6, -8, 12, 16);
-      if (face) {
-        ctx.fillStyle = "#f5f0e2"; ctx.fillRect(-5, -7, 10, 14);
-        ctx.fillStyle = col; ctx.fillRect(-3, -4, 6, 6);
-      } else {
-        ctx.fillStyle = col; ctx.fillRect(-5, -7, 10, 14);
-        ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fillRect(-2, -2, 4, 5);
-      }
-      ctx.restore();
-    };
-    fanCard(-9, 3, -0.38, P.red, false);
-    fanCard(9, 4, 0.32, "#4a7fd6", false);
-    fanCard(0, 0, -0.04, "#9a6ad6", true);
-    band(wallL, 8.5, 9.4, 52, 49.5, "rgba(255,255,255,0.85)");
-    band(wallL, 8.65, 9.25, 47.5, 45.5, "rgba(255,255,255,0.5)");
-  }
-
-  /* C) synthwave/arcade: sole a strisce, griglia neon, invader (parete di fondo) */
-  posterBg(wallR, 6.3, 8.5, 92, 40, "#161330");
-  {
-    ctx.fillStyle = "rgba(255,255,255,0.8)";
-    for (const [sc, sh] of [[6.55, 86], [6.8, 74], [8.25, 84], [8.1, 70]]) {
-      const p = wallR(sc, sh); ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
-    }
-    const suns = [[7.15, 7.65, 72], [7.08, 7.72, 69], [7.05, 7.75, 66], [7.08, 7.72, 63], [7.15, 7.65, 60]];
-    suns.forEach(([a, b2, hh], i) => band(wallR, a, b2, hh + 2.5, hh, i < 2 ? "#ffb05a" : "#ff5fa0"));
-    band(wallR, 6.3, 8.5, 56.5, 55, "#ff5fa0");
-    ctx.strokeStyle = "rgba(255,95,160,0.45)"; ctx.lineWidth = 1;
-    for (const gc of [6.85, 7.4, 7.95]) {
-      const a = wallR(gc, 55);
-      const b2 = wallR(gc + (gc < 7.4 ? -0.25 : gc > 7.4 ? 0.25 : 0), 42);
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
-    }
-    band(wallR, 6.3, 8.5, 50, 49.4, "rgba(255,95,160,0.35)");
-    band(wallR, 6.3, 8.5, 45, 44.4, "rgba(255,95,160,0.25)");
-    const INV = ["00100100", "00111100", "01111110", "11011011", "11111111", "01011010", "10000001", "01000010"];
-    const ip = wallR(7.4, 89);
-    ctx.fillStyle = "#7adcf2";
-    INV.forEach((row, j) => {
-      for (let i = 0; i < 8; i++) if (row[i] === "1") ctx.fillRect(Math.round(ip.x) - 8 + i * 2, Math.round(ip.y) + j * 2, 2, 2);
-    });
+    const gt = wallL(8.95, 92), gb = wallL(8.95, 36);
+    const mg = ctx.createLinearGradient(gt.x, gt.y, gb.x, gb.y);
+    mg.addColorStop(0, "#dceaf4"); mg.addColorStop(0.45, "#a8c6dc"); mg.addColorStop(1, "#83a9c6");
+    quadFill(ctx, [wallL(8.32, 91), wallL(9.58, 91), wallL(9.58, 37), wallL(8.32, 37)], mg);       // vetro
+    // riflessi diagonali
+    quadFill(ctx, [wallL(8.55, 89), wallL(8.95, 89), wallL(8.78, 39), wallL(8.38, 39)], "rgba(255,255,255,0.26)");
+    quadFill(ctx, [wallL(9.22, 86), wallL(9.42, 86), wallL(9.32, 41), wallL(9.12, 41)], "rgba(255,255,255,0.15)");
+    // accenno del pavimento riflesso in basso
+    quadFill(ctx, [wallL(8.32, 49), wallL(9.58, 49), wallL(9.58, 37), wallL(8.32, 37)], "rgba(214,205,175,0.16)");
+    // scintilla
+    const spk = wallL(8.62, 84);
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillRect(Math.round(spk.x) - 1, Math.round(spk.y), 3, 1);
+    ctx.fillRect(Math.round(spk.x), Math.round(spk.y) - 1, 1, 3);
   }
 
   /* D) mascotte kawaii (parete di fondo, vicino all'angolo) */
@@ -1133,11 +1120,262 @@ const AV = {
   shoe: "#16161c", sole: "#f2f2ea",
   gold: "#e8b13c", goldL: "#ffd96e",
   pend: "#4a8fd4", pendL: "#86c2f2", pendRim: "#71242f",
+  /* outfit alternativi (specchio) */
+  hoodie: "#ff7a2f", hoodieL: "#ff9a55", hoodieD: "#d65f18",
+  jacket: "#3a4660", jacketL: "#52617f", jacketD: "#26304a", tee: "#e7e3d8",
+  shirt: "#dfe7f2", shirtL: "#f3f7fc", shirtD: "#b9c6da", btn: "#9fb0c6",
+  jersey: "#2f9e6b", jerseyL: "#46c08a", jerseyD: "#1f7350", jerseyNum: "#f5f5ee",
 };
 
-function drawChibi(ctx, back, fr, blink) {
+/* Aspetto di default dell'avatar (capelli ricci + canotta = look storico). */
+const DEFAULT_LOOK = { hair: "m3", outfit: "tank" };
+
+/* ——— Outfit: ogni voce descrive maniche + disegno del torso ———————————————
+   sleeve: "bare" braccia nude · "short" mezza manica · "long" manica lunga.
+   chain: true mostra la catena d'oro col ciondolo "Q". */
+const OUTFITS = {
+  tank: {
+    label: "Canotta", sleeve: "bare", chain: true,
+    torso(px, b, back) {
+      px(6, 20 + b, 17, 13, AV.tank);
+      px(6, 20 + b, 2, 13, AV.tankL);
+      px(21, 20 + b, 2, 13, AV.tankD);
+      px(6, 31 + b, 17, 2, AV.tankD);
+      if (!back) { px(11, 20 + b, 7, 2, AV.skin); px(11, 20 + b, 7, 1, AV.skinD); } // petto tra le spalline
+    },
+  },
+  hoodie: {
+    label: "Felpa", sleeve: "long", chain: false,
+    arm: AV.hoodie, armD: AV.hoodieD, armL: AV.hoodieL,
+    torso(px, b, back) {
+      px(6, 20 + b, 17, 13, AV.hoodie);
+      px(6, 20 + b, 2, 13, AV.hoodieL);
+      px(21, 20 + b, 2, 13, AV.hoodieD);
+      px(6, 31 + b, 17, 2, AV.hoodieD);
+      if (!back) {
+        px(8, 19 + b, 13, 3, AV.hoodieD);                              // collo della felpa
+        px(9, 20 + b, 11, 1, AV.hoodieL);
+        px(9, 27 + b, 11, 4, AV.hoodieD);                              // tasca a marsupio
+        px(10, 28 + b, 9, 2, AV.hoodie);
+        px(12, 22 + b, 1, 4, "#f2efe6"); px(16, 22 + b, 1, 4, "#f2efe6"); // lacci
+        px(12, 26 + b, 1, 1, AV.gold); px(16, 26 + b, 1, 1, AV.gold);
+        px(16, 23 + b, 3, 3, "#ffffff"); px(17, 24 + b, 1, 1, AV.hoodie); // logo
+      } else {
+        px(8, 19 + b, 13, 4, AV.hoodieD); px(9, 20 + b, 11, 2, AV.hoodie); // cappuccio
+      }
+    },
+  },
+  jacket: {
+    label: "Bomber", sleeve: "long", chain: false,
+    arm: AV.jacket, armD: AV.jacketD, armL: AV.jacketL,
+    torso(px, b, back) {
+      px(6, 20 + b, 17, 13, AV.jacket);
+      px(6, 20 + b, 2, 13, AV.jacketL);
+      px(21, 20 + b, 2, 13, AV.jacketD);
+      px(6, 31 + b, 17, 2, AV.jacketD);
+      px(6, 31 + b, 17, 1, AV.jacketL);                               // bordo a coste
+      if (!back) {
+        px(12, 20 + b, 5, 13, AV.tee);                                // t-shirt sotto
+        px(12, 20 + b, 1, 13, "#ffffff");
+        px(11, 20 + b, 1, 13, AV.jacketD); px(17, 20 + b, 1, 13, AV.jacketD); // zip
+        px(9, 20 + b, 3, 2, AV.jacketL); px(17, 20 + b, 3, 2, AV.jacketL);     // colletto
+      }
+    },
+  },
+  shirt: {
+    label: "Camicia", sleeve: "long", chain: false,
+    arm: AV.shirt, armD: AV.shirtD, armL: AV.shirtL,
+    torso(px, b, back) {
+      px(6, 20 + b, 17, 13, AV.shirt);
+      px(6, 20 + b, 2, 13, AV.shirtL);
+      px(21, 20 + b, 2, 13, AV.shirtD);
+      px(6, 31 + b, 17, 2, AV.shirtD);
+      if (!back) {
+        px(10, 19 + b, 3, 2, AV.shirtL); px(16, 19 + b, 3, 2, AV.shirtL); // colletto
+        px(13, 20 + b, 3, 2, AV.skin);                                    // scollo aperto
+        px(14, 22 + b, 1, 10, AV.shirtD);                                 // abbottonatura
+        px(14, 24 + b, 1, 1, AV.btn); px(14, 27 + b, 1, 1, AV.btn); px(14, 30 + b, 1, 1, AV.btn);
+      }
+    },
+  },
+  jersey: {
+    label: "Maglia", sleeve: "short", chain: false,
+    arm: AV.jersey, armD: AV.jerseyD, armL: AV.jerseyL,
+    torso(px, b, back) {
+      px(6, 20 + b, 17, 13, AV.jersey);
+      px(6, 20 + b, 2, 13, AV.jerseyL);
+      px(21, 20 + b, 2, 13, AV.jerseyD);
+      px(6, 31 + b, 17, 2, AV.jerseyD);
+      px(6, 24 + b, 17, 2, AV.jerseyL);                               // fascia sul petto
+      if (!back) {
+        px(11, 20 + b, 7, 1, AV.jerseyD);                             // scollo
+        px(12, 28 + b, 2, 4, AV.jerseyNum); px(15, 28 + b, 2, 4, AV.jerseyNum); // numero "11"
+      } else {
+        px(11, 26 + b, 2, 5, AV.jerseyNum); px(15, 26 + b, 2, 5, AV.jerseyNum);
+      }
+    },
+  },
+};
+
+/* ——— Capelli: 3 maschili (m1–m3) + 3 femminili (f1–f3). Ogni stile ha la
+   vista frontale e quella di spalle, dimensionata sulla testa (volto x6..22). */
+const HAIR_STYLES = {
+  // m1 — corto con riga laterale
+  m1: {
+    label: "Corto", sex: "m",
+    front(px, b) {
+      px(6, 2 + b, 17, 2, AV.hair);
+      px(5, 3 + b, 19, 4, AV.hair);
+      px(4, 5 + b, 2, 4, AV.hair); px(23, 5 + b, 2, 5, AV.hair);   // basette
+      px(5, 7 + b, 18, 1, AV.hairD);                               // base frangia
+      px(11, 3 + b, 1, 3, AV.hairL);                               // riga
+      px(7, 2 + b, 9, 1, AV.hairL);                                // luce in alto
+    },
+    back(px, b) {
+      px(5, 2 + b, 19, 3, AV.hair);
+      px(4, 4 + b, 21, 9, AV.hair);
+      px(5, 13 + b, 17, 2, AV.hairD);
+      px(7, 3 + b, 10, 1, AV.hairL);
+    },
+  },
+  // m2 — rasato/corto sfumato
+  m2: {
+    label: "Rasato", sex: "m",
+    front(px, b) {
+      px(6, 3 + b, 17, 2, AV.hair);
+      px(5, 4 + b, 19, 3, AV.hair);
+      px(5, 7 + b, 18, 1, AV.hairD);
+      px(4, 5 + b, 1, 3, AV.hair); px(23, 5 + b, 2, 4, AV.hair);
+      [[8, 4], [12, 4], [16, 4], [20, 4], [10, 5], [14, 5], [18, 5]].forEach(([x, y]) => px(x, y + b, 1, 1, AV.hairD));
+    },
+    back(px, b) {
+      px(5, 4 + b, 19, 3, AV.hair);
+      px(4, 6 + b, 21, 7, AV.hair);
+      [[8, 7], [12, 8], [16, 7], [10, 10], [15, 10]].forEach(([x, y]) => px(x, y + b, 1, 1, AV.hairD));
+    },
+  },
+  // m3 — ricci castani con meches bionde (look storico)
+  m3: {
+    label: "Ricci", sex: "m",
+    front(px, b) {
+      px(8, 0 + b, 5, 1, AV.hair); px(15, 0 + b, 5, 1, AV.hair);
+      px(6, 1 + b, 17, 2, AV.hair);
+      px(5, 2 + b, 19, 3, AV.hair);
+      px(4, 4 + b, 21, 3, AV.hair);
+      px(3, 5 + b, 1, 3, AV.hair); px(25, 5 + b, 1, 3, AV.hair);
+      px(4, 7 + b, 3, 4, AV.hair);
+      px(22, 7 + b, 3, 5, AV.hair);
+      px(5, 7 + b, 19, 1, AV.hair);
+      px(6, 8 + b, 3, 1, AV.hair); px(13, 8 + b, 3, 1, AV.hair); px(20, 8 + b, 2, 1, AV.hair);
+      [[10, 2], [15, 2], [20, 4], [8, 5], [13, 6], [18, 6]].forEach(([x, y]) => px(x, y + b, 2, 2, AV.hairD));
+      [[7, 1], [12, 1], [17, 1], [5, 3], [10, 4], [15, 4], [21, 3], [23, 7]]
+        .forEach(([x, y]) => { px(x, y + b, 2, 1, AV.hairL); px(x + 1, y + 1 + b, 1, 1, AV.hairL); });
+      px(8, 7 + b, 2, 1, AV.hairL); px(16, 7 + b, 2, 1, AV.hairL);
+    },
+    back(px, b) {
+      px(8, 0 + b, 5, 2, AV.hair); px(15, 0 + b, 6, 2, AV.hair);
+      px(5, 1 + b, 19, 5, AV.hair);
+      px(4, 3 + b, 21, 10, AV.hair);
+      px(3, 6 + b, 1, 4, AV.hair); px(25, 6 + b, 1, 4, AV.hair);
+      px(5, 13 + b, 19, 3, AV.hair);
+      px(6, 16 + b, 4, 1, AV.hair); px(12, 16 + b, 5, 1, AV.hair); px(19, 16 + b, 4, 1, AV.hair);
+      [[10, 5], [16, 6], [7, 8], [13, 10], [19, 9], [9, 12], [15, 13]].forEach(([x, y]) => px(x, y + b, 2, 2, AV.hairD));
+      [[7, 2], [13, 2], [18, 3], [5, 5], [11, 7], [15, 9], [6, 10], [20, 11], [10, 13], [17, 13]]
+        .forEach(([x, y]) => { px(x, y + b, 2, 1, AV.hairL); px(x + 1, y + 1 + b, 1, 1, AV.hairL); });
+    },
+  },
+  // f1 — caschetto (bob)
+  f1: {
+    label: "Caschetto", sex: "f",
+    front(px, b) {
+      px(7, 0 + b, 5, 1, AV.hair); px(15, 0 + b, 4, 1, AV.hair);
+      px(5, 1 + b, 17, 3, AV.hair);
+      px(4, 2 + b, 19, 4, AV.hair);
+      px(3, 4 + b, 3, 12, AV.hair); px(23, 4 + b, 3, 12, AV.hair);   // lati fino alla mandibola
+      px(5, 6 + b, 18, 1, AV.hair);                                  // frangia dritta
+      px(5, 7 + b, 18, 1, AV.hairD);
+      px(3, 15 + b, 3, 2, AV.hair); px(23, 15 + b, 3, 2, AV.hair);   // punte arrotondate
+      px(6, 1 + b, 10, 1, AV.hairL); px(4, 4 + b, 1, 8, AV.hairL);
+    },
+    back(px, b) {
+      px(5, 0 + b, 17, 3, AV.hair);
+      px(3, 2 + b, 21, 15, AV.hair);
+      px(4, 16 + b, 19, 2, AV.hairD);
+      px(6, 1 + b, 10, 1, AV.hairL);
+    },
+  },
+  // f2 — coda alta (ponytail)
+  f2: {
+    label: "Coda", sex: "f",
+    front(px, b) {
+      px(6, 1 + b, 17, 2, AV.hair);
+      px(5, 2 + b, 19, 3, AV.hair);
+      px(4, 4 + b, 21, 2, AV.hair);                                  // riempie la fronte (niente buco)
+      px(4, 4 + b, 2, 4, AV.hair); px(23, 4 + b, 3, 5, AV.hair);
+      px(5, 6 + b, 18, 1, AV.hairD);
+      px(8, 6 + b, 3, 2, AV.hair); px(16, 6 + b, 3, 2, AV.hair);     // ciuffetti
+      px(25, 8 + b, 3, 8, AV.hair); px(26, 10 + b, 2, 6, AV.hairD);  // coda dietro la spalla
+      px(25, 8 + b, 1, 8, AV.hairL);
+      px(24, 7 + b, 2, 2, AV.hairD);                                 // elastico
+      px(7, 2 + b, 9, 1, AV.hairL);
+    },
+    back(px, b) {
+      px(5, 1 + b, 17, 3, AV.hair);
+      px(4, 3 + b, 21, 5, AV.hair);
+      px(11, 7 + b, 7, 16, AV.hair);                                 // coda lungo la schiena
+      px(12, 8 + b, 5, 15, AV.hairD);
+      px(13, 9 + b, 2, 12, AV.hairL);
+      px(11, 7 + b, 7, 2, AV.hairL);                                 // elastico
+    },
+  },
+  // f3 — lunghi sciolti
+  f3: {
+    label: "Lunghi", sex: "f",
+    front(px, b) {
+      px(6, 0 + b, 17, 2, AV.hair);
+      px(5, 1 + b, 19, 4, AV.hair);
+      px(3, 3 + b, 3, 19, AV.hair); px(23, 3 + b, 3, 19, AV.hair);   // ciocche lungo il viso
+      px(5, 5 + b, 18, 1, AV.hairD);                                 // frangia con riga
+      px(13, 5 + b, 2, 3, AV.hair);
+      px(3, 20 + b, 4, 2, AV.hair); px(22, 20 + b, 4, 2, AV.hair);   // punte
+      px(4, 4 + b, 1, 15, AV.hairL); px(24, 4 + b, 1, 15, AV.hairD);
+      px(6, 1 + b, 8, 1, AV.hairL);
+    },
+    back(px, b) {
+      px(5, 0 + b, 17, 3, AV.hair);
+      px(3, 2 + b, 21, 21, AV.hair);                                 // chioma lunga sulla schiena
+      px(4, 22 + b, 19, 2, AV.hairD);
+      px(5, 4 + b, 1, 16, AV.hairL);
+      [[8, 8], [14, 12], [18, 16]].forEach(([x, y]) => px(x, y + b, 2, 2, AV.hairD));
+    },
+  },
+};
+
+/* Braccia con maniche secondo l'outfit (mano sempre scoperta). */
+function drawArm(px, x, dy, isRight, back, O) {
+  const skin = (back || isRight) ? AV.skinD : AV.skin;
+  const hand = back ? AV.skin : (isRight ? AV.skin : AV.skinL);
+  if (!O || O.sleeve === "bare") {
+    px(x, 20 + dy, 3, 12, skin);
+    if (!back && !isRight) px(x, 20 + dy, 1, 12, AV.skinL);
+    px(x, 30 + dy, 3, 2, hand);
+    return;
+  }
+  const col = isRight ? O.armD : O.arm;
+  const bottom = O.sleeve === "long" ? 30 : 25;  // y fino a cui arriva la manica
+  px(x, 20 + dy, 3, bottom - 20, col);
+  if (!back && !isRight && O.armL) px(x, 20 + dy, 1, bottom - 20, O.armL);
+  if (bottom < 32) px(x, bottom + dy, 3, 32 - bottom, skin);        // avambraccio nudo
+  if (O.sleeve === "long") px(x, 29 + dy, 3, 1, isRight ? O.armD : (O.armL || col)); // polsino
+  px(x, 30 + dy, 3, 2, hand);                                       // mano
+}
+
+function drawChibi(ctx, back, fr, blink, look) {
   const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
   const b = fr.bodyDy || 0;
+  const L = look || DEFAULT_LOOK;
+  const O = OUTFITS[L.outfit] || OUTFITS.tank;
+  const H = HAIR_STYLES[L.hair] || HAIR_STYLES.m3;
 
   if (!fr.sit) {
     /* — gambe — */
@@ -1160,47 +1398,39 @@ function drawChibi(ctx, back, fr, blink) {
   px(7, 33 + b, 15, 4, AV.pant);
   px(7, 33 + b, 15, 1, AV.pantD);
 
-  /* — braccia nude (canotta) — */
-  px(4, 20 + b + fr.armA, 3, 12, back ? AV.skinD : AV.skin);
-  px(22, 20 + b + fr.armB, 3, 12, AV.skinD);
-  if (!back) px(4, 20 + b + fr.armA, 1, 12, AV.skinL);
-  px(4, 30 + b + fr.armA, 3, 2, back ? AV.skin : AV.skinL);
-  px(22, 30 + b + fr.armB, 3, 2, AV.skin);
+  /* — braccia (maniche secondo l'outfit) — */
+  drawArm(px, 4, b + fr.armA, false, back, O);
+  drawArm(px, 22, b + fr.armB, true, back, O);
 
-  /* — canotta nera — */
-  px(6, 20 + b, 17, 13, AV.tank);
-  px(6, 20 + b, 2, 13, AV.tankL);
-  px(21, 20 + b, 2, 13, AV.tankD);
-  px(6, 31 + b, 17, 2, AV.tankD);
-  if (!back) {
-    px(11, 20 + b, 7, 2, AV.skin);   // petto scoperto tra le spalline
-    px(11, 20 + b, 7, 1, AV.skinD);
-  }
+  /* — torso (outfit scelto allo specchio) — */
+  O.torso(px, b, back);
 
   /* — collo — */
   px(12, 17 + b, 5, 4, AV.skin);
   px(12, 17 + b, 5, 1, AV.skinD);
 
-  if (!back) {
-    /* — catena d'oro — */
-    px(9, 21 + b, 2, 1, AV.gold); px(18, 21 + b, 2, 1, AV.gold);
-    px(10, 22 + b, 2, 1, AV.goldL); px(17, 22 + b, 2, 1, AV.gold);
-    px(12, 23 + b, 1, 1, AV.gold); px(16, 23 + b, 1, 1, AV.goldL);
-    px(13, 24 + b, 1, 1, AV.gold); px(15, 24 + b, 1, 1, AV.gold);
-    px(14, 24 + b, 1, 1, AV.goldL);
-    /* — ciondolo blu con "Q" — */
-    px(12, 25 + b, 5, 1, AV.pendRim);
-    px(11, 26 + b, 7, 4, AV.pendRim);
-    px(12, 26 + b, 5, 3, AV.pend);
-    px(12, 26 + b, 1, 1, AV.pendL); px(16, 26 + b, 1, 1, AV.pendL);
-    px(13, 26 + b, 3, 1, "#eef4ff");
-    px(13, 27 + b, 1, 1, "#eef4ff"); px(15, 27 + b, 1, 1, "#eef4ff");
-    px(13, 28 + b, 3, 1, "#eef4ff");
-    px(15, 29 + b, 1, 1, "#eef4ff");
-    px(12, 30 + b, 5, 1, AV.pendRim);
-    px(13, 31 + b, 3, 1, AV.pendRim);
-  } else {
-    px(10, 20 + b, 9, 1, AV.gold);   // catena sulla nuca
+  if (O.chain) {
+    if (!back) {
+      /* — catena d'oro — */
+      px(9, 21 + b, 2, 1, AV.gold); px(18, 21 + b, 2, 1, AV.gold);
+      px(10, 22 + b, 2, 1, AV.goldL); px(17, 22 + b, 2, 1, AV.gold);
+      px(12, 23 + b, 1, 1, AV.gold); px(16, 23 + b, 1, 1, AV.goldL);
+      px(13, 24 + b, 1, 1, AV.gold); px(15, 24 + b, 1, 1, AV.gold);
+      px(14, 24 + b, 1, 1, AV.goldL);
+      /* — ciondolo blu con "Q" — */
+      px(12, 25 + b, 5, 1, AV.pendRim);
+      px(11, 26 + b, 7, 4, AV.pendRim);
+      px(12, 26 + b, 5, 3, AV.pend);
+      px(12, 26 + b, 1, 1, AV.pendL); px(16, 26 + b, 1, 1, AV.pendL);
+      px(13, 26 + b, 3, 1, "#eef4ff");
+      px(13, 27 + b, 1, 1, "#eef4ff"); px(15, 27 + b, 1, 1, "#eef4ff");
+      px(13, 28 + b, 3, 1, "#eef4ff");
+      px(15, 29 + b, 1, 1, "#eef4ff");
+      px(12, 30 + b, 5, 1, AV.pendRim);
+      px(13, 31 + b, 3, 1, AV.pendRim);
+    } else {
+      px(10, 20 + b, 9, 1, AV.gold);   // catena sulla nuca
+    }
   }
 
   /* — testa — */
@@ -1227,33 +1457,8 @@ function drawChibi(ctx, back, fr, blink) {
     px(11, 15 + b, 7, 1, "#8a5436");
   }
 
-  /* — capelli ricci castani con meches bionde (sopra tutto) — */
-  const knot = (kx, ky) => px(kx, ky + b, 2, 2, AV.hairD);                       // riccio in ombra
-  const mech = (mx, my) => { px(mx, my + b, 2, 1, AV.hairL); px(mx + 1, my + 1 + b, 1, 1, AV.hairL); }; // ciocca bionda
-  if (back) {
-    px(8, 0 + b, 5, 2, AV.hair); px(15, 0 + b, 6, 2, AV.hair);
-    px(5, 1 + b, 19, 5, AV.hair);
-    px(4, 3 + b, 21, 10, AV.hair);
-    px(3, 6 + b, 1, 4, AV.hair); px(25, 6 + b, 1, 4, AV.hair);   // ciuffi sporgenti
-    px(5, 13 + b, 19, 3, AV.hair);
-    px(6, 16 + b, 4, 1, AV.hair); px(12, 16 + b, 5, 1, AV.hair); px(19, 16 + b, 4, 1, AV.hair); // orlo a ciuffi
-    [[10, 5], [16, 6], [7, 8], [13, 10], [19, 9], [9, 12], [15, 13]].forEach(([x, y]) => knot(x, y));
-    [[7, 2], [13, 2], [18, 3], [5, 5], [11, 7], [15, 9], [6, 10], [20, 11], [10, 13], [17, 13]]
-      .forEach(([x, y]) => mech(x, y));
-  } else {
-    px(8, 0 + b, 5, 1, AV.hair); px(15, 0 + b, 5, 1, AV.hair);   // ciuffi alti
-    px(6, 1 + b, 17, 2, AV.hair);
-    px(5, 2 + b, 19, 3, AV.hair);
-    px(4, 4 + b, 21, 3, AV.hair);
-    px(3, 5 + b, 1, 3, AV.hair); px(25, 5 + b, 1, 3, AV.hair);   // ciuffi sporgenti tondi
-    px(4, 7 + b, 3, 4, AV.hair);                                  // basetta sinistra
-    px(22, 7 + b, 3, 5, AV.hair);                                 // lato destro più lungo
-    px(5, 7 + b, 19, 1, AV.hair);                                 // base frangia
-    px(6, 8 + b, 3, 1, AV.hair); px(13, 8 + b, 3, 1, AV.hair); px(20, 8 + b, 2, 1, AV.hair); // smerli
-    [[10, 2], [15, 2], [20, 4], [8, 5], [13, 6], [18, 6]].forEach(([x, y]) => knot(x, y));
-    [[7, 1], [12, 1], [17, 1], [5, 3], [10, 4], [15, 4], [21, 3], [23, 7]].forEach(([x, y]) => mech(x, y));
-    px(8, 7 + b, 2, 1, AV.hairL); px(16, 7 + b, 2, 1, AV.hairL); // ciocche bionde sulla frangia
-  }
+  /* — capelli (stile scelto allo specchio, sopra tutto) — */
+  if (back) H.back(px, b); else H.front(px, b);
 }
 
 const WALK_FR = [
@@ -1267,7 +1472,8 @@ const IDLE_FR = [
   { aDx: 0, aDy: 0, bDx: 0, bDy: 0, armA: 1, armB: 1, bodyDy: 1 },
 ];
 
-function buildAvatar() {
+function buildAvatar(look) {
+  const L = look || DEFAULT_LOOK;
   const make = (back, fr, blink, flip) => {
     const raw = { cv: mkCanvas(29, 54), ax: 0, ay: 0 };
     const ctx = raw.cv.getContext("2d");
@@ -1275,7 +1481,7 @@ function buildAvatar() {
     ctx.save();
     if (flip) { ctx.translate(29, 0); ctx.scale(-1, 1); }
     ctx.translate(0, fr.sit ? 9 : 1); // margine per il bob / abbassamento da seduto
-    drawChibi(ctx, back, fr, blink);
+    drawChibi(ctx, back, fr, blink, L);
     ctx.restore();
     const sp = outlined(raw);
     // ancora: suole in piedi, fondo del bacino da seduto (il round è al draw)
@@ -1595,7 +1801,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const dogSp = buildDog();
   let boardSp = buildBoard(false);
   let bracketOn = false;
-  const avatar = buildAvatar();
+  let currentLook = { ...DEFAULT_LOOK };
+  let avatar = buildAvatar(currentLook);     // ricostruito quando si cambia look allo specchio
   const sfx = makeAudio();
   const world = mkCanvas(WW, WH);
   const wctx = world.getContext("2d");
@@ -1729,8 +1936,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     { key: "stool", rect: rectOf(findEnt("stool2")), cv: spriteCvOf(findEnt("stool2")) },
     { key: "window", rect: rectFromPts([wallL(7.7, 92), wallL(5.7, 92), wallL(5.7, 24), wallL(7.7, 24)]) },
     { key: "posterBrand", rect: rectFromPts([wallL(1.0, 96), wallL(2.7, 96), wallL(2.7, 48), wallL(1.0, 48)]) },
-    { key: "posterTcg", rect: rectFromPts([wallL(8.2, 92), wallL(9.7, 92), wallL(9.7, 42), wallL(8.2, 42)]) },
-    { key: "posterSynth", rect: rectFromPts([wallR(6.3, 92), wallR(8.5, 92), wallR(8.5, 40), wallR(6.3, 40)]) },
+    { key: "mirror", rect: rectFromPts([wallL(8.05, 98), wallL(9.85, 98), wallL(9.85, 30), wallL(8.05, 30)]) },
     { key: "stats", rect: rectFromPts([wallL(3.3, 88), wallL(4.7, 88), wallL(4.7, 50), wallL(3.3, 50)]) },
   ];
   if (posters && posters.week) eggs.push({ key: "posterWeek", rect: rectFromPts([wallR(0.55, 92), wallR(1.6, 92), wallR(1.6, 42), wallR(0.55, 42)]) });
@@ -1891,6 +2097,33 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     st.av.queue = best;
     st.pending = o;
     hideHintOnce();
+  }
+
+  /* Tasti 1/2/3: "teletrasporto" all'oggetto e apertura immediata della modale,
+     senza far camminare l'avatar (interazione veloce). Lo posiziona sul tile di
+     approccio così, alla chiusura, riparte da un punto coerente. */
+  function teleportInteract(o) {
+    st.av.queue = [];
+    st.av.to = null;
+    st.pending = null;
+    st.sitTarget = false;
+    const ap = (o.approach && o.approach[0]) || null;
+    if (ap) {
+      st.av.from = { cx: ap[0], cy: ap[1] };
+      st.av.fx = ap[0];
+      st.av.fy = ap[1];
+    }
+    startInteract(o);
+  }
+
+  /* Specchio: apre direttamente la modale di personalizzazione (niente cammino). */
+  function openMirror() {
+    sfx.open();
+    st.pending = null;
+    st.sitTarget = false;
+    st.modal = "mirror";
+    st.lock = false;
+    if (apiRef.current.openModal) apiRef.current.openModal("mirror");
   }
 
   /* ====================== TUTORIAL GUIDATO ====================== */
@@ -3276,6 +3509,51 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     wctx.fillText(st.ghost, Math.round(cxp - tw / 2), y - 5);
   }
 
+  /* — Spettro: il fantasmino-guida che fluttua accanto al personaggio
+     durante il tutorial (coordinato con il narratore in alto). — */
+  function drawSpettroCompanion() {
+    const av = st.av;
+    const c = tileTop(av.fx - 0.55, av.fy - 0.55);
+    const fl = Math.sin(st.t * 2.2) * 2.4;          // fluttua su/giu
+    const sway = Math.sin(st.t * 1.3) * 1.5;        // ondeggia di lato
+    const cx = c.x + sway, cy = c.y + HTH - 34 + fl;
+    const w = 12.5, by = cy + 12;
+    wctx.save();
+    // alone arancione morbido
+    const g = wctx.createRadialGradient(cx, cy, 2, cx, cy, 22);
+    g.addColorStop(0, "rgba(255,150,60,0.34)");
+    g.addColorStop(1, "rgba(255,150,60,0)");
+    wctx.fillStyle = g;
+    wctx.beginPath(); wctx.arc(cx, cy, 22, 0, Math.PI * 2); wctx.fill();
+    // corpo bianco con fondo ondulato
+    wctx.globalAlpha = 0.94;
+    wctx.fillStyle = "#fff7ef";
+    wctx.strokeStyle = "rgba(255,150,60,0.55)";
+    wctx.lineWidth = 1.1;
+    wctx.beginPath();
+    wctx.moveTo(cx - w, cy + 4);
+    wctx.bezierCurveTo(cx - w, cy - 14, cx + w, cy - 14, cx + w, cy + 4);
+    wctx.lineTo(cx + w, by);
+    const bumps = 3, stepw = (2 * w) / bumps;
+    for (let k = 0; k < bumps; k++) {
+      const x0 = cx + w - k * stepw, x1 = x0 - stepw;
+      wctx.quadraticCurveTo((x0 + x1) / 2, by + (k % 2 === 0 ? 4 : -4), x1, by);
+    }
+    wctx.closePath();
+    wctx.fill(); wctx.stroke();
+    // occhietti (con sbattuta di ciglia)
+    const blink = (st.t % 4.4) > 4.18 ? 0.16 : 1;
+    wctx.fillStyle = "#3a2a16";
+    wctx.beginPath(); wctx.ellipse(cx - 4, cy - 1, 1.9, 2.9 * blink, 0, 0, Math.PI * 2); wctx.fill();
+    wctx.beginPath(); wctx.ellipse(cx + 4, cy - 1, 1.9, 2.9 * blink, 0, 0, Math.PI * 2); wctx.fill();
+    // guance
+    wctx.fillStyle = "rgba(255,140,60,0.5)";
+    wctx.beginPath(); wctx.arc(cx - 7.5, cy + 4, 1.9, 0, Math.PI * 2); wctx.fill();
+    wctx.beginPath(); wctx.arc(cx + 7.5, cy + 4, 1.9, 0, Math.PI * 2); wctx.fill();
+    wctx.restore();
+    wctx.globalAlpha = 1;
+  }
+
   const drawLetterEnvelope = (c, dx, dy, opts = {}) => {
     const flapOpen = opts.flapOpen || 0;
     const sealBreak = opts.sealBreak || 0;
@@ -3554,11 +3832,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       };
       
       const brandEgg = eggs.find((eg) => eg.key === "posterBrand");
-      const synthEgg = eggs.find((eg) => eg.key === "posterSynth");
-      const tcgEgg = eggs.find((eg) => eg.key === "posterTcg");
+      const mirrorEgg = eggs.find((eg) => eg.key === "mirror");
       if (brandEgg) drawPosterGlyph(brandEgg.rect, "#ff00ff");
-      if (synthEgg) drawPosterGlyph(synthEgg.rect, "#00ffff");
-      if (tcgEgg) drawPosterGlyph(tcgEgg.rect, "#ffaa00");
+      if (mirrorEgg) drawPosterGlyph(mirrorEgg.rect, "#00ffff");
     }
 
     // orme sul tappeto (svaniscono in 4s)
@@ -3601,6 +3877,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const dogBox = { dog: true, minX: st.dog.fx - 0.01, maxX: st.dog.fx + 0.01, minY: st.dog.fy - 0.01, maxY: st.dog.fy + 0.01 };
     const dyn = [avBox, catBox, dogBox];
     if (st.ghost) dyn.push({ ghost: true, minX: GHOST_TILE.cx - 0.01, maxX: GHOST_TILE.cx + 0.01, minY: GHOST_TILE.cy - 0.01, maxY: GHOST_TILE.cy + 0.01 });
+    if (st.tut.active) { const sx = st.av.fx - 0.55, sy = st.av.fy - 0.55; dyn.push({ spettro: true, minX: sx - 0.01, maxX: sx + 0.01, minY: sy - 0.01, maxY: sy + 0.01 }); }
     const sorted = entities.concat(dyn).sort(cmpDepth);
     const plantIdx = [0, 1, 2, 1][Math.floor(st.t * 1.4) % 4];
     const turnIdx = sfx.musicOn() ? Math.floor(st.t * 7) % 4 : 0;
@@ -3611,6 +3888,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       if (e.cat) { drawCatSprite(); continue; }
       if (e.dog) { drawDogSprite(); continue; }
       if (e.ghost) { drawGhostSprite(); continue; }
+      if (e.spettro) { drawSpettroCompanion(); continue; }
       const spr = e.frames ? e.frames[e.key === "turn" ? turnIdx : plantIdx] : e.spr;
       const x = Math.round(e.anchor.x - spr.ax), y = Math.round(e.anchor.y - spr.ay);
       if (e.inter && ((st.nearObj && st.nearObj.id === e.inter) || (e.inter === "pc" && pcAlert)) && !st.modal) {
@@ -4243,7 +4521,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         }
         return;
       }
-      if (dec.kind === "egg") { eggClick(dec.egg); return; }
+      if (dec.kind === "egg") {
+        if (dec.egg.key === "mirror") { openMirror(); return; }
+        eggClick(dec.egg); return;
+      }
     }
     const obj = hitObject(p.x, p.y);
     if (obj) { clickObject(obj); return; }
@@ -4292,7 +4573,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       sfx.ensure();
       st.lastAct = st.t;
       wakeAfk();
-      clickObject(e.code === "Digit1" ? inter.pc : e.code === "Digit2" ? inter.decks : inter.board);
+      teleportInteract(e.code === "Digit1" ? inter.pc : e.code === "Digit2" ? inter.decks : inter.board);
       hideHintOnce();
       return;
     }
@@ -4314,7 +4595,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const dpr = fx.dpr;
     canvas.width = Math.max(1, Math.round(w * dpr));
     canvas.height = Math.max(1, Math.round(h * dpr));
-    st.view = { w, h, dpr, scale: Math.max(0.3, Math.min(w / WW, h / WH)) * 0.97 };
+    // riempie più spazio (laterale + un po' di altezza) lasciando un margine minimo
+    st.view = { w, h, dpr, scale: Math.max(0.3, Math.min(w / WW, h / WH)) * 1.1 };
   }
   let ro = null;
   if (typeof ResizeObserver !== "undefined") { ro = new ResizeObserver(() => resize()); ro.observe(wrap); }
@@ -4367,6 +4649,27 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     takePhoto,
     skipTutorial() { if (!st.destroyed) endTutorial(); },
     restartTutorial() { if (!st.destroyed) tutRestart(); },
+    /* — specchio: applica il look scelto ricostruendo gli sprite dell'avatar — */
+    setLook(look) {
+      if (st.destroyed || !look) return;
+      currentLook = { ...currentLook, ...look };
+      avatar = buildAvatar(currentLook);
+    },
+    getLook() { return { ...currentLook }; },
+    /* anteprima statica (vista frontale) su un canvas fornito dalla modale */
+    drawLookPreview(canvasEl, look) {
+      if (st.destroyed || !canvasEl) return;
+      try {
+        const av = buildAvatar({ ...currentLook, ...(look || {}) });
+        const sp = av.se.idle[0];
+        const cx = canvasEl.getContext("2d");
+        cx.imageSmoothingEnabled = false;
+        cx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+        const s = Math.max(1, Math.floor(Math.min(canvasEl.width / sp.cv.width, canvasEl.height / sp.cv.height)));
+        const dw = sp.cv.width * s, dh = sp.cv.height * s;
+        cx.drawImage(sp.cv, Math.round((canvasEl.width - dw) / 2), Math.round((canvasEl.height - dh) / 2), dw, dh);
+      } catch (e) { /* canvas non pronto */ }
+    },
     /* stessa azione dei tasti 1/2/3/P, ma cliccando i badge a schermo */
     hotkey(which) {
       if (st.destroyed || st.modal || st.cinematic || st.lock) return;
@@ -4374,7 +4677,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       st.lastAct = st.t;
       wakeAfk();
       if (which === "P") { takePhoto(); return; }
-      clickObject(which === 1 ? inter.pc : which === 2 ? inter.decks : inter.board);
+      teleportInteract(which === 1 ? inter.pc : which === 2 ? inter.decks : inter.board);
       hideHintOnce();
     },
     powerOff() { if (!st.destroyed) sfx.close(); },
@@ -4484,20 +4787,28 @@ const CSS_TEXT = [
   "width:min(700px,93vw);pointer-events:none;animation:irgTutIn .4s cubic-bezier(.34,1.45,.64,1);",
   "transition:top .6s cubic-bezier(.4,0,.2,1),width .55s cubic-bezier(.4,0,.2,1);}",
   ".irg-tut-bar{pointer-events:auto;display:flex;align-items:center;gap:14px;",
-  "background:linear-gradient(180deg,rgba(24,27,48,.97),rgba(13,15,28,.97));",
-  "border:1px solid rgba(129,140,248,.32);border-radius:16px;padding:13px 16px;",
-  "box-shadow:0 16px 44px rgba(0,0,0,.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);",
+  "background:linear-gradient(180deg,rgba(38,26,15,.97),rgba(22,15,9,.98));",
+  "border:1px solid rgba(255,138,42,.42);border-radius:16px;padding:13px 16px;",
+  "box-shadow:0 16px 44px rgba(0,0,0,.5),0 0 22px rgba(255,120,20,.12),inset 0 1px 0 rgba(255,180,110,.12);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);",
   "transition:padding .5s ease,border-radius .5s ease;}",
-  ".irg-tut-badge{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;",
-  "font-family:'Press Start 2P','Courier New',monospace;font-size:9px;letter-spacing:.5px;",
-  "color:#c7d2fe;background:rgba(99,102,241,.16);border:1px solid rgba(129,140,248,.42);",
-  "border-radius:10px;padding:9px 11px;line-height:1.3;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);",
-  "transition:font-size .4s ease,padding .4s ease;}",
-  ".irg-tut-hand{display:inline-block;font-size:13px;transform-origin:75% 80%;animation:irgWave 1.8s ease-in-out infinite;}",
-  ".irg-tut-text{flex:1 1 auto;color:#eef2ff;font-size:15px;font-weight:600;line-height:1.45;",
-  "transition:font-size .45s ease;min-height:1.2em;}",
+  ".irg-tut-ghost{flex:0 0 auto;width:46px;height:50px;display:flex;align-items:flex-end;justify-content:center;",
+  "transition:width .4s ease,height .4s ease;animation:irgGhostBob 3.2s ease-in-out infinite;",
+  "filter:drop-shadow(0 5px 10px rgba(255,110,20,.4));}",
+  ".irg-tut-ghost svg{width:100%;height:100%;overflow:visible;}",
+  ".irg-ghost-body{fill:#fff7ef;stroke:rgba(255,150,60,.55);stroke-width:1.2;}",
+  ".irg-ghost-eye{fill:#3a2a16;}",
+  ".irg-ghost-blush{fill:rgba(255,140,60,.5);}",
+  ".irg-tut-eyes{transform-origin:center 23px;animation:irgGhostBlink 4.4s ease-in-out infinite;}",
+  ".irg-tut-text{position:relative;flex:1 1 auto;color:#fdf3e8;font-size:15px;font-weight:600;line-height:1.45;",
+  "transition:font-size .45s ease;}",
+  ".irg-tut-reserve{visibility:hidden;display:block;}",
+  ".irg-tut-typed{position:absolute;inset:0;display:block;}",
+  ".irg-tut-word{display:inline-block;white-space:nowrap;}",
+  ".irg-tut-sp{white-space:pre;}",
+  ".irg-tut-ch{display:inline-block;white-space:pre;animation:irgChIn .22s ease both;}",
+  "@keyframes irgChIn{from{opacity:0;transform:translateY(.16em) scale(.94);filter:blur(.5px)}to{opacity:1;transform:none;filter:none}}",
   ".irg-tut-caret{display:inline-block;width:2px;height:1.05em;margin-left:2px;vertical-align:-2px;",
-  "background:#a5b4fc;border-radius:1px;animation:irgCaret .8s steps(1) infinite;}",
+  "background:#ffb060;border-radius:1px;animation:irgCaret .8s steps(1) infinite;}",
   ".irg-tut-skip{flex:0 0 auto;cursor:pointer;border:1px solid rgba(255,255,255,.22);",
   "background:rgba(255,255,255,.06);color:#cfd6f5;border-radius:9px;padding:9px 13px;font-size:12.5px;",
   "font-weight:700;transition:background-color .18s,color .18s,border-color .18s,transform .12s;white-space:nowrap;}",
@@ -4507,8 +4818,7 @@ const CSS_TEXT = [
   ".irg-tut-intro{top:36%;width:min(780px,94vw);}",
   ".irg-tut-intro .irg-tut-bar{flex-direction:column;text-align:center;gap:17px;padding:28px 30px;",
   "border-radius:24px;border-color:rgba(129,140,248,.48);box-shadow:0 30px 80px rgba(0,0,0,.62);}",
-  ".irg-tut-intro .irg-tut-badge{font-size:11px;padding:11px 14px;}",
-  ".irg-tut-intro .irg-tut-hand{font-size:16px;}",
+  ".irg-tut-intro .irg-tut-ghost{width:80px;height:88px;}",
   ".irg-tut-intro .irg-tut-text{font-size:24px;font-weight:800;line-height:1.34;min-height:2.4em;}",
   ".irg-tut-intro .irg-tut-skip{display:none;}",
   /* outro: cartello finale con i bottoni di scelta */
@@ -4529,12 +4839,43 @@ const CSS_TEXT = [
   "box-shadow:0 8px 22px rgba(255,115,0,.35);}",
   ".irg-tut-simple:hover{box-shadow:0 12px 30px rgba(255,115,0,.5);}",
   "@keyframes irgWave{0%,60%,100%{transform:rotate(0)}10%{transform:rotate(16deg)}20%{transform:rotate(-8deg)}30%{transform:rotate(16deg)}40%{transform:rotate(-4deg)}50%{transform:rotate(12deg)}}",
+  "@keyframes irgGhostBob{0%,100%{transform:translateY(0) rotate(-2.5deg)}50%{transform:translateY(-5px) rotate(2.5deg)}}",
+  "@keyframes irgGhostBlink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}}",
   "@keyframes irgCaret{0%{opacity:1}50%{opacity:0}}",
   "@keyframes irgTutIn{from{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.96)}",
   "to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}",
-  "@media (max-width:560px){.irg-tut{top:54px;}.irg-tut-text{font-size:13.5px;}",
+  "@media (max-width:560px){.irg-tut{top:54px;}.irg-tut-text{font-size:13.5px;}.irg-tut-ghost{width:40px;height:44px;}.irg-tut-intro .irg-tut-ghost{width:66px;height:74px;}",
   ".irg-tut-intro{top:26%;}.irg-tut-intro .irg-tut-text{font-size:19px;}",
   ".irg-tut-btn{font-size:13px;padding:10px 16px;}.irg-tut-q{font-size:13.5px;}}",
+  /* — punti caldi del tutorial: cerchio pulsante + cartello con freccia — */
+  ".irg-spots{position:absolute;inset:0;z-index:50;pointer-events:none;}",
+  ".irg-spot{position:absolute;animation:irgSpotPop .42s cubic-bezier(.34,1.45,.64,1) both;}",
+  ".irg-spot-ring{position:absolute;inset:-6px;border:2.5px solid #ffcf45;border-radius:13px;",
+  "box-shadow:0 0 0 3px rgba(255,207,69,.16),0 0 18px rgba(255,160,40,.5);",
+  "animation:irgSpotPulse 1.5s ease-in-out infinite;}",
+  /* il cartello usa transform per centrarsi sul lato: l'entrata è solo in
+     opacità così non entra in conflitto col posizionamento */
+  ".irg-spot-label{position:absolute;width:max-content;max-width:220px;text-align:center;",
+  "background:linear-gradient(180deg,#ffd45a,#ff9d2e);color:#3a1f00;font-size:12px;font-weight:800;",
+  "line-height:1.32;letter-spacing:.2px;padding:6px 11px;border-radius:10px;",
+  "box-shadow:0 9px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.4);",
+  "opacity:0;animation:irgSpotLabel .4s ease .12s forwards;}",
+  ".irg-spot-label:after{content:'';position:absolute;width:9px;height:9px;background:inherit;",
+  "transform:rotate(45deg);}",
+  /* lato cartello + freccia */
+  ".irg-spot-bottom .irg-spot-label{top:calc(100% + 14px);left:50%;transform:translateX(-50%);}",
+  ".irg-spot-bottom .irg-spot-label:after{top:-4px;left:50%;margin-left:-4px;}",
+  ".irg-spot-top .irg-spot-label{bottom:calc(100% + 14px);left:50%;transform:translateX(-50%);}",
+  ".irg-spot-top .irg-spot-label:after{bottom:-4px;left:50%;margin-left:-4px;}",
+  ".irg-spot-left .irg-spot-label{right:calc(100% + 14px);top:50%;transform:translateY(-50%);}",
+  ".irg-spot-left .irg-spot-label:after{right:-4px;top:50%;margin-top:-4px;}",
+  ".irg-spot-right .irg-spot-label{left:calc(100% + 14px);top:50%;transform:translateY(-50%);}",
+  ".irg-spot-right .irg-spot-label:after{left:-4px;top:50%;margin-top:-4px;}",
+  "@keyframes irgSpotPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}",
+  "@keyframes irgSpotLabel{to{opacity:1}}",
+  "@keyframes irgSpotPulse{0%,100%{box-shadow:0 0 0 3px rgba(255,207,69,.14),0 0 14px rgba(255,160,40,.38);border-color:#ffc636}",
+  "50%{box-shadow:0 0 0 7px rgba(255,207,69,.05),0 0 28px rgba(255,160,40,.7);border-color:#ffe289}}",
+  "@media (prefers-reduced-motion:reduce){.irg-spot-ring{animation:none}}",
   /* — backdrop e modale — */
   ".irg-backdrop{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;",
   "background:rgba(10,12,22,.46);backdrop-filter:blur(2.5px) saturate(.92);animation:irgFade .25s ease;padding:18px;}",
@@ -4868,6 +5209,34 @@ const CSS_TEXT = [
   ".irg-m-board .irg-select-option-active::before{background:#d94f46;}",
   ".irg-m-board .irg-select-check{color:#d94f46;text-shadow:none;}",
   ".irg-m-board .irg-select-option-hint{color:rgba(60,42,24,.55);}",
+  /* — modale specchio: personalizzazione avatar — */
+  ".irg-m-mirror{width:560px;max-width:100%;background:linear-gradient(180deg,#1b1f36,#12152400);",
+  "background-color:#161a2e;border:1px solid rgba(129,140,248,.32);padding:20px;color:#eef2ff;}",
+  ".irg-m-mirror .irg-mtitle{color:#dfe5ff;}",
+  ".irg-mirror{display:flex;gap:18px;margin-top:14px;align-items:stretch;}",
+  "@media (max-width:520px){.irg-mirror{flex-direction:column;}}",
+  ".irg-mirror-preview{flex:0 0 150px;display:flex;align-items:center;justify-content:center;",
+  "border-radius:14px;padding:10px;background:linear-gradient(180deg,#dceaf4,#9fc0d8 55%,#7aa0bf);",
+  "box-shadow:inset 0 2px 10px rgba(255,255,255,.4),inset 0 -10px 26px rgba(40,60,90,.35),0 10px 26px rgba(0,0,0,.4);",
+  "border:5px solid #6e5236;position:relative;overflow:hidden;}",
+  ".irg-mirror-preview:after{content:'';position:absolute;top:0;left:14%;width:18%;height:100%;",
+  "background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0));transform:skewX(-8deg);pointer-events:none;}",
+  ".irg-mirror-cv{image-rendering:pixelated;position:relative;z-index:1;}",
+  ".irg-mirror-opts{flex:1 1 auto;display:flex;flex-direction:column;gap:14px;min-width:0;}",
+  ".irg-mirror-group h4{margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.6px;",
+  "text-transform:uppercase;color:#aab4e6;}",
+  ".irg-mirror-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}",
+  ".irg-look-btn{display:flex;align-items:center;gap:7px;cursor:pointer;border-radius:11px;padding:9px 10px;",
+  "font-size:12.5px;font-weight:700;color:#dfe5ff;font-family:'Segoe UI',system-ui,sans-serif;",
+  "border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);",
+  "transition:background-color .15s,border-color .15s,transform .1s;text-align:left;}",
+  ".irg-look-btn:hover{background:rgba(129,140,248,.16);border-color:rgba(129,140,248,.5);transform:translateY(-1px);}",
+  ".irg-look-btn.on{background:linear-gradient(180deg,rgba(255,154,61,.25),rgba(255,115,0,.18));",
+  "border-color:#ff9a3d;box-shadow:0 0 0 1px rgba(255,154,61,.4);color:#fff;}",
+  ".irg-look-ico{font-size:14px;line-height:1;}",
+  ".irg-look-sw{flex:0 0 auto;width:13px;height:13px;border-radius:4px;border:1px solid rgba(255,255,255,.45);",
+  "box-shadow:inset 0 1px 1px rgba(255,255,255,.4);}",
+  ".irg-look-sex{margin-left:auto;font-size:10px;opacity:.6;}",
 ].join("\n");
 
 let cssRefs = 0;
@@ -4981,6 +5350,148 @@ function ModalShell({ id, closing, onClose, className, children }) {
         {children}
       </div>
     </div>
+  );
+}
+
+/* — Punti caldi del tutorial: cerchio pulsante + cartello (con freccia) sui
+   pochi elementi che contano davvero dentro la modale aperta. Sovrapposizione
+   non interattiva (pointer-events:none) ancorata al riquadro del gioco; le
+   posizioni si ri-misurano a intervalli per seguire scroll/resize/layout. */
+function TutorialHotspots({ wrapRef, modalId }) {
+  const [spots, setSpots] = useState([]);
+
+  useEffect(() => {
+    if (!modalId) { setSpots([]); return; }
+    const specs = TUT_HOTSPOTS[modalId];
+    if (!specs || !specs.length) { setSpots([]); return; }
+
+    let alive = true, raf = null, prev = "";
+    const resolve = (spec, root) => {
+      if (spec.sel) return root.querySelector(spec.sel);
+      if (spec.text) {
+        const needle = spec.text.toLowerCase();
+        const els = root.querySelectorAll("button, a, [role='button']");
+        for (const el of els) {
+          if ((el.textContent || "").toLowerCase().includes(needle)) return el;
+        }
+      }
+      return null;
+    };
+    const measure = () => {
+      if (!alive) return;
+      const wrap = wrapRef.current;
+      const root = wrap && wrap.querySelector(`[data-irg-modal="${modalId}"]`);
+      if (wrap && root) {
+        const wr = wrap.getBoundingClientRect();
+        const mr = root.getBoundingClientRect();
+        const next = [];
+        specs.forEach((spec, i) => {
+          const el = resolve(spec, root);
+          if (!el) return;
+          const r = el.getBoundingClientRect();
+          if (r.width < 2 || r.height < 2) return;
+          // salta gli elementi scrollati fuori dalla parte visibile della modale
+          if (r.bottom < mr.top + 4 || r.top > mr.bottom - 4) return;
+          next.push({
+            key: i, label: spec.label, side: spec.side || "bottom", delay: i * 0.95,
+            x: Math.round(r.left - wr.left), y: Math.round(r.top - wr.top),
+            w: Math.round(r.width), h: Math.round(r.height),
+          });
+        });
+        const sig = JSON.stringify(next);
+        if (sig !== prev) { prev = sig; setSpots(next); }
+      } else if (prev !== "[]") {
+        prev = "[]"; setSpots([]);
+      }
+      raf = setTimeout(measure, 160); // ri-misura morbida, costo trascurabile
+    };
+    measure();
+    return () => { alive = false; if (raf) clearTimeout(raf); };
+  }, [wrapRef, modalId]);
+
+  if (!spots.length) return null;
+  return (
+    <div className="irg-spots" aria-hidden>
+      {spots.map((s) => (
+        <div
+          key={s.key}
+          className={"irg-spot irg-spot-" + s.side}
+          style={{ left: s.x, top: s.y, width: s.w, height: s.h, animationDelay: s.delay + "s" }}
+        >
+          <span className="irg-spot-ring" />
+          <span className="irg-spot-label">{s.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* — Specchio: opzioni di personalizzazione (le chiavi combaciano con HAIR_STYLES/OUTFITS) — */
+const MIRROR_HAIRS = [
+  { id: "m1", label: "Corto", ico: "💇‍♂️", sex: "♂" },
+  { id: "m2", label: "Rasato", ico: "👨‍🦲", sex: "♂" },
+  { id: "m3", label: "Ricci", ico: "🧑‍🦱", sex: "♂" },
+  { id: "f1", label: "Caschetto", ico: "👩", sex: "♀" },
+  { id: "f2", label: "Coda", ico: "👱‍♀️", sex: "♀" },
+  { id: "f3", label: "Lunghi", ico: "👩‍🦰", sex: "♀" },
+];
+const MIRROR_OUTFITS = [
+  { id: "tank", label: "Canotta", col: "#16171e" },
+  { id: "hoodie", label: "Felpa", col: "#ff7a2f" },
+  { id: "jacket", label: "Bomber", col: "#3a4660" },
+  { id: "shirt", label: "Camicia", col: "#dfe7f2" },
+  { id: "jersey", label: "Maglia", col: "#2f9e6b" },
+];
+
+function MirrorModal({ look, onChange, drawPreview }) {
+  const cref = useRef(null);
+  useEffect(() => {
+    if (cref.current && drawPreview) drawPreview(cref.current, look);
+  }, [look, drawPreview]);
+  return (
+    <>
+      <div className="irg-mtitle">🪞 Specchio <span className="irg-esc">ESC per chiudere</span></div>
+      <div className="irg-mirror">
+        <div className="irg-mirror-preview">
+          <canvas ref={cref} width={132} height={232} className="irg-mirror-cv" />
+        </div>
+        <div className="irg-mirror-opts">
+          <div className="irg-mirror-group">
+            <h4>Capelli</h4>
+            <div className="irg-mirror-grid">
+              {MIRROR_HAIRS.map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  className={"irg-look-btn" + (look.hair === h.id ? " on" : "")}
+                  onClick={() => onChange({ hair: h.id })}
+                >
+                  <span className="irg-look-ico" aria-hidden>{h.ico}</span>
+                  {h.label}
+                  <span className="irg-look-sex" aria-hidden>{h.sex}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="irg-mirror-group">
+            <h4>Outfit</h4>
+            <div className="irg-mirror-grid">
+              {MIRROR_OUTFITS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  className={"irg-look-btn" + (look.outfit === o.id ? " on" : "")}
+                  onClick={() => onChange({ outfit: o.id })}
+                >
+                  <span className="irg-look-sw" style={{ background: o.col }} aria-hidden />
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -5396,6 +5907,7 @@ export default function IsoRoomGame({
   const [muted, setMuted] = useState(false);
   const [hint, setHint] = useState(true);
   const [newDeckId, setNewDeckId] = useState(null);
+  const [look, setLookState] = useState(() => ({ ...DEFAULT_LOOK }));
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialCaption, setTutorialCaption] = useState(null);
   const [tutorialIntro, setTutorialIntro] = useState(false);
@@ -5420,20 +5932,32 @@ export default function IsoRoomGame({
   apiRef.current.setTutorialIntro = (v) => { if (mountedRef.current) setTutorialIntro(v); };
   apiRef.current.setTutorialOutro = (v) => { if (mountedRef.current) setTutorialOutro(v); };
 
-  /* effetto "macchina da scrivere" morbido: ogni lettera compare con una
-     dissolvenza (vedi .irg-tut-ch), e qui la riveliamo a ritmo fluido */
+  /* effetto "macchina da scrivere" morbido: ogni lettera compare con una breve
+     dissolvenza (vedi .irg-tut-ch). Ritmo veloce ma naturale — micro-pause sulla
+     punteggiatura — e rispetto di prefers-reduced-motion (testo subito intero). */
   useEffect(() => {
-    const chars = Array.from(tutorialCaption || "");
+    const full = tutorialCaption || "";
+    const chars = Array.from(full);
     if (!chars.length) { setTypedCaption(""); setTyping(false); return; }
+    const reduce = typeof window !== "undefined" && window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { setTypedCaption(full); setTyping(false); return; }
     setTypedCaption("");
     setTyping(true);
-    let i = 0;
-    const id = setInterval(() => {
+    let i = 0, timer = null, cancelled = false;
+    const pauseFor = (ch) =>
+      ".!?…".includes(ch) ? 360 :
+      ",;:".includes(ch)  ? 190 :
+      34; // ~34ms/lettera: piu calmo e leggibile, meno scattoso
+    const tick = () => {
+      if (cancelled) return;
       i += 1;
       setTypedCaption(chars.slice(0, i).join(""));
-      if (i >= chars.length) { clearInterval(id); setTyping(false); }
-    }, 22);
-    return () => clearInterval(id);
+      if (i >= chars.length) { setTyping(false); return; }
+      timer = setTimeout(tick, pauseFor(chars[i - 1]));
+    };
+    timer = setTimeout(tick, 34);
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, [tutorialCaption]);
 
   /* statistiche per il clipboard a muro (mock se non c'è storico reale) */
@@ -5544,6 +6068,18 @@ export default function IsoRoomGame({
 
   const repeatTutorial = useCallback(() => {
     if (gameRef.current && gameRef.current.restartTutorial) gameRef.current.restartTutorial();
+  }, []);
+
+  /* specchio: applica il look (capelli/outfit) e aggiorna l'avatar nel gioco */
+  const applyLook = useCallback((patch) => {
+    setLookState((prev) => {
+      const next = { ...prev, ...patch };
+      if (gameRef.current && gameRef.current.setLook) gameRef.current.setLook(next);
+      return next;
+    });
+  }, []);
+  const drawLookPreview = useCallback((canvasEl, lk) => {
+    if (gameRef.current && gameRef.current.drawLookPreview) gameRef.current.drawLookPreview(canvasEl, lk);
   }, []);
 
   /* "Vista semplice": spegne lo schermo (animazione CRT) e passa alla pagina classica */
@@ -5686,16 +6222,34 @@ export default function IsoRoomGame({
       {tutorialActive && (
         <div className={"irg-tut" + (tutorialIntro ? " irg-tut-intro" : "") + (tutorialOutro ? " irg-tut-final" : "")}>
           <div className="irg-tut-bar">
-            <span className="irg-tut-badge">
-              <span className="irg-tut-hand" aria-hidden>👋</span>
-              <span>Tutorial</span>
+            <span className="irg-tut-ghost" aria-hidden>
+              <svg viewBox="0 0 44 50" xmlns="http://www.w3.org/2000/svg">
+                <path className="irg-ghost-body" d="M8 25C8 11 14 4 22 4s14 7 14 21v17q0 4-3.5 0t-7 0t-7 0t-7 0Z" />
+                <g className="irg-tut-eyes">
+                  <ellipse className="irg-ghost-eye" cx="17.5" cy="23" rx="2.3" ry="3.1" />
+                  <ellipse className="irg-ghost-eye" cx="26.5" cy="23" rx="2.3" ry="3.1" />
+                </g>
+                <circle className="irg-ghost-blush" cx="13.5" cy="29.5" r="2.3" />
+                <circle className="irg-ghost-blush" cx="30.5" cy="29.5" r="2.3" />
+              </svg>
             </span>
             <span className="irg-tut-text">
-              {!tutorialCaption && !typedCaption && "Ti mostro la stanza…"}
-              {Array.from(typedCaption).map((ch, i) => (
-                <span key={i} className="irg-tut-ch">{ch}</span>
-              ))}
-              {typing && <span className="irg-tut-caret" aria-hidden />}
+              <span className="irg-tut-reserve" aria-hidden>{tutorialCaption || "Ti mostro la stanza…"}</span>
+              <span className="irg-tut-typed">
+                {!tutorialCaption && !typedCaption && "Ti mostro la stanza…"}
+                {typedCaption.split(/(\s+)/).map((part, wi) =>
+                  /^\s+$/.test(part) ? (
+                    <span key={wi} className="irg-tut-sp">{part}</span>
+                  ) : (
+                    <span key={wi} className="irg-tut-word">
+                      {Array.from(part).map((ch, ci) => (
+                        <span key={ci} className="irg-tut-ch">{ch}</span>
+                      ))}
+                    </span>
+                  )
+                )}
+                {typing && <span className="irg-tut-caret" aria-hidden />}
+              </span>
             </span>
             {tutorialOutro ? (
               <div className="irg-tut-actions">
@@ -5717,6 +6271,12 @@ export default function IsoRoomGame({
         </div>
       )}
 
+      {/* punti caldi: cerchi + cartelli sugli elementi chiave della modale
+          aperta dal tutorial (solo durante la guida, non a chiusura in corso) */}
+      {tutorialActive && modal && !closing && (
+        <TutorialHotspots wrapRef={wrapRef} modalId={modal} />
+      )}
+
       {/* modali */}
       {modal === "board" && (
         <ModalShell id="board" closing={closing} onClose={closeModal} className="irg-m-board">
@@ -5731,6 +6291,11 @@ export default function IsoRoomGame({
       {modal === "pc" && (
         <ModalShell id="pc" closing={closing} onClose={closeModal} className="irg-m-pc">
           <PcModal tournaments={data.tournaments} onJoin={handleJoin} onObserve={handleObserve} me={username} formatName={formatName} modeName={modeName} />
+        </ModalShell>
+      )}
+      {modal === "mirror" && (
+        <ModalShell id="mirror" closing={closing} onClose={closeModal} className="irg-m-mirror">
+          <MirrorModal look={look} onChange={applyLook} drawPreview={drawLookPreview} />
         </ModalShell>
       )}
     </div>

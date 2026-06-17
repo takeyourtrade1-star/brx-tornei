@@ -1,8 +1,7 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { ChevronRight, Home, Layers, LogOut, Swords } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
-import { getCdnImageUrl } from '@/lib/config';
+import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 import type { SessionUser } from '@/types/auth';
 
 interface DashboardHeaderProps {
@@ -21,7 +20,6 @@ const CHIP_CLASS =
  * [home] [formato scelto] [tipologia scelta] · utente · [I miei mazzi] [Le mie partite]
  */
 export function DashboardHeader({ user, formatId, formatName, modeName }: DashboardHeaderProps) {
-  const logoUrl = getCdnImageUrl('logo.png');
   const displayName = user.name ?? user.email;
   const initial = (displayName[0] ?? '?').toUpperCase();
 
@@ -31,17 +29,7 @@ export function DashboardHeader({ user, formatId, formatName, modeName }: Dashbo
       <div className="flex md:hidden flex-col gap-3 px-4 py-3">
         {/* Row 1: Logo & Actions */}
         <div className="flex items-center justify-between">
-          <Link href="/" aria-label="Home" className="transition-opacity hover:opacity-90 py-0.5 flex items-center justify-center">
-            <Image
-              src={logoUrl}
-              alt="Ebartex"
-              width={95}
-              height={36}
-              className="h-9 w-auto object-contain block align-middle"
-              priority
-              unoptimized
-            />
-          </Link>
+          <BrxHeaderLogo ariaLabel="Home" />
           
           <div className="flex items-center gap-2">
             <Link
@@ -94,17 +82,7 @@ export function DashboardHeader({ user, formatId, formatName, modeName }: Dashbo
       {/* DESKTOP HEADER (hidden md:flex) */}
       <div className="hidden md:flex mx-auto max-w-content items-center gap-2 px-4 py-2 sm:gap-3 sm:px-6">
         {/* Logo + home (riporta alla home, dal mockup) */}
-        <Link href="/" aria-label="Home" className="transition-opacity hover:opacity-90 overflow-visible py-1 flex items-center justify-center">
-          <Image
-            src={logoUrl}
-            alt="Ebartex"
-            width={110}
-            height={48}
-            className="h-12 w-auto object-contain block align-middle"
-            priority
-            unoptimized
-          />
-        </Link>
+        <BrxHeaderLogo ariaLabel="Home" />
         <Link
           href="/hub"
           aria-label="Torna alla selezione"
