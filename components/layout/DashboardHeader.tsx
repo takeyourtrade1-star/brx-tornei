@@ -16,7 +16,7 @@ const CHIP_CLASS =
 
 /**
  * Header di stato della dashboard — speculare all'header Ebartex
- * (.header-gradient, font-display, logo CDN) con la riga del mockup:
+ * (.header-gradient, font-display, logo principale Ebartex da CDN) con la riga del mockup:
  * [home] [formato scelto] [tipologia scelta] · utente · [I miei mazzi] [Le mie partite]
  */
 export function DashboardHeader({ user, formatId, formatName, modeName }: DashboardHeaderProps) {

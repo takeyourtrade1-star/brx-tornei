@@ -1,8 +1,9 @@
-import { config } from '@/lib/config';import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
+import { config } from '@/lib/config';
+import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 
 /**
  * Header del sito (hub e pagine generiche) — linguaggio visivo dell'header Ebartex:
- * .header-gradient (blu sfumato a trasparente), font-display, logo corto BRX da CDN.
+ * .header-gradient (blu sfumato a trasparente), font-display, logo principale da CDN.
  */
 export function SiteHeader() {
   return (
@@ -11,7 +12,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2 overflow-visible py-1">
           <BrxHeaderLogo ariaLabel="Ebartex Tornei — home" />
           <span className="hidden text-lg uppercase tracking-wide sm:inline font-bold">
-            <span className="text-primary">League</span>
+            <span className="text-primary">Tournaments</span>
           </span>
         </div>
 

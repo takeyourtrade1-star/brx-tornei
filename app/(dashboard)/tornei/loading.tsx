@@ -3,10 +3,15 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { getCdnImageUrl } from '@/lib/config';
+import {
+  HEADER_BRX_LOGO_INTRINSIC_HEIGHT,
+  HEADER_BRX_LOGO_INTRINSIC_WIDTH,
+  HEADER_BRX_LOGO_PATH,
+} from '@/components/layout/header-brx-column';
 
 export default function TorneiLoading() {
   const [progress, setProgress] = useState(0);
-  const logoUrl = getCdnImageUrl('logo.png');
+  const logoUrl = getCdnImageUrl(HEADER_BRX_LOGO_PATH);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -59,10 +64,10 @@ export default function TorneiLoading() {
             <div className="absolute inset-0 bg-[#FF7300]/20 blur-xl rounded-full scale-110 animate-pulse" />
             <Image
               src={logoUrl}
-              alt="Ebartex Logo"
-              width={140}
-              height={48}
-              className="h-12 w-auto object-contain relative z-10"
+              alt="Ebartex"
+              width={HEADER_BRX_LOGO_INTRINSIC_WIDTH}
+              height={HEADER_BRX_LOGO_INTRINSIC_HEIGHT}
+              className="h-14 w-auto object-contain relative z-10 sm:h-16"
               priority
               unoptimized
             />

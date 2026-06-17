@@ -4,6 +4,8 @@ import { getCdnImageUrl } from '@/lib/config';
 import {
   HEADER_BRX_LOGO_COLUMN_CLASS,
   HEADER_BRX_LOGO_IMAGE_CLASS,
+  HEADER_BRX_LOGO_INTRINSIC_HEIGHT,
+  HEADER_BRX_LOGO_INTRINSIC_WIDTH,
   HEADER_BRX_LOGO_LINK_CLASS,
   HEADER_BRX_LOGO_PATH,
 } from '@/components/layout/header-brx-column';
@@ -13,16 +15,16 @@ interface BrxHeaderLogoProps {
   ariaLabel?: string;
 }
 
-/** Logo corto BRX nell'header — allineato a new_frontend_brx TopBar. */
+/** Logo principale Ebartex nell'header — stesso asset della landing Ebartex. */
 export function BrxHeaderLogo({ href = '/', ariaLabel = 'Home' }: BrxHeaderLogoProps) {
   return (
     <div className={HEADER_BRX_LOGO_COLUMN_CLASS}>
       <Link href={href} className={HEADER_BRX_LOGO_LINK_CLASS} aria-label={ariaLabel}>
         <Image
           src={getCdnImageUrl(HEADER_BRX_LOGO_PATH)}
-          alt="BRX"
-          width={240}
-          height={120}
+          alt="Ebartex"
+          width={HEADER_BRX_LOGO_INTRINSIC_WIDTH}
+          height={HEADER_BRX_LOGO_INTRINSIC_HEIGHT}
           className={HEADER_BRX_LOGO_IMAGE_CLASS}
           priority
           unoptimized

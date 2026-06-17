@@ -7,6 +7,12 @@ import Image from 'next/image';
 import { CheckCircle2, Gamepad2, Home, LogOut, Smartphone, X } from 'lucide-react';
 import { getCdnImageUrl } from '@/lib/config';
 import { logoutAction } from '@/actions/auth';
+import {
+  HEADER_BRX_LOGO_INTRINSIC_HEIGHT,
+  HEADER_BRX_LOGO_INTRINSIC_WIDTH,
+  HEADER_BRX_LOGO_OVERLAY_IMAGE_CLASS,
+  HEADER_BRX_LOGO_PATH,
+} from '@/components/layout/header-brx-column';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { TournamentsTable } from './tournaments-table';
 import { CreateTournamentButton } from './create-tournament-button';
@@ -67,7 +73,7 @@ export function TournamentGameView({
   const [simpleView, setSimpleView] = useState(false);
   const router = useRouter();
   const [creating, startTransition] = useTransition();
-  const logoUrl = getCdnImageUrl('logo.png');
+  const logoUrl = getCdnImageUrl(HEADER_BRX_LOGO_PATH);
   const username = user.name ?? user.email;
 
   useEffect(() => {
@@ -169,10 +175,10 @@ export function TournamentGameView({
               <div className="absolute inset-0 bg-[#FF7300]/20 blur-xl rounded-full scale-110 animate-pulse" />
               <Image
                 src={logoUrl}
-                alt="Ebartex Logo"
-                width={140}
-                height={48}
-                className="h-12 w-auto object-contain relative z-10"
+                alt="Ebartex"
+                width={HEADER_BRX_LOGO_INTRINSIC_WIDTH}
+                height={HEADER_BRX_LOGO_INTRINSIC_HEIGHT}
+                className="h-14 w-auto object-contain relative z-10 sm:h-16"
                 priority
                 unoptimized
               />
@@ -274,9 +280,9 @@ export function TournamentGameView({
             <Image
               src={logoUrl}
               alt="Ebartex"
-              width={90}
-              height={32}
-              className="h-8 w-auto object-contain block"
+              width={HEADER_BRX_LOGO_INTRINSIC_WIDTH}
+              height={HEADER_BRX_LOGO_INTRINSIC_HEIGHT}
+              className={HEADER_BRX_LOGO_OVERLAY_IMAGE_CLASS}
               priority
               unoptimized
             />
