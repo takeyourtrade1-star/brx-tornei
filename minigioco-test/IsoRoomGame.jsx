@@ -82,22 +82,64 @@ const INTERACTIVES = {
 const MUSIC_OBJ = { id: "music", approach: [[9, 1], [10, 2], [11, 2], [9, 0]], faceTile: [10, 1] };
 
 /* Passi del tutorial guidato: l'omino entra, saluta, e visita PC → bacheca → tavolo.
-   kind "say": battuta a tempo; kind "demo": cammina all'oggetto, apre la modale,
-   mostra una frase "inside" che spiega cosa farci, la tiene aperta `hold` secondi,
-   poi la chiude e passa al prossimo. Lo step con `intro:true` è il saluto grande
-   al centro dello schermo (poi la barra vola in alto e continua).
-   I "punti caldi" evidenziati dentro ogni modale sono definiti in TUT_HOTSPOTS. */
+   kind "say": battuta fino a digitazione + lettura; kind "demo": cammina all'oggetto,
+   mostra la frase esterna fino in fondo (anche se la modale apre prima), poi spiega
+   cosa farci dentro con `inside`, tiene aperta fino a lettura + punti caldi, poi chiude.
+   Lo step con `intro:true` è il saluto grande al centro (poi la barra vola in alto).
+   I tempi derivano da tutCaptionSec / tutHoldSec (allineati al typewriter React).
+   kind "keys": evidenzia i badge in basso a sinistra (scorciatoie da tastiera).
+   I "punti caldi" in modale sono in TUT_HOTSPOTS; quelli UI in TUT_UI_HOTSPOTS. */
 const TUT_STEPS = [
-  { kind: "say", intro: true, text: "Ciao! Sono Spettro 👻, la tua guida. In pochi secondi ti mostro i 3 punti chiave della stanza: seguimi!", dur: 4.6 },
+  { kind: "say", intro: true, dur: 10, text: "Ciao! Sono Spettro 👻, la tua guida. In pochi secondi ti mostro i 3 punti chiave della stanza: seguimi!" },
   { kind: "demo", id: "pc",    text: "1 di 3 · Il PC 🖥️ — qui partecipi ai tornei e segui le partite dal vivo.",
-    inside: "Scegli un formato in alto, poi premi Partecipa per iscriverti, oppure l'occhio 👁️ per guardare una live.", hold: 10.5 },
+    inside: "Scegli un formato in alto, poi premi Partecipa per iscriverti, oppure l'occhio 👁️ per guardare una live." },
   { kind: "demo", id: "board", text: "2 di 3 · La bacheca 📌 — qui crei i tuoi tornei, anche privati.",
-    inside: "Dai un nome, scegli formato e regole, poi premi Pubblica: il torneo comparirà subito sul PC.", hold: 10.5 },
+    inside: "Dai un nome, scegli formato e regole, poi premi Pubblica: il torneo comparirà subito sul PC." },
   { kind: "demo", id: "decks", text: "3 di 3 · Il tavolo 🃏 — qui costruisci e salvi i tuoi mazzi.",
-    inside: "Apri «Nuovo mazzo» per montarlo con le carte del tuo inventario e prepararti alla sfida.", hold: 9.5 },
+    inside: "Apri «Nuovo mazzo» per montarlo con le carte del tuo inventario e prepararti alla sfida." },
+  { kind: "keys", id: "keys", text: "Premendo i tasti del tuo PC — o i badge qui in basso a sinistra — apri subito ciò che ti serve." },
 ];
+/* Ritmo typewriter condiviso col banner React + tempo di lettura dopo la digitazione. */
+const TUT_CHAR_MS = 52;
+function tutPauseMs(ch) {
+  return ".!?…".includes(ch) ? 520 : ",;:".includes(ch) ? 280 : TUT_CHAR_MS;
+}
+function tutTypingMs(text) {
+  const chars = Array.from(text || "");
+  if (!chars.length) return 0;
+  let ms = TUT_CHAR_MS;
+  for (const ch of chars) ms += tutPauseMs(ch);
+  return ms;
+}
+function tutReadMs(text, { intro = false } = {}) {
+  const n = Array.from(text || "").length;
+  const base = intro ? 2600 : 2000;
+  const perChar = intro ? 34 : 26;
+  return base + n * perChar;
+}
+function tutCaptionMs(text, opts) {
+  return tutTypingMs(text) + tutReadMs(text, opts);
+}
+function tutCaptionSec(text, opts) {
+  return tutCaptionMs(text, opts) / 1000;
+}
+function tutHoldSec(step) {
+  const insideMs = tutCaptionMs(step.inside || "");
+  const spots = TUT_HOTSPOTS[step.id];
+  const spotMs = spots && spots.length ? 900 + (spots.length - 1) * 950 : 0;
+  return (insideMs + spotMs) / 1000;
+}
+function tutUiHoldSec(step) {
+  const textMs = tutCaptionMs(step.text || "");
+  const spots = TUT_UI_HOTSPOTS[step.id];
+  const spotMs = spots && spots.length ? 900 + (spots.length - 1) * 950 : 0;
+  return (textMs + spotMs) / 1000;
+}
 /* Messaggio finale (cartello grande ri-ingrandito con i bottoni di scelta). */
-const TUT_OUTRO = "È tutto qui! 🎉 PC per giocare, bacheca per creare, tavolo per i mazzi. Ora esplora pure la stanza: benvenuto in Ebartex Tournaments!";
+const TUT_OUTRO = "È tutto qui! 🎉 PC per giocare, bacheca per creare, tavolo per i mazzi. Ora esplora pure la stanza: benvenuto in\nEbartex Tournaments!";
+const TUT_BRAND = "Ebartex Tournaments";
+/* Placeholder breve mentre il banner si prepara (prima del saluto di Spettro). */
+const TUT_WAIT = "Ecco un breve tutorial, ti mostro la stanza";
 
 /* Punti caldi evidenziati dentro le modali durante il tutorial: cerchio + cartello.
    `sel` mira a un elemento col selettore CSS, `text` lo cerca per etichetta (utile
@@ -115,6 +157,15 @@ const TUT_HOTSPOTS = {
   ],
   decks: [
     { text: "nuovo mazzo", label: "Crea qui il tuo nuovo mazzo", side: "bottom" },
+  ],
+};
+/* Punti caldi fuori modale (es. legenda tasti in basso a sinistra). */
+const TUT_UI_HOTSPOTS = {
+  keys: [
+    { sel: ".irg-keys .irg-key:nth-child(1)", label: "1 → PC · Tornei", side: "right" },
+    { sel: ".irg-keys .irg-key:nth-child(2)", label: "2 → Tavolo · Deck", side: "right" },
+    { sel: ".irg-keys .irg-key:nth-child(3)", label: "3 → Bacheca · Crea", side: "right" },
+    { sel: ".irg-keys .irg-key:nth-child(4)", label: "P → Foto", side: "right" },
   ],
 };
 
@@ -2151,18 +2202,30 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       tutIntro(true);
       tutCaption(step.text);
       if (st.bubble) st.bubble = null;
+    } else if (step.kind === "keys") {
+      tutIntro(false);
+      tutCaption(step.text);
+      if (st.bubble) st.bubble = null;
+      if (st.modal && apiRef.current.closeModal) apiRef.current.closeModal();
+      st.modal = null;
+      if (apiRef.current.setTutorialUiSpot) apiRef.current.setTutorialUiSpot(step.id);
     } else {
       tutIntro(false);              // la barra "vola" in alto e prosegue
       tutSay(step.text);
     }
     if (step.kind === "say") {
       T.phase = "say";
+    } else if (step.kind === "keys") {
+      T.phase = "keys";
     } else {
       T.phase = "walk";
       clickObject(inter[step.id]);   // riusa tutta la coreografia (cammina, siede al PC, apre)
     }
   }
-  function tutAdvance() { st.tut.i++; tutBeginStep(); }
+  function tutAdvance() {
+    if (apiRef.current.setTutorialUiSpot) apiRef.current.setTutorialUiSpot(null);
+    st.tut.i++; tutBeginStep();
+  }
   function tutTick(dt) {
     const T = st.tut;
     if (!T.active) return;
@@ -2181,22 +2244,29 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (!step) { tutShowOutro(); return; }
     T.t += dt;
     if (step.kind === "say") {
-      if (T.t >= step.dur) tutAdvance();
+      const need = step.dur ?? tutCaptionSec(step.text, { intro: !!step.intro });
+      if (T.t >= need) tutAdvance();
+      return;
+    }
+    if (step.kind === "keys") {
+      if (T.t >= tutUiHoldSec(step)) tutAdvance();
       return;
     }
     /* kind "demo" */
     if (T.phase === "walk") {
-      if (st.modal === step.id) {
+      const captionDone = T.t >= tutCaptionSec(step.text);
+      // modale aperta ma frase esterna ancora in corso: non tagliare il cartello
+      if (st.modal === step.id && captionDone) {
         T.phase = "hold"; T.t = 0;
         // modale aperta: spiega cosa farci dentro. Solo la barra in alto (il
         // fumetto sull'omino sarebbe coperto dalla modale), niente bolla residua.
         if (step.inside) { tutCaption(step.inside); st.bubble = null; }
       }
-      else if (T.t > 9) { startInteract(inter[step.id]); }   // safety: forza l'apertura se il path è bloccato
+      else if (T.t > 14) { startInteract(inter[step.id]); }   // safety: forza l'apertura se il path è bloccato
       return;
     }
     if (T.phase === "hold") {
-      if (T.t >= (step.hold || 3)) {
+      if (T.t >= tutHoldSec(step)) {
         T.phase = "close"; T.t = 0;
         if (apiRef.current.closeModal) apiRef.current.closeModal();
         else { st.modal = null; }
@@ -2221,6 +2291,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     st.modal = null;
     if (st.bubble) st.bubble = null;
     tutIntro(true);            // ri-ingrandisce il pop-up
+    if (apiRef.current.setTutorialUiSpot) apiRef.current.setTutorialUiSpot(null);
     tutCaption(TUT_OUTRO);     // testo che si "scrive" lato React
     tutOutro(true);            // mostra i bottoni di scelta
   }
@@ -2235,6 +2306,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     tutOutro(false);
     tutCaption(null);
     tutIntro(true);
+    if (apiRef.current.setTutorialUiSpot) apiRef.current.setTutorialUiSpot(null);
     if (apiRef.current.setTutorial) apiRef.current.setTutorial(true);
   }
   function endTutorial() {
@@ -3511,9 +3583,31 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   /* — Spettro: il fantasmino-guida che fluttua accanto al personaggio
      durante il tutorial (coordinato con il narratore in alto). — */
-  function drawSpettroCompanion() {
+  // posizione "guida": insegue un punto davanti all'avatar verso la meta
+  function updateSpettro() {
     const av = st.av;
-    const c = tileTop(av.fx - 0.55, av.fy - 0.55);
+    if (!st.spet) st.spet = { fx: av.fx, fy: av.fy };
+    const DIRV = { se: { x: 1, y: 0 }, nw: { x: -1, y: 0 }, sw: { x: 0, y: 1 }, ne: { x: 0, y: -1 } };
+    const dest = av.to || (av.queue && av.queue.length ? av.queue[av.queue.length - 1] : null);
+    let lx, ly, lead;
+    if (dest && (Math.abs(dest.cx - av.fx) > 0.05 || Math.abs(dest.cy - av.fy) > 0.05)) {
+      const dx = dest.cx - av.fx, dy = dest.cy - av.fy, len = Math.hypot(dx, dy) || 1;
+      lx = av.fx + (dx / len) * 1.6;   // ~1,6 caselle davanti, verso la meta
+      ly = av.fy + (dy / len) * 1.6;
+      lead = 0.11;                     // insegue spedito per restare davanti
+    } else {
+      const d = DIRV[av.dir] || { x: 0, y: -1 };
+      lx = av.fx + d.x * 1.05;         // da fermo aleggia poco davanti (non incollato)
+      ly = av.fy + d.y * 1.05;
+      lead = 0.05;                     // avvicinamento morbido
+    }
+    st.spet.fx += (lx - st.spet.fx) * lead;
+    st.spet.fy += (ly - st.spet.fy) * lead;
+    return st.spet;
+  }
+  function drawSpettroCompanion() {
+    const sp = st.spet || updateSpettro();
+    const c = tileTop(sp.fx, sp.fy);
     const fl = Math.sin(st.t * 2.2) * 2.4;          // fluttua su/giu
     const sway = Math.sin(st.t * 1.3) * 1.5;        // ondeggia di lato
     const cx = c.x + sway, cy = c.y + HTH - 34 + fl;
@@ -3877,7 +3971,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const dogBox = { dog: true, minX: st.dog.fx - 0.01, maxX: st.dog.fx + 0.01, minY: st.dog.fy - 0.01, maxY: st.dog.fy + 0.01 };
     const dyn = [avBox, catBox, dogBox];
     if (st.ghost) dyn.push({ ghost: true, minX: GHOST_TILE.cx - 0.01, maxX: GHOST_TILE.cx + 0.01, minY: GHOST_TILE.cy - 0.01, maxY: GHOST_TILE.cy + 0.01 });
-    if (st.tut.active) { const sx = st.av.fx - 0.55, sy = st.av.fy - 0.55; dyn.push({ spettro: true, minX: sx - 0.01, maxX: sx + 0.01, minY: sy - 0.01, maxY: sy + 0.01 }); }
+    if (st.tut.active) { const sp = updateSpettro(); dyn.push({ spettro: true, minX: sp.fx - 0.01, maxX: sp.fx + 0.01, minY: sp.fy - 0.01, maxY: sp.fy + 0.01 }); }
     const sorted = entities.concat(dyn).sort(cmpDepth);
     const plantIdx = [0, 1, 2, 1][Math.floor(st.t * 1.4) % 4];
     const turnIdx = sfx.musicOn() ? Math.floor(st.t * 7) % 4 : 0;
@@ -4801,11 +4895,13 @@ const CSS_TEXT = [
   ".irg-tut-eyes{transform-origin:center 23px;animation:irgGhostBlink 4.4s ease-in-out infinite;}",
   ".irg-tut-text{position:relative;flex:1 1 auto;color:#fdf3e8;font-size:15px;font-weight:600;line-height:1.45;",
   "transition:font-size .45s ease;}",
-  ".irg-tut-reserve{visibility:hidden;display:block;}",
+  ".irg-tut-reserve{visibility:hidden;display:block;white-space:pre-line;}",
   ".irg-tut-typed{position:absolute;inset:0;display:block;}",
   ".irg-tut-word{display:inline-block;white-space:nowrap;}",
   ".irg-tut-sp{white-space:pre;}",
   ".irg-tut-ch{display:inline-block;white-space:pre;animation:irgChIn .22s ease both;}",
+  ".irg-tut-brand{color:#FF7300;text-shadow:0 0 12px rgba(255,115,0,.42);}",
+  ".irg-tut-intro .irg-tut-brand,.irg-tut-final .irg-tut-brand{text-shadow:0 0 18px rgba(255,115,0,.52);}",
   "@keyframes irgChIn{from{opacity:0;transform:translateY(.16em) scale(.94);filter:blur(.5px)}to{opacity:1;transform:none;filter:none}}",
   ".irg-tut-caret{display:inline-block;width:2px;height:1.05em;margin-left:2px;vertical-align:-2px;",
   "background:#ffb060;border-radius:1px;animation:irgCaret .8s steps(1) infinite;}",
@@ -4875,7 +4971,10 @@ const CSS_TEXT = [
   "@keyframes irgSpotLabel{to{opacity:1}}",
   "@keyframes irgSpotPulse{0%,100%{box-shadow:0 0 0 3px rgba(255,207,69,.14),0 0 14px rgba(255,160,40,.38);border-color:#ffc636}",
   "50%{box-shadow:0 0 0 7px rgba(255,207,69,.05),0 0 28px rgba(255,160,40,.7);border-color:#ffe289}}",
-  "@media (prefers-reduced-motion:reduce){.irg-spot-ring{animation:none}}",
+  /* zoom leggero sull'elemento cerchiato (classe applicata da TutorialHotspots) */
+  ".irg-spot-target{position:relative;z-index:2;transform-origin:center center;transform:scale(1.05);",
+  "transition:transform .42s cubic-bezier(.34,1.45,.64,1);transition-delay:var(--irg-spot-delay,0s);}",
+  "@media (prefers-reduced-motion:reduce){.irg-spot-ring{animation:none}.irg-spot-target{transition:none;transform:scale(1.03)}}",
   /* — backdrop e modale — */
   ".irg-backdrop{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;",
   "background:rgba(10,12,22,.46);backdrop-filter:blur(2.5px) saturate(.92);animation:irgFade .25s ease;padding:18px;}",
@@ -5357,13 +5456,93 @@ function ModalShell({ id, closing, onClose, className, children }) {
    pochi elementi che contano davvero dentro la modale aperta. Sovrapposizione
    non interattiva (pointer-events:none) ancorata al riquadro del gioco; le
    posizioni si ri-misurano a intervalli per seguire scroll/resize/layout. */
-function TutorialHotspots({ wrapRef, modalId }) {
+/* Typewriter del banner tutorial: evidenzia il brand arancione Ebartex. */
+function tutBrandRange(text) {
+  const chars = Array.from(text || "");
+  const needle = Array.from(TUT_BRAND);
+  if (!needle.length) return [-1, -1];
+  outer: for (let i = 0; i <= chars.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (chars[i + j] !== needle[j]) continue outer;
+    }
+    return [i, i + needle.length];
+  }
+  return [-1, -1];
+}
+function renderTutTyped(typed, full) {
+  const [brandStart, brandEnd] = tutBrandRange(full);
+  const typedChars = Array.from(typed);
+  const chCls = (idx) => {
+    const brand = brandStart >= 0 && idx >= brandStart && idx < brandEnd;
+    return "irg-tut-ch" + (brand ? " irg-tut-brand" : "");
+  };
+
+  const nodes = [];
+  let i = 0;
+  while (i < typedChars.length) {
+    const ch = typedChars[i];
+    if (ch === "\n") {
+      nodes.push(<br key={"br" + i} />);
+      i += 1;
+      continue;
+    }
+    if (/^\s$/.test(ch)) {
+      nodes.push(<span key={"s" + i} className={"irg-tut-sp " + chCls(i)}>{ch}</span>);
+      i += 1;
+      continue;
+    }
+    const start = i;
+    let word = "";
+    while (i < typedChars.length && typedChars[i] !== "\n" && !/^\s$/.test(typedChars[i])) {
+      word += typedChars[i];
+      i += 1;
+    }
+    nodes.push(
+      <span key={"w" + start} className="irg-tut-word">
+        {Array.from(word).map((wc, j) => (
+          <span key={j} className={chCls(start + j)}>{wc}</span>
+        ))}
+      </span>
+    );
+  }
+  return nodes;
+}
+
+function TutorialHotspots({ wrapRef, modalId, uiId }) {
   const [spots, setSpots] = useState([]);
+  const taggedRef = useRef(new Set());
+
+  const clearTargets = () => {
+    for (const el of taggedRef.current) {
+      el.classList.remove("irg-spot-target");
+      el.style.removeProperty("--irg-spot-delay");
+    }
+    taggedRef.current.clear();
+  };
+
+  const syncTargets = (entries) => {
+    const next = new Set(entries.map((e) => e.el));
+    for (const el of taggedRef.current) {
+      if (!next.has(el)) {
+        el.classList.remove("irg-spot-target");
+        el.style.removeProperty("--irg-spot-delay");
+        taggedRef.current.delete(el);
+      }
+    }
+    for (const { el, delay } of entries) {
+      if (!taggedRef.current.has(el)) {
+        el.style.setProperty("--irg-spot-delay", delay + "s");
+        el.classList.add("irg-spot-target");
+        taggedRef.current.add(el);
+      }
+    }
+  };
 
   useEffect(() => {
-    if (!modalId) { setSpots([]); return; }
-    const specs = TUT_HOTSPOTS[modalId];
-    if (!specs || !specs.length) { setSpots([]); return; }
+    const spotId = uiId || modalId;
+    if (!spotId) { clearTargets(); setSpots([]); return; }
+    const specs = uiId ? TUT_UI_HOTSPOTS[uiId] : TUT_HOTSPOTS[modalId];
+    if (!specs || !specs.length) { clearTargets(); setSpots([]); return; }
 
     let alive = true, raf = null, prev = "";
     const resolve = (spec, root) => {
@@ -5380,34 +5559,37 @@ function TutorialHotspots({ wrapRef, modalId }) {
     const measure = () => {
       if (!alive) return;
       const wrap = wrapRef.current;
-      const root = wrap && wrap.querySelector(`[data-irg-modal="${modalId}"]`);
+      const root = wrap && (uiId ? wrap : wrap.querySelector(`[data-irg-modal="${modalId}"]`));
       if (wrap && root) {
         const wr = wrap.getBoundingClientRect();
-        const mr = root.getBoundingClientRect();
+        const clip = uiId ? wr : root.getBoundingClientRect();
         const next = [];
+        const targets = [];
         specs.forEach((spec, i) => {
           const el = resolve(spec, root);
           if (!el) return;
           const r = el.getBoundingClientRect();
           if (r.width < 2 || r.height < 2) return;
-          // salta gli elementi scrollati fuori dalla parte visibile della modale
-          if (r.bottom < mr.top + 4 || r.top > mr.bottom - 4) return;
+          if (r.bottom < clip.top + 4 || r.top > clip.bottom - 4) return;
+          const delay = i * 0.95;
+          targets.push({ el, delay });
           next.push({
-            key: i, label: spec.label, side: spec.side || "bottom", delay: i * 0.95,
+            key: i, label: spec.label, side: spec.side || "bottom", delay,
             x: Math.round(r.left - wr.left), y: Math.round(r.top - wr.top),
             w: Math.round(r.width), h: Math.round(r.height),
           });
         });
+        syncTargets(targets);
         const sig = JSON.stringify(next);
         if (sig !== prev) { prev = sig; setSpots(next); }
       } else if (prev !== "[]") {
-        prev = "[]"; setSpots([]);
+        prev = "[]"; setSpots([]); clearTargets();
       }
       raf = setTimeout(measure, 160); // ri-misura morbida, costo trascurabile
     };
     measure();
-    return () => { alive = false; if (raf) clearTimeout(raf); };
-  }, [wrapRef, modalId]);
+    return () => { alive = false; if (raf) clearTimeout(raf); clearTargets(); };
+  }, [wrapRef, modalId, uiId]);
 
   if (!spots.length) return null;
   return (
@@ -5912,6 +6094,7 @@ export default function IsoRoomGame({
   const [tutorialCaption, setTutorialCaption] = useState(null);
   const [tutorialIntro, setTutorialIntro] = useState(false);
   const [tutorialOutro, setTutorialOutro] = useState(false);
+  const [tutorialUiSpot, setTutorialUiSpot] = useState(null);
   const [typedCaption, setTypedCaption] = useState("");
   const [typing, setTyping] = useState(false);
   const [powering, setPowering] = useState(false);
@@ -5927,10 +6110,11 @@ export default function IsoRoomGame({
 
   apiRef.current.openModal = (id) => { if (mountedRef.current) setModal(id); };
   apiRef.current.hideHint = () => { if (mountedRef.current) setHint(false); };
-  apiRef.current.setTutorial = (v) => { if (mountedRef.current) { setTutorialActive(v); if (!v) { setTutorialIntro(false); setTutorialOutro(false); } } };
+  apiRef.current.setTutorial = (v) => { if (mountedRef.current) { setTutorialActive(v); if (!v) { setTutorialIntro(false); setTutorialOutro(false); setTutorialUiSpot(null); } } };
   apiRef.current.setTutorialCaption = (t) => { if (mountedRef.current) setTutorialCaption(t); };
   apiRef.current.setTutorialIntro = (v) => { if (mountedRef.current) setTutorialIntro(v); };
   apiRef.current.setTutorialOutro = (v) => { if (mountedRef.current) setTutorialOutro(v); };
+  apiRef.current.setTutorialUiSpot = (id) => { if (mountedRef.current) setTutorialUiSpot(id || null); };
 
   /* effetto "macchina da scrivere" morbido: ogni lettera compare con una breve
      dissolvenza (vedi .irg-tut-ch). Ritmo veloce ma naturale — micro-pause sulla
@@ -5945,10 +6129,7 @@ export default function IsoRoomGame({
     setTypedCaption("");
     setTyping(true);
     let i = 0, timer = null, cancelled = false;
-    const pauseFor = (ch) =>
-      ".!?…".includes(ch) ? 360 :
-      ",;:".includes(ch)  ? 190 :
-      34; // ~34ms/lettera: piu calmo e leggibile, meno scattoso
+    const pauseFor = (ch) => tutPauseMs(ch);
     const tick = () => {
       if (cancelled) return;
       i += 1;
@@ -5956,7 +6137,7 @@ export default function IsoRoomGame({
       if (i >= chars.length) { setTyping(false); return; }
       timer = setTimeout(tick, pauseFor(chars[i - 1]));
     };
-    timer = setTimeout(tick, 34);
+    timer = setTimeout(tick, TUT_CHAR_MS);
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, [tutorialCaption]);
 
@@ -6234,20 +6415,10 @@ export default function IsoRoomGame({
               </svg>
             </span>
             <span className="irg-tut-text">
-              <span className="irg-tut-reserve" aria-hidden>{tutorialCaption || "Ti mostro la stanza…"}</span>
+              <span className="irg-tut-reserve" aria-hidden>{tutorialCaption || TUT_WAIT}</span>
               <span className="irg-tut-typed">
-                {!tutorialCaption && !typedCaption && "Ti mostro la stanza…"}
-                {typedCaption.split(/(\s+)/).map((part, wi) =>
-                  /^\s+$/.test(part) ? (
-                    <span key={wi} className="irg-tut-sp">{part}</span>
-                  ) : (
-                    <span key={wi} className="irg-tut-word">
-                      {Array.from(part).map((ch, ci) => (
-                        <span key={ci} className="irg-tut-ch">{ch}</span>
-                      ))}
-                    </span>
-                  )
-                )}
+                {!tutorialCaption && !typedCaption && TUT_WAIT}
+                {tutorialCaption && renderTutTyped(typedCaption, tutorialCaption)}
                 {typing && <span className="irg-tut-caret" aria-hidden />}
               </span>
             </span>
@@ -6275,6 +6446,9 @@ export default function IsoRoomGame({
           aperta dal tutorial (solo durante la guida, non a chiusura in corso) */}
       {tutorialActive && modal && !closing && (
         <TutorialHotspots wrapRef={wrapRef} modalId={modal} />
+      )}
+      {tutorialActive && tutorialUiSpot && (
+        <TutorialHotspots wrapRef={wrapRef} uiId={tutorialUiSpot} />
       )}
 
       {/* modali */}
