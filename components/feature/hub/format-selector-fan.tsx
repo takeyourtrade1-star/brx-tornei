@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -78,11 +78,26 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
     }
   }, []);
 
-  const scrollToModalita = useCallback(() => {
-    setTimeout(() => {
+  // Lo step 2 compare solo dopo la navigazione RSC: scroll quando selectedId è pronto.
+  useEffect(() => {
+    if (!selectedId) return;
+
+    let cancelled = false;
+    const scroll = () => {
+      if (cancelled) return;
       document.getElementById('modalita')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 150);
-  }, []);
+    };
+
+    scroll();
+    const retry1 = window.setTimeout(scroll, 100);
+    const retry2 = window.setTimeout(scroll, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(retry1);
+      window.clearTimeout(retry2);
+    };
+  }, [selectedId]);
 
   const hasSelection = selectedId !== undefined;
   const isAnyCardHovered = hoveredIndex !== null;
@@ -124,7 +139,6 @@ export function FormatSelectorFan({ formats, selectedId }: FormatSelectorFanProp
               key={format.id}
               href={`/hub?format=${format.id}#modalita`}
               scroll={false}
-              onClick={scrollToModalita}
               onMouseEnter={() => {
                 setHoveredIndex(index);
                 playVideo(format.id);

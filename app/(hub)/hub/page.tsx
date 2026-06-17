@@ -46,7 +46,7 @@ export default async function HubPage({ searchParams }: PageProps) {
 
       {/* Step 2: modalità — appare solo dopo la selezione del formato (come da mockup) */}
       {selected && (
-        <div id="modalita" className="animate-auth-enter flex flex-col gap-6">
+        <div id="modalita" className="animate-auth-enter scroll-mt-28 flex flex-col gap-6">
           <div className="flex items-center gap-3">
             <span className="flex h-8 w-8 items-center justify-center rounded-full brx-liquid-glass-circle font-sans font-bold text-white">
               2
