@@ -146,7 +146,7 @@ const TUT_WAIT = "Ecco un breve tutorial, ti mostro la stanza";
    quando la modale non espone classi stabili). `side` posiziona il cartello. */
 const TUT_HOTSPOTS = {
   pc: [
-    { sel: ".irg-fmts",     label: "I 7 formati: passaci sopra per l'anteprima animata", side: "bottom" },
+    { sel: ".irg-fmts",     label: "I 8 formati: passaci sopra per l'anteprima animata", side: "bottom" },
     { sel: ".irg-ebx-join", label: "Premi qui per iscriverti al torneo",                side: "left" },
     { sel: ".irg-eyebtn",   label: "L'occhio apre la partita in diretta",               side: "left" },
   ],
@@ -168,6 +168,28 @@ const TUT_UI_HOTSPOTS = {
     { sel: ".irg-keys .irg-key:nth-child(4)", label: "P → Foto", side: "right" },
   ],
 };
+
+/** Stima durata di uno step (allineata a tutTick). */
+function tutEstimatedStepSec(step) {
+  if (step.kind === "say") {
+    return step.dur ?? tutCaptionSec(step.text, { intro: !!step.intro });
+  }
+  if (step.kind === "keys") {
+    return tutUiHoldSec(step);
+  }
+  const walk = Math.max(tutCaptionSec(step.text), 4.5);
+  return walk + tutHoldSec(step) + 3.5;
+}
+function tutTotalDurationSec() {
+  return TUT_STEPS.reduce((sum, step) => sum + tutEstimatedStepSec(step), 0);
+}
+function formatTutDurationLabel(sec) {
+  const total = Math.ceil(sec);
+  if (total < 60) return `circa ${total} s`;
+  const min = Math.round(total / 60);
+  return min === 1 ? "circa 1 min" : `circa ${min} min`;
+}
+const TUT_DURATION_LABEL = formatTutDurationLabel(tutTotalDurationSec());
 
 /* Battute degli easter egg (oggetti decorativi cliccabili) */
 const EGG_LINES = {
@@ -5191,6 +5213,9 @@ const CSS_TEXT = [
   "font-weight:700;transition:background-color .18s,color .18s,border-color .18s,transform .12s;white-space:nowrap;}",
   ".irg-tut-skip:hover{background:rgba(255,115,0,.2);border-color:rgba(255,115,0,.45);color:#fff;transform:scale(1.04);}",
   ".irg-tut-skip:active{transform:scale(.96);}",
+  ".irg-tut-side{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;}",
+  ".irg-tut-dur{font-size:10.5px;font-weight:600;line-height:1.2;color:rgba(207,214,245,.62);letter-spacing:.03em;white-space:nowrap;}",
+  ".irg-tut-dur-intro{margin-top:2px;font-size:13px;color:rgba(253,243,232,.58);}",
   /* stato grande: cartello al centro (intro e outro) */
   ".irg-tut-intro{top:36%;width:min(780px,94vw);}",
   ".irg-tut-intro .irg-tut-bar{flex-direction:column;text-align:center;gap:17px;padding:28px 30px;",
@@ -5501,7 +5526,7 @@ const CSS_TEXT = [
   ".irg-mtitle{font-size:11px;}",
   "}",
   /* — Tornei Live: 7 card formati orizzontali con video all'hover — */
-  ".irg-fmts{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin:16px 0 4px;}",
+  ".irg-fmts{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin:16px 0 4px;}",
   ".irg-fmtcard{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;cursor:pointer;",
   "background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 8px 18px rgba(0,0,0,.4);",
   "transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s ease;will-change:transform;}",
@@ -6213,7 +6238,7 @@ function MiniTip({ text }) {
   );
 }
 
-/* — Tornei Live: 7 formati orizzontali (immagine + video all'hover) — */
+/* — Tornei Live: 8 formati orizzontali (immagine + video all'hover) — */
 const FORMATS_OR = [
   { key: "old-school", label: "Old School", img: "/immagini-formato-orizzontale/old-school-or.webp", vid: "/video-animazione-orizzontale/animazione-old-school.webm" },
   { key: "pre-modern", label: "Pre-Modern", img: "/immagini-formato-orizzontale/pre-modern-or.webp", vid: "/video-animazione-orizzontale/animazione-pre-modern.webm" },
@@ -6221,6 +6246,7 @@ const FORMATS_OR = [
   { key: "modern", label: "Modern", img: "/immagini-formato-orizzontale/modern-or.webp", vid: "/video-animazione-orizzontale/animazione-modern.webm" },
   { key: "standard", label: "Standard", img: "/immagini-formato-orizzontale/standard-or.webp", vid: "/video-animazione-orizzontale/animazione-standard.webm" },
   { key: "legacy", label: "Legacy", img: "/immagini-formato-orizzontale/legacy-or.webp", vid: "/video-animazione-orizzontale/animazione-legacy.webm" },
+  { key: "pauper", label: "Pauper", img: "/immagini-formato-orizzontale/pauper-or.webp", vid: "/video-animazione-orizzontale/animazione-pauper.webm" },
   { key: "commander", label: "Commander", img: "/immagini-formato-orizzontale/commander-or.webp", vid: "/video-animazione-orizzontale/animazione-commander.webm" },
 ];
 
@@ -6746,6 +6772,9 @@ export default function IsoRoomGame({
                 {typing && <span className="irg-tut-caret" aria-hidden />}
               </span>
             </span>
+            {tutorialIntro && !tutorialOutro ? (
+              <span className="irg-tut-dur irg-tut-dur-intro">{TUT_DURATION_LABEL}</span>
+            ) : null}
             {tutorialOutro ? (
               <div className="irg-tut-actions">
                 <div className="irg-tut-repeat">
@@ -6758,9 +6787,19 @@ export default function IsoRoomGame({
                 </button>
               </div>
             ) : (
-              <button type="button" className="irg-tut-skip" onClick={skipTutorial}>
-                Salta tutorial
-              </button>
+              <div className="irg-tut-side">
+                <button
+                  type="button"
+                  className="irg-tut-skip"
+                  onClick={skipTutorial}
+                  aria-label={`Salta tutorial (${TUT_DURATION_LABEL})`}
+                >
+                  Salta tutorial
+                </button>
+                <span className="irg-tut-dur" aria-hidden>
+                  {TUT_DURATION_LABEL}
+                </span>
+              </div>
             )}
           </div>
         </div>
