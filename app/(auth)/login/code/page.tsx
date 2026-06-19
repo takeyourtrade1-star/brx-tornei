@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { LoginCodeForm } from '@/components/feature/auth/login-code-form';
-import { AuthCard } from '@/components/layout/AuthCard';
+import { LoginCodeView } from './login-code-view';
 import { getSession } from '@/lib/auth/session';
 import { sanitizeRedirect } from '@/lib/auth/redirect';
 
@@ -21,9 +20,5 @@ export default async function LoginCodePage({ searchParams }: LoginCodePageProps
 
   if (session) redirect(redirectTo);
 
-  return (
-    <AuthCard>
-      <LoginCodeForm redirect={params.redirect ?? ''} />
-    </AuthCard>
-  );
+  return <LoginCodeView redirect={params.redirect ?? ''} />;
 }

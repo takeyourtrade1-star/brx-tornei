@@ -83,6 +83,13 @@ export function getCdnImageUrl(path: string): string {
   return `/images/${p}`;
 }
 
+/** URL video CDN (es. sfondo auth split). Stessa logica delle immagini. */
+export function getCdnVideoUrl(path: string): string {
+  const p = path.replace(/^\/+/, '');
+  if (ASSETS.imagesBaseUrl) return `${ASSETS.imagesBaseUrl}/${p}`;
+  return `/images/${p}`;
+}
+
 export const config = {
   api: {
     baseURL: getAuthApiURL(),

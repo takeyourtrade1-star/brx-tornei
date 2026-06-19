@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { VerifyMfaForm } from '@/components/feature/auth/verify-mfa-form';
-import { AuthCard } from '@/components/layout/AuthCard';
+import { VerifyMfaView } from './verify-mfa-view';
 import { getPreAuthCookie } from '@/lib/auth/pre-auth-cookie';
 import { getSession } from '@/lib/auth/session';
 import { sanitizeRedirect } from '@/lib/auth/redirect';
@@ -28,9 +27,5 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
     );
   }
 
-  return (
-    <AuthCard>
-      <VerifyMfaForm redirect={params.redirect ?? ''} />
-    </AuthCard>
-  );
+  return <VerifyMfaView redirect={params.redirect ?? ''} />;
 }

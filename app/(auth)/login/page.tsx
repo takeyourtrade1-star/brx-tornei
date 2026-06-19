@@ -1,14 +1,15 @@
-import Link from 'next/link';
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { LoginForm } from '@/components/feature/auth/login-form';
-import { AuthCard } from '@/components/layout/AuthCard';
-import { AUTH_LINK, AUTH_MUTED_TEXT } from '@/components/layout/auth-styles';
+import { LoginView } from './login-view';
 import { getSession } from '@/lib/auth/session';
 import { sanitizeRedirect } from '@/lib/auth/redirect';
 import { config } from '@/lib/config';
 
-export const metadata: Metadata = { title: 'Accedi' };
+export const metadata: Metadata = {
+  title: 'Accedi',
+  description: 'Accedi alla sala tornei Ebartex con le tue credenziali',
+};
 
 interface LoginPageProps {
   searchParams: Promise<{ redirect?: string; accesso?: string }>;
@@ -22,19 +23,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (session) redirect(redirectTo);
 
   return (
-    <AuthCard title="Accedi">
-      <LoginForm
+    <Suspense>
+      <LoginView
         redirect={params.redirect ?? ''}
         recoverUrl={`${config.app.mainSiteUrl}/recupera-credenziali`}
       />
-      <div className="mt-8 border-t border-gray-200/50 pt-6 text-center">
-        <p className={AUTH_MUTED_TEXT}>
-          Non hai un account?{' '}
-          <Link href="/registrati" className={`text-[14px] font-semibold ${AUTH_LINK}`}>
-            Registrati
-          </Link>
-        </p>
-      </div>
-    </AuthCard>
+    </Suspense>
   );
 }

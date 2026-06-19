@@ -195,17 +195,47 @@ const WEEK_LINES = [
   "Top seller della settimana. Sì, ne ho già tre copie.",
 ];
 
-/* Nomi torneo mock per il coupon della busta lettere */
+/* Nomi torneo mock per la ricompensa crediti della busta lettere */
 const MOCK_TOURNAMENT_NAMES = [
   "Coppa del Weekend", "Grand Prix Notturno", "Challenge d'Autunno",
   "Torneo dei Campioni", "Duello d'Estate", "Open del Venerdì",
   "Coppa Ebartex", "Memorial del Meta", "Rush Hour Cup",
 ];
 
-function mockCouponCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const seg = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-  return "EBX-" + seg() + "-" + seg();
+const CREDIT_REWARD_NICE = [25, 50, 75, 100, 125, 150, 200];
+
+function mockCreditReward() {
+  const creditsBefore = 80 + Math.floor(Math.random() * 920);
+  const creditsEarned =
+    Math.random() < 0.45
+      ? CREDIT_REWARD_NICE[Math.floor(Math.random() * CREDIT_REWARD_NICE.length)]
+      : 15 + Math.floor(Math.random() * 136);
+  return {
+    creditsBefore,
+    creditsEarned,
+    creditsAfter: creditsBefore + creditsEarned,
+  };
+}
+
+/** Valore crediti con effetto slot/casinò durante il reveal. */
+function slotCreditValue(before, after, progress) {
+  const spinStart = 0.1;
+  const spinEnd = 0.94;
+  if (progress < spinStart) return before;
+  if (progress >= spinEnd) return after;
+  const t = (progress - spinStart) / (spinEnd - spinStart);
+  const eased = 1 - Math.pow(1 - t, 4.2);
+  const base = before + (after - before) * eased;
+  const jitterMax = Math.pow(1 - t, 2.2) * Math.max(12, (after - before) * 0.55);
+  const jitter =
+    (Math.sin(progress * 118 + before * 0.07) * 0.45 +
+      Math.sin(progress * 73 + after * 0.11) * 0.55) *
+    jitterMax;
+  return Math.min(after, Math.max(before, Math.floor(base + jitter)));
+}
+
+function formatCredits(n) {
+  return Math.round(n).toLocaleString("it-IT");
 }
 
 /* Battute misteriose della modalità Shadow Realm */
@@ -2064,7 +2094,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     shadow: null,                    // { until } modalità Shadow Realm
     matrix: [],                      // colonne della pioggia digitale alla finestra
     letterNextAt: 40 + Math.random() * 10, // busta lettere ogni 40-50s
-    letter: null,                    // busta attiva / sequenza coupon
+    letter: null,                    // busta attiva / sequenza ricompensa crediti
     letterFx: [],                    // particelle confetti (screen-space)
     hype: null,                      // sequenza di hype pre-match in corso
     pointer: { x: 0.5, y: 0.5 },     // mouse normalizzato (riflessi olografici)
@@ -2502,7 +2532,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     showBubble(lines[Math.floor(Math.random() * lines.length)], 3.2);
   }
 
-  /* — Busta lettere: click sulla busta a terra → sequenza coupon — */
+  /* — Busta lettere: click sulla busta a terra → ricompensa crediti — */
   function burstLetterFx(cx, cy, n = 24) {
     for (let i = 0; i < n; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -2521,6 +2551,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function spawnLetter() {
     if (st.letter || st.modal || st.lock || st.cinematic || st.hype) return;
+    const reward = mockCreditReward();
     st.letter = {
       phase: "slide",
       t0: st.t,
@@ -2528,7 +2559,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       y: LETTER_START.y,
       rot: -0.14,
       tournamentName: MOCK_TOURNAMENT_NAMES[Math.floor(Math.random() * MOCK_TOURNAMENT_NAMES.length)],
-      couponCode: mockCouponCode(),
+      creditsBefore: reward.creditsBefore,
+      creditsEarned: reward.creditsEarned,
+      creditsAfter: reward.creditsAfter,
+      lastCreditTick: reward.creditsBefore,
     };
     sfx.whoosh();
     showBubble("📬 Qualcuno ha lasciato una lettera alla porta!", 4.5);
@@ -2572,7 +2606,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     }
   }
 
-  function closeLetterCoupon() {
+  function closeLetterReward() {
     st.letter = null;
     st.cinematic = false;
     st.letterNextAt = st.t + 40 + Math.random() * 10;
@@ -3265,10 +3299,19 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         }
         if (openElapsed > 1.35 && !lt.flapBurst) advanceLetterToReveal();
       } else if (lt.phase === "reveal") {
-        if (st.t - lt.t0 > 1.35) {
+        const elapsed = st.t - lt.t0;
+        const revealK = clamp(elapsed / 1.35, 0, 1);
+        const shown = slotCreditValue(lt.creditsBefore, lt.creditsAfter, revealK);
+        if (shown !== lt.lastCreditTick && revealK > 0.12 && revealK < 0.93) {
+          lt.lastCreditTick = shown;
+          if (Math.random() < 0.35) sfx.click();
+        }
+        if (elapsed > 1.35) {
           lt.phase = "done";
           lt.t0 = st.t;
+          lt.lastCreditTick = lt.creditsAfter;
           sfx.ding();
+          sfx.success();
         }
       }
     }
@@ -3821,61 +3864,113 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.restore();
   };
 
-  const drawCouponTicket = (c, dx, dy, tournamentName, code, progress, uiScale = 1) => {
+  const drawCreditsReward = (c, dx, dy, tournamentName, creditsBefore, creditsAfter, progress, uiScale = 1, animT = 0) => {
     const k = clamp(progress, 0, 1);
     const pop = easeOutBack(k);
     const s = uiScale * pop;
+    const shown = slotCreditValue(creditsBefore, creditsAfter, k);
+    const counting = k > 0.1 && k < 0.94;
+    const done = k >= 0.94;
+    const delta = creditsAfter - creditsBefore;
+
     c.save();
     c.translate(dx, dy);
     c.scale(s, s);
-    const tw = 240, th = 172;
-    c.fillStyle = "#0f111a";
-    rr(c, -tw / 2 - 3, -th / 2 - 3, tw + 6, th + 6, 12);
+
+    const tw = 252, th = 188;
+    c.fillStyle = "#0a0c14";
+    rr(c, -tw / 2 - 4, -th / 2 - 4, tw + 8, th + 8, 14);
     c.fill();
+
     const tg = c.createLinearGradient(0, -th / 2, 0, th / 2);
-    tg.addColorStop(0, "#fff9eb");
-    tg.addColorStop(0.5, "#fff3d6");
-    tg.addColorStop(1, "#f0ddb0");
+    tg.addColorStop(0, "#1a2238");
+    tg.addColorStop(0.45, "#12182a");
+    tg.addColorStop(1, "#0d101c");
     c.fillStyle = tg;
-    rr(c, -tw / 2, -th / 2, tw, th, 10);
+    rr(c, -tw / 2, -th / 2, tw, th, 12);
     c.fill();
+
     c.strokeStyle = P.gold;
-    c.lineWidth = 3;
+    c.lineWidth = 2.5;
     c.stroke();
-    c.strokeStyle = "rgba(242,185,75,0.4)";
-    c.lineWidth = 1.5;
-    c.setLineDash([6, 4]);
-    c.strokeRect(-tw / 2 + 10, -th / 2 + 10, tw - 20, th - 20);
-    c.setLineDash([]);
-    c.fillStyle = "#121e3d";
-    c.font = "900 18px 'Segoe UI', system-ui, sans-serif";
+    c.strokeStyle = "rgba(242,185,75,0.25)";
+    c.lineWidth = 1;
+    c.strokeRect(-tw / 2 + 8, -th / 2 + 8, tw - 16, th - 16);
+
+    c.fillStyle = "#fff3dc";
+    c.font = "900 17px 'Segoe UI', system-ui, sans-serif";
     c.textAlign = "center";
-    c.fillText("ebartex", 0, -th / 2 + 34);
-    c.strokeStyle = "#FF7300";
-    c.lineWidth = 2;
-    c.beginPath();
-    c.moveTo(-42, -th / 2 + 40);
-    c.quadraticCurveTo(0, -th / 2 + 50, 42, -th / 2 + 36);
-    c.stroke();
-    c.fillStyle = "#23263c";
-    c.font = "700 14px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("Hai vinto il torneo di", 0, -6);
-    c.font = "800 17px 'Segoe UI', system-ui, sans-serif";
-    c.fillStyle = "#d94f46";
-    const name = tournamentName.length > 26 ? tournamentName.slice(0, 24) + "…" : tournamentName;
-    c.fillText(name + "!", 0, 18);
-    c.fillStyle = "#334155";
+    c.fillText("ebartex", 0, -th / 2 + 30);
+
+    c.fillStyle = "rgba(255,255,255,0.72)";
     c.font = "600 13px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("Ecco il coupon", 0, 42);
-    c.fillStyle = "rgba(15,17,26,0.08)";
-    rr(c, -92, 52, 184, 30, 6);
+    c.fillText("Hai vinto il torneo di", 0, -18);
+    c.font = "800 16px 'Segoe UI', system-ui, sans-serif";
+    c.fillStyle = "#ffb347";
+    const name = tournamentName.length > 24 ? tournamentName.slice(0, 22) + "…" : tournamentName;
+    c.fillText(name + "!", 0, 2);
+
+    const counterY = 52;
+    const pulse = counting ? 1 + 0.045 * Math.sin(animT * 22) : 1;
+    const glowA = counting ? 0.35 + 0.2 * Math.sin(animT * 16) : 0.28;
+
+    const cg = c.createRadialGradient(0, counterY, 4, 0, counterY, 72);
+    cg.addColorStop(0, "rgba(255,180,60," + glowA + ")");
+    cg.addColorStop(0.55, "rgba(255,115,0,0.12)");
+    cg.addColorStop(1, "rgba(255,115,0,0)");
+    c.fillStyle = cg;
+    c.beginPath();
+    c.ellipse(0, counterY, 98, 38, 0, 0, Math.PI * 2);
     c.fill();
-    c.strokeStyle = P.gold;
-    c.lineWidth = 1.5;
-    c.stroke();
-    c.fillStyle = "#1e293b";
-    c.font = "11px 'Press Start 2P', monospace";
-    c.fillText(code, 0, 72);
+
+    c.fillStyle = "rgba(255,255,255,0.55)";
+    c.font = "600 10px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("I tuoi crediti", 0, counterY - 28);
+
+    c.save();
+    c.translate(0, counterY);
+    c.scale(pulse, pulse);
+    c.fillStyle = counting ? "#fff8e8" : "#ffe9a8";
+    c.font = "900 34px 'Segoe UI', system-ui, sans-serif";
+    c.shadowColor = "rgba(255,180,60,0.85)";
+    c.shadowBlur = counting ? 16 + 8 * Math.sin(animT * 18) : 10;
+    c.fillText(formatCredits(shown), 0, 8);
+    c.shadowBlur = 0;
+    c.fillStyle = "rgba(255,255,255,0.55)";
+    c.font = "700 11px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("crediti", 0, 26);
+    c.restore();
+
+    const deltaK = clamp((k - 0.55) / 0.35, 0, 1);
+    if (deltaK > 0) {
+      c.globalAlpha = easeOutQuad(deltaK);
+      c.fillStyle = "#6ee7a8";
+      c.font = "800 14px 'Segoe UI', system-ui, sans-serif";
+      c.fillText("+" + formatCredits(delta) + " crediti", 0, counterY + 48);
+      c.globalAlpha = 1;
+    }
+
+    if (counting) {
+      for (let i = 0; i < 5; i++) {
+        const a = animT * 2.4 + i * 1.25;
+        const rad = 52 + 10 * Math.sin(animT * 3 + i);
+        const px = Math.cos(a) * rad;
+        const py = counterY + Math.sin(a) * rad * 0.45;
+        c.globalAlpha = 0.35 + 0.35 * Math.sin(animT * 5 + i);
+        c.fillStyle = i % 2 ? P.gold : "#FF7300";
+        c.beginPath();
+        c.arc(px, py, 2 + (i % 2), 0, Math.PI * 2);
+        c.fill();
+      }
+      c.globalAlpha = 1;
+    }
+
+    if (done) {
+      c.fillStyle = "rgba(255,255,255,0.45)";
+      c.font = "500 11px 'Segoe UI', system-ui, sans-serif";
+      c.fillText("Saldo aggiornato", 0, th / 2 - 18);
+    }
+
     c.textAlign = "left";
     c.restore();
   };
@@ -4431,7 +4526,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
       ctx.globalAlpha = 1;
     }
-    /* — busta lettere: overlay coupon fullscreen — */
+    /* — busta lettere: overlay ricompensa crediti fullscreen — */
     if (letterOverlayActive()) {
       const lt = st.letter;
       ctx.save();
@@ -4489,28 +4584,38 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           ctx.globalAlpha = 1;
         }
         const emerge = easeOutBack(revealK);
-        const couponY = centerY + lerp(48, -8, emerge);
-        drawCouponTicket(ctx, centerX, couponY, lt.tournamentName, lt.couponCode, revealK, uiS);
+        const rewardY = centerY + lerp(48, -8, emerge);
+        drawCreditsReward(
+          ctx,
+          centerX,
+          rewardY,
+          lt.tournamentName,
+          lt.creditsBefore,
+          lt.creditsAfter,
+          revealK,
+          uiS,
+          st.t
+        );
         if (fx.holo && revealK > 0.15) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = 0.28 * revealK;
-          const ticketH = 172 * uiS * emerge;
+          const ticketH = 188 * uiS * emerge;
           const sweepX = centerX - ticketH + ((st.t * 140) % (ticketH * 2.2));
-          const sg = ctx.createLinearGradient(sweepX, couponY - ticketH / 2, sweepX + 50, couponY + ticketH / 2);
+          const sg = ctx.createLinearGradient(sweepX, rewardY - ticketH / 2, sweepX + 50, rewardY + ticketH / 2);
           sg.addColorStop(0, "rgba(255,255,255,0)");
           sg.addColorStop(0.5, "rgba(255,233,176,0.9)");
           sg.addColorStop(1, "rgba(255,255,255,0)");
           ctx.fillStyle = sg;
-          ctx.fillRect(centerX - 130 * uiS, couponY - 100 * uiS, 260 * uiS, 200 * uiS);
+          ctx.fillRect(centerX - 130 * uiS, rewardY - 100 * uiS, 260 * uiS, 200 * uiS);
           ctx.restore();
         }
         if (lt.phase === "done") {
-          const footY = couponY + 98 * uiS;
-          ctx.fillStyle = "rgba(255,255,255,0.7)";
+          const footY = rewardY + 108 * uiS;
+          ctx.fillStyle = "rgba(255,255,255,0.78)";
           ctx.font = "500 " + Math.round(12 * uiS) + "px 'Segoe UI', system-ui, sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText("Riscatta il coupon entro 72h e usalo sul sito Ebartex.", centerX, footY);
+          ctx.fillText("Usali sul portale Ebartex.", centerX, footY);
           const btnW = 120 * uiS, btnH = 30 * uiS;
           ctx.fillStyle = "#d94f46";
           rr(ctx, centerX - btnW / 2, footY + 14, btnW, btnH, 8);
@@ -4651,12 +4756,12 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
       if (lt.phase === "done") {
         const uiS = Math.min(st.view.w / 340, st.view.h / 260, 2.8);
-        const couponY = centerY - 8;
-        const footY = couponY + 98 * uiS;
+        const rewardY = centerY - 8;
+        const footY = rewardY + 108 * uiS;
         const btnW = 120 * uiS, btnH = 30 * uiS;
         const btnCy = footY + 14 + btnH / 2;
         if (Math.abs(hx - centerX) < btnW / 2 + 8 && Math.abs(hy - btnCy) < btnH / 2 + 8) {
-          closeLetterCoupon();
+          closeLetterReward();
         }
         return;
       }
@@ -6419,4 +6524,173 @@ export default function IsoRoomGame({
       tournaments: d.tournaments.map((t) => {
         if (t.id !== id || t.status !== "in_registrazione") return t;
         if (t.participants.length >= t.maxPlayers || t.participants.some((p) => p.username === username)) return t;
-        const participants = [...t.pa
+        const participants = [...t.participants, { id: "me-" + id, username }];
+        return { ...t, participants, status: participants.length >= t.maxPlayers ? "iniziata" : t.status };
+      }),
+    }));
+    playSfx("success");
+    if (onJoinTournament) onJoinTournament(id);
+  }, [onJoinTournament, playSfx, username]);
+
+  const handleObserve = useCallback((id) => {
+    playSfx("success");
+    if (onObserveTournament) onObserveTournament(id);
+  }, [onObserveTournament, playSfx]);
+
+  const toggleMute = useCallback(() => {
+    setMuted((m) => {
+      const nm = !m;
+      if (gameRef.current) gameRef.current.setMuted(nm);
+      return nm;
+    });
+  }, []);
+
+  const toggleQuality = useCallback(() => {
+    setQuality((q) => {
+      const next = q === "low" ? "high" : "low";
+      saveQuality(next);
+      if (gameRef.current && gameRef.current.setQuality) {
+        gameRef.current.setQuality(next);
+      }
+      return next;
+    });
+  }, []);
+
+  const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
+
+  return (
+    <div ref={wrapRef} className={"irg-root" + (quality === "low" ? " irg-quality-low" : "") + (powering ? " irg-powering" : "")}>
+      <canvas ref={canvasRef} className="irg-canvas" />
+
+      {/* HUD */}
+      <div className="irg-chip irg-title"><span aria-hidden>🏆</span>{roomName}</div>
+      <div className="irg-controls">
+        <button type="button" className="irg-quality" onClick={toggleQuality}
+          aria-label={quality === "low" ? "Attiva qualità alta" : "Attiva qualità leggera"}>
+          HD{quality === "high" ? " ✓" : ""}
+        </button>
+        <button type="button" className="irg-mute" onClick={toggleMute}
+          aria-label={muted ? "Riattiva audio" : "Silenzia audio"}>
+          {muted ? (
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 6.5h2.5L9.5 3v12L5.5 11.5H3z" fill="currentColor" fillOpacity="0.25" />
+              <path d="M12.5 6.2l3.5 5.6M16 6.2l-3.5 5.6" />
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 6.5h2.5L9.5 3v12L5.5 11.5H3z" fill="currentColor" fillOpacity="0.25" />
+              <path d="M12 6a4 4 0 0 1 0 6M14 4a6.5 6.5 0 0 1 0 10" />
+            </svg>
+          )}
+        </button>
+      </div>
+      <div className={"irg-chip irg-hint" + (hint ? "" : " irg-off")}>
+        {isTouch ? "TOCCA PER MUOVERTI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
+      </div>
+      <div className="irg-keys">
+        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
+          <b>Tasto 1</b><span>PC · Tornei</span>
+        </button>
+        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(2)}>
+          <b>Tasto 2</b><span>Tavolo · Deck</span>
+        </button>
+        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(3)}>
+          <b>Tasto 3</b><span>Bacheca · Crea</span>
+        </button>
+        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey("P")}>
+          <b>Tasto P</b><span>Foto 📸</span>
+        </button>
+      </div>
+
+      {/* passa alla vista semplice (pagina classica, senza mini-gioco) */}
+      <button
+        type="button"
+        className="irg-simple-btn"
+        onClick={handleSimpleView}
+        aria-label="Passa alla vista semplice, senza mini-gioco"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+          <rect x="2" y="2.5" width="12" height="11" rx="1.6" />
+          <path d="M2 6h12M5 9.2h6M5 11.2h4" strokeLinecap="round" />
+        </svg>
+        Vista semplice
+      </button>
+
+      {/* tutorial guidato: cartello di benvenuto al centro che poi vola in alto
+          come barra di narrazione; alla fine si ri-ingrandisce con le scelte */}
+      {tutorialActive && (
+        <div className={"irg-tut" + (tutorialIntro ? " irg-tut-intro" : "") + (tutorialOutro ? " irg-tut-final" : "")}>
+          <div className="irg-tut-bar">
+            <span className="irg-tut-ghost" aria-hidden>
+              <svg viewBox="0 0 44 50" xmlns="http://www.w3.org/2000/svg">
+                <path className="irg-ghost-body" d="M8 25C8 11 14 4 22 4s14 7 14 21v17q0 4-3.5 0t-7 0t-7 0t-7 0Z" />
+                <g className="irg-tut-eyes">
+                  <ellipse className="irg-ghost-eye" cx="17.5" cy="23" rx="2.3" ry="3.1" />
+                  <ellipse className="irg-ghost-eye" cx="26.5" cy="23" rx="2.3" ry="3.1" />
+                </g>
+                <circle className="irg-ghost-blush" cx="13.5" cy="29.5" r="2.3" />
+                <circle className="irg-ghost-blush" cx="30.5" cy="29.5" r="2.3" />
+              </svg>
+            </span>
+            <span className="irg-tut-text">
+              <span className="irg-tut-reserve" aria-hidden>{tutorialCaption ? renderTutReserve(tutorialCaption) : TUT_WAIT}</span>
+              <span className="irg-tut-typed">
+                {!tutorialCaption && !typedCaption && TUT_WAIT}
+                {tutorialCaption && renderTutTyped(typedCaption, tutorialCaption)}
+                {typing && <span className="irg-tut-caret" aria-hidden />}
+              </span>
+            </span>
+            {tutorialOutro ? (
+              <div className="irg-tut-actions">
+                <div className="irg-tut-repeat">
+                  <span className="irg-tut-q">Tutto chiaro?</span>
+                  <button type="button" className="irg-tut-btn irg-tut-yes" onClick={skipTutorial}>Sì</button>
+                  <button type="button" className="irg-tut-btn irg-tut-no" onClick={repeatTutorial}>No</button>
+                </div>
+                <button type="button" className="irg-tut-btn irg-tut-simple" onClick={handleSimpleView}>
+                  Passa alla modalità semplificata
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="irg-tut-skip" onClick={skipTutorial}>
+                Salta tutorial
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* punti caldi: cerchi + cartelli sugli elementi chiave della modale
+          aperta dal tutorial (solo durante la guida, non a chiusura in corso) */}
+      {tutorialActive && modal && !closing && (
+        <TutorialHotspots wrapRef={wrapRef} modalId={modal} />
+      )}
+      {tutorialActive && tutorialUiSpot && (
+        <TutorialHotspots wrapRef={wrapRef} uiId={tutorialUiSpot} />
+      )}
+
+      {/* modali */}
+      {modal === "board" && (
+        <ModalShell id="board" closing={closing} onClose={closeModal} className="irg-m-board">
+          <BoardModal onPublish={handlePublish} onClose={closeModal} playSfx={playSfx} />
+        </ModalShell>
+      )}
+      {modal === "decks" && (
+        <ModalShell id="decks" closing={closing} onClose={closeModal} className="irg-m-decks irg-m-decks-wide">
+          <DecksModal inventory={inventory} />
+        </ModalShell>
+      )}
+      {modal === "pc" && (
+        <ModalShell id="pc" closing={closing} onClose={closeModal} className="irg-m-pc">
+          <PcModal tournaments={data.tournaments} onJoin={handleJoin} onObserve={handleObserve} me={username} formatName={formatName} modeName={modeName} />
+        </ModalShell>
+      )}
+      {modal === "mirror" && (
+        <ModalShell id="mirror" closing={closing} onClose={closeModal} className="irg-m-mirror">
+          <MirrorModal look={look} onChange={applyLook} drawPreview={drawLookPreview} />
+        </ModalShell>
+      )}
+    </div>
+  );
+}
+/* fine IsoRoomGame */

@@ -6,24 +6,36 @@ import { ArrowLeft, Mail } from 'lucide-react';
 import { requestLoginCodeAction, verifyLoginCodeAction } from '@/actions/auth';
 import { EmailCodeInput } from '@/components/auth/email-code-input';
 import { AuthErrorAlert } from '@/components/ui/auth-error-alert';
+import { AuthSplitHeader } from '@/components/layout/AuthSplitHeader';
 import {
   AUTH_APPLE_BUTTON,
   AUTH_APPLE_INPUT,
   AUTH_LINK,
   AUTH_MUTED_TEXT,
 } from '@/components/layout/auth-styles';
+import {
+  AUTH_SPLIT_BODY_CLASS,
+  AUTH_SPLIT_BUTTON_CLASS,
+  AUTH_SPLIT_CAPTION_CLASS,
+  AUTH_SPLIT_FORM_CLASS,
+  AUTH_SPLIT_INPUT_CLASS,
+  AUTH_SPLIT_LINK_CLASS,
+  AUTH_SPLIT_MUTED_CLASS,
+} from '@/components/layout/auth-split-styles';
 
 interface LoginCodeFormProps {
   redirect?: string;
+  variant?: 'default' | 'split';
 }
 
-export function LoginCodeForm({ redirect = '' }: LoginCodeFormProps) {
+export function LoginCodeForm({ redirect = '', variant = 'default' }: LoginCodeFormProps) {
   const [step, setStep] = useState<'request' | 'verify'>('request');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const isSplit = variant === 'split';
 
   const loginHref = redirect
     ? `/login?accesso=1&redirect=${encodeURIComponent(redirect)}`
@@ -101,6 +113,84 @@ export function LoginCodeForm({ redirect = '' }: LoginCodeFormProps) {
       setCountdown(300);
     });
   }, [countdown, email, redirect, startTransition]);
+
+  if (isSplit) {
+    return (
+      <>
+        <AuthSplitHeader
+          title="Accedi con codice"
+          subtitle={
+            step === 'request'
+              ? 'Inserisci la tua email per ricevere un codice monouso.'
+              : 'Controlla la posta e inserisci il codice a 8 caratteri.'
+          }
+          className="mb-0 shrink-0"
+        />
+
+        <AuthErrorAlert message={error} className="mt-4" />
+
+        {step === 'request' ? (
+          <form onSubmit={handleRequest} className={`${AUTH_SPLIT_FORM_CLASS} mt-4`}>
+            <input type="hidden" name="redirect" value={redirect} />
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="La tua email"
+              required
+              disabled={isPending}
+              className={AUTH_SPLIT_INPUT_CLASS}
+            />
+            <button type="submit" disabled={isPending} className={AUTH_SPLIT_BUTTON_CLASS}>
+              {isPending ? 'Invio in corso…' : 'Invia codice'}
+            </button>
+          </form>
+        ) : (
+          <div className={`${AUTH_SPLIT_FORM_CLASS} mt-4`}>
+            <div className="space-y-2.5">
+              <p className={AUTH_SPLIT_CAPTION_CLASS}>Codice monouso</p>
+              <p className={AUTH_SPLIT_MUTED_CLASS}>
+                Abbiamo inviato un codice a{' '}
+                <span className="font-medium text-[#1d1d1f]">{email}</span>
+              </p>
+
+              <EmailCodeInput
+                value={code}
+                onChange={setCode}
+                onComplete={(value) => handleVerify(undefined, value)}
+                disabled={isPending}
+              />
+
+              <p className={AUTH_SPLIT_MUTED_CLASS}>
+                {countdown > 0 ? `⏳ ${formattedCountdown}` : 'Puoi richiedere un nuovo codice'}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-start gap-1.5">
+              <span className={AUTH_SPLIT_BODY_CLASS}>Non l&apos;hai ricevuto?</span>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={isPending || countdown > 0}
+                className={`text-[13px] ${AUTH_SPLIT_LINK_CLASS} disabled:opacity-50 disabled:hover:no-underline`}
+              >
+                Reinvia codice
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleVerify(undefined, code)}
+              disabled={isPending || code.length !== 8}
+              className={AUTH_SPLIT_BUTTON_CLASS}
+            >
+              {isPending ? 'Accesso in corso…' : 'Accedi'}
+            </button>
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <>

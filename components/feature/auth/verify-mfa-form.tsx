@@ -11,16 +11,28 @@ import {
   AUTH_APPLE_BUTTON,
   AUTH_LINK,
 } from '@/components/layout/auth-styles';
+import {
+  AUTH_SPLIT_BUTTON_CLASS,
+  AUTH_SPLIT_CAPTION_CLASS,
+  AUTH_SPLIT_FORM_CLASS,
+} from '@/components/layout/auth-split-styles';
 
 interface VerifyMfaFormProps {
   redirect?: string;
+  variant?: 'default' | 'split';
+  loginHref?: string;
 }
 
-export function VerifyMfaForm({ redirect = '' }: VerifyMfaFormProps) {
+export function VerifyMfaForm({
+  redirect = '',
+  variant = 'default',
+  loginHref = '/login?accesso=1',
+}: VerifyMfaFormProps) {
   const [mfaCode, setMfaCode] = useState('');
   const [rememberDevice, setRememberDevice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const isSplit = variant === 'split';
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,14 +51,76 @@ export function VerifyMfaForm({ redirect = '' }: VerifyMfaFormProps) {
     });
   }
 
-  const loginHref = redirect
+  const defaultLoginHref = redirect
     ? `/login?accesso=1&redirect=${encodeURIComponent(redirect)}`
     : '/login?accesso=1';
+  const backHref = loginHref || defaultLoginHref;
+
+  if (isSplit) {
+    return (
+      <form onSubmit={handleSubmit} className={`${AUTH_SPLIT_FORM_CLASS} mt-6`}>
+        <input type="hidden" name="redirect" value={redirect} />
+        {rememberDevice && <input type="hidden" name="remember_device" value="on" />}
+
+        <div className="space-y-2.5">
+          <p className={AUTH_SPLIT_CAPTION_CLASS}>Codice di verifica</p>
+
+          <OtpSixBoxes
+            value={mfaCode}
+            onChange={setMfaCode}
+            disabled={isPending}
+            error={mfaCode.length > 0 && mfaCode.length < 6 ? '6 cifre richieste' : undefined}
+          />
+
+          <div className="flex items-center gap-2.5 pt-1">
+            <Checkbox
+              id="remember-device"
+              checked={rememberDevice}
+              onCheckedChange={setRememberDevice}
+              disabled={isPending}
+              className="mt-0.5 border-black/20 data-[state=checked]:border-global-bg-start data-[state=checked]:bg-global-bg-start"
+            />
+            <label
+              htmlFor="remember-device"
+              className="cursor-pointer select-none text-[13px] leading-snug text-[#515154]"
+            >
+              Ricorda questo dispositivo
+            </label>
+          </div>
+        </div>
+
+        <AuthErrorAlert message={error} />
+
+        <button
+          type="submit"
+          disabled={isPending || mfaCode.length !== 6}
+          className={AUTH_SPLIT_BUTTON_CLASS}
+        >
+          {isPending ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              Verifica in corso…
+            </span>
+          ) : (
+            'Verifica'
+          )}
+        </button>
+
+        <Link
+          href={backHref}
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#86868b] transition-colors hover:text-[#1d1d1f]"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+          Torna al login
+        </Link>
+      </form>
+    );
+  }
 
   return (
     <>
       <Link
-        href={loginHref}
+        href={backHref}
         className="mb-6 flex items-center gap-1 self-start text-[13px] font-medium text-[#86868b] transition-colors hover:text-[#1d1d1f]"
       >
         <ArrowLeft className="h-4 w-4" /> Indietro
@@ -68,9 +142,7 @@ export function VerifyMfaForm({ redirect = '' }: VerifyMfaFormProps) {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <input type="hidden" name="redirect" value={redirect} />
-        {rememberDevice && (
-          <input type="hidden" name="remember_device" value="on" />
-        )}
+        {rememberDevice && <input type="hidden" name="remember_device" value="on" />}
 
         <div className="space-y-3">
           <p className="text-center text-[12px] font-semibold uppercase tracking-wide text-[#86868b]">
@@ -115,7 +187,7 @@ export function VerifyMfaForm({ redirect = '' }: VerifyMfaFormProps) {
           </button>
 
           <Link
-            href={loginHref}
+            href={backHref}
             className="group flex items-center justify-center gap-1.5 text-[13px] font-medium text-[#86868b] transition-colors hover:text-[#1d1d1f]"
           >
             <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
