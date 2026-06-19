@@ -3601,50 +3601,116 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       ly = av.fy + d.y * 1.05;
       lead = 0.05;                     // avvicinamento morbido
     }
+    const pfx = st.spet.fx, pfy = st.spet.fy;
     st.spet.fx += (lx - st.spet.fx) * lead;
     st.spet.fy += (ly - st.spet.fy) * lead;
+    st.spet.vx = (st.spet.vx || 0) * 0.82 + (st.spet.fx - pfx) * 0.18;
+    st.spet.vy = (st.spet.vy || 0) * 0.82 + (st.spet.fy - pfy) * 0.18;
     return st.spet;
   }
   function drawSpettroCompanion() {
     const sp = st.spet || updateSpettro();
     const c = tileTop(sp.fx, sp.fy);
-    const fl = Math.sin(st.t * 2.2) * 2.4;          // fluttua su/giu
-    const sway = Math.sin(st.t * 1.3) * 1.5;        // ondeggia di lato
-    const cx = c.x + sway, cy = c.y + HTH - 34 + fl;
-    const w = 12.5, by = cy + 12;
+    const t = st.t;
+    const fl = Math.sin(t * 2.0) * 2.6 + Math.sin(t * 0.9) * 1.2;   // fluttuazione composita
+    const cx = c.x;
+    const cy = c.y + HTH - 36 + fl;
+    const groundY = c.y + HTH + 4;
+
+    // velocita schermo -> inclinazione + direzione dello sguardo
+    const vsx = ((sp.vx || 0) - (sp.vy || 0)) * HTW;
+    const vsy = ((sp.vx || 0) + (sp.vy || 0)) * HTH;
+    const lean = Math.max(-0.30, Math.min(0.30, vsx * 0.10));
+    const eyeDX = Math.max(-1.7, Math.min(1.7, vsx * 0.9));
+    const eyeDY = Math.max(-1.2, Math.min(1.2, vsy * 0.9));
+
     wctx.save();
-    // alone arancione morbido
-    const g = wctx.createRadialGradient(cx, cy, 2, cx, cy, 22);
-    g.addColorStop(0, "rgba(255,150,60,0.34)");
+
+    // ombra a terra (si stringe e schiarisce quando fluttua piu in alto)
+    const hgt = groundY - cy;
+    const shA = Math.max(0.05, 0.2 - hgt * 0.0035);
+    const shR = Math.max(5, 11 - hgt * 0.055);
+    wctx.fillStyle = "rgba(30,20,10," + shA.toFixed(3) + ")";
+    wctx.beginPath(); wctx.ellipse(cx, groundY, shR, shR * 0.4, 0, 0, Math.PI * 2); wctx.fill();
+
+    // alone arancione pulsante
+    const glowR = 21 + Math.sin(t * 2.4) * 3;
+    const g = wctx.createRadialGradient(cx, cy, 2, cx, cy, glowR);
+    g.addColorStop(0, "rgba(255,150,60," + (0.30 + 0.08 * Math.sin(t * 2.4)).toFixed(3) + ")");
     g.addColorStop(1, "rgba(255,150,60,0)");
     wctx.fillStyle = g;
-    wctx.beginPath(); wctx.arc(cx, cy, 22, 0, Math.PI * 2); wctx.fill();
-    // corpo bianco con fondo ondulato
-    wctx.globalAlpha = 0.94;
-    wctx.fillStyle = "#fff7ef";
-    wctx.strokeStyle = "rgba(255,150,60,0.55)";
-    wctx.lineWidth = 1.1;
+    wctx.beginPath(); wctx.arc(cx, cy, glowR, 0, Math.PI * 2); wctx.fill();
+
+    // corpo in spazio locale: inclinato + respiro squash/stretch
+    wctx.translate(cx, cy);
+    wctx.rotate(lean);
+    const breath = Math.sin(t * 2.6);
+    wctx.scale(1 + breath * 0.05, 1 - breath * 0.05);
+
+    const w = 13, topH = 16, by = 13;
+    const bg = wctx.createLinearGradient(0, -topH, 0, by + 4);
+    bg.addColorStop(0, "#ffffff");
+    bg.addColorStop(0.6, "#fff6ec");
+    bg.addColorStop(1, "#ffe7cf");
+    wctx.fillStyle = bg;
+    wctx.strokeStyle = "rgba(255,140,50,0.6)";
+    wctx.lineWidth = 1.2;
     wctx.beginPath();
-    wctx.moveTo(cx - w, cy + 4);
-    wctx.bezierCurveTo(cx - w, cy - 14, cx + w, cy - 14, cx + w, cy + 4);
-    wctx.lineTo(cx + w, by);
-    const bumps = 3, stepw = (2 * w) / bumps;
-    for (let k = 0; k < bumps; k++) {
-      const x0 = cx + w - k * stepw, x1 = x0 - stepw;
-      wctx.quadraticCurveTo((x0 + x1) / 2, by + (k % 2 === 0 ? 4 : -4), x1, by);
+    wctx.moveTo(-w, 4);
+    wctx.bezierCurveTo(-w, -topH, w, -topH, w, 4);
+    wctx.lineTo(w, by);
+    const lobes = 4, stepw = (2 * w) / lobes;     // fondo ondulato animato
+    for (let k = 0; k < lobes; k++) {
+      const x0 = w - k * stepw, x1 = x0 - stepw;
+      const depth = (k % 2 === 0 ? 1 : -1) * (3.2 + 1.6 * Math.sin(t * 4 + k * 1.3));
+      wctx.quadraticCurveTo((x0 + x1) / 2, by + depth, x1, by);
     }
     wctx.closePath();
     wctx.fill(); wctx.stroke();
-    // occhietti (con sbattuta di ciglia)
-    const blink = (st.t % 4.4) > 4.18 ? 0.16 : 1;
-    wctx.fillStyle = "#3a2a16";
-    wctx.beginPath(); wctx.ellipse(cx - 4, cy - 1, 1.9, 2.9 * blink, 0, 0, Math.PI * 2); wctx.fill();
-    wctx.beginPath(); wctx.ellipse(cx + 4, cy - 1, 1.9, 2.9 * blink, 0, 0, Math.PI * 2); wctx.fill();
+
+    // lucentezza interna
+    wctx.globalAlpha = 0.5;
+    wctx.fillStyle = "rgba(255,255,255,0.7)";
+    wctx.beginPath(); wctx.ellipse(-4, -6, 4.5, 6, -0.3, 0, Math.PI * 2); wctx.fill();
+    wctx.globalAlpha = 1;
+
     // guance
-    wctx.fillStyle = "rgba(255,140,60,0.5)";
-    wctx.beginPath(); wctx.arc(cx - 7.5, cy + 4, 1.9, 0, Math.PI * 2); wctx.fill();
-    wctx.beginPath(); wctx.arc(cx + 7.5, cy + 4, 1.9, 0, Math.PI * 2); wctx.fill();
+    wctx.fillStyle = "rgba(255,140,60,0.45)";
+    wctx.beginPath(); wctx.arc(-7.5, 3.5, 2.1, 0, Math.PI * 2); wctx.fill();
+    wctx.beginPath(); wctx.arc(7.5, 3.5, 2.1, 0, Math.PI * 2); wctx.fill();
+
+    // occhi: sbattono e guardano nella direzione di marcia
+    const blink = (t % 4.6) > 4.36 ? 0.14 : 1;
+    wctx.fillStyle = "#3a2a16";
+    wctx.beginPath(); wctx.ellipse(-4.2 + eyeDX, -1 + eyeDY, 2.0, 3.0 * blink, 0, 0, Math.PI * 2); wctx.fill();
+    wctx.beginPath(); wctx.ellipse(4.2 + eyeDX, -1 + eyeDY, 2.0, 3.0 * blink, 0, 0, Math.PI * 2); wctx.fill();
+    if (blink > 0.5) {
+      wctx.fillStyle = "rgba(255,255,255,0.9)";
+      wctx.beginPath(); wctx.arc(-4.9 + eyeDX, -1.9 + eyeDY, 0.7, 0, Math.PI * 2); wctx.fill();
+      wctx.beginPath(); wctx.arc(3.5 + eyeDX, -1.9 + eyeDY, 0.7, 0, Math.PI * 2); wctx.fill();
+    }
+    // sorriso
+    wctx.strokeStyle = "rgba(58,42,22,0.85)";
+    wctx.lineWidth = 1.1;
+    wctx.beginPath(); wctx.arc(eyeDX * 0.5, 2.4, 2.4, 0.15 * Math.PI, 0.85 * Math.PI); wctx.stroke();
+
     wctx.restore();
+
+    // scintille orbitanti
+    for (let i = 0; i < 3; i++) {
+      const a = t * 1.1 + i * 2.094;
+      const rad = 17 + 2 * Math.sin(t * 2 + i);
+      const sxp = cx + Math.cos(a) * rad * 1.15;
+      const syp = cy + Math.sin(a) * rad * 0.62 - 2;
+      const tw = 0.5 + 0.5 * Math.sin(t * 4 + i * 2.3);
+      wctx.globalAlpha = tw * 0.8;
+      wctx.fillStyle = "#ffd9a0";
+      const r = 1.6 + tw * 0.8;
+      wctx.beginPath();
+      wctx.moveTo(sxp, syp - r); wctx.lineTo(sxp + r * 0.5, syp);
+      wctx.lineTo(sxp, syp + r); wctx.lineTo(sxp - r * 0.5, syp);
+      wctx.closePath(); wctx.fill();
+    }
     wctx.globalAlpha = 1;
   }
 
@@ -6353,173 +6419,4 @@ export default function IsoRoomGame({
       tournaments: d.tournaments.map((t) => {
         if (t.id !== id || t.status !== "in_registrazione") return t;
         if (t.participants.length >= t.maxPlayers || t.participants.some((p) => p.username === username)) return t;
-        const participants = [...t.participants, { id: "me-" + id, username }];
-        return { ...t, participants, status: participants.length >= t.maxPlayers ? "iniziata" : t.status };
-      }),
-    }));
-    playSfx("success");
-    if (onJoinTournament) onJoinTournament(id);
-  }, [onJoinTournament, playSfx, username]);
-
-  const handleObserve = useCallback((id) => {
-    playSfx("success");
-    if (onObserveTournament) onObserveTournament(id);
-  }, [onObserveTournament, playSfx]);
-
-  const toggleMute = useCallback(() => {
-    setMuted((m) => {
-      const nm = !m;
-      if (gameRef.current) gameRef.current.setMuted(nm);
-      return nm;
-    });
-  }, []);
-
-  const toggleQuality = useCallback(() => {
-    setQuality((q) => {
-      const next = q === "low" ? "high" : "low";
-      saveQuality(next);
-      if (gameRef.current && gameRef.current.setQuality) {
-        gameRef.current.setQuality(next);
-      }
-      return next;
-    });
-  }, []);
-
-  const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
-
-  return (
-    <div ref={wrapRef} className={"irg-root" + (quality === "low" ? " irg-quality-low" : "") + (powering ? " irg-powering" : "")}>
-      <canvas ref={canvasRef} className="irg-canvas" />
-
-      {/* HUD */}
-      <div className="irg-chip irg-title"><span aria-hidden>🏆</span>{roomName}</div>
-      <div className="irg-controls">
-        <button type="button" className="irg-quality" onClick={toggleQuality}
-          aria-label={quality === "low" ? "Attiva qualità alta" : "Attiva qualità leggera"}>
-          HD{quality === "high" ? " ✓" : ""}
-        </button>
-        <button type="button" className="irg-mute" onClick={toggleMute}
-          aria-label={muted ? "Riattiva audio" : "Silenzia audio"}>
-          {muted ? (
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M3 6.5h2.5L9.5 3v12L5.5 11.5H3z" fill="currentColor" fillOpacity="0.25" />
-              <path d="M12.5 6.2l3.5 5.6M16 6.2l-3.5 5.6" />
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M3 6.5h2.5L9.5 3v12L5.5 11.5H3z" fill="currentColor" fillOpacity="0.25" />
-              <path d="M12 6a4 4 0 0 1 0 6M14 4a6.5 6.5 0 0 1 0 10" />
-            </svg>
-          )}
-        </button>
-      </div>
-      <div className={"irg-chip irg-hint" + (hint ? "" : " irg-off")}>
-        {isTouch ? "TOCCA PER MUOVERTI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
-      </div>
-      <div className="irg-keys">
-        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
-          <b>Tasto 1</b><span>PC · Tornei</span>
-        </button>
-        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(2)}>
-          <b>Tasto 2</b><span>Tavolo · Deck</span>
-        </button>
-        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(3)}>
-          <b>Tasto 3</b><span>Bacheca · Crea</span>
-        </button>
-        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey("P")}>
-          <b>Tasto P</b><span>Foto 📸</span>
-        </button>
-      </div>
-
-      {/* passa alla vista semplice (pagina classica, senza mini-gioco) */}
-      <button
-        type="button"
-        className="irg-simple-btn"
-        onClick={handleSimpleView}
-        aria-label="Passa alla vista semplice, senza mini-gioco"
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-          <rect x="2" y="2.5" width="12" height="11" rx="1.6" />
-          <path d="M2 6h12M5 9.2h6M5 11.2h4" strokeLinecap="round" />
-        </svg>
-        Vista semplice
-      </button>
-
-      {/* tutorial guidato: cartello di benvenuto al centro che poi vola in alto
-          come barra di narrazione; alla fine si ri-ingrandisce con le scelte */}
-      {tutorialActive && (
-        <div className={"irg-tut" + (tutorialIntro ? " irg-tut-intro" : "") + (tutorialOutro ? " irg-tut-final" : "")}>
-          <div className="irg-tut-bar">
-            <span className="irg-tut-ghost" aria-hidden>
-              <svg viewBox="0 0 44 50" xmlns="http://www.w3.org/2000/svg">
-                <path className="irg-ghost-body" d="M8 25C8 11 14 4 22 4s14 7 14 21v17q0 4-3.5 0t-7 0t-7 0t-7 0Z" />
-                <g className="irg-tut-eyes">
-                  <ellipse className="irg-ghost-eye" cx="17.5" cy="23" rx="2.3" ry="3.1" />
-                  <ellipse className="irg-ghost-eye" cx="26.5" cy="23" rx="2.3" ry="3.1" />
-                </g>
-                <circle className="irg-ghost-blush" cx="13.5" cy="29.5" r="2.3" />
-                <circle className="irg-ghost-blush" cx="30.5" cy="29.5" r="2.3" />
-              </svg>
-            </span>
-            <span className="irg-tut-text">
-              <span className="irg-tut-reserve" aria-hidden>{tutorialCaption ? renderTutReserve(tutorialCaption) : TUT_WAIT}</span>
-              <span className="irg-tut-typed">
-                {!tutorialCaption && !typedCaption && TUT_WAIT}
-                {tutorialCaption && renderTutTyped(typedCaption, tutorialCaption)}
-                {typing && <span className="irg-tut-caret" aria-hidden />}
-              </span>
-            </span>
-            {tutorialOutro ? (
-              <div className="irg-tut-actions">
-                <div className="irg-tut-repeat">
-                  <span className="irg-tut-q">Tutto chiaro?</span>
-                  <button type="button" className="irg-tut-btn irg-tut-yes" onClick={skipTutorial}>Sì</button>
-                  <button type="button" className="irg-tut-btn irg-tut-no" onClick={repeatTutorial}>No</button>
-                </div>
-                <button type="button" className="irg-tut-btn irg-tut-simple" onClick={handleSimpleView}>
-                  Passa alla modalità semplificata
-                </button>
-              </div>
-            ) : (
-              <button type="button" className="irg-tut-skip" onClick={skipTutorial}>
-                Salta tutorial
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* punti caldi: cerchi + cartelli sugli elementi chiave della modale
-          aperta dal tutorial (solo durante la guida, non a chiusura in corso) */}
-      {tutorialActive && modal && !closing && (
-        <TutorialHotspots wrapRef={wrapRef} modalId={modal} />
-      )}
-      {tutorialActive && tutorialUiSpot && (
-        <TutorialHotspots wrapRef={wrapRef} uiId={tutorialUiSpot} />
-      )}
-
-      {/* modali */}
-      {modal === "board" && (
-        <ModalShell id="board" closing={closing} onClose={closeModal} className="irg-m-board">
-          <BoardModal onPublish={handlePublish} onClose={closeModal} playSfx={playSfx} />
-        </ModalShell>
-      )}
-      {modal === "decks" && (
-        <ModalShell id="decks" closing={closing} onClose={closeModal} className="irg-m-decks irg-m-decks-wide">
-          <DecksModal inventory={inventory} />
-        </ModalShell>
-      )}
-      {modal === "pc" && (
-        <ModalShell id="pc" closing={closing} onClose={closeModal} className="irg-m-pc">
-          <PcModal tournaments={data.tournaments} onJoin={handleJoin} onObserve={handleObserve} me={username} formatName={formatName} modeName={modeName} />
-        </ModalShell>
-      )}
-      {modal === "mirror" && (
-        <ModalShell id="mirror" closing={closing} onClose={closeModal} className="irg-m-mirror">
-          <MirrorModal look={look} onChange={applyLook} drawPreview={drawLookPreview} />
-        </ModalShell>
-      )}
-    </div>
-  );
-}
-/* fine IsoRoomGame */
+        const participants = [...t.pa
