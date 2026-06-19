@@ -238,6 +238,9 @@ function formatCredits(n) {
   return Math.round(n).toLocaleString("it-IT");
 }
 
+/** Layout card ricompensa crediti (coordinate locali, origine al centro). */
+const CREDITS_REWARD_CARD = { w: 286, h: 242, btnW: 130, btnH: 30, btnCy: 94 };
+
 /* Battute misteriose della modalità Shadow Realm */
 const SHADOW_LINES = [
   "Il meta è un'illusione…",
@@ -358,6 +361,7 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const easeOutQuad = (t) => 1 - (1 - t) * (1 - t);
+const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 const easeOutBack = (t) => Math.max(0, 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2));
 
 /** tile (anche frazionario) -> px mondo del vertice alto del diamante */
@@ -2025,6 +2029,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   /* — punto sul piano del tavolo (z=22 sopra il pavimento) — */
   const tablePt = (tx, ty) => { const p = tileTop(tx, ty); return { x: p.x, y: p.y + HTH - 22 }; };
+  const CAT_PERCH_SPOTS = {
+    chair: { approach: { cx: 2, cy: 4 }, tx: 1.0, ty: 4.0, lift: 21, land: { cx: 2, cy: 4 }, dir: "nw", state: "sit" },
+    table: { approach: { cx: 7, cy: 5 }, tx: 7.05, ty: 3.28, lift: 22, land: { cx: 7, cy: 5 }, dir: "sw", state: "sit" },
+    desk: { approach: { cx: 1, cy: 5 }, tx: 0.45, ty: 4.42, lift: 27, land: { cx: 1, cy: 5 }, dir: "se", state: "sleep" },
+  };
   /* — centro dello schermo del PC (per lo zoom della Sequenza di Hype) — */
   const scrCenter = {
     x: (screenQuad[0].x + screenQuad[2].x) / 2,
@@ -2384,6 +2393,19 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     }
   };
 
+  function petFootPoint(pet) {
+    if (pet.perch) {
+      const p = tileTop(pet.perch.tx, pet.perch.ty);
+      return {
+        x: p.x + (pet.perch.ox || 0),
+        y: p.y + HTH - pet.perch.lift + (pet.perch.oy || 0),
+        perched: true,
+      };
+    }
+    const p = tileTop(pet.fx, pet.fy);
+    return { x: p.x, y: p.y + HTH, perched: false };
+  }
+
   function doMusicToggle() {
     const name = sfx.musicToggle();
     showBubble(name ? "♪ " + name : "Musica spenta 🔇", 2.6);
@@ -2403,13 +2425,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (solidInRect(w, turnRect, turnFrames[0] && turnFrames[0].cv)) return { kind: "music" };
     if (inRect(w, intercomRect)) return { kind: "intercom" };
     // gatto: cerchio attorno alla sua posizione (anche quando è appollaiata)
-    const lift = st.cat.perch ? st.cat.perch.lift : 0;
-    const cp = tileTop(st.cat.fx, st.cat.fy);
-    if (Math.abs(w.x - cp.x) < 18 && Math.abs(w.y - (cp.y + HTH - 8 - lift)) < 16) return { kind: "cat" };
+    const cp = petFootPoint(st.cat);
+    if (Math.abs(w.x - cp.x) < 18 && Math.abs(w.y - (cp.y - 8)) < 16) return { kind: "cat" };
     // cane Cookie
-    const d_lift = st.dog.perch ? st.dog.perch.lift : 0;
-    const d_cp = tileTop(st.dog.fx, st.dog.fy);
-    if (Math.abs(w.x - d_cp.x) < 22 && Math.abs(w.y - (d_cp.y + HTH - 8 - d_lift)) < 20) return { kind: "dog" };
+    const d_cp = petFootPoint(st.dog);
+    if (Math.abs(w.x - d_cp.x) < 22 && Math.abs(w.y - (d_cp.y - 8)) < 20) return { kind: "dog" };
     for (const eg of eggs) if (eg.cv ? solidInRect(w, eg.rect, eg.cv) : inRect(w, eg.rect)) return { kind: "egg", egg: eg };
     return null;
   }
@@ -2452,9 +2472,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function petCat() {
     const cat = st.cat;
     sfx.purr();
-    const lift = cat.perch ? cat.perch.lift : 0;
-    const cp = tileTop(cat.fx, cat.fy);
-    spawnFx("heart", cp.x, cp.y - 8 - lift, 3);
+    const cp = petFootPoint(cat);
+    spawnFx("heart", cp.x, cp.y - 8, 3);
     if (cat.state === "sleep") { cat.state = "sit"; cat.until = st.t + 4; }
     cat.pets++;
     
@@ -2488,9 +2507,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function petDog() {
     const dog = st.dog;
     sfx.pant();
-    const lift = dog.perch ? dog.perch.lift : 0;
-    const cp = tileTop(dog.fx, dog.fy);
-    spawnFx("heart", cp.x, cp.y - 8 - lift, 3);
+    const cp = petFootPoint(dog);
+    spawnFx("heart", cp.x, cp.y - 8, 3);
     if (dog.state === "sleep") { dog.state = "sit"; dog.until = st.t + 4; }
     dog.pets++;
     
@@ -2998,25 +3016,30 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         if (pc.key === "table" && !pc.scattered && st.t - pc.t0 > 0.6) {
           pc.scattered = true;
           sfx.shuffle();
-          const o = tablePt(7.0, 3.4);
-          for (let i = 0; i < 3; i++) {
-            const a = Math.random() * 6.28;
+          const o = tablePt(7.18, 3.46);
+          for (let i = 0; i < 8; i++) {
+            const a = -0.45 + Math.random() * 3.7;
+            const speed = 34 + Math.random() * 82;
             st.scatter.push({
-              x: o.x, y: o.y,
-              vx: Math.cos(a) * (40 + Math.random() * 50), vy: Math.sin(a) * (20 + Math.random() * 25) * 0.6,
-              rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 8,
-              col: [P.red, "#4a7fd6", "#9a6ad6"][i % 3], t0: st.t, snapped: false,
+              x: o.x + (Math.random() - 0.5) * 16,
+              y: o.y + (Math.random() - 0.5) * 7,
+              vx: Math.cos(a) * speed,
+              vy: Math.sin(a) * speed * 0.42 - 10,
+              rot: Math.random() * 6.28,
+              vr: (Math.random() - 0.5) * 10,
+              col: [P.red, "#4a7fd6", "#9a6ad6", P.gold][i % 4], t0: st.t, snapped: false,
             });
           }
           showBubble("Missy! Le mie carte! 🙀", 2.6);
         }
         if (pc.key === "desk" && cat.state === "sleep" && st.t > cat.nextZ && fx.petParticles) {
           cat.nextZ = st.t + 1.8;
-          const cp2 = tileTop(cat.fx, cat.fy);
-          spawnFx("zzz", cp2.x + 6, cp2.y - 6 - pc.lift);
+          const cp2 = petFootPoint(cat);
+          spawnFx("zzz", cp2.x + 6, cp2.y - 6);
         }
         if (st.t > pc.until) {
-          const land = pc.key === "chair" ? { cx: 2, cy: 4 } : pc.key === "table" ? { cx: 7, cy: 5 } : { cx: 1, cy: 5 };
+          const spot = CAT_PERCH_SPOTS[pc.key] || CAT_PERCH_SPOTS.chair;
+          const land = spot.land;
           cat.perch = null;
           cat.from = land; cat.to = null; cat.t = 0; cat.queue = [];
           cat.state = "sit"; cat.until = st.t + 2 + Math.random() * 3;
@@ -3038,14 +3061,12 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           } else {
             if (cat.goal && cat.goal.startsWith("perch_")) {
               const key = cat.goal.split("_")[1];
-              let lift = 22;
-              let tx = 7, ty = 3;
-              if (key === "chair") { lift = 21; tx = 1; ty = 4; }
-              else if (key === "desk") { lift = 24; tx = 0; ty = 4; }
-              cat.perch = { key, tx, ty, lift, t0: st.t, until: st.t + 15 + Math.random() * 20, scattered: false };
-              cat.from = { cx: tx, cy: ty };
-              cat.fx = tx; cat.fy = ty;
-              cat.state = key === "desk" ? "sleep" : "sit";
+              const spot = CAT_PERCH_SPOTS[key] || CAT_PERCH_SPOTS.table;
+              cat.perch = { key, tx: spot.tx, ty: spot.ty, lift: spot.lift, t0: st.t, until: st.t + 15 + Math.random() * 20, scattered: false };
+              cat.from = { cx: spot.tx, cy: spot.ty };
+              cat.fx = spot.tx; cat.fy = spot.ty;
+              cat.dir = spot.dir;
+              cat.state = spot.state;
               cat.goal = null;
               if (key === "chair") {
                 st.chairSpin = st.t;
@@ -3089,18 +3110,18 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           cat.forceChair = false;
           
           if (force && !st.av.seated && !st.sitTarget) {
-            catGo("perch_chair", { cx: 2, cy: 4 });
+            catGo("perch_chair", CAT_PERCH_SPOTS.chair.approach);
           }
           else if (r < 0.25) {
             const perches = ["chair", "table", "desk"];
             const choice = perches[Math.floor(Math.random() * perches.length)];
             
             if (choice === "chair" && !st.av.seated && !st.sitTarget) {
-              catGo("perch_chair", { cx: 2, cy: 4 });
+              catGo("perch_chair", CAT_PERCH_SPOTS.chair.approach);
             } else if (choice === "table") {
-              catGo("perch_table", { cx: 7, cy: 5 });
+              catGo("perch_table", CAT_PERCH_SPOTS.table.approach);
             } else if (choice === "desk") {
-              catGo("perch_desk", { cx: 1, cy: 5 });
+              catGo("perch_desk", CAT_PERCH_SPOTS.desk.approach);
             } else {
               cat.state = "sit"; cat.until = st.t + 3;
             }
@@ -3122,9 +3143,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       cat.fy = cat.to ? lerp(cat.from.cy, cat.to.cy, cat.t) : cat.from.cy;
       if (cat.state === "sleep" && !cat.to && st.t > cat.nextZ && fx.petParticles) {
         cat.nextZ = st.t + 1.8;
-        const cp = tileTop(cat.fx, cat.fy);
-        const lift = cat.perch ? cat.perch.lift : 0;
-        spawnFx("zzz", cp.x + 6, cp.y - 6 - lift);
+        const cp = petFootPoint(cat);
+        spawnFx("zzz", cp.x + 6, cp.y - 6);
       }
 
       /* — cane (Cookie): stati e movimento normali — */
@@ -3445,16 +3465,16 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function drawCatSprite() {
     const cat = st.cat;
-    const c = tileTop(cat.fx, cat.fy);
-    const cxp = c.x, cyp = c.y + HTH;
+    const pt = petFootPoint(cat);
+    const cxp = pt.x, cyp = pt.y;
     const moving = !!cat.to;
-    const lift = cat.perch ? cat.perch.lift : 0;
+    const perched = !!cat.perch;
     
     // ombra a terra
-    const shadowAlpha = lift > 0 ? 0.12 : 0.22;
+    const shadowAlpha = perched ? 0.16 : 0.22;
     wctx.fillStyle = "rgba(25,22,40," + shadowAlpha + ")";
     wctx.beginPath();
-    wctx.ellipse(cxp, cyp + 4, lift > 0 ? 6.5 : 9, lift > 0 ? 2.5 : 3.5, 0, 0, Math.PI * 2);
+    wctx.ellipse(cxp, cyp + 4, perched ? 7.5 : 9, perched ? 2.6 : 3.5, 0, 0, Math.PI * 2);
     wctx.fill();
     
     const flip = cat.dir === "nw" || cat.dir === "sw" ? 2 : 0;
@@ -3463,13 +3483,14 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     else if (cat.state === "sleep") fr = catSp.sleep[flip + (Math.floor(st.t * 0.9) % 2)];
     else fr = catSp.sit[flip + (Math.floor(st.t * 1.4) % 2)];
     const bob = moving ? -Math.abs(Math.sin(cat.t * Math.PI * 2)) * 1 : 0;
-    wctx.drawImage(fr.cv, Math.round(cxp - fr.feet.x), Math.round(cyp + 4 - fr.feet.y + bob - lift));
+    const perchBob = perched ? Math.sin((st.t - cat.perch.t0) * 8) * Math.max(0, 1 - (st.t - cat.perch.t0) * 2) : 0;
+    wctx.drawImage(fr.cv, Math.round(cxp - fr.feet.x), Math.round(cyp + 4 - fr.feet.y + bob + perchBob));
   }
 
   function drawDogSprite() {
     const dog = st.dog;
-    const c = tileTop(dog.fx, dog.fy);
-    const cxp = c.x, cyp = c.y + HTH;
+    const pt = petFootPoint(dog);
+    const cxp = pt.x, cyp = pt.y;
     const moving = !!dog.to;
     const lift = dog.perch ? dog.perch.lift : 0;
     
@@ -3763,7 +3784,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const rot = opts.rot || 0;
     const scale = opts.scale != null ? opts.scale : 1;
     const glow = opts.glow || 0;
-    const bw = 44, bh = 30, hinge = -9;
+    const bw = 50, bh = 34, hinge = -10;
 
     c.save();
     c.translate(dx, dy);
@@ -3771,57 +3792,84 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.scale(scale, scale);
 
     if (glow > 0) {
-      const pg = c.createRadialGradient(0, 0, 4, 0, 0, 38);
-      pg.addColorStop(0, "rgba(255, 210, 100, " + (0.45 * glow).toFixed(3) + ")");
+      const pg = c.createRadialGradient(0, 0, 4, 0, 0, 48);
+      pg.addColorStop(0, "rgba(255, 216, 116, " + (0.55 * glow).toFixed(3) + ")");
+      pg.addColorStop(0.45, "rgba(255, 132, 32, " + (0.16 * glow).toFixed(3) + ")");
       pg.addColorStop(1, "rgba(255, 200, 80, 0)");
       c.fillStyle = pg;
       c.beginPath();
-      c.arc(0, 0, 38, 0, Math.PI * 2);
+      c.arc(0, 0, 48, 0, Math.PI * 2);
       c.fill();
     }
 
-    c.fillStyle = "rgba(0,0,0,0.2)";
+    c.fillStyle = "rgba(0,0,0,0.25)";
     c.beginPath();
-    c.ellipse(0, 16, 24, 8, 0, 0, Math.PI * 2);
+    c.ellipse(0, 18, 29, 9, 0, 0, Math.PI * 2);
     c.fill();
 
-    c.fillStyle = "#cfc0a0";
-    rr(c, -bw / 2 - 2, -bh / 2 + 3, bw + 4, bh + 5, 3);
+    c.fillStyle = "#b9a57f";
+    rr(c, -bw / 2 - 2, -bh / 2 + 4, bw + 4, bh + 5, 4);
     c.fill();
 
-    c.fillStyle = "#e8dcc0";
+    const paper = c.createLinearGradient(0, -bh / 2, 0, bh / 2 + 4);
+    paper.addColorStop(0, "#fff1d0");
+    paper.addColorStop(0.58, "#dfc99d");
+    paper.addColorStop(1, "#b99b68");
+    c.fillStyle = paper;
     rr(c, -bw / 2, -bh / 2, bw, bh, 3);
     c.fill();
     c.strokeStyle = P.outline;
     c.lineWidth = 1.3;
     c.strokeRect(-bw / 2, -bh / 2, bw, bh);
 
-    c.fillStyle = "rgba(0,0,0,0.07)";
+    c.strokeStyle = "rgba(90,58,24,0.34)";
+    c.lineWidth = 1;
     c.beginPath();
-    c.moveTo(-bw / 2, -bh / 2); c.lineTo(-bw / 2 + 8, 2); c.lineTo(-bw / 2, bh / 2);
+    c.moveTo(-bw / 2 + 2, -bh / 2 + 2);
+    c.lineTo(0, 2);
+    c.lineTo(bw / 2 - 2, -bh / 2 + 2);
+    c.moveTo(-bw / 2 + 2, bh / 2 - 2);
+    c.lineTo(-5, 2);
+    c.moveTo(bw / 2 - 2, bh / 2 - 2);
+    c.lineTo(5, 2);
+    c.stroke();
+
+    c.fillStyle = "rgba(0,0,0,0.08)";
+    c.beginPath();
+    c.moveTo(-bw / 2, -bh / 2); c.lineTo(-bw / 2 + 11, 2); c.lineTo(-bw / 2, bh / 2);
     c.closePath(); c.fill();
     c.beginPath();
-    c.moveTo(bw / 2, -bh / 2); c.lineTo(bw / 2 - 8, 2); c.lineTo(bw / 2, bh / 2);
+    c.moveTo(bw / 2, -bh / 2); c.lineTo(bw / 2 - 11, 2); c.lineTo(bw / 2, bh / 2);
     c.closePath(); c.fill();
 
     if (flapOpen > 0.04) {
-      c.fillStyle = "#1a1610";
-      c.fillRect(-bw / 2 + 5, -bh / 2 + 5, bw - 10, bh - 10);
-      const ig = c.createRadialGradient(0, 2, 2, 0, 2, 22);
-      ig.addColorStop(0, "rgba(255, 220, 140, " + (0.65 * flapOpen).toFixed(3) + ")");
+      c.fillStyle = "#15100b";
+      rr(c, -bw / 2 + 6, -bh / 2 + 5, bw - 12, bh - 10, 2);
+      c.fill();
+      const ig = c.createRadialGradient(0, 1, 2, 0, 1, 27);
+      ig.addColorStop(0, "rgba(255, 224, 142, " + (0.75 * flapOpen).toFixed(3) + ")");
+      ig.addColorStop(0.48, "rgba(255, 126, 24, " + (0.22 * flapOpen).toFixed(3) + ")");
       ig.addColorStop(1, "rgba(255, 180, 60, 0)");
       c.fillStyle = ig;
       c.fillRect(-bw / 2 + 6, -bh / 2 + 6, bw - 12, bh - 12);
+      c.fillStyle = "rgba(255,245,214," + (0.75 * flapOpen).toFixed(3) + ")";
+      rr(c, -14, -7 - flapOpen * 3, 28, 22, 2);
+      c.fill();
     }
 
     c.save();
     c.translate(0, hinge);
-    c.rotate(-flapOpen * 1.62);
+    c.scale(1, Math.max(0.18, 1 - flapOpen * 0.78));
+    c.translate(0, -flapOpen * 7);
+    c.rotate(-flapOpen * 0.28);
     c.translate(0, -hinge);
-    c.fillStyle = "#f0e6d0";
+    const flap = c.createLinearGradient(0, hinge - 23, 0, hinge + 4);
+    flap.addColorStop(0, "#fff6dc");
+    flap.addColorStop(1, "#cfb27c");
+    c.fillStyle = flap;
     c.beginPath();
     c.moveTo(-bw / 2, hinge);
-    c.lineTo(0, hinge - 20);
+    c.lineTo(0, hinge - 23);
     c.lineTo(bw / 2, hinge);
     c.closePath();
     c.fill();
@@ -3852,11 +3900,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       c.textBaseline = "alphabetic";
       c.restore();
       if (sealBreak > 0.35) {
-        for (let i = 0; i < 4; i++) {
-          const a = (i / 4) * Math.PI * 2 + sealBreak * 2;
-          const dist = sealBreak * 14;
+        for (let i = 0; i < 7; i++) {
+          const a = (i / 7) * Math.PI * 2 + sealBreak * 2;
+          const dist = sealBreak * (10 + i * 1.2);
           c.fillStyle = "rgba(255,115,0," + (sealA * 0.8) + ")";
-          c.fillRect(Math.cos(a) * dist - 1.5, sy + Math.sin(a) * dist - 1.5, 3, 3);
+          c.fillRect(Math.cos(a) * dist - 1.2, sy + Math.sin(a) * dist - 1.2, 2.4, 2.4);
         }
       }
     }
@@ -3864,114 +3912,181 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.restore();
   };
 
-  const drawCreditsReward = (c, dx, dy, tournamentName, creditsBefore, creditsAfter, progress, uiScale = 1, animT = 0) => {
+  const drawCreditsReward = (c, dx, dy, tournamentName, creditsBefore, creditsAfter, progress, uiScale = 1, animT = 0, showActions = false) => {
     const k = clamp(progress, 0, 1);
-    const pop = easeOutBack(k);
+    const pop = 0.88 + 0.12 * easeOutBack(k);
     const s = uiScale * pop;
     const shown = slotCreditValue(creditsBefore, creditsAfter, k);
     const counting = k > 0.1 && k < 0.94;
-    const done = k >= 0.94;
     const delta = creditsAfter - creditsBefore;
+    const deltaK = clamp((k - 0.46) / 0.32, 0, 1);
 
     c.save();
     c.translate(dx, dy);
     c.scale(s, s);
 
-    const tw = 252, th = 188;
-    c.fillStyle = "#0a0c14";
-    rr(c, -tw / 2 - 4, -th / 2 - 4, tw + 8, th + 8, 14);
+    const { w: tw, h: th, btnW, btnH, btnCy } = CREDITS_REWARD_CARD;
+    const top = -th / 2;
+
+    c.fillStyle = "rgba(0,0,0,0.34)";
+    rr(c, -tw / 2 + 8, top + 10, tw - 16, th, 18);
     c.fill();
 
-    const tg = c.createLinearGradient(0, -th / 2, 0, th / 2);
-    tg.addColorStop(0, "#1a2238");
-    tg.addColorStop(0.45, "#12182a");
-    tg.addColorStop(1, "#0d101c");
+    const tg = c.createLinearGradient(0, top, 0, top + th);
+    tg.addColorStop(0, "#27304a");
+    tg.addColorStop(0.5, "#111827");
+    tg.addColorStop(1, "#090b12");
     c.fillStyle = tg;
-    rr(c, -tw / 2, -th / 2, tw, th, 12);
+    rr(c, -tw / 2, top, tw, th, 16);
     c.fill();
 
-    c.strokeStyle = P.gold;
-    c.lineWidth = 2.5;
+    c.strokeStyle = "rgba(255,216,126,0.95)";
+    c.lineWidth = 2;
     c.stroke();
-    c.strokeStyle = "rgba(242,185,75,0.25)";
+    c.strokeStyle = "rgba(255,255,255,0.15)";
     c.lineWidth = 1;
-    c.strokeRect(-tw / 2 + 8, -th / 2 + 8, tw - 16, th - 16);
+    rr(c, -tw / 2 + 8, top + 8, tw - 16, th - 16, 12);
+    c.stroke();
 
-    c.fillStyle = "#fff3dc";
-    c.font = "900 17px 'Segoe UI', system-ui, sans-serif";
     c.textAlign = "center";
-    c.fillText("ebartex", 0, -th / 2 + 30);
+    c.textBaseline = "middle";
 
-    c.fillStyle = "rgba(255,255,255,0.72)";
-    c.font = "600 13px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("Hai vinto il torneo di", 0, -18);
-    c.font = "800 16px 'Segoe UI', system-ui, sans-serif";
+    c.fillStyle = "rgba(255,245,216,0.96)";
+    c.font = "900 16px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("Ebartex payout", 0, top + 24);
+
+    c.fillStyle = "rgba(255,255,255,0.62)";
+    c.font = "700 10px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("Torneo vinto", 0, top + 46);
+
+    c.font = "900 15px 'Segoe UI', system-ui, sans-serif";
     c.fillStyle = "#ffb347";
-    const name = tournamentName.length > 24 ? tournamentName.slice(0, 22) + "…" : tournamentName;
-    c.fillText(name + "!", 0, 2);
+    const name = tournamentName.length > 25 ? tournamentName.slice(0, 23) + "..." : tournamentName;
+    c.fillText(name + "!", 0, top + 64);
 
-    const counterY = 52;
-    const pulse = counting ? 1 + 0.045 * Math.sin(animT * 22) : 1;
+    c.fillStyle = "rgba(255,255,255,0.55)";
+    c.font = "800 10px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("I tuoi crediti", 0, top + 86);
+
+    const counterCy = top + 113;
     const glowA = counting ? 0.35 + 0.2 * Math.sin(animT * 16) : 0.28;
 
-    const cg = c.createRadialGradient(0, counterY, 4, 0, counterY, 72);
+    const cg = c.createRadialGradient(0, counterCy, 10, 0, counterCy, 86);
     cg.addColorStop(0, "rgba(255,180,60," + glowA + ")");
-    cg.addColorStop(0.55, "rgba(255,115,0,0.12)");
+    cg.addColorStop(0.55, "rgba(255,115,0,0.14)");
     cg.addColorStop(1, "rgba(255,115,0,0)");
     c.fillStyle = cg;
     c.beginPath();
-    c.ellipse(0, counterY, 98, 38, 0, 0, Math.PI * 2);
+    c.ellipse(0, counterCy, 106, 42, 0, 0, Math.PI * 2);
     c.fill();
 
-    c.fillStyle = "rgba(255,255,255,0.55)";
-    c.font = "600 10px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("I tuoi crediti", 0, counterY - 28);
+    const slotW = 214, slotH = 50;
+    c.fillStyle = "#05070d";
+    rr(c, -slotW / 2, counterCy - slotH / 2, slotW, slotH, 10);
+    c.fill();
+    const slotG = c.createLinearGradient(0, counterCy - slotH / 2, 0, counterCy + slotH / 2);
+    slotG.addColorStop(0, "rgba(255,255,255,0.12)");
+    slotG.addColorStop(0.45, "rgba(255,255,255,0.02)");
+    slotG.addColorStop(0.52, "rgba(0,0,0,0.35)");
+    slotG.addColorStop(1, "rgba(255,200,80,0.08)");
+    c.fillStyle = slotG;
+    rr(c, -slotW / 2 + 3, counterCy - slotH / 2 + 3, slotW - 6, slotH - 6, 8);
+    c.fill();
+    c.strokeStyle = "rgba(255,215,120,0.62)";
+    c.lineWidth = 1.4;
+    c.stroke();
 
     c.save();
-    c.translate(0, counterY);
-    c.scale(pulse, pulse);
-    c.fillStyle = counting ? "#fff8e8" : "#ffe9a8";
-    c.font = "900 34px 'Segoe UI', system-ui, sans-serif";
-    c.shadowColor = "rgba(255,180,60,0.85)";
-    c.shadowBlur = counting ? 16 + 8 * Math.sin(animT * 18) : 10;
-    c.fillText(formatCredits(shown), 0, 8);
-    c.shadowBlur = 0;
-    c.fillStyle = "rgba(255,255,255,0.55)";
-    c.font = "700 11px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("crediti", 0, 26);
+    c.beginPath();
+    rr(c, -slotW / 2 + 7, counterCy - slotH / 2 + 7, slotW - 14, slotH - 14, 6);
+    c.clip();
+    const value = formatCredits(shown);
+    const chars = value.split("");
+    const totalW = chars.reduce((sum, ch) => sum + (ch === "." ? 8 : 24), 0) + (chars.length - 1) * 3;
+    let x = -totalW / 2;
+    c.font = "900 27px 'Segoe UI', system-ui, sans-serif";
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i];
+      const cw = ch === "." ? 8 : 24;
+      if (ch === ".") {
+        c.fillStyle = "rgba(255,235,178,0.75)";
+        c.fillText(".", x + cw / 2, counterCy + 8);
+      } else {
+        const bx = x + cw / 2;
+        c.fillStyle = "rgba(255,255,255,0.06)";
+        rr(c, x, counterCy - 17, cw, 34, 5);
+        c.fill();
+        c.fillStyle = counting ? "#fff8df" : "#ffd978";
+        c.shadowColor = "rgba(255,185,70,0.95)";
+        c.shadowBlur = counting ? 10 : 6;
+        const spin = counting ? (animT * 8.5 + i * 0.31) % 1 : 0;
+        const off = easeOutCubic(spin) * 34;
+        c.fillText(ch, bx, counterCy + 8 - off);
+        if (counting) c.fillText(String((Number(ch) + 1) % 10), bx, counterCy + 42 - off);
+        c.shadowBlur = 0;
+      }
+      x += cw + 3;
+    }
     c.restore();
 
-    const deltaK = clamp((k - 0.55) / 0.35, 0, 1);
     if (deltaK > 0) {
-      c.globalAlpha = easeOutQuad(deltaK);
+      const dPop = easeOutBack(deltaK);
+      c.save();
+      c.translate(0, top + 158);
+      c.scale(dPop, dPop);
+      c.fillStyle = "rgba(78, 222, 142, 0.16)";
+      rr(c, -88, -17, 176, 34, 14);
+      c.fill();
+      c.strokeStyle = "rgba(110,231,168,0.55)";
+      c.lineWidth = 1;
+      c.stroke();
       c.fillStyle = "#6ee7a8";
-      c.font = "800 14px 'Segoe UI', system-ui, sans-serif";
-      c.fillText("+" + formatCredits(delta) + " crediti", 0, counterY + 48);
-      c.globalAlpha = 1;
+      c.font = "900 16px 'Segoe UI', system-ui, sans-serif";
+      c.fillText("+" + formatCredits(delta) + " crediti", 0, 0);
+      c.restore();
     }
 
     if (counting) {
-      for (let i = 0; i < 5; i++) {
-        const a = animT * 2.4 + i * 1.25;
-        const rad = 52 + 10 * Math.sin(animT * 3 + i);
+      for (let i = 0; i < 10; i++) {
+        const a = animT * 2.8 + i * 0.72;
+        const rad = 86 + 12 * Math.sin(animT * 3 + i);
         const px = Math.cos(a) * rad;
-        const py = counterY + Math.sin(a) * rad * 0.45;
+        const py = counterCy + Math.sin(a) * rad * 0.34;
         c.globalAlpha = 0.35 + 0.35 * Math.sin(animT * 5 + i);
-        c.fillStyle = i % 2 ? P.gold : "#FF7300";
+        c.fillStyle = i % 2 ? "#ffd86e" : "#ff8a2a";
         c.beginPath();
-        c.arc(px, py, 2 + (i % 2), 0, Math.PI * 2);
+        c.arc(px, py, 2.2 + (i % 3) * 0.6, 0, Math.PI * 2);
         c.fill();
       }
       c.globalAlpha = 1;
     }
 
-    if (done) {
-      c.fillStyle = "rgba(255,255,255,0.45)";
+    if (showActions) {
+      c.fillStyle = "rgba(255,255,255,0.42)";
       c.font = "500 11px 'Segoe UI', system-ui, sans-serif";
-      c.fillText("Saldo aggiornato", 0, th / 2 - 18);
+      c.fillText("Saldo aggiornato: " + formatCredits(creditsAfter), 0, top + 188);
+
+      c.fillStyle = "rgba(255,255,255,0.78)";
+      c.font = "600 11px 'Segoe UI', system-ui, sans-serif";
+      c.fillText("Credito pronto sul portale Ebartex.", 0, top + 207);
+
+      const btnTop = btnCy - btnH / 2;
+      const bg = c.createLinearGradient(0, btnTop, 0, btnTop + btnH);
+      bg.addColorStop(0, "#ff7a32");
+      bg.addColorStop(1, "#c83935");
+      c.fillStyle = bg;
+      rr(c, -btnW / 2, btnTop, btnW, btnH, 10);
+      c.fill();
+      c.strokeStyle = "rgba(255,255,255,0.72)";
+      c.lineWidth = 1.2;
+      c.stroke();
+      c.fillStyle = "#ffffff";
+      c.font = "900 12px 'Segoe UI', system-ui, sans-serif";
+      c.fillText("CHIUDI", 0, btnCy);
     }
 
     c.textAlign = "left";
+    c.textBaseline = "alphabetic";
     c.restore();
   };
 
@@ -4130,7 +4245,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const avBox = { avatar: true, minX: avDepthX - 0.01, maxX: avDepthX + 0.01, minY: st.av.fy - 0.01, maxY: st.av.fy + 0.01 };
     const catBox = { cat: true, minX: st.cat.fx - 0.01, maxX: st.cat.fx + 0.01, minY: st.cat.fy - 0.01, maxY: st.cat.fy + 0.01 };
     const dogBox = { dog: true, minX: st.dog.fx - 0.01, maxX: st.dog.fx + 0.01, minY: st.dog.fy - 0.01, maxY: st.dog.fy + 0.01 };
-    const dyn = [avBox, catBox, dogBox];
+    const drawCatOnFurniture = !!(st.cat.perch && CAT_PERCH_SPOTS[st.cat.perch.key]);
+    const dyn = drawCatOnFurniture ? [avBox, dogBox] : [avBox, catBox, dogBox];
     if (st.ghost) dyn.push({ ghost: true, minX: GHOST_TILE.cx - 0.01, maxX: GHOST_TILE.cx + 0.01, minY: GHOST_TILE.cy - 0.01, maxY: GHOST_TILE.cy + 0.01 });
     if (st.tut.active) { const sp = updateSpettro(); dyn.push({ spettro: true, minX: sp.fx - 0.01, maxX: sp.fx + 0.01, minY: sp.fy - 0.01, maxY: sp.fy + 0.01 }); }
     const sorted = entities.concat(dyn).sort(cmpDepth);
@@ -4169,7 +4285,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       wctx.drawImage(spr.cv, x, y);
       wctx.restore();
       
-      if (e.key === "desk") drawMonitorScreen(fx.flicker && (flick || pcAlert));
+      if (e.key === "chair" && drawCatOnFurniture && st.cat.perch.key === "chair") drawCatSprite();
+      if (e.key === "desk") {
+        drawMonitorScreen(fx.flicker && (flick || pcAlert));
+        if (drawCatOnFurniture && st.cat.perch.key === "desk") drawCatSprite();
+      }
       if (e.key === "table") {
         drawTableClock();
         
@@ -4266,6 +4386,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
             }
           }
         }
+        if (drawCatOnFurniture && st.cat.perch.key === "table") drawCatSprite();
       }
     }
     /* — busta lettere sul pavimento (slide / idle) — */
@@ -4594,38 +4715,22 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           lt.creditsAfter,
           revealK,
           uiS,
-          st.t
+          st.t,
+          lt.phase === "done"
         );
         if (fx.holo && revealK > 0.15) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = 0.28 * revealK;
-          const ticketH = 188 * uiS * emerge;
-          const sweepX = centerX - ticketH + ((st.t * 140) % (ticketH * 2.2));
-          const sg = ctx.createLinearGradient(sweepX, rewardY - ticketH / 2, sweepX + 50, rewardY + ticketH / 2);
+          const cardH = CREDITS_REWARD_CARD.h * uiS * emerge;
+          const sweepX = centerX - cardH + ((st.t * 140) % (cardH * 2.2));
+          const sg = ctx.createLinearGradient(sweepX, rewardY - cardH / 2, sweepX + 50, rewardY + cardH / 2);
           sg.addColorStop(0, "rgba(255,255,255,0)");
           sg.addColorStop(0.5, "rgba(255,233,176,0.9)");
           sg.addColorStop(1, "rgba(255,255,255,0)");
           ctx.fillStyle = sg;
-          ctx.fillRect(centerX - 130 * uiS, rewardY - 100 * uiS, 260 * uiS, 200 * uiS);
+          ctx.fillRect(centerX - 140 * uiS, rewardY - cardH / 2, 280 * uiS, cardH);
           ctx.restore();
-        }
-        if (lt.phase === "done") {
-          const footY = rewardY + 108 * uiS;
-          ctx.fillStyle = "rgba(255,255,255,0.78)";
-          ctx.font = "500 " + Math.round(12 * uiS) + "px 'Segoe UI', system-ui, sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText("Usali sul portale Ebartex.", centerX, footY);
-          const btnW = 120 * uiS, btnH = 30 * uiS;
-          ctx.fillStyle = "#d94f46";
-          rr(ctx, centerX - btnW / 2, footY + 14, btnW, btnH, 8);
-          ctx.fill();
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold " + Math.round(10 * uiS) + "px 'Press Start 2P', monospace";
-          ctx.fillText("CHIUDI ✖", centerX, footY + 14 + btnH * 0.68);
         }
       }
       ctx.restore();
@@ -4757,9 +4862,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       if (lt.phase === "done") {
         const uiS = Math.min(st.view.w / 340, st.view.h / 260, 2.8);
         const rewardY = centerY - 8;
-        const footY = rewardY + 108 * uiS;
-        const btnW = 120 * uiS, btnH = 30 * uiS;
-        const btnCy = footY + 14 + btnH / 2;
+        const scale = uiS;
+        const btnCy = rewardY + CREDITS_REWARD_CARD.btnCy * scale;
+        const btnW = CREDITS_REWARD_CARD.btnW * scale;
+        const btnH = CREDITS_REWARD_CARD.btnH * scale;
         if (Math.abs(hx - centerX) < btnW / 2 + 8 && Math.abs(hy - btnCy) < btnH / 2 + 8) {
           closeLetterReward();
         }

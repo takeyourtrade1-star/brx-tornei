@@ -13,6 +13,7 @@ import {
   HEADER_BRX_LOGO_OVERLAY_IMAGE_CLASS,
   HEADER_BRX_LOGO_PATH,
 } from '@/components/layout/header-brx-column';
+import { TournamentGameLoadingScreen } from './tournament-game-loading-screen';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { TournamentsTable } from './tournaments-table';
 import { CreateTournamentButton } from './create-tournament-button';
@@ -164,38 +165,7 @@ export function TournamentGameView({
           </div>
         </div>
 
-        {/* Desktop gaming loading screen placeholder */}
-        <div className="hidden md:flex fixed inset-0 w-screen h-screen z-[100] flex-col items-center justify-center select-none"
-             style={{
-               background: 'radial-gradient(1100px 650px at 50% 28%, #142347 0%, #0d111c 65%, #2e1b10 100%)'
-             }}
-        >
-          <div className="flex flex-col items-center gap-6 max-w-xs w-full text-center">
-            <div className="relative mb-2">
-              <div className="absolute inset-0 bg-[#FF7300]/20 blur-xl rounded-full scale-110 animate-pulse" />
-              <Image
-                src={logoUrl}
-                alt="Ebartex"
-                width={HEADER_BRX_LOGO_INTRINSIC_WIDTH}
-                height={HEADER_BRX_LOGO_INTRINSIC_HEIGHT}
-                className="h-14 w-auto object-contain relative z-10 sm:h-16"
-                priority
-                unoptimized
-              />
-            </div>
-            <div className="flex flex-col gap-2 mt-4">
-              <span className="font-sans text-xs font-black tracking-[0.25em] text-[#FF7300] uppercase">
-                Caricamento mini-gioco
-              </span>
-              <span className="font-mono text-xs text-white/40 tracking-wider">
-                Avvio in corso...
-              </span>
-            </div>
-            <div className="w-64 h-3 rounded-full bg-white/5 border border-white/10 p-[2px] shadow-[0_4px_12px_rgba(0,0,0,0.5)] relative overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-to-r from-[#FF7300] to-[#ffd76e]" style={{ width: '100%' }} />
-            </div>
-          </div>
-        </div>
+        <TournamentGameLoadingScreen />
       </>
     );
   }
