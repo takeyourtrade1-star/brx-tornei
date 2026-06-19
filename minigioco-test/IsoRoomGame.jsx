@@ -709,6 +709,7 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
     ctx.fillRect(Math.round(spk.x), Math.round(spk.y) - 1, 1, 3);
   }
 
+
   /* D) mascotte kawaii (parete di fondo, vicino all'angolo) */
   if (false) {
     posterBg(wallR, 0.9, 2.3, 90, 46, "#46b8a5");
@@ -2050,7 +2051,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     { key: "stool", rect: rectOf(findEnt("stool2")), cv: spriteCvOf(findEnt("stool2")) },
     { key: "window", rect: rectFromPts([wallL(7.7, 92), wallL(5.7, 92), wallL(5.7, 24), wallL(7.7, 24)]) },
     { key: "posterBrand", rect: rectFromPts([wallL(1.0, 96), wallL(2.7, 96), wallL(2.7, 48), wallL(1.0, 48)]) },
-    { key: "mirror", rect: rectFromPts([wallL(8.05, 98), wallL(9.85, 98), wallL(9.85, 30), wallL(8.05, 30)]) },
+    { key: "mirror", rect: rectFromPts([wallL(8.05, 98), wallL(9.85, 98), wallL(9.85, 10), wallL(8.05, 10)]) },
     { key: "stats", rect: rectFromPts([wallL(3.3, 88), wallL(4.7, 88), wallL(4.7, 50), wallL(3.3, 50)]) },
   ];
   if (posters && posters.week) eggs.push({ key: "posterWeek", rect: rectFromPts([wallR(0.55, 92), wallR(1.6, 92), wallR(1.6, 42), wallR(0.55, 42)]) });
@@ -4791,6 +4792,51 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         ctx.font = "700 14px 'Segoe UI', system-ui, sans-serif";
         ctx.fillText(GUIDE[id], lx + lw / 2, ly + lh / 2 + 0.5);
         ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      }
+
+      /* — etichetta specchio "Personalizza l'avatar" (stesso stile guide, screen-space) — */
+      if (st.modal !== "mirror") {
+        const mEgg = eggs.find((e) => e.key === "mirror");
+        if (mEgg) {
+          const mr = mEgg.rect;
+          const mp = project(mr.x + mr.w / 2, mr.y);
+          const label = "Personalizza l'avatar";
+          const bob = Math.sin(st.t * 2.4 + 1.1) * 3;
+          const accent = "#ffd76e";
+          const tipY = mp.y + bob;
+          ctx.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+          const tw = ctx.measureText(label).width;
+          const padX = 14, lh = 31, arrowH = 17, gap = 6;
+          const lw = tw + padX * 2;
+          const aBase = tipY - 4 - arrowH;
+          let ly = aBase - gap - lh;
+          let lx = clamp(mp.x - lw / 2, 8, w - lw - 8);
+          if (ly < 6) ly = 6;
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+          ctx.beginPath();
+          ctx.moveTo(mp.x - 11, aBase);
+          ctx.lineTo(mp.x + 11, aBase);
+          ctx.lineTo(mp.x, tipY - 4);
+          ctx.closePath();
+          ctx.fillStyle = accent; ctx.fill();
+          ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+          ctx.lineWidth = 2; ctx.strokeStyle = "rgba(20,16,30,0.85)"; ctx.stroke();
+          ctx.restore();
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+          rr(ctx, lx, ly, lw, lh, 10);
+          ctx.fillStyle = "rgba(18,20,36,0.94)"; ctx.fill();
+          ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = "#fff3d6";
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+          ctx.fillText(label, lx + lw / 2, ly + lh / 2 + 0.5);
+          ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+        }
       }
     }
 
