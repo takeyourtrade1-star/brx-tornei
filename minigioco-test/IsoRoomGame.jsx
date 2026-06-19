@@ -260,8 +260,14 @@ function formatCredits(n) {
   return Math.round(n).toLocaleString("it-IT");
 }
 
-/** Layout card ricompensa crediti (coordinate locali, origine al centro). */
-const CREDITS_REWARD_CARD = { w: 286, h: 242, btnW: 130, btnH: 30, btnCy: 94 };
+/** Layout card ricompensa crediti (coordinate locali, origine al centro).
+ *  h:300 con padding 20px in basso sotto il bottone; btnCy assoluto dal centro. */
+const CREDITS_REWARD_CARD = { w: 290, h: 300, btnW: 140, btnH: 32, btnCy: 114 };
+
+/** URL sezione crediti del portale Ebartex (sottodominio account). */
+const EBARTEX_CREDITO_URL = "https://www.ebartex.com/account/credito";
+/** Colore arancione brand per il link "Ebartex". */
+const EB_LINK_ORANGE = "#ff7a32";
 
 /* Battute misteriose della modalità Shadow Realm */
 const SHADOW_LINES = [
@@ -384,6 +390,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const easeOutQuad = (t) => 1 - (1 - t) * (1 - t);
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+const easeInCubic = (t) => t * t * t;
 const easeOutBack = (t) => Math.max(0, 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2));
 
 /** tile (anche frazionario) -> px mondo del vertice alto del diamante */
@@ -2580,7 +2587,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       st.letterFx.push({
         x: cx, y: cy,
         vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 30,
-        col: Math.random() < 0.55 ? P.gold : "#ffffff",
+        col: Math.random() < 0.65 ? "#F3C76A" : (Math.random() < 0.5 ? "#ffe6a8" : "#ffffff"),
         size: 2 + Math.random() * 3,
         dur: 0.7 + Math.random() * 0.5,
         t0: st.t,
@@ -2627,19 +2634,23 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     sfx.open();
     const { w, h } = st.view;
     const cy = h / 2 - 10;
-    burstLetterFx(w / 2, cy, 42);
+    burstLetterFx(w / 2, cy, 56);
     st.letterFx.push({
       x: w / 2, y: cy,
-      ring: true, maxRadius: 110, col: P.gold, dur: 0.75, t0: st.t,
+      ring: true, maxRadius: 120, col: "#F3C76A", dur: 0.75, t0: st.t,
     });
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
+    st.letterFx.push({
+      x: w / 2, y: cy,
+      ring: true, maxRadius: 180, col: "#F3C76A", dur: 1.0, t0: st.t,
+    });
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
       st.letterFx.push({
         x: w / 2 + Math.cos(a) * 6, y: cy + Math.sin(a) * 4,
-        vx: Math.cos(a) * 90, vy: Math.sin(a) * 70 - 40,
-        col: i % 2 ? "#FF7300" : P.gold,
+        vx: Math.cos(a) * 95, vy: Math.sin(a) * 72 - 44,
+        col: i % 2 ? "#F3C76A" : "#ffe6a8",
         size: 3 + Math.random() * 2,
-        dur: 0.55 + Math.random() * 0.35,
+        dur: 0.6 + Math.random() * 0.35,
         t0: st.t,
         grav: 50,
       });
@@ -3807,6 +3818,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const scale = opts.scale != null ? opts.scale : 1;
     const glow = opts.glow || 0;
     const bw = 50, bh = 34, hinge = -10;
+    /* Palette premium Ebartex: dark + oro foil */
+    const EB_DARK = "#0F172A", EB_DARK2 = "#111827", EB_GOLD = "#F3C76A", EB_GOLD_D = "#c98f2b";
 
     c.save();
     c.translate(dx, dy);
@@ -3814,49 +3827,67 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.scale(scale, scale);
 
     if (glow > 0) {
-      const pg = c.createRadialGradient(0, 0, 4, 0, 0, 48);
-      pg.addColorStop(0, "rgba(255, 216, 116, " + (0.55 * glow).toFixed(3) + ")");
-      pg.addColorStop(0.45, "rgba(255, 132, 32, " + (0.16 * glow).toFixed(3) + ")");
-      pg.addColorStop(1, "rgba(255, 200, 80, 0)");
+      const pg = c.createRadialGradient(0, 0, 4, 0, 0, 52);
+      pg.addColorStop(0, "rgba(243, 199, 106, " + (0.6 * glow).toFixed(3) + ")");
+      pg.addColorStop(0.45, "rgba(243, 199, 106, " + (0.18 * glow).toFixed(3) + ")");
+      pg.addColorStop(1, "rgba(243, 199, 106, 0)");
       c.fillStyle = pg;
       c.beginPath();
-      c.arc(0, 0, 48, 0, Math.PI * 2);
+      c.arc(0, 0, 52, 0, Math.PI * 2);
       c.fill();
     }
 
-    c.fillStyle = "rgba(0,0,0,0.25)";
+    c.fillStyle = "rgba(0,0,0,0.32)";
     c.beginPath();
-    c.ellipse(0, 18, 29, 9, 0, 0, Math.PI * 2);
+    c.ellipse(0, 19, 30, 9, 0, 0, Math.PI * 2);
     c.fill();
 
-    c.fillStyle = "#b9a57f";
+    /* pannello posteriore scuro (sporge 2px come lembo dietro) */
+    c.fillStyle = "#080b14";
     rr(c, -bw / 2 - 2, -bh / 2 + 4, bw + 4, bh + 5, 4);
     c.fill();
 
-    const paper = c.createLinearGradient(0, -bh / 2, 0, bh / 2 + 4);
-    paper.addColorStop(0, "#fff1d0");
-    paper.addColorStop(0.58, "#dfc99d");
-    paper.addColorStop(1, "#b99b68");
-    c.fillStyle = paper;
+    /* corpo busta: gradient dark Ebartex */
+    const body = c.createLinearGradient(0, -bh / 2, 0, bh / 2 + 4);
+    body.addColorStop(0, "#1a2440");
+    body.addColorStop(0.55, EB_DARK);
+    body.addColorStop(1, EB_DARK2);
+    c.fillStyle = body;
     rr(c, -bw / 2, -bh / 2, bw, bh, 3);
     c.fill();
-    c.strokeStyle = P.outline;
-    c.lineWidth = 1.3;
+    /* bordo oro */
+    c.strokeStyle = EB_GOLD;
+    c.lineWidth = 1.4;
     c.strokeRect(-bw / 2, -bh / 2, bw, bh);
 
-    c.strokeStyle = "rgba(90,58,24,0.34)";
-    c.lineWidth = 1;
+    /* banda accent gradient-card2 (oro→viola Ebartex) diagonale faint */
+    c.save();
     c.beginPath();
-    c.moveTo(-bw / 2 + 2, -bh / 2 + 2);
-    c.lineTo(0, 2);
-    c.lineTo(bw / 2 - 2, -bh / 2 + 2);
-    c.moveTo(-bw / 2 + 2, bh / 2 - 2);
-    c.lineTo(-5, 2);
-    c.moveTo(bw / 2 - 2, bh / 2 - 2);
-    c.lineTo(5, 2);
+    rr(c, -bw / 2 + 1, -bh / 2 + 1, bw - 2, bh - 2, 2.5);
+    c.clip();
+    const band = c.createLinearGradient(-bw / 2, -bh / 2, bw / 2, bh / 2);
+    band.addColorStop(0, "rgba(204, 126, 74, 0.22)");
+    band.addColorStop(0.5, "rgba(41, 20, 66, 0)");
+    band.addColorStop(1, "rgba(243, 199, 106, 0.14)");
+    c.fillStyle = band;
+    c.fillRect(-bw / 2, -bh / 2, bw, bh);
+    /* wordmark EBARTEX oro sul corpo busta (visibile su sfondo dark) */
+    c.fillStyle = "rgba(243, 199, 106, 0.38)";
+    c.font = "800 6.5px 'Segoe UI', system-ui, sans-serif";
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText("EBARTEX", 0, 6);
+    /* sottolineatura mini brand */
+    c.strokeStyle = "rgba(243, 199, 106, 0.3)";
+    c.lineWidth = 0.6;
+    c.beginPath();
+    c.moveTo(-10, 11); c.lineTo(10, 11);
     c.stroke();
+    c.textBaseline = "alphabetic";
+    c.restore();
 
-    c.fillStyle = "rgba(0,0,0,0.08)";
+    /* lembi laterali ombreggiati (effetto piega) */
+    c.fillStyle = "rgba(0,0,0,0.22)";
     c.beginPath();
     c.moveTo(-bw / 2, -bh / 2); c.lineTo(-bw / 2 + 11, 2); c.lineTo(-bw / 2, bh / 2);
     c.closePath(); c.fill();
@@ -3864,30 +3895,63 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.moveTo(bw / 2, -bh / 2); c.lineTo(bw / 2 - 11, 2); c.lineTo(bw / 2, bh / 2);
     c.closePath(); c.fill();
 
+    /* interno: camera scura + fascio di luce oro che cresce col flap */
     if (flapOpen > 0.04) {
-      c.fillStyle = "#15100b";
+      c.fillStyle = "#070a12";
       rr(c, -bw / 2 + 6, -bh / 2 + 5, bw - 12, bh - 10, 2);
       c.fill();
-      const ig = c.createRadialGradient(0, 1, 2, 0, 1, 27);
-      ig.addColorStop(0, "rgba(255, 224, 142, " + (0.75 * flapOpen).toFixed(3) + ")");
-      ig.addColorStop(0.48, "rgba(255, 126, 24, " + (0.22 * flapOpen).toFixed(3) + ")");
-      ig.addColorStop(1, "rgba(255, 180, 60, 0)");
+      const ig = c.createRadialGradient(0, hinge + 4, 2, 0, hinge + 4, 30);
+      ig.addColorStop(0, "rgba(255, 233, 160, " + (0.85 * flapOpen).toFixed(3) + ")");
+      ig.addColorStop(0.42, "rgba(243, 199, 106, " + (0.3 * flapOpen).toFixed(3) + ")");
+      ig.addColorStop(1, "rgba(243, 199, 106, 0)");
       c.fillStyle = ig;
       c.fillRect(-bw / 2 + 6, -bh / 2 + 6, bw - 12, bh - 12);
-      c.fillStyle = "rgba(255,245,214," + (0.75 * flapOpen).toFixed(3) + ")";
-      rr(c, -14, -7 - flapOpen * 3, 28, 22, 2);
+      /* lettera interna che emerge col flap: carta chiara con gradient + bordo + piega + scritta */
+      const lY = -7 - flapOpen * 3;
+      const lA = clamp(flapOpen * 1.2, 0, 1);
+      c.save();
+      c.globalAlpha = lA;
+      const lgrad = c.createLinearGradient(0, lY, 0, lY + 22);
+      lgrad.addColorStop(0, "#fffdf4");
+      lgrad.addColorStop(0.55, "#f7f1dd");
+      lgrad.addColorStop(1, "#ece3c2");
+      c.fillStyle = lgrad;
+      rr(c, -14, lY, 28, 22, 2);
       c.fill();
+      c.strokeStyle = "rgba(90, 58, 24, 0.45)";
+      c.lineWidth = 0.8;
+      c.stroke();
+      /* piega centrale verticale faint */
+      c.strokeStyle = "rgba(90, 58, 24, 0.18)";
+      c.lineWidth = 0.6;
+      c.beginPath();
+      c.moveTo(0, lY + 2); c.lineTo(0, lY + 20);
+      c.stroke();
+      /* intestazione "EBARTEX" in dark sopra la lettera (visibile su carta chiara) */
+      c.fillStyle = "#3a2a1a";
+      c.font = "800 5px 'Segoe UI', system-ui, sans-serif";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillText("EBARTEX", 0, lY + 5);
+      /* piccolo simbolo € sotto la scritta */
+      c.fillStyle = "#c98f2b";
+      c.font = "900 8px 'Segoe UI', system-ui, sans-serif";
+      c.fillText("€", 0, lY + 14);
+      c.textBaseline = "alphabetic";
+      c.restore();
     }
 
+    /* flap superiore: dark + bordo oro, apertura con squama Y + rotazione + luce */
     c.save();
     c.translate(0, hinge);
-    c.scale(1, Math.max(0.18, 1 - flapOpen * 0.78));
+    c.scale(1, Math.max(0.16, 1 - flapOpen * 0.8));
     c.translate(0, -flapOpen * 7);
     c.rotate(-flapOpen * 0.28);
     c.translate(0, -hinge);
     const flap = c.createLinearGradient(0, hinge - 23, 0, hinge + 4);
-    flap.addColorStop(0, "#fff6dc");
-    flap.addColorStop(1, "#cfb27c");
+    flap.addColorStop(0, "#1a2440");
+    flap.addColorStop(0.6, EB_DARK);
+    flap.addColorStop(1, "#080b14");
     c.fillStyle = flap;
     c.beginPath();
     c.moveTo(-bw / 2, hinge);
@@ -3895,11 +3959,20 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.lineTo(bw / 2, hinge);
     c.closePath();
     c.fill();
-    c.strokeStyle = P.outline;
-    c.lineWidth = 1.2;
+    c.strokeStyle = EB_GOLD;
+    c.lineWidth = 1.3;
+    c.stroke();
+    /* sottile highlight dorato sul bordo alto del flap */
+    c.strokeStyle = "rgba(255, 233, 160, 0.5)";
+    c.lineWidth = 0.8;
+    c.beginPath();
+    c.moveTo(-bw / 2 + 2, hinge - 1);
+    c.lineTo(0, hinge - 21);
+    c.lineTo(bw / 2 - 2, hinge - 1);
     c.stroke();
     c.restore();
 
+    /* sigillo cera → foil oro Ebartex con "E" embossed */
     if (sealBreak < 0.92) {
       const sealA = 1 - sealBreak;
       const sealS = 1 - sealBreak * 0.75;
@@ -3907,26 +3980,40 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       c.save();
       c.translate(0, sy);
       c.scale(sealS, sealS);
-      c.fillStyle = "rgba(255,115,0," + sealA + ")";
+      /* disco oro foil con anello interno */
+      const sg = c.createRadialGradient(-2, -2, 1, 0, 0, 9);
+      sg.addColorStop(0, "#ffe6a8");
+      sg.addColorStop(0.5, EB_GOLD);
+      sg.addColorStop(1, EB_GOLD_D);
+      c.fillStyle = sg;
       c.beginPath();
       c.arc(0, 0, 8, 0, Math.PI * 2);
       c.fill();
-      c.strokeStyle = "rgba(180,60,0," + sealA + ")";
+      c.strokeStyle = "rgba(120, 80, 20, " + sealA + ")";
       c.lineWidth = 1;
       c.stroke();
-      c.fillStyle = "rgba(255,255,255," + sealA + ")";
-      c.font = "bold 9px 'Segoe UI', system-ui, sans-serif";
+      c.strokeStyle = "rgba(255, 245, 200, " + (0.7 * sealA) + ")";
+      c.lineWidth = 0.6;
+      c.beginPath();
+      c.arc(0, 0, 5.5, 0, Math.PI * 2);
+      c.stroke();
+      /* "E" embossed scuro + highlight */
+      c.fillStyle = "rgba(40, 24, 8, " + sealA + ")";
+      c.font = "900 9px 'Segoe UI', system-ui, sans-serif";
       c.textAlign = "center";
       c.textBaseline = "middle";
       c.fillText("E", 0, 0.5);
+      c.fillStyle = "rgba(255, 245, 200, " + (0.35 * sealA) + ")";
+      c.fillText("E", -0.4, 0.1);
       c.textBaseline = "alphabetic";
       c.restore();
+      /* schegge di rottura oro (12 vs 7) */
       if (sealBreak > 0.35) {
-        for (let i = 0; i < 7; i++) {
-          const a = (i / 7) * Math.PI * 2 + sealBreak * 2;
-          const dist = sealBreak * (10 + i * 1.2);
-          c.fillStyle = "rgba(255,115,0," + (sealA * 0.8) + ")";
-          c.fillRect(Math.cos(a) * dist - 1.2, sy + Math.sin(a) * dist - 1.2, 2.4, 2.4);
+        for (let i = 0; i < 12; i++) {
+          const a = (i / 12) * Math.PI * 2 + sealBreak * 2;
+          const dist = sealBreak * (11 + i * 1.1);
+          c.fillStyle = "rgba(243, 199, 106, " + (sealA * 0.85) + ")";
+          c.fillRect(Math.cos(a) * dist - 1.3, sy + Math.sin(a) * dist - 1.3, 2.6, 2.6);
         }
       }
     }
@@ -3934,7 +4021,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.restore();
   };
 
-  const drawCreditsReward = (c, dx, dy, tournamentName, creditsBefore, creditsAfter, progress, uiScale = 1, animT = 0, showActions = false) => {
+  const drawCreditsReward = (c, dx, dy, tournamentName, creditsBefore, creditsAfter, progress, uiScale = 1, animT = 0, showActions = false, opts = {}) => {
     const k = clamp(progress, 0, 1);
     const pop = 0.88 + 0.12 * easeOutBack(k);
     const s = uiScale * pop;
@@ -3949,23 +4036,27 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
     const { w: tw, h: th, btnW, btnH, btnCy } = CREDITS_REWARD_CARD;
     const top = -th / 2;
+    const EB_GOLD = "#F3C76A";
 
-    c.fillStyle = "rgba(0,0,0,0.34)";
+    /* ombra card */
+    c.fillStyle = "rgba(0,0,0,0.38)";
     rr(c, -tw / 2 + 8, top + 10, tw - 16, th, 18);
     c.fill();
 
+    /* corpo card: gradient dark Ebartex */
     const tg = c.createLinearGradient(0, top, 0, top + th);
-    tg.addColorStop(0, "#27304a");
-    tg.addColorStop(0.5, "#111827");
+    tg.addColorStop(0, "#1a2440");
+    tg.addColorStop(0.5, "#0F172A");
     tg.addColorStop(1, "#090b12");
     c.fillStyle = tg;
     rr(c, -tw / 2, top, tw, th, 16);
     c.fill();
 
-    c.strokeStyle = "rgba(255,216,126,0.95)";
+    /* bordo oro + interno */
+    c.strokeStyle = EB_GOLD;
     c.lineWidth = 2;
     c.stroke();
-    c.strokeStyle = "rgba(255,255,255,0.15)";
+    c.strokeStyle = "rgba(255,255,255,0.14)";
     c.lineWidth = 1;
     rr(c, -tw / 2 + 8, top + 8, tw - 16, th - 16, 12);
     c.stroke();
@@ -3973,36 +4064,52 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.textAlign = "center";
     c.textBaseline = "middle";
 
-    c.fillStyle = "rgba(255,245,216,0.96)";
-    c.font = "900 16px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("Ebartex payout", 0, top + 24);
-
-    c.fillStyle = "rgba(255,255,255,0.62)";
-    c.font = "700 10px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("Torneo vinto", 0, top + 46);
-
-    c.font = "900 15px 'Segoe UI', system-ui, sans-serif";
-    c.fillStyle = "#ffb347";
-    const name = tournamentName.length > 25 ? tournamentName.slice(0, 23) + "..." : tournamentName;
-    c.fillText(name + "!", 0, top + 64);
-
-    c.fillStyle = "rgba(255,255,255,0.55)";
+    /* — brand EBARTEX + divisore oro — */
+    c.fillStyle = EB_GOLD;
     c.font = "800 10px 'Segoe UI', system-ui, sans-serif";
-    c.fillText("I tuoi crediti", 0, top + 86);
+    c.fillText("EBARTEX", 0, top + 18);
+    c.strokeStyle = "rgba(243, 199, 106, 0.45)";
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(-44, top + 26); c.lineTo(44, top + 26);
+    c.stroke();
 
-    const counterCy = top + 113;
-    const glowA = counting ? 0.35 + 0.2 * Math.sin(animT * 16) : 0.28;
+    /* — titolo — */
+    c.fillStyle = "rgba(255,245,216,0.96)";
+    c.font = "900 18px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("Payout torneo", 0, top + 48);
+
+    /* — nome torneo — */
+    c.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+    c.fillStyle = "#ffb347";
+    const name = tournamentName.length > 26 ? tournamentName.slice(0, 24) + "..." : tournamentName;
+    c.fillText(name + "!", 0, top + 72);
+
+    /* — label crediti — */
+    c.fillStyle = "rgba(255,255,255,0.55)";
+    c.font = "700 10px 'Segoe UI', system-ui, sans-serif";
+    c.fillText("I tuoi crediti", 0, top + 98);
+
+    /* — counter slot (effetto rotella con decelerazione + motion blur + gloss) — */
+    const counterCy = top + 132;
+    const kSpin = clamp((k - 0.1) / 0.84, 0, 1);     // 0→1 durante il counting
+    const spinPos = 6 * easeOutCubic(kSpin);          // posizione cumulativa (decelera)
+    const phaseFade = 1 - easeInCubic(clamp((kSpin - 0.85) / 0.15, 0, 1)); // sfuma offset→0 in coda
+    const fast = counting && kSpin < 0.7;             // fase veloce → abilita motion blur
+    const glowA = counting ? 0.3 + 0.16 * Math.sin(animT * 16) : 0.24;
+    /* flash dorato al fermarsi (k in [0.94, 1.0]) */
+    const stopFlash = k > 0.94 ? (1 - clamp((k - 0.94) / 0.06, 0, 1)) * 0.55 : 0;
 
     const cg = c.createRadialGradient(0, counterCy, 10, 0, counterCy, 86);
-    cg.addColorStop(0, "rgba(255,180,60," + glowA + ")");
-    cg.addColorStop(0.55, "rgba(255,115,0,0.14)");
-    cg.addColorStop(1, "rgba(255,115,0,0)");
+    cg.addColorStop(0, "rgba(243, 199, 106, " + (glowA + stopFlash).toFixed(3) + ")");
+    cg.addColorStop(0.55, "rgba(204, 126, 74, 0.12)");
+    cg.addColorStop(1, "rgba(243, 199, 106, 0)");
     c.fillStyle = cg;
     c.beginPath();
     c.ellipse(0, counterCy, 106, 42, 0, 0, Math.PI * 2);
     c.fill();
 
-    const slotW = 214, slotH = 50;
+    const slotW = 214, slotH = 52;
     c.fillStyle = "#05070d";
     rr(c, -slotW / 2, counterCy - slotH / 2, slotW, slotH, 10);
     c.fill();
@@ -4010,13 +4117,20 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     slotG.addColorStop(0, "rgba(255,255,255,0.12)");
     slotG.addColorStop(0.45, "rgba(255,255,255,0.02)");
     slotG.addColorStop(0.52, "rgba(0,0,0,0.35)");
-    slotG.addColorStop(1, "rgba(255,200,80,0.08)");
+    slotG.addColorStop(1, "rgba(243, 199, 106, 0.08)");
     c.fillStyle = slotG;
     rr(c, -slotW / 2 + 3, counterCy - slotH / 2 + 3, slotW - 6, slotH - 6, 8);
     c.fill();
-    c.strokeStyle = "rgba(255,215,120,0.62)";
-    c.lineWidth = 1.4;
+    c.strokeStyle = "rgba(243, 199, 106, " + (0.6 + stopFlash * 0.4).toFixed(3) + ")";
+    c.lineWidth = 1.4 + stopFlash * 1.2;
     c.stroke();
+    /* gloss highlight: riflesso bianco in alto del box slot */
+    const gloss = c.createLinearGradient(0, counterCy - slotH / 2, 0, counterCy - slotH / 2 + 14);
+    gloss.addColorStop(0, "rgba(255,255,255,0.18)");
+    gloss.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = gloss;
+    rr(c, -slotW / 2 + 4, counterCy - slotH / 2 + 4, slotW - 8, 14, 6);
+    c.fill();
 
     c.save();
     c.beginPath();
@@ -4024,37 +4138,52 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     c.clip();
     const value = formatCredits(shown);
     const chars = value.split("");
-    const totalW = chars.reduce((sum, ch) => sum + (ch === "." ? 8 : 24), 0) + (chars.length - 1) * 3;
+    const totalW = chars.reduce((sum, ch) => sum + (ch === "." ? 9 : 25), 0) + (chars.length - 1) * 3;
     let x = -totalW / 2;
-    c.font = "900 27px 'Segoe UI', system-ui, sans-serif";
+    c.font = "900 28px 'Segoe UI', system-ui, sans-serif";
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
-      const cw = ch === "." ? 8 : 24;
+      const cw = ch === "." ? 9 : 25;
       if (ch === ".") {
         c.fillStyle = "rgba(255,235,178,0.75)";
-        c.fillText(".", x + cw / 2, counterCy + 8);
+        c.fillText(".", x + cw / 2, counterCy + 9);
       } else {
         const bx = x + cw / 2;
+        /* box digit singolo con bordino */
         c.fillStyle = "rgba(255,255,255,0.06)";
-        rr(c, x, counterCy - 17, cw, 34, 5);
+        rr(c, x, counterCy - 18, cw, 36, 5);
         c.fill();
-        c.fillStyle = counting ? "#fff8df" : "#ffd978";
-        c.shadowColor = "rgba(255,185,70,0.95)";
-        c.shadowBlur = counting ? 10 : 6;
-        const spin = counting ? (animT * 8.5 + i * 0.31) % 1 : 0;
-        const off = easeOutCubic(spin) * 34;
-        c.fillText(ch, bx, counterCy + 8 - off);
-        if (counting) c.fillText(String((Number(ch) + 1) % 10), bx, counterCy + 42 - off);
+        c.strokeStyle = "rgba(243, 199, 106, 0.18)";
+        c.lineWidth = 0.8;
+        c.stroke();
+        /* spin: posizione cumulativa che decelera + offset che sfuma a 0 in coda */
+        const spin = counting ? (spinPos + i * 0.31 * phaseFade) % 1 : 0;
+        const off = easeOutCubic(spin) * 36;
+        const digitCol = counting ? "#fff8df" : "#ffd978";
+        c.shadowColor = "rgba(243, 199, 106, 0.9)";
+        c.shadowBlur = counting ? 8 : 5;
+        /* motion blur: 2 ghost quando gira veloce */
+        if (fast) {
+          c.globalAlpha = 0.22;
+          c.fillStyle = digitCol;
+          c.fillText(ch, bx, counterCy + 9 - off + 16);
+          c.fillText(ch, bx, counterCy + 9 - off - 16);
+          c.globalAlpha = 1;
+        }
+        c.fillStyle = digitCol;
+        c.fillText(ch, bx, counterCy + 9 - off);
+        if (counting) c.fillText(String((Number(ch) + 1) % 10), bx, counterCy + 45 - off);
         c.shadowBlur = 0;
       }
       x += cw + 3;
     }
     c.restore();
 
+    /* — badge +X crediti (verde) — */
     if (deltaK > 0) {
       const dPop = easeOutBack(deltaK);
       c.save();
-      c.translate(0, top + 158);
+      c.translate(0, top + 182);
       c.scale(dPop, dPop);
       c.fillStyle = "rgba(78, 222, 142, 0.16)";
       rr(c, -88, -17, 176, 34, 14);
@@ -4068,6 +4197,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       c.restore();
     }
 
+    /* — scintille orbitanti durante il count — */
     if (counting) {
       for (let i = 0; i < 10; i++) {
         const a = animT * 2.8 + i * 0.72;
@@ -4075,7 +4205,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         const px = Math.cos(a) * rad;
         const py = counterCy + Math.sin(a) * rad * 0.34;
         c.globalAlpha = 0.35 + 0.35 * Math.sin(animT * 5 + i);
-        c.fillStyle = i % 2 ? "#ffd86e" : "#ff8a2a";
+        c.fillStyle = i % 2 ? "#F3C76A" : "#ff8a2a";
         c.beginPath();
         c.arc(px, py, 2.2 + (i % 3) * 0.6, 0, Math.PI * 2);
         c.fill();
@@ -4083,14 +4213,45 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       c.globalAlpha = 1;
     }
 
+    /* — footer info + bottone (solo a sequenza conclusa) — */
     if (showActions) {
       c.fillStyle = "rgba(255,255,255,0.42)";
       c.font = "500 11px 'Segoe UI', system-ui, sans-serif";
-      c.fillText("Saldo aggiornato: " + formatCredits(creditsAfter), 0, top + 188);
+      c.fillText("Saldo aggiornato: " + formatCredits(creditsAfter), 0, top + 210);
 
+      /* riga link: "Credito pronto sul portale Ebartex." con "Ebartex" arancione cliccabile */
+      const footY = top + 230;
+      const footFont = "600 11px 'Segoe UI', system-ui, sans-serif";
+      c.font = footFont;
+      const prefix = "Credito pronto sul portale ";
+      const linkText = "Ebartex";
+      const suffix = ".";
+      const wPrefix = c.measureText(prefix).width;
+      const wLink = c.measureText(linkText).width;
+      const wSuffix = c.measureText(suffix).width;
+      const wTotal = wPrefix + wLink + wSuffix;
+      const startX = -wTotal / 2;
+      const prevAlign = c.textAlign;
+      c.textAlign = "left";
+      /* prefisso bianco */
       c.fillStyle = "rgba(255,255,255,0.78)";
-      c.font = "600 11px 'Segoe UI', system-ui, sans-serif";
-      c.fillText("Credito pronto sul portale Ebartex.", 0, top + 207);
+      c.fillText(prefix, startX, footY);
+      /* link "Ebartex" arancione + sottolineatura (più forte se hover) */
+      const linkX = startX + wPrefix;
+      c.fillStyle = EB_LINK_ORANGE;
+      c.fillText(linkText, linkX, footY);
+      c.strokeStyle = EB_LINK_ORANGE;
+      c.lineWidth = opts.ebartexHover ? 1.4 : 0.9;
+      c.globalAlpha = opts.ebartexHover ? 1 : 0.7;
+      c.beginPath();
+      c.moveTo(linkX, footY + 3);
+      c.lineTo(linkX + wLink, footY + 3);
+      c.stroke();
+      c.globalAlpha = 1;
+      /* suffix */
+      c.fillStyle = "rgba(255,255,255,0.78)";
+      c.fillText(suffix, linkX + wLink, footY);
+      c.textAlign = prevAlign;
 
       const btnTop = btnCy - btnH / 2;
       const bg = c.createLinearGradient(0, btnTop, 0, btnTop + btnH);
@@ -4103,7 +4264,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       c.lineWidth = 1.2;
       c.stroke();
       c.fillStyle = "#ffffff";
-      c.font = "900 12px 'Segoe UI', system-ui, sans-serif";
+      c.font = "900 13px 'Segoe UI', system-ui, sans-serif";
       c.fillText("CHIUDI", 0, btnCy);
     }
 
@@ -4683,7 +4844,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
       const centerX = w / 2;
       const centerY = h / 2;
-      const uiS = Math.min(w / 340, h / 260, 2.8);
+      const uiS = Math.min(w / 340, h / 330, 2.8);
 
       if (lt.phase === "lift") {
         const elapsed = st.t - lt.t0;
@@ -4692,6 +4853,17 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         const yOff = lerp(h * 0.18, -24, k);
         const rot = (1 - k) * 0.22 * Math.sin(elapsed * 9);
         const glow = k * 0.35;
+        /* scia di particelle oro durante la salita */
+        if (Math.random() < 0.6) {
+          st.letterFx.push({
+            x: centerX + (Math.random() - 0.5) * 26 * envS,
+            y: centerY + yOff + 14 * envS,
+            vx: (Math.random() - 0.5) * 24, vy: 18 + Math.random() * 22,
+            col: Math.random() < 0.6 ? "#F3C76A" : "#ffe6a8",
+            size: 1.6 + Math.random() * 2.2,
+            dur: 0.5 + Math.random() * 0.35, t0: st.t, grav: 30,
+          });
+        }
         drawLetterEnvelope(ctx, centerX, centerY + yOff, {
           scale: envS, rot, glow, flapOpen: 0, sealBreak: 0,
         });
@@ -4702,11 +4874,34 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         const flapOpen = easeOutCubic(clamp((openK - 0.18) / 0.72, 0, 1));
         const glow = flapOpen > 0.55 ? (flapOpen - 0.55) * 2.2 : sealBreak * 0.4;
         const wobble = Math.sin(elapsed * 14) * (1 - flapOpen) * 2.5;
+        /* fascio di luce oro sopra il flap che cresce con l'apertura */
+        if (flapOpen > 0.05) {
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
+          const beamY = centerY - 28 - 52;
+          const beamA = 0.18 * flapOpen;
+          const bg = ctx.createRadialGradient(centerX + wobble, beamY, 4, centerX + wobble, beamY, 120 * flapOpen + 30);
+          bg.addColorStop(0, "rgba(255, 233, 160, " + beamA.toFixed(3) + ")");
+          bg.addColorStop(0.5, "rgba(243, 199, 106, " + (beamA * 0.5).toFixed(3) + ")");
+          bg.addColorStop(1, "rgba(243, 199, 106, 0)");
+          ctx.fillStyle = bg;
+          ctx.beginPath();
+          ctx.ellipse(centerX + wobble, beamY, 90 * flapOpen + 24, 140 * flapOpen + 30, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        /* one-shot: piccolo burst schegge oro al break del sigillo */
+        if (sealBreak > 0.5 && !lt.sealBurstFx) {
+          lt.sealBurstFx = true;
+          const sx = centerX + wobble, sy = centerY - 28 - 36;
+          burstLetterFx(sx, sy, 18);
+          st.letterFx.push({ x: sx, y: sy, ring: true, maxRadius: 60, col: "#F3C76A", dur: 0.5, t0: st.t });
+        }
         drawLetterEnvelope(ctx, centerX + wobble, centerY - 28, {
           scale: 5.2, flapOpen, sealBreak, glow,
         });
         if (flapOpen < 0.95) {
-          ctx.fillStyle = "#ffe9b0";
+          ctx.fillStyle = "#F3C76A";
           ctx.font = "bold 11px 'Press Start 2P', monospace";
           ctx.textAlign = "center";
           ctx.globalAlpha = 0.85 + 0.15 * Math.sin(st.t * 6);
@@ -4716,6 +4911,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       } else if (lt.phase === "reveal" || lt.phase === "done") {
         const elapsed = st.t - lt.t0;
         const revealK = lt.phase === "done" ? 1 : clamp(elapsed / 1.35, 0, 1);
+        /* flash oro fullscreen breve all'inizio del reveal */
+        if (elapsed < 0.25) {
+          ctx.fillStyle = "rgba(243, 199, 106, " + (0.18 * (1 - elapsed / 0.25)).toFixed(3) + ")";
+          ctx.fillRect(0, 0, w, h);
+        }
         const envFade = 1 - easeOutQuad(Math.min(revealK * 1.4, 1));
         const envY = centerY + lerp(-28, 72, easeOutQuad(revealK));
         const envS = lerp(5.2, 2.8, easeOutQuad(revealK));
@@ -4738,8 +4938,29 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
           revealK,
           uiS,
           st.t,
-          lt.phase === "done"
+          lt.phase === "done",
+          { ebartexHover: !!lt.ebartexHover }
         );
+        /* hit rect del link "Ebartex" in coordinate screen (solo a done) per click/hover */
+        if (lt.phase === "done") {
+          ctx.font = "600 11px 'Segoe UI', system-ui, sans-serif";
+          const prefix = "Credito pronto sul portale ";
+          const linkText = "Ebartex";
+          const suffix = ".";
+          const wPrefix = ctx.measureText(prefix).width;
+          const wLink = ctx.measureText(linkText).width;
+          const wSuffix = ctx.measureText(suffix).width;
+          const wTotal = wPrefix + wLink + wSuffix;
+          const linkXstart = -wTotal / 2 + wPrefix;
+          const linkCx = centerX + (linkXstart + wLink / 2) * uiS;
+          const linkCy = rewardY + 80 * uiS;
+          lt.ebartexHitRect = {
+            x: linkCx - (wLink * uiS) / 2 - 6,
+            y: linkCy - 9 * uiS,
+            w: wLink * uiS + 12,
+            h: 18 * uiS,
+          };
+        }
         if (fx.holo && revealK > 0.15) {
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
@@ -4882,12 +5103,22 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         return;
       }
       if (lt.phase === "done") {
-        const uiS = Math.min(st.view.w / 340, st.view.h / 260, 2.8);
+        const uiS = Math.min(st.view.w / 340, st.view.h / 330, 2.8);
         const rewardY = centerY - 8;
         const scale = uiS;
         const btnCy = rewardY + CREDITS_REWARD_CARD.btnCy * scale;
         const btnW = CREDITS_REWARD_CARD.btnW * scale;
         const btnH = CREDITS_REWARD_CARD.btnH * scale;
+        /* click sul link "Ebartex" → apre la sezione crediti del portale */
+        if (lt.ebartexHitRect) {
+          const r = lt.ebartexHitRect;
+          if (hx >= r.x && hx <= r.x + r.w && hy >= r.y && hy <= r.y + r.h) {
+            sfx.click();
+            try { window.open(EBARTEX_CREDITO_URL, "_blank", "noopener,noreferrer"); }
+            catch (_) { /* ignore */ }
+            return;
+          }
+        }
         if (Math.abs(hx - centerX) < btnW / 2 + 8 && Math.abs(hy - btnCy) < btnH / 2 + 8) {
           closeLetterReward();
         }
@@ -4937,6 +5168,13 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const p = pointerPos(e);
     st.pointer.x = p.x;
     st.pointer.y = p.y;
+    /* hover link "Ebartex" nell'overlay busta (fase done) */
+    if (letterOverlayActive() && st.letter && st.letter.phase === "done" && st.letter.ebartexHitRect) {
+      const r = st.letter.ebartexHitRect;
+      st.letter.ebartexHover = p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+      canvas.style.cursor = st.letter.ebartexHover ? "pointer" : "default";
+      return;
+    }
     const dec = hitDecor(p.x, p.y);
     const obj = dec ? null : hitObject(p.x, p.y);
     st.hover.decor = dec ? dec.kind : null;
