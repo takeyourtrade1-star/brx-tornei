@@ -90,7 +90,7 @@ const MUSIC_OBJ = { id: "music", approach: [[9, 1], [10, 2], [11, 2], [9, 0]], f
    kind "keys": evidenzia i badge in basso a sinistra (scorciatoie da tastiera).
    I "punti caldi" in modale sono in TUT_HOTSPOTS; quelli UI in TUT_UI_HOTSPOTS. */
 const TUT_STEPS = [
-  { kind: "say", intro: true, dur: 10, text: "Ciao! Sono Spettro 👻, la tua guida. In pochi secondi ti mostro i 3 punti chiave della stanza: seguimi!" },
+  { kind: "say", intro: true, dur: 10, text: "Ciao! Sono Asso 🃏, la tua guida. In pochi secondi ti mostro i 3 punti chiave della stanza: seguimi!" },
   { kind: "demo", id: "pc",    text: "1 di 3 · Il PC 🖥️ — qui partecipi ai tornei e segui le partite dal vivo.",
     inside: "Scegli un formato in alto, poi premi Partecipa per iscriverti, oppure l'occhio 👁️ per guardare una live." },
   { kind: "demo", id: "board", text: "2 di 3 · La bacheca 📌 — qui crei i tuoi tornei, anche privati.",
@@ -138,7 +138,7 @@ function tutUiHoldSec(step) {
 /* Messaggio finale (cartello grande ri-ingrandito con i bottoni di scelta). */
 const TUT_OUTRO = "È tutto qui! 🎉 PC per giocare, bacheca per creare, tavolo per i mazzi. Ora esplora pure la stanza: benvenuto in\nEbartex Tournaments!";
 const TUT_BRAND = "Ebartex Tournaments";
-/* Placeholder breve mentre il banner si prepara (prima del saluto di Spettro). */
+/* Placeholder breve mentre il banner si prepara (prima del saluto di Asso). */
 const TUT_WAIT = "Ecco un breve tutorial, ti mostro la stanza";
 
 /* Punti caldi evidenziati dentro le modali durante il tutorial: cerchio + cartello.
@@ -3679,8 +3679,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     wctx.fillText(st.ghost, Math.round(cxp - tw / 2), y - 5);
   }
 
-  /* — Spettro: il fantasmino-guida che fluttua accanto al personaggio
-     durante il tutorial (coordinato con il narratore in alto). — */
+  /* — Asso: la mascotte-guida (in pixel-art) che fluttua accanto al personaggio
+     durante il tutorial (coordinata con il narratore in alto). — */
   // posizione "guida": insegue un punto davanti all'avatar verso la meta
   function updateSpettro() {
     const av = st.av;
@@ -3745,52 +3745,34 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const breath = Math.sin(t * 2.6);
     wctx.scale(1 + breath * 0.05, 1 - breath * 0.05);
 
-    const w = 13, topH = 16, by = 13;
-    const bg = wctx.createLinearGradient(0, -topH, 0, by + 4);
-    bg.addColorStop(0, "#ffffff");
-    bg.addColorStop(0.6, "#fff6ec");
-    bg.addColorStop(1, "#ffe7cf");
-    wctx.fillStyle = bg;
-    wctx.strokeStyle = "rgba(255,140,50,0.6)";
-    wctx.lineWidth = 1.2;
-    wctx.beginPath();
-    wctx.moveTo(-w, 4);
-    wctx.bezierCurveTo(-w, -topH, w, -topH, w, 4);
-    wctx.lineTo(w, by);
-    const lobes = 4, stepw = (2 * w) / lobes;     // fondo ondulato animato
-    for (let k = 0; k < lobes; k++) {
-      const x0 = w - k * stepw, x1 = x0 - stepw;
-      const depth = (k % 2 === 0 ? 1 : -1) * (3.2 + 1.6 * Math.sin(t * 4 + k * 1.3));
-      wctx.quadraticCurveTo((x0 + x1) / 2, by + depth, x1, by);
-    }
-    wctx.closePath();
-    wctx.fill(); wctx.stroke();
-
-    // lucentezza interna
-    wctx.globalAlpha = 0.5;
-    wctx.fillStyle = "rgba(255,255,255,0.7)";
-    wctx.beginPath(); wctx.ellipse(-4, -6, 4.5, 6, -0.3, 0, Math.PI * 2); wctx.fill();
-    wctx.globalAlpha = 1;
-
-    // guance
-    wctx.fillStyle = "rgba(255,140,60,0.45)";
-    wctx.beginPath(); wctx.arc(-7.5, 3.5, 2.1, 0, Math.PI * 2); wctx.fill();
-    wctx.beginPath(); wctx.arc(7.5, 3.5, 2.1, 0, Math.PI * 2); wctx.fill();
-
-    // occhi: sbattono e guardano nella direzione di marcia
+    // — Asso in pixel-art (stessa griglia della mascotte del sito) —
     const blink = (t % 4.6) > 4.36 ? 0.14 : 1;
-    wctx.fillStyle = "#3a2a16";
-    wctx.beginPath(); wctx.ellipse(-4.2 + eyeDX, -1 + eyeDY, 2.0, 3.0 * blink, 0, 0, Math.PI * 2); wctx.fill();
-    wctx.beginPath(); wctx.ellipse(4.2 + eyeDX, -1 + eyeDY, 2.0, 3.0 * blink, 0, 0, Math.PI * 2); wctx.fill();
-    if (blink > 0.5) {
-      wctx.fillStyle = "rgba(255,255,255,0.9)";
-      wctx.beginPath(); wctx.arc(-4.9 + eyeDX, -1.9 + eyeDY, 0.7, 0, Math.PI * 2); wctx.fill();
-      wctx.beginPath(); wctx.arc(3.5 + eyeDX, -1.9 + eyeDY, 0.7, 0, Math.PI * 2); wctx.fill();
+    const PXS = 1.55;                                   // dimensione del pixel
+    const oxg = -ASSO_GW * PXS / 2;                     // angolo alto-sinistra
+    const oyg = -ASSO_GH * PXS / 2 + 1;
+    const cellW = PXS + 0.45;                           // micro-overlap: niente fessure
+    for (let gy = 0; gy < ASSO_GH; gy++) {
+      const row = ASSO_GRID[gy];
+      for (let gx = 0; gx < ASSO_GW; gx++) {
+        const col = ASSO_BODY_COL[row[gx]];
+        if (!col) continue;                             // salta vuoti, ombra, scintille, occhi
+        wctx.fillStyle = col;
+        wctx.fillRect(oxg + gx * PXS, oyg + gy * PXS, cellW, cellW);
+      }
     }
-    // sorriso
-    wctx.strokeStyle = "rgba(58,42,22,0.85)";
-    wctx.lineWidth = 1.1;
-    wctx.beginPath(); wctx.arc(eyeDX * 0.5, 2.4, 2.4, 0.15 * Math.PI, 0.85 * Math.PI); wctx.stroke();
+    // occhi: guardano nella direzione di marcia e sbattono
+    const eOX = Math.max(-1.2, Math.min(1.2, eyeDX * 0.55));
+    const eOY = Math.max(-1.0, Math.min(1.0, eyeDY * 0.55));
+    if (blink > 0.5) {
+      for (const e of ASSO_EYE_CELLS) {
+        wctx.fillStyle = e.w ? "#ffffff" : "#4a5548";
+        wctx.fillRect(oxg + e.x * PXS + eOX, oyg + e.y * PXS + eOY, cellW, cellW);
+      }
+    } else {
+      wctx.fillStyle = "#4a5548";                       // occhi chiusi: due trattini
+      wctx.fillRect(oxg + 6 * PXS + eOX, oyg + 8.7 * PXS, 2 * PXS, PXS * 0.8);
+      wctx.fillRect(oxg + 10 * PXS + eOX, oyg + 8.7 * PXS, 2 * PXS, PXS * 0.8);
+    }
 
     wctx.restore();
 
@@ -5475,7 +5457,7 @@ const CSS_TEXT = [
   ".irg-ghost-body{fill:#fff7ef;stroke:rgba(255,150,60,.55);stroke-width:1.2;}",
   ".irg-ghost-eye{fill:#3a2a16;}",
   ".irg-ghost-blush{fill:rgba(255,140,60,.5);}",
-  ".irg-tut-eyes{transform-origin:center 23px;animation:irgGhostBlink 4.4s ease-in-out infinite;}",
+  ".irg-tut-eyes{transform-origin:8.5px 7.5px;animation:irgGhostBlink 4.4s ease-in-out infinite;}",
   ".irg-tut-text{position:relative;flex:1 1 auto;color:#fdf3e8;font-size:15px;font-weight:600;line-height:1.45;",
   "transition:font-size .45s ease;}",
   ".irg-tut-reserve{visibility:hidden;display:block;white-space:pre-line;}",
@@ -5533,6 +5515,29 @@ const CSS_TEXT = [
   "@media (max-width:560px){.irg-tut{top:54px;}.irg-tut-text{font-size:13.5px;}.irg-tut-ghost{width:40px;height:44px;}.irg-tut-intro .irg-tut-ghost{width:66px;height:74px;}",
   ".irg-tut-intro{top:26%;}.irg-tut-intro .irg-tut-text{font-size:19px;}",
   ".irg-tut-btn{font-size:13px;padding:10px 16px;}.irg-tut-q{font-size:13.5px;}}",
+  /* — Asso persistente (helper post-tutorial), ancorato a destra fuori dalla scena — */
+  ".irg-helper{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:60;cursor:pointer;",
+  "display:flex;align-items:center;justify-content:flex-end;-webkit-tap-highlight-color:transparent;",
+  "animation:irgHelperIn .5s cubic-bezier(.34,1.56,.64,1) both;}",
+  ".irg-helper:focus-visible{outline:2px solid rgba(255,138,42,.85);outline-offset:4px;border-radius:12px;}",
+  ".irg-helper-asso{width:58px;height:72px;display:block;pointer-events:none;",
+  "filter:drop-shadow(0 6px 12px rgba(255,110,20,.42));animation:irgGhostBob 3.2s ease-in-out infinite;",
+  "transition:transform .18s ease;}",
+  ".irg-helper:hover .irg-helper-asso{transform:scale(1.07);}",
+  ".irg-helper:active .irg-helper-asso{transform:scale(.94);}",
+  ".irg-helper-asso svg{width:100%;height:100%;overflow:visible;display:block;}",
+  ".irg-helper-talking .irg-helper-asso{animation-duration:1.6s;}",
+  ".irg-helper-bubble{position:absolute;right:100%;margin-right:12px;bottom:50%;transform:translateY(50%);",
+  "max-width:212px;width:max-content;text-align:left;color:#fdf3e8;font-size:13px;font-weight:600;line-height:1.4;",
+  "background:linear-gradient(180deg,rgba(38,28,20,.97),rgba(26,19,13,.97));",
+  "border:1px solid rgba(255,150,60,.45);border-radius:13px;padding:10px 13px;",
+  "box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 18px rgba(255,120,20,.14);",
+  "animation:irgHelperBubbleIn .26s cubic-bezier(.34,1.56,.64,1) both;}",
+  ".irg-helper-bubble::after{content:'';position:absolute;left:100%;top:50%;transform:translateY(-50%);",
+  "border:7px solid transparent;border-left-color:rgba(255,150,60,.55);}",
+  "@keyframes irgHelperIn{from{opacity:0;transform:translateY(-50%) translateX(22px) scale(.8)}to{opacity:1;transform:translateY(-50%) translateX(0) scale(1)}}",
+  "@keyframes irgHelperBubbleIn{from{opacity:0;transform:translateY(50%) translateX(8px) scale(.92)}to{opacity:1;transform:translateY(50%) translateX(0) scale(1)}}",
+  "@media (max-width:560px){.irg-helper{right:8px;}.irg-helper-asso{width:48px;height:60px;}.irg-helper-bubble{max-width:160px;font-size:12px;}}",
   /* — punti caldi del tutorial: cerchio pulsante + cartello con freccia — */
   ".irg-spots{position:absolute;inset:0;z-index:50;pointer-events:none;}",
   ".irg-spot{position:absolute;animation:irgSpotPop .42s cubic-bezier(.34,1.45,.64,1) both;}",
@@ -6694,6 +6699,256 @@ function PcModal({ tournaments, onJoin, onObserve, me, formatName, modeName }) {
   );
 }
 
+/* Griglia pixel di Asso, condivisa tra lo sprite SVG e il disegno su canvas
+   del compagno-guida dentro il minigioco. */
+const ASSO_GW = 18, ASSO_GH = 22;
+const ASSO_GRID = [
+  "........y.........",
+  "..b............g..",
+  "....DDDDDDDDDD....",
+  "...DllllllllllD...",
+  "...DloooooooolD...",
+  "...DOCCCCCCCCOD...",
+  "...DOCCCCCCCCOD...",
+  "...DOCCCCCCCCOD...",
+  "...DOCWECCWECOD...",
+  "...DOCEECCEECOD...",
+  "...DOBCCCCCCBOD...",
+  "...DOCCMCCMCCOD...",
+  "...DOCCCMMCCCOD...",
+  "...DOCCCCCCCCOD...",
+  "...DOOOOOOOOOOD...",
+  "...DOOPPPPPPOOD...",
+  "...DOOPPPPPPOOD...",
+  "...DHHHHHHHHHHD...",
+  "....DDDDDDDDDD....",
+  ".....kkkkkkkk.....",
+  "..................",
+  "..................",
+];
+/* Solo i pixel del corpo: vuoti, ombra (k), scintille (y/b/g) e occhi (E/W)
+   sono esclusi e gestiti a parte. */
+const ASSO_BODY_COL = {
+  D: "#d24e00", l: "#ffd2a0", o: "#ffb066", O: "#ff8418", H: "#ef6c00",
+  C: "#fff6ec", M: "#4a5548", B: "#ffab84", P: "#fff1db",
+};
+const ASSO_EYE_CELLS = [
+  { x: 6, y: 8, w: true }, { x: 7, y: 8 }, { x: 10, y: 8, w: true }, { x: 11, y: 8 },
+  { x: 6, y: 9 }, { x: 7, y: 9 }, { x: 10, y: 9 }, { x: 11, y: 9 },
+];
+
+/* Mascotte Asso in pixel-art — riusata nel tutorial e nell'helper persistente. */
+function AssoPixel() {
+  return (
+              <svg viewBox="0 0 18 22" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
+                <rect x="8" y="0" width="1" height="1" fill="#ffd24a"/>
+                <rect x="2" y="1" width="1" height="1" fill="#5ab0ff"/>
+                <rect x="15" y="1" width="1" height="1" fill="#5ad6a6"/>
+                <rect x="4" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="5" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="6" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="7" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="8" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="9" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="10" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="11" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="12" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="13" y="2" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="3" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="5" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="6" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="7" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="8" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="9" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="10" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="11" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="12" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="13" y="3" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="14" y="3" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="4" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="4" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="5" y="4" width="1" height="1" fill="#ffb066"/>
+                <rect x="6" y="4" width="1" height="1" fill="#ffb066"/>
+                <rect x="7" y="4" width="1" height="1" fill="#ffb066"/>
+                <rect x="8" y="4" width="1" height="1" fill="#ffb066"/>
+                <rect x="9" y="4" width="1" height="1" fill="#ffb066"/>
+                <rect x="10" y="4" width="1" height="1" fill="#ffb066"/>
+                <rect x="11" y="4" width="1" height="1" fill="#ffb066"/>
+                <rect x="12" y="4" width="1" height="1" fill="#ffb066"/>
+                <rect x="13" y="4" width="1" height="1" fill="#ffd2a0"/>
+                <rect x="14" y="4" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="5" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="5" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="5" width="1" height="1" fill="#fff6ec"/>
+                <rect x="6" y="5" width="1" height="1" fill="#fff6ec"/>
+                <rect x="7" y="5" width="1" height="1" fill="#fff6ec"/>
+                <rect x="8" y="5" width="1" height="1" fill="#fff6ec"/>
+                <rect x="9" y="5" width="1" height="1" fill="#fff6ec"/>
+                <rect x="10" y="5" width="1" height="1" fill="#fff6ec"/>
+                <rect x="11" y="5" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="5" width="1" height="1" fill="#fff6ec"/>
+                <rect x="13" y="5" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="5" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="6" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="6" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="6" width="1" height="1" fill="#fff6ec"/>
+                <rect x="6" y="6" width="1" height="1" fill="#fff6ec"/>
+                <rect x="7" y="6" width="1" height="1" fill="#fff6ec"/>
+                <rect x="8" y="6" width="1" height="1" fill="#fff6ec"/>
+                <rect x="9" y="6" width="1" height="1" fill="#fff6ec"/>
+                <rect x="10" y="6" width="1" height="1" fill="#fff6ec"/>
+                <rect x="11" y="6" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="6" width="1" height="1" fill="#fff6ec"/>
+                <rect x="13" y="6" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="6" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="7" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="7" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="7" width="1" height="1" fill="#fff6ec"/>
+                <rect x="6" y="7" width="1" height="1" fill="#fff6ec"/>
+                <rect x="7" y="7" width="1" height="1" fill="#fff6ec"/>
+                <rect x="8" y="7" width="1" height="1" fill="#fff6ec"/>
+                <rect x="9" y="7" width="1" height="1" fill="#fff6ec"/>
+                <rect x="10" y="7" width="1" height="1" fill="#fff6ec"/>
+                <rect x="11" y="7" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="7" width="1" height="1" fill="#fff6ec"/>
+                <rect x="13" y="7" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="7" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="8" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="8" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="8" width="1" height="1" fill="#fff6ec"/>
+                <rect x="8" y="8" width="1" height="1" fill="#fff6ec"/>
+                <rect x="9" y="8" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="8" width="1" height="1" fill="#fff6ec"/>
+                <rect x="13" y="8" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="8" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="9" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="9" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="9" width="1" height="1" fill="#fff6ec"/>
+                <rect x="8" y="9" width="1" height="1" fill="#fff6ec"/>
+                <rect x="9" y="9" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="9" width="1" height="1" fill="#fff6ec"/>
+                <rect x="13" y="9" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="9" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="10" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="10" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="10" width="1" height="1" fill="#ffab84"/>
+                <rect x="6" y="10" width="1" height="1" fill="#fff6ec"/>
+                <rect x="7" y="10" width="1" height="1" fill="#fff6ec"/>
+                <rect x="8" y="10" width="1" height="1" fill="#fff6ec"/>
+                <rect x="9" y="10" width="1" height="1" fill="#fff6ec"/>
+                <rect x="10" y="10" width="1" height="1" fill="#fff6ec"/>
+                <rect x="11" y="10" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="10" width="1" height="1" fill="#ffab84"/>
+                <rect x="13" y="10" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="10" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="11" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="11" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="11" width="1" height="1" fill="#fff6ec"/>
+                <rect x="6" y="11" width="1" height="1" fill="#fff6ec"/>
+                <rect x="7" y="11" width="1" height="1" fill="#4a5548"/>
+                <rect x="8" y="11" width="1" height="1" fill="#fff6ec"/>
+                <rect x="9" y="11" width="1" height="1" fill="#fff6ec"/>
+                <rect x="10" y="11" width="1" height="1" fill="#4a5548"/>
+                <rect x="11" y="11" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="11" width="1" height="1" fill="#fff6ec"/>
+                <rect x="13" y="11" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="11" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="12" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="12" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="12" width="1" height="1" fill="#fff6ec"/>
+                <rect x="6" y="12" width="1" height="1" fill="#fff6ec"/>
+                <rect x="7" y="12" width="1" height="1" fill="#fff6ec"/>
+                <rect x="8" y="12" width="1" height="1" fill="#4a5548"/>
+                <rect x="9" y="12" width="1" height="1" fill="#4a5548"/>
+                <rect x="10" y="12" width="1" height="1" fill="#fff6ec"/>
+                <rect x="11" y="12" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="12" width="1" height="1" fill="#fff6ec"/>
+                <rect x="13" y="12" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="12" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="13" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="13" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="13" width="1" height="1" fill="#fff6ec"/>
+                <rect x="6" y="13" width="1" height="1" fill="#fff6ec"/>
+                <rect x="7" y="13" width="1" height="1" fill="#fff6ec"/>
+                <rect x="8" y="13" width="1" height="1" fill="#fff6ec"/>
+                <rect x="9" y="13" width="1" height="1" fill="#fff6ec"/>
+                <rect x="10" y="13" width="1" height="1" fill="#fff6ec"/>
+                <rect x="11" y="13" width="1" height="1" fill="#fff6ec"/>
+                <rect x="12" y="13" width="1" height="1" fill="#fff6ec"/>
+                <rect x="13" y="13" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="13" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="14" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="6" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="7" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="8" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="9" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="10" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="11" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="12" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="13" y="14" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="14" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="15" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="15" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="15" width="1" height="1" fill="#ff8418"/>
+                <rect x="6" y="15" width="1" height="1" fill="#fff1db"/>
+                <rect x="7" y="15" width="1" height="1" fill="#fff1db"/>
+                <rect x="8" y="15" width="1" height="1" fill="#fff1db"/>
+                <rect x="9" y="15" width="1" height="1" fill="#fff1db"/>
+                <rect x="10" y="15" width="1" height="1" fill="#fff1db"/>
+                <rect x="11" y="15" width="1" height="1" fill="#fff1db"/>
+                <rect x="12" y="15" width="1" height="1" fill="#ff8418"/>
+                <rect x="13" y="15" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="15" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="16" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="16" width="1" height="1" fill="#ff8418"/>
+                <rect x="5" y="16" width="1" height="1" fill="#ff8418"/>
+                <rect x="6" y="16" width="1" height="1" fill="#fff1db"/>
+                <rect x="7" y="16" width="1" height="1" fill="#fff1db"/>
+                <rect x="8" y="16" width="1" height="1" fill="#fff1db"/>
+                <rect x="9" y="16" width="1" height="1" fill="#fff1db"/>
+                <rect x="10" y="16" width="1" height="1" fill="#fff1db"/>
+                <rect x="11" y="16" width="1" height="1" fill="#fff1db"/>
+                <rect x="12" y="16" width="1" height="1" fill="#ff8418"/>
+                <rect x="13" y="16" width="1" height="1" fill="#ff8418"/>
+                <rect x="14" y="16" width="1" height="1" fill="#d24e00"/>
+                <rect x="3" y="17" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="5" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="6" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="7" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="8" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="9" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="10" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="11" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="12" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="13" y="17" width="1" height="1" fill="#ef6c00"/>
+                <rect x="14" y="17" width="1" height="1" fill="#d24e00"/>
+                <rect x="4" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="5" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="6" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="7" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="8" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="9" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="10" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="11" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="12" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="13" y="18" width="1" height="1" fill="#d24e00"/>
+                <rect x="5" y="19" width="1" height="1" fill="rgba(0,0,0,0.15)"/>
+                <rect x="6" y="19" width="1" height="1" fill="rgba(0,0,0,0.15)"/>
+                <rect x="7" y="19" width="1" height="1" fill="rgba(0,0,0,0.15)"/>
+                <rect x="8" y="19" width="1" height="1" fill="rgba(0,0,0,0.15)"/>
+                <rect x="9" y="19" width="1" height="1" fill="rgba(0,0,0,0.15)"/>
+                <rect x="10" y="19" width="1" height="1" fill="rgba(0,0,0,0.15)"/>
+                <rect x="11" y="19" width="1" height="1" fill="rgba(0,0,0,0.15)"/>
+                <rect x="12" y="19" width="1" height="1" fill="rgba(0,0,0,0.15)"/>
+                <g className="irg-tut-eyes"><rect x="6" y="8" width="1" height="1" fill="#ffffff"/><rect x="7" y="8" width="1" height="1" fill="#4a5548"/><rect x="10" y="8" width="1" height="1" fill="#ffffff"/><rect x="11" y="8" width="1" height="1" fill="#4a5548"/><rect x="6" y="9" width="1" height="1" fill="#4a5548"/><rect x="7" y="9" width="1" height="1" fill="#4a5548"/><rect x="10" y="9" width="1" height="1" fill="#4a5548"/><rect x="11" y="9" width="1" height="1" fill="#4a5548"/></g>
+              </svg>
+  );
+}
+
 /* ====================== 10. COMPONENTE PRINCIPALE ====================== */
 
 export default function IsoRoomGame({
@@ -6731,6 +6986,12 @@ export default function IsoRoomGame({
   const [tutorialUiSpot, setTutorialUiSpot] = useState(null);
   const [typedCaption, setTypedCaption] = useState("");
   const [typing, setTyping] = useState(false);
+  // Helper Asso persistente: compare a destra una volta finito il tutorial.
+  const [helperVisible, setHelperVisible] = useState(false);
+  const [helperBubble, setHelperBubble] = useState(null);
+  const helperBubbleTimeoutRef = useRef(null);
+  const helperLineIdxRef = useRef(-1);
+  const tutorialWasActiveRef = useRef(false);
   const [powering, setPowering] = useState(false);
   const [quality, setQuality] = useState(() => {
     const saved = loadQuality();
@@ -6883,6 +7144,42 @@ export default function IsoRoomGame({
 
   const repeatTutorial = useCallback(() => {
     if (gameRef.current && gameRef.current.restartTutorial) gameRef.current.restartTutorial();
+  }, []);
+
+  /* Frasi "segnaposto" di Asso: per ora è ancora in addestramento. */
+  const HELPER_LINES = useMemo(() => [
+    "Sto ancora imparando… tra poco potrò aiutarti! 🃏",
+    "Ci sto prendendo la mano: torno presto più utile!",
+    "Per ora so solo fare da guida nel tutorial… ma studio in fretta!",
+    "Ancora un po' di pratica e sarò il tuo assistente completo! ✨",
+    "Sto leggendo un sacco di carte per conoscerle meglio!",
+  ], []);
+
+  /* Una volta concluso il tutorial, Asso resta visibile a destra. */
+  useEffect(() => {
+    if (tutorialActive) {
+      tutorialWasActiveRef.current = true;
+    } else if (tutorialWasActiveRef.current) {
+      setHelperVisible(true);
+    }
+  }, [tutorialActive]);
+
+  const handleHelperClick = useCallback(() => {
+    let idx = Math.floor(Math.random() * HELPER_LINES.length);
+    if (HELPER_LINES.length > 1 && idx === helperLineIdxRef.current) {
+      idx = (idx + 1) % HELPER_LINES.length;
+    }
+    helperLineIdxRef.current = idx;
+    setHelperBubble(HELPER_LINES[idx]);
+    if (helperBubbleTimeoutRef.current) window.clearTimeout(helperBubbleTimeoutRef.current);
+    helperBubbleTimeoutRef.current = window.setTimeout(() => {
+      setHelperBubble(null);
+      helperBubbleTimeoutRef.current = null;
+    }, 3800);
+  }, [HELPER_LINES]);
+
+  useEffect(() => () => {
+    if (helperBubbleTimeoutRef.current) window.clearTimeout(helperBubbleTimeoutRef.current);
   }, []);
 
   /* specchio: applica il look (capelli/outfit) e aggiorna l'avatar nel gioco */
@@ -7038,15 +7335,7 @@ export default function IsoRoomGame({
         <div className={"irg-tut" + (tutorialIntro ? " irg-tut-intro" : "") + (tutorialOutro ? " irg-tut-final" : "")}>
           <div className="irg-tut-bar">
             <span className="irg-tut-ghost" aria-hidden>
-              <svg viewBox="0 0 44 50" xmlns="http://www.w3.org/2000/svg">
-                <path className="irg-ghost-body" d="M8 25C8 11 14 4 22 4s14 7 14 21v17q0 4-3.5 0t-7 0t-7 0t-7 0Z" />
-                <g className="irg-tut-eyes">
-                  <ellipse className="irg-ghost-eye" cx="17.5" cy="23" rx="2.3" ry="3.1" />
-                  <ellipse className="irg-ghost-eye" cx="26.5" cy="23" rx="2.3" ry="3.1" />
-                </g>
-                <circle className="irg-ghost-blush" cx="13.5" cy="29.5" r="2.3" />
-                <circle className="irg-ghost-blush" cx="30.5" cy="29.5" r="2.3" />
-              </svg>
+              <AssoPixel />
             </span>
             <span className="irg-tut-text">
               <span className="irg-tut-reserve" aria-hidden>{tutorialCaption ? renderTutReserve(tutorialCaption) : TUT_WAIT}</span>
@@ -7119,7 +7408,25 @@ export default function IsoRoomGame({
           <MirrorModal look={look} onChange={applyLook} drawPreview={drawLookPreview} />
         </ModalShell>
       )}
+
+      {/* Asso persistente: resta a destra dopo il tutorial, cliccabile. */}
+      {helperVisible && (
+        <div
+          className={"irg-helper" + (helperBubble ? " irg-helper-talking" : "")}
+          onClick={handleHelperClick}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleHelperClick(); } }}
+          role="button"
+          tabIndex={0}
+          aria-label="Asso, la tua guida"
+          title="Asso"
+        >
+          {helperBubble && (
+            <div className="irg-helper-bubble" role="status">{helperBubble}</div>
+          )}
+          <span className="irg-helper-asso" aria-hidden><AssoPixel /></span>
+        </div>
+      )}
     </div>
   );
 }
-/* fine IsoRoomGame */
+/* fine IsoRoomGame — guida Asso */
