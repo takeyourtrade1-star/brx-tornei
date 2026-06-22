@@ -315,16 +315,21 @@ Aggiungere uno step nel tutorial di Asso:
    - [ ] Aggiungere porta interattiva con animazione fade
    - [ ] Implementare ritorno alla Sala Tornei
 
-3. **Minigiochi (uno per volta)**
-   - [ ] **Stack Attack:** logica caduta carte, collisione, punteggio
-   - [ ] **TCG Jump:** fisica platformer, 3 livelli, nemici, collisione AABB
-   - [ ] **Card Memory:** griglia memory, timer, power-up, 3 livelli
+3. **Minigiochi** ✅ *(fatti)*
+   - [x] **Stack Attack:** caduta/oscillazione carte, taglio overhang, combo, 3 vite
+   - [x] **TCG Jump:** fisica platformer, 3 livelli, slime+stomp, collisione AABB, touch
+   - [x] **Card Memory:** griglia memory 3 livelli, timer, flip 3D, bonus tempo
 
-4. **Tavolo Duello Kakegurui (migrazione, vedi §10)**
-   - [ ] Copiare `useP2PRoom.ts` → `useP2PRoom.js` + aggiungere dep `simple-peer`
-   - [ ] Riscrivere il duello RPS in canvas (`KakeguruiGame.jsx`)
-   - [ ] Lobby P2P (signaling manuale copia/incolla) in canvas/overlay
-   - [ ] Wire come interactive `kakegurui` (tavolo 2x2)
+4. **Tavolo Duello Kakegurui** ✅ *(fatto, vedi §10)*
+   - [x] `useP2PRoom.js` con **WebRTC nativo** (niente simple-peer)
+   - [x] Duello RPS (`KakeguruiGame.jsx`) — Single Player vs CPU
+   - [x] Modalità **1v1 in rete** + Lobby signaling manuale copia/incolla
+   - [x] Resolution deterministica per lato (niente desync)
+
+> **Nota architetturale:** i 4 giochi sono overlay React autonomi montati da
+> `ArcadeRoom` (registry `GAMES`), non interactive del motore canvas tornei.
+> La "porta" è un bottone HUD in `IsoRoomGame`. Il motore `createGame` resta
+> intatto. Lo sprite-porta isometrico in-world resta come polish futuro.
 
 5. **Sistema premi**
    - [ ] Implementare gettoni e high scores
@@ -389,14 +394,16 @@ Decisione presa: **riscrittura in Canvas 2D pixel-art** per coerenza con la stan
 **Cosa NON si porta:** framer-motion, tailwind classes, `KakeguruiArena.tsx`/`KakeguruiP2P.tsx` (servono solo come riferimento per le regole e i tempi).
 
 ### 10.3 Dipendenze nuove in brx-tornei
-```jsonc
-// package.json
-"simple-peer": "^9.11.1"        // dep (WebRTC P2P)
-"@types/simple-peer": "^9.11.9" // devDep
-```
-> `framer-motion` **non** serve più (render in canvas). `lucide-react` già presente se servono icone HUD.
+**Nessuna.** ✅ Il P2P è stato implementato con **WebRTC nativo** (`RTCPeerConnection`
++ DataChannel) in `arcade-room/useP2PRoom.js`, invece di `simple-peer`. Vantaggi:
+niente nuova dipendenza, niente polyfill Buffer/process, niente modifiche a
+`next.config.mjs`. L'API esposta resta quella del piano (`createRoom`, `joinRoom`,
+`submitAnswer`, `sendGameState`, `disconnect`). Signaling manuale (offer/answer
+in base64url, copia/incolla). SSR-safe perché tutto il sotto-albero arcade è già
+caricato via `dynamic(..., { ssr:false })`.
 
-> ⚠️ `simple-peer` su Next.js può richiedere polyfill/`ssr:false`. Il componente arcade è già client-only (canvas), quindi caricare `useP2PRoom` solo lato client (dynamic import o guard `typeof window`) evita problemi SSR.
+> **Stato:** ✅ implementato. La cartella `_kakegurui-source/` resta solo come
+> riferimento storico e può essere eliminata.
 
 ### 10.4 Wiring nella stanza
 Nuovo interactive nella sala arcade (pattern identico a `decks`):

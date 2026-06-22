@@ -21,6 +21,13 @@ import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMe
 import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-config";
 import { DecksModal } from "./decks-modal";
 import { StyledSelect } from "./styled-select";
+import { buildArcadeBackground } from "./arcade-room/ArcadeBackground";
+import { buildArcadeFurniture, buildDoorArcade } from "./arcade-room/ArcadeSprites";
+import {
+  FURN_ARCADE, INTERACTIVES_ARCADE, DOOR_TOUR,
+  ARC_ENTRY_TILE, TOUR_ENTRY_TILE, ARC_DEFAULT_CAM,
+} from "./arcade-room/arcade-config";
+import ArcadeGameModal from "./arcade-room/ArcadeGameModal";
 
 /* ============================== 1. CONFIG ============================== */
 
@@ -76,6 +83,7 @@ const INTERACTIVES = {
   board: { name: "Bacheca",          icon: "📌", desc: "Crea Torneo",
            approach: [[3, 0], [4, 0], [5, 0]], footTiles: [],
            focus: { x: 472, y: 158, z: 1.6 }, faceTile: null },
+  door:  DOOR_TOUR,
 };
 
 /* Giradischi: interattivo "leggero" (toggle musica, nessuna modale) */
@@ -1924,11 +1932,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   wctx.imageSmoothingEnabled = false;
   let fx = opts.fx || getFxFlags("high");
 
-  /* — tile bloccati e entità — */
-  const blocked = new Set();
+  /* — tile bloccati e entità (let: scambiati in changeRoom) — */
+  let blocked = new Set();
   FURN.forEach((f) => f.tiles.forEach(([x, y]) => blocked.add(tkey(x, y))));
 
-  const sprMap = {
+  let sprMap = {
     desk: outlined(F.desk), cam: outlined(F.cam), cam2: outlined(F.camB), chair: outlined(F.chair),
     table: outlined(F.table), stool: outlined(F.stool), stool2: null, lamp: outlined(F.lamp),
   };
@@ -1936,7 +1944,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const plantFrames = F.plant.map((p) => outlined(p));
   const turnFrames = F.turn.map((p) => outlined(p));
 
-  const entities = FURN.map((f) => {
+  let entities = FURN.map((f) => {
     const xs = f.tiles.map((t) => t[0]), ys = f.tiles.map((t) => t[1]);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
@@ -1948,7 +1956,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     };
   });
 
-  const inter = {};
+  let inter = {};
   for (const [id, def] of Object.entries(INTERACTIVES)) inter[id] = { id, ...def };
   const rectOf = (e) => {
     const spr = e.frames ? e.frames[0] : e.spr;
@@ -1991,11 +1999,67 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     return m.data[(py * m.w + px) * 4 + 3] >= HIT_ALPHA;
   }
 
-  const sils = {
+  let sils = {
     pc: makeSil(sprMap.desk),
     decks: makeSil(sprMap.table),
     board: makeSil({ cv: boardSp.cv }),
   };
+
+  /* — porta Sala Tornei → Sala Arcade (sprite sulla parete destra) — */
+  const doorArcadeSp = buildDoorArcade();
+  inter.door.hitRect = { x: doorArcadeSp.wx, y: doorArcadeSp.wy, w: doorArcadeSp.cv.width, h: doorArcadeSp.cv.height };
+  inter.door.hitCv = doorArcadeSp.cv;
+  sils.door = makeSil({ cv: doorArcadeSp.cv }, "#ff2a6d");
+
+  /* ====================== SALA ARCADE — dati stanza ====================== */
+  const arcadeBg = buildArcadeBackground();
+  const arcadeF = buildArcadeFurniture();
+  const arcadeBlocked = new Set();
+  FURN_ARCADE.forEach((f) => f.tiles.forEach(([x, y]) => arcadeBlocked.add(tkey(x, y))));
+  const arcadeSprMap = {
+    cabinet1: outlined(arcadeF.cabinet1), cabinet2: outlined(arcadeF.cabinet2),
+    cabinet3: outlined(arcadeF.cabinet3), kakeTable: outlined(arcadeF.kakeTable),
+    sofa: outlined(arcadeF.sofa), ticket: outlined(arcadeF.ticket), popcorn: outlined(arcadeF.popcorn),
+  };
+  const arcadeEntities = FURN_ARCADE.map((f) => {
+    const xs = f.tiles.map((t) => t[0]), ys = f.tiles.map((t) => t[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const anchor = tileTop(minX, minY);
+    return {
+      key: f.key, inter: f.inter || null, minX, maxX, minY, maxY, anchor,
+      spr: arcadeSprMap[f.key], frames: null,
+    };
+  });
+  const arcadeInter = {};
+  for (const [id, def] of Object.entries(INTERACTIVES_ARCADE)) arcadeInter[id] = { id, ...def };
+  const arcRectOf = (k) => { const e = arcadeEntities.find((x) => x.key === k); const s = e.spr; return { x: e.anchor.x - s.ax, y: e.anchor.y - s.ay, w: s.cv.width, h: s.cv.height }; };
+  arcadeInter.arcade1.hitRect = arcRectOf("cabinet1"); arcadeInter.arcade1.hitCv = arcadeSprMap.cabinet1.cv;
+  arcadeInter.arcade2.hitRect = arcRectOf("cabinet2"); arcadeInter.arcade2.hitCv = arcadeSprMap.cabinet2.cv;
+  arcadeInter.arcade3.hitRect = arcRectOf("cabinet3"); arcadeInter.arcade3.hitCv = arcadeSprMap.cabinet3.cv;
+  arcadeInter.kakegurui.hitRect = arcRectOf("kakeTable"); arcadeInter.kakegurui.hitCv = arcadeSprMap.kakeTable.cv;
+  arcadeInter.doorBack.hitRect = { x: 178, y: 134, w: 28, h: 52 };
+  arcadeInter.doorBack.hitCv = null;
+  const arcadeSils = {
+    arcade1: makeSil(arcadeSprMap.cabinet1, "#05d9e8"),
+    arcade2: makeSil(arcadeSprMap.cabinet2, "#39ff14"),
+    arcade3: makeSil(arcadeSprMap.cabinet3, "#b026ff"),
+    kakegurui: makeSil(arcadeSprMap.kakeTable, "#ff2a6d"),
+    doorBack: null,
+  };
+  const arcadeBoardSp = { cv: mkCanvas(1, 1), wx: 0, wy: 0 };
+
+  let tourData = null;  // snapshot dei binding Sala Tornei quando si entra in arcade
+
+  function changeRoom(target) {
+    if (st.transition) return;
+    st.transition = { t: 0, target, swapped: false };
+    st.lock = true;
+    st.pending = null;
+    st.av.queue = []; st.av.to = null; st.av.seated = false;
+    st.modal = null;
+    if (apiRef.current.closeModal) apiRef.current.closeModal();
+  }
 
   /* punti dinamici (in coordinate mondo) */
   const deskEnt = entities.find((e) => e.key === "desk");
@@ -2083,6 +2147,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   /* — stato — */
   const st = {
     t: 0, last: 0, raf: 0, destroyed: false,
+    room: "tournament", transition: null,
     view: { w: 1, h: 1, dpr: 1, scale: 1 },
     cam: { x: DEFAULT_CAM.x, y: DEFAULT_CAM.y, z: 1, tween: null },
     av: { from: { cx: 10, cy: 9 }, to: null, t: 0, fx: 10, fy: 9, queue: [], dir: "nw", wt: 0, stepN: 0, nextBlink: 2.6, blinkUntil: 0, seated: false },
@@ -2167,6 +2232,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   };
 
   function startInteract(o) {
+    if (o.action === "changeRoom") { changeRoom(o.target); return; }
     st.lock = true;
     if (o.id === "pc") st.alert = 0; // il giocatore ha visto la notifica
     const t = st.av.from;
@@ -2174,7 +2240,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       const dx = o.faceTile[0] - t.cx, dy = o.faceTile[1] - t.cy;
       st.av.dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "se" : "nw") : (dy >= 0 ? "sw" : "ne");
     } else st.av.dir = "ne";
-    const fx = lerp(o.focus.x, DEFAULT_CAM.x, 0.2), fy = lerp(o.focus.y, DEFAULT_CAM.y, 0.2);
+    const dcam = st.room === "arcade" ? ARC_DEFAULT_CAM : DEFAULT_CAM;
+    const fx = lerp(o.focus.x, dcam.x, 0.2), fy = lerp(o.focus.y, dcam.y, 0.2);
     camTo({ x: fx, y: fy, z: o.focus.z }, 0.62, () => {
       sfx.open();
       st.modal = o.id;
@@ -2398,7 +2465,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function hitObject(sx, sy) {
     const w = unproject(sx, sy);
-    for (const id of ["pc", "decks", "board"]) {
+    for (const id of Object.keys(inter)) {
       if (solidInRect(w, inter[id].hitRect, inter[id].hitCv)) return inter[id];
     }
     return null;
@@ -2690,6 +2757,40 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (st.shake > 0) {
       st.shake = Math.max(0, st.shake - dt * 26);
     }
+    /* — transizione cambio stanza (fade 0.8s, swap al midpoint) — */
+    if (st.transition) {
+      st.transition.t += dt;
+      if (!st.transition.swapped && st.transition.t >= 0.4) {
+        st.transition.swapped = true;
+        if (st.transition.target === "arcade") {
+          tourData = { blocked, sprMap, entities, inter, sils, boardSp };
+          bg = arcadeBg; blocked = arcadeBlocked; sprMap = arcadeSprMap;
+          entities = arcadeEntities; inter = arcadeInter; sils = arcadeSils;
+          boardSp = arcadeBoardSp;
+          st.room = "arcade";
+          st.av.from = { cx: ARC_ENTRY_TILE.cx, cy: ARC_ENTRY_TILE.cy };
+          st.av.fx = ARC_ENTRY_TILE.cx; st.av.fy = ARC_ENTRY_TILE.cy;
+        } else {
+          bg = buildBackground(phase, stats, posters);
+          blocked = tourData.blocked; sprMap = tourData.sprMap; entities = tourData.entities;
+          inter = tourData.inter; sils = tourData.sils; boardSp = tourData.boardSp;
+          st.room = "tournament";
+          st.av.from = { cx: TOUR_ENTRY_TILE.cx, cy: TOUR_ENTRY_TILE.cy };
+          st.av.fx = TOUR_ENTRY_TILE.cx; st.av.fy = TOUR_ENTRY_TILE.cy;
+        }
+        st.av.to = null; st.av.queue = []; st.av.t = 0; st.av.seated = false;
+        st.av.dir = "se"; st.av.wt = 0; st.av.stepN = 0;
+        st.av.nextBlink = 2.6; st.av.blinkUntil = 0;
+        const cam = st.room === "arcade" ? ARC_DEFAULT_CAM : DEFAULT_CAM;
+        st.cam.x = cam.x; st.cam.y = cam.y; st.cam.z = cam.z; st.cam.tween = null;
+        st.nearObj = null; st.pending = null; st.sitTarget = false; st.standBack = null;
+        sfx.open();
+        if (apiRef.current.setRoom) apiRef.current.setRoom(st.room);
+      }
+      if (st.transition.t >= 0.8) { st.transition = null; st.lock = false; }
+      return;
+    }
+    const isTour = st.room === "tournament";
     const av = st.av;
     // tween camera
     const tw = st.cam.tween;
@@ -2702,7 +2803,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       if (tw.t >= tw.dur) { st.cam.tween = null; st.cam.x = tw.tx; st.cam.y = tw.ty; st.cam.z = tw.tz; tw.cb && tw.cb(); }
     }
     // tutorial guidato (pilota cammino/modali, blocca input via st.cinematic)
-    if (st.tut.active) tutTick(dt);
+    if (isTour && st.tut.active) tutTick(dt);
     // tastiera
     if (!av.to && !av.queue.length && !st.lock && !st.modal && !st.cinematic && st.keys.size) {
       const KMAP = {
@@ -2811,7 +2912,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     if (st.bubble && !st.bubble.sticky && st.t - st.bubble.t0 > st.bubble.dur) st.bubble = null;
 
     /* — idle/AFK: dopo 45s di inattività si va a meditare sul tappeto o a smazzare carte al tavolo — */
-    if (!st.afk && !st.afkGoing && !st.afkShuffle && !st.afkShuffleGoing && !st.modal && !st.lock && !av.seated &&
+    if (isTour && !st.afk && !st.afkGoing && !st.afkShuffle && !st.afkShuffleGoing && !st.modal && !st.lock && !av.seated &&
         !av.to && !av.queue.length && st.t - st.lastAct > 45 && st.introDone && !st.tut.active && !st.cinematic && !st.hype && !letterOverlayActive()) {
       st.pending = null; st.sitTarget = false;
       if (Math.random() < 0.5) {
@@ -2855,16 +2956,16 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       startHype("Drakmor92");
     }
 
-    /* — ricontrolla la fase del giorno (ogni 30s) — */
-    if (st.t > st.phaseCheck) {
+    /* — ricontrolla la fase del giorno (ogni 30s, solo Sala Tornei) — */
+    if (isTour && st.t > st.phaseCheck) {
       st.phaseCheck = st.t + 30;
       const ph = dayPhase();
       if (ph.id !== phase.id) { phase = ph; bg = buildBackground(phase, stats, posters); }
     }
 
     /* — gatto: stati e movimento — */
-    /* — pet interaction check — */
-    if (!st.petInteraction && st.t > st.nextPetInteraction) {
+    /* — pet interaction check (solo Sala Tornei) — */
+    if (isTour && !st.petInteraction && st.t > st.nextPetInteraction) {
       st.nextPetInteraction = st.t + 110 + Math.random() * 90; // tra 1.8 e 3.3 minuti
       const catEligible = !st.cat.perch && st.cat.follow === 0 && (st.t - st.cat.lastPet > 6);
       const dogEligible = !st.dog.perch && st.dog.follow === 0 && (st.t - st.dog.lastPet > 6);
@@ -2894,7 +2995,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
     }
 
-    if (st.petInteraction) {
+    if (isTour && st.petInteraction) {
       const pi = st.petInteraction;
       if (pi.type === "chase") {
         if (pi.stage === 0) {
@@ -3035,7 +3136,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         st.dog.fx = st.dog.to ? lerp(st.dog.from.cx, st.dog.to.cx, st.dog.t) : st.dog.from.cx;
         st.dog.fy = st.dog.to ? lerp(st.dog.from.cy, st.dog.to.cy, st.dog.t) : st.dog.from.cy;
       }
-    } else {
+    } else if (isTour) {
       /* — gatto: stati e movimento normali — */
       const cat = st.cat;
       if (cat.pendingChairAt && st.t > cat.pendingChairAt) {
@@ -3318,8 +3419,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
     }
 
-    /* — busta lettere: spawn ogni 40-50s — */
-    if (!st.letter && st.t > st.letterNextAt && st.introDone && !st.modal && !st.lock && !st.cinematic && !st.hype) {
+    /* — busta lettere: spawn ogni 40-50s (solo Sala Tornei) — */
+    if (isTour && !st.letter && st.t > st.letterNextAt && st.introDone && !st.modal && !st.lock && !st.cinematic && !st.hype) {
       spawnLetter();
     }
 
@@ -3370,8 +3471,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
     }
 
-    /* — gestione sequenza Hype — */
-    if (st.hype) {
+    /* — gestione sequenza Hype (solo Sala Tornei) — */
+    if (isTour && st.hype) {
       const hp = st.hype;
       if (hp.phase === "alarm") {
         if (st.t > hp.nextBeep) {
@@ -3489,7 +3590,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   };
 
   function drawGlow(sil, x, y, k = 1) {
-    if (!fx.glows) return;
+    if (!sil || !fx.glows) return;
     wctx.save();
     wctx.globalAlpha = Math.min(0.85, (0.26 + 0.16 * Math.sin(st.t * 4.2)) * k);
     wctx.globalCompositeOperation = "lighter";
@@ -4304,12 +4405,13 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function render() {
     const { w, h, dpr, scale } = st.view;
+    const isTour = st.room === "tournament";
     /* — mondo — */
     wctx.clearRect(0, 0, WW, WH);
     wctx.drawImage(bg, 0, 0);
 
     /* — Shadow Realm: finestra dinamica + poster glifi — */
-    if (st.shadow && fx.shadowEffects) {
+    if (isTour && st.shadow && fx.shadowEffects) {
       wctx.save();
       wctx.beginPath();
       const g0 = wallL(5.82, 86), g1 = wallL(7.58, 86), g2 = wallL(7.58, 34), g3 = wallL(5.82, 34);
@@ -4402,24 +4504,27 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       ], false, "#ffffff", 2);
       wctx.globalAlpha = 1;
     }
-    // bacheca (sempre dietro alle entità)
-    if (st.nearObj && st.nearObj.id === "board" && !st.modal) drawGlow(sils.board, boardSp.wx, boardSp.wy);
-    wctx.drawImage(boardSp.cv, boardSp.wx, boardSp.wy);
+    // bacheca + porta (sempre dietro alle entità, solo Sala Tornei)
+    if (isTour) {
+      if (st.nearObj && st.nearObj.id === "board" && !st.modal) drawGlow(sils.board, boardSp.wx, boardSp.wy);
+      wctx.drawImage(boardSp.cv, boardSp.wx, boardSp.wy);
+      wctx.drawImage(doorArcadeSp.cv, doorArcadeSp.wx, doorArcadeSp.wy);
+    }
     // entità + avatar in profondità
     // da seduto l'avatar va dietro alla sedia (testa e spalle oltre lo schienale)
     const avDepthX = st.av.seated && !st.av.to ? st.av.fx - 0.31 : st.av.fx;
     const avBox = { avatar: true, minX: avDepthX - 0.01, maxX: avDepthX + 0.01, minY: st.av.fy - 0.01, maxY: st.av.fy + 0.01 };
-    const catBox = { cat: true, minX: st.cat.fx - 0.01, maxX: st.cat.fx + 0.01, minY: st.cat.fy - 0.01, maxY: st.cat.fy + 0.01 };
-    const dogBox = { dog: true, minX: st.dog.fx - 0.01, maxX: st.dog.fx + 0.01, minY: st.dog.fy - 0.01, maxY: st.dog.fy + 0.01 };
-    const drawCatOnFurniture = !!(st.cat.perch && CAT_PERCH_SPOTS[st.cat.perch.key]);
-    const dyn = drawCatOnFurniture ? [avBox, dogBox] : [avBox, catBox, dogBox];
-    if (st.ghost) dyn.push({ ghost: true, minX: GHOST_TILE.cx - 0.01, maxX: GHOST_TILE.cx + 0.01, minY: GHOST_TILE.cy - 0.01, maxY: GHOST_TILE.cy + 0.01 });
-    if (st.tut.active) { const sp = updateSpettro(); dyn.push({ spettro: true, minX: sp.fx - 0.01, maxX: sp.fx + 0.01, minY: sp.fy - 0.01, maxY: sp.fy + 0.01 }); }
+    const catBox = isTour ? { cat: true, minX: st.cat.fx - 0.01, maxX: st.cat.fx + 0.01, minY: st.cat.fy - 0.01, maxY: st.cat.fy + 0.01 } : null;
+    const dogBox = isTour ? { dog: true, minX: st.dog.fx - 0.01, maxX: st.dog.fx + 0.01, minY: st.dog.fy - 0.01, maxY: st.dog.fy + 0.01 } : null;
+    const drawCatOnFurniture = isTour && !!(st.cat.perch && CAT_PERCH_SPOTS[st.cat.perch.key]);
+    const dyn = isTour ? (drawCatOnFurniture ? [avBox, dogBox] : [avBox, catBox, dogBox]) : [avBox];
+    if (isTour && st.ghost) dyn.push({ ghost: true, minX: GHOST_TILE.cx - 0.01, maxX: GHOST_TILE.cx + 0.01, minY: GHOST_TILE.cy - 0.01, maxY: GHOST_TILE.cy + 0.01 });
+    if (isTour && st.tut.active) { const sp = updateSpettro(); dyn.push({ spettro: true, minX: sp.fx - 0.01, maxX: sp.fx + 0.01, minY: sp.fy - 0.01, maxY: sp.fy + 0.01 }); }
     const sorted = entities.concat(dyn).sort(cmpDepth);
     const plantIdx = [0, 1, 2, 1][Math.floor(st.t * 1.4) % 4];
     const turnIdx = sfx.musicOn() ? Math.floor(st.t * 7) % 4 : 0;
     const flick = st.t < st.flicker.until;
-    const pcAlert = st.alert > st.t && !st.modal;
+    const pcAlert = isTour && st.alert > st.t && !st.modal;
     for (const e of sorted) {
       if (e.avatar) { drawAvatarSprite(); continue; }
       if (e.cat) { drawCatSprite(); continue; }
@@ -4556,7 +4661,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       }
     }
     /* — busta lettere sul pavimento (slide / idle) — */
-    if (st.letter && (st.letter.phase === "slide" || st.letter.phase === "idle")) {
+    if (isTour && st.letter && (st.letter.phase === "slide" || st.letter.phase === "idle")) {
       const lt = st.letter;
       wctx.save();
       const glow = lt.phase === "idle" ? 0.35 + 0.15 * Math.sin(st.t * 8) : 0.2;
@@ -4571,7 +4676,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       wctx.restore();
     }
     /* — riflesso notturno dell'avatar nella finestra — */
-    if (phase.id === "night" && st.avDraw && fx.reflections) {
+    if (isTour && phase.id === "night" && st.avDraw && fx.reflections) {
       wctx.save();
       wctx.beginPath();
       const g0 = wallL(5.82, 86), g1 = wallL(7.58, 86), g2 = wallL(7.58, 34), g3 = wallL(5.82, 34);
@@ -4586,9 +4691,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       wctx.restore();
     }
     /* — tinta ambiente (giorno/notte), prima dei bagliori — */
-    if (phase.amb) { wctx.fillStyle = phase.amb; wctx.fillRect(0, 0, WW, WH); }
+    if (isTour && phase.amb) { wctx.fillStyle = phase.amb; wctx.fillRect(0, 0, WW, WH); }
     /* — dinamici — */
-    if (fx.glows) {
+    if (isTour && fx.glows) {
     // glow del monitor
     const sc = qlerp(0.5, 0.5);
     const mg = wctx.createRadialGradient(sc.x, sc.y, 2, sc.x, sc.y, 54);
@@ -4627,7 +4732,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     wctx.restore();
     }
     // pulviscolo nella luce
-    if (fx.motes) {
+    if (isTour && fx.motes) {
       const A = wallL(5.9, 0), B = wallL(7.5, 0);
       for (const m of st.motes) {
         const bx = lerp(A.x, B.x, m.u), by = lerp(A.y, B.y, m.u);
@@ -4640,7 +4745,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     // frecce guida + etichette: disegnate in screen-space (testo nitido) più sotto
 
     /* — LED del citofono (verde fisso, rosso lampeggiante quando suona) — */
-    {
+    if (isTour) {
       const ringing = st.ring && st.t < st.ring.until;
       const on = !ringing || Math.floor(st.t * 6) % 2 === 0;
       wctx.fillStyle = ringing ? (on ? "#ff5a4e" : "#5a1e1a") : "#51e3a4";
@@ -4685,6 +4790,18 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
 
+    /* — fade cambio stanza (neon pink, V-shape: 0→1 al midpoint, poi 1→0) — */
+    if (st.transition) {
+      const p = st.transition.t / 0.8;
+      const alpha = p < 0.5 ? p * 2 : 2 - p * 2;
+      ctx.fillStyle = "rgba(13,13,26," + alpha.toFixed(3) + ")";
+      ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+      if (alpha > 0.5) {
+        ctx.fillStyle = "rgba(255,42,109," + ((alpha - 0.5) * 0.8).toFixed(3) + ")";
+        ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+      }
+    }
+
     /* — layer schermo: tooltip + fumetto (testo nitido) — */
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
@@ -4720,8 +4837,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       ctx.globalAlpha = 1;
     }
 
-    /* — frecce guida + etichette sopra gli oggetti (sempre visibili) — */
-    if (!st.photoHide) {
+    /* — frecce guida + etichette sopra gli oggetti (sempre visibili, solo Sala Tornei) — */
+    if (isTour && !st.photoHide) {
       const GUIDE = {
         pc:    "Partecipa ad un torneo",
         board: "Crea un nuovo torneo privato",
@@ -5159,7 +5276,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     st.lastAct = st.t;
     wakeAfk();
     const p = pointerPos(e);
-    const dec = hitDecor(p.x, p.y);
+    const dec = st.room === "tournament" ? hitDecor(p.x, p.y) : null;
     if (dec) {
       if (dec.kind === "letter") { startLetterOpening(); return; }
       if (dec.kind === "music") { clickObject({ ...MUSIC_OBJ }); return; }
@@ -5218,6 +5335,12 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function onKeyDown(e) {
     const tag = e.target && e.target.tagName;
     if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || st.modal || st.cinematic) return;
+    /* ESC nella Sala Arcade → torna alla Sala Tornei */
+    if (e.key === "Escape" && !st.lock && st.room === "arcade") {
+      e.preventDefault();
+      changeRoom("tournament");
+      return;
+    }
     /* P = modalità foto */
     if (e.code === "KeyP" && !st.lock) {
       e.preventDefault();
@@ -5226,13 +5349,18 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       takePhoto();
       return;
     }
-    /* hotkey dirette: 1 PC · 2 Tavolo · 3 Bacheca */
-    if (!st.lock && (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3")) {
+    /* hotkey dirette: 1/2/3 oggetti (mappati per stanza) */
+    if (!st.lock && (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3" || e.code === "Digit4")) {
+      const which = e.code === "Digit1" ? 1 : e.code === "Digit2" ? 2 : e.code === "Digit3" ? 3 : 4;
+      const target = st.room === "arcade"
+        ? (which === 1 ? inter.arcade1 : which === 2 ? inter.arcade2 : which === 3 ? inter.arcade3 : inter.kakegurui)
+        : (which === 1 ? inter.pc : which === 2 ? inter.decks : inter.board);
+      if (!target) return;
       e.preventDefault();
       sfx.ensure();
       st.lastAct = st.t;
       wakeAfk();
-      teleportInteract(e.code === "Digit1" ? inter.pc : e.code === "Digit2" ? inter.decks : inter.board);
+      teleportInteract(target);
       hideHintOnce();
       return;
     }
@@ -5298,7 +5426,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     setCountdown(epochMs) { st.countdown = epochMs || null; st.cdRang = false; },
     setGhost(name) { st.ghost = name || null; },
     setBracket(on) {
-      if (st.destroyed) return;
+      if (st.destroyed || st.room !== "tournament") return;
       if (bracketOn === on) return;
       bracketOn = on;
       boardSp = buildBoard(on);
@@ -5329,14 +5457,18 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         cx.drawImage(sp.cv, Math.round((canvasEl.width - dw) / 2), Math.round((canvasEl.height - dh) / 2), dw, dh);
       } catch (e) { /* canvas non pronto */ }
     },
-    /* stessa azione dei tasti 1/2/3/P, ma cliccando i badge a schermo */
+    /* stessa azione dei tasti 1/2/3/4/P, ma cliccando i badge a schermo */
     hotkey(which) {
       if (st.destroyed || st.modal || st.cinematic || st.lock) return;
       sfx.ensure();
       st.lastAct = st.t;
       wakeAfk();
       if (which === "P") { takePhoto(); return; }
-      teleportInteract(which === 1 ? inter.pc : which === 2 ? inter.decks : inter.board);
+      const target = st.room === "arcade"
+        ? (which === 1 ? inter.arcade1 : which === 2 ? inter.arcade2 : which === 3 ? inter.arcade3 : which === 4 ? inter.kakegurui : null)
+        : (which === 1 ? inter.pc : which === 2 ? inter.decks : which === 3 ? inter.board : null);
+      if (!target) return;
+      teleportInteract(target);
       hideHintOnce();
     },
     powerOff() { if (!st.destroyed) sfx.close(); },
@@ -5346,10 +5478,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       st.modal = null;
       st.lastAct = st.t;
       st.lock = true;
-      camTo(DEFAULT_CAM, 0.55, () => {
+      const cam = st.room === "arcade" ? ARC_DEFAULT_CAM : DEFAULT_CAM;
+      camTo(cam, 0.55, () => {
         st.lock = false;
         if (st.av.seated) {
-          // si alza e torna sul tile da cui era arrivato
           const back = st.standBack || { cx: CHAIR[0], cy: CHAIR[1] + 1 };
           st.standBack = null;
           st.av.queue = [back];
@@ -5407,6 +5539,12 @@ const CSS_TEXT = [
   "animation:irgHintPulse 2.2s ease-in-out infinite;transition:opacity .6s ease;white-space:nowrap;}",
   ".irg-hint.irg-off{opacity:0;pointer-events:none;}",
   "@keyframes irgHintPulse{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}",
+  /* — modale arcade: full-viewport per i minigiochi, nasconde la ✕ (i giochi hanno il proprio back) — */
+  ".irg-m-arcade{width:min(1100px,96vw);max-width:96vw;height:calc(100% - 40px);max-height:calc(100% - 40px);",
+  "align-self:center;display:flex;flex-direction:column;border-radius:14px;padding:0;overflow:hidden;",
+  "border:2px solid rgba(255,42,109,.55);box-shadow:0 0 28px rgba(255,42,109,.3),inset 0 0 14px rgba(0,0,0,.5);",
+  "background:radial-gradient(120% 90% at 50% 0%,#16112e 0%,#0a0a16 60%,#050509 100%);}",
+  ".irg-m-arcade .irg-x{display:none;}",
   /* — legenda tasti: in basso a sinistra, badge cliccabili per andare in automatico — */
   ".irg-keys{position:absolute;left:18px;bottom:18px;z-index:12;display:flex;",
   "flex-direction:column;gap:7px;font-family:'Press Start 2P','Courier New',monospace;",
@@ -6975,6 +7113,7 @@ export default function IsoRoomGame({
 
   const [modal, setModal] = useState(null);
   const [closing, setClosing] = useState(false);
+  const [room, setRoom] = useState("tournament");
   const [muted, setMuted] = useState(false);
   const [hint, setHint] = useState(true);
   const [newDeckId, setNewDeckId] = useState(null);
@@ -7004,6 +7143,7 @@ export default function IsoRoomGame({
   const inventory = pInventory || [];
 
   apiRef.current.openModal = (id) => { if (mountedRef.current) setModal(id); };
+  apiRef.current.setRoom = (r) => { if (mountedRef.current) setRoom(r); };
   apiRef.current.hideHint = () => { if (mountedRef.current) setHint(false); };
   apiRef.current.setTutorial = (v) => { if (mountedRef.current) { setTutorialActive(v); if (!v) { setTutorialIntro(false); setTutorialOutro(false); setTutorialUiSpot(null); } } };
   apiRef.current.setTutorialCaption = (t) => { if (mountedRef.current) setTutorialCaption(t); };
@@ -7276,7 +7416,7 @@ export default function IsoRoomGame({
       <canvas ref={canvasRef} className="irg-canvas" />
 
       {/* HUD */}
-      <div className="irg-chip irg-title"><span aria-hidden>🏆</span>{roomName}</div>
+      <div className="irg-chip irg-title"><span aria-hidden>{room === "arcade" ? "🕹️" : "🏆"}</span>{room === "arcade" ? "Sala Arcade" : roomName}</div>
       <div className="irg-controls">
         <button type="button" className="irg-quality" onClick={toggleQuality}
           aria-label={quality === "low" ? "Attiva qualità alta" : "Attiva qualità leggera"}>
@@ -7298,18 +7438,37 @@ export default function IsoRoomGame({
         </button>
       </div>
       <div className={"irg-chip irg-hint" + (hint ? "" : " irg-off")}>
-        {isTouch ? "TOCCA PER MUOVERTI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
+        {isTouch ? "TOCCA PER MUOVERTI" : room === "arcade" ? "CLICCA PER MUOVERTI · WASD · 1/2/3 CABINATI · 4 DUELLO · ESC TORNEI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
       </div>
       <div className="irg-keys">
-        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
-          <b>Tasto 1</b><span>PC · Tornei</span>
-        </button>
-        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(2)}>
-          <b>Tasto 2</b><span>Tavolo · Deck</span>
-        </button>
-        <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(3)}>
-          <b>Tasto 3</b><span>Bacheca · Crea</span>
-        </button>
+        {room === "arcade" ? (
+          <>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
+              <b>Tasto 1</b><span>Stack Attack</span>
+            </button>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(2)}>
+              <b>Tasto 2</b><span>TCG Jump</span>
+            </button>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(3)}>
+              <b>Tasto 3</b><span>Card Memory</span>
+            </button>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(4)}>
+              <b>Tasto 4</b><span>Tavolo Duello</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
+              <b>Tasto 1</b><span>PC · Tornei</span>
+            </button>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(2)}>
+              <b>Tasto 2</b><span>Tavolo · Deck</span>
+            </button>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(3)}>
+              <b>Tasto 3</b><span>Bacheca · Crea</span>
+            </button>
+          </>
+        )}
         <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey("P")}>
           <b>Tasto P</b><span>Foto 📸</span>
         </button>
@@ -7406,6 +7565,28 @@ export default function IsoRoomGame({
       {modal === "mirror" && (
         <ModalShell id="mirror" closing={closing} onClose={closeModal} className="irg-m-mirror">
           <MirrorModal look={look} onChange={applyLook} drawPreview={drawLookPreview} />
+        </ModalShell>
+      )}
+
+      {/* Sala Arcade — modali dei cabinati e del tavolo kakegurui */}
+      {modal === "arcade1" && (
+        <ModalShell id="arcade1" closing={closing} onClose={closeModal} className="irg-m-arcade">
+          <ArcadeGameModal gameId="arcade1" onExit={closeModal} username={username} />
+        </ModalShell>
+      )}
+      {modal === "arcade2" && (
+        <ModalShell id="arcade2" closing={closing} onClose={closeModal} className="irg-m-arcade">
+          <ArcadeGameModal gameId="arcade2" onExit={closeModal} username={username} />
+        </ModalShell>
+      )}
+      {modal === "arcade3" && (
+        <ModalShell id="arcade3" closing={closing} onClose={closeModal} className="irg-m-arcade">
+          <ArcadeGameModal gameId="arcade3" onExit={closeModal} username={username} />
+        </ModalShell>
+      )}
+      {modal === "kakegurui" && (
+        <ModalShell id="kakegurui" closing={closing} onClose={closeModal} className="irg-m-arcade">
+          <ArcadeGameModal gameId="kakegurui" onExit={closeModal} username={username} />
         </ModalShell>
       )}
 
