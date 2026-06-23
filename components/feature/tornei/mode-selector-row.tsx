@@ -52,7 +52,7 @@ export function ModeSelectorRow({
         onSelect={() => selectMode('heads-up', true)}
       />
       <ModeCard
-        title="Torneo"
+        title={torneo.name}
         description={torneo.description}
         icon={Users}
         selected={selectedModeId === 'multiplayer'}
