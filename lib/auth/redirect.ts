@@ -1,6 +1,7 @@
-/** Path di default dopo login se redirect mancante o non valido. */
-export const DEFAULT_POST_LOGIN_PATH = '/hub';
+import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 
+/** Path di default dopo login se redirect mancante o non valido. */
+export const DEFAULT_POST_LOGIN_PATH = DEFAULT_TOURNAMENTS_PATH;
 /**
  * Solo path relativi interni: evita open redirect.
  * Stessa logica del bridge SSO e del middleware Ebartex.

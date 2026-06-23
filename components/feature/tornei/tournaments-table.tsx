@@ -1,7 +1,12 @@
 import type { BestOf, Tournament } from '@/types/tournament';
+import { getBuyInLabel } from '@/lib/data/buy-in';
 import { StatusBadge } from './status-badge';
 import { MobileJoinButton } from './mobile-join-button';
 import { Eye, Lock, Plus, UserPlus } from 'lucide-react';
+import {
+  tournamentActionButtonClass,
+  tournamentActionIconClass,
+} from './tournament-action-button-styles';
 
 /** "Forma" dal mockup: best-of mostrato come frazione (2/3, 3/5). */
 const BEST_OF_LABEL: Record<BestOf, string> = {
@@ -44,18 +49,36 @@ function getMockParticipantDetails(username: string, format: string) {
   return { country, deck };
 }
 
+interface TournamentsTableProps {
+  tournaments: Tournament[];
+  formatName?: string;
+  modeName?: string;
+  filtersActive?: boolean;
+}
+
 /**
- * Tabella tornei (dal mockup): Buy-In · Forma · Stato · Registrati · Partecipanti.
- * Server component in pannello glass Ebartex; i dati arrivano già pronti dalla pagina.
+ * Tabella tornei: Buy-In · Forma · Stato · Registrati · Partecipanti.
  */
-export function TournamentsTable({ tournaments }: { tournaments: Tournament[] }) {
+export function TournamentsTable({
+  tournaments,
+  formatName,
+  modeName,
+  filtersActive = false,
+}: TournamentsTableProps) {
   if (tournaments.length === 0) {
+    const contextLabel =
+      formatName && modeName ? `${formatName} · ${modeName}` : 'questa selezione';
+
     return (
-      <div className="brx-glass rounded-3xl border border-white/15 p-12 text-center">
-        <p className="font-sans text-xl font-bold uppercase tracking-wide text-white/80">
-          Nessun torneo per questa selezione
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-14 text-center sm:rounded-3xl">
+        <p className="font-sans text-lg font-bold uppercase tracking-wide text-white/75 sm:text-xl">
+          Nessun torneo per {contextLabel}
         </p>
-        <p className="mt-2 text-sm text-white/55">Creane uno con “Crea Torneo”.</p>
+        <p className="mt-2 text-sm text-white/45">
+          {filtersActive
+            ? 'Prova ad allargare i filtri o creane uno con “Crea Torneo”.'
+            : 'Creane uno con “Crea Torneo”.'}
+        </p>
       </div>
     );
   }
@@ -63,269 +86,178 @@ export function TournamentsTable({ tournaments }: { tournaments: Tournament[] })
   return (
     <>
       {/* MOBILE VIEW (Card List) */}
-      <div className="flex md:hidden flex-col gap-4">
+      <div className="flex flex-col gap-3 md:hidden">
         {tournaments.map((t) => {
           const joinedCount = t.participants.length;
           const isFull = joinedCount >= t.maxPlayers;
-          
+
           return (
-            <div key={t.id} className="brx-glass rounded-2xl border border-white/15 p-4 flex flex-col gap-4 font-sans text-white relative overflow-visible">
-              {/* Top Row: Buy-In and Status */}
-              <div className="flex items-center justify-between">
-                <span className="bg-[#FF7300]/10 border border-[#FF7300]/30 text-[#FF7300] px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider">
-                  For Fun
+            <div
+              key={t.id}
+              className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 font-sans text-white"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-marquee ring-1 ring-primary/25">
+                  {getBuyInLabel(t.buyIn)}
                 </span>
-                
                 <div className="flex items-center gap-2">
                   <StatusBadge status={t.status} />
                   {t.status === 'iniziata' && (
-                    <div className="relative group cursor-pointer shrink-0">
-                      <button 
-                        type="button" 
-                        aria-label="Guarda partita live" 
-                        className="p-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 active:scale-95 transition-all"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 z-30 hidden group-hover:block">
-                        <div className="animate-auth-enter">
-                          <div className="bg-slate-950/95 backdrop-blur-md rounded-lg border border-white/20 px-2 py-1 text-center shadow-xl">
-                            <span className="text-[10px] font-bold text-white whitespace-nowrap">Guarda partita live</span>
-                          </div>
-                          <div className="w-1.5 h-1.5 bg-slate-950/95 border-r border-b border-white/20 rotate-45 mx-auto -mt-1" />
-                        </div>
-                      </div>
-                    </div>
+                    <button
+                      type="button"
+                      aria-label="Guarda partita live"
+                      className="rounded-full p-1.5 text-white/60 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
                   )}
                 </div>
               </div>
 
-              {/* Middle Row: Game Details */}
-              <div className="grid grid-cols-2 gap-3 bg-white/[0.03] rounded-xl p-3 border border-white/5 text-sm">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">Formato</span>
-                  <span className="font-extrabold text-white">BO{BEST_OF_LABEL[t.bestOf] === '1' ? '1' : BEST_OF_LABEL[t.bestOf] === '2/3' ? '3' : '5'}</span>
-                </div>
-                
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">Registrati</span>
-                  <span className="font-extrabold text-white flex items-center gap-1">
-                    {joinedCount}/{t.maxPlayers}
-                    {t.isPrivate && <Lock className="h-3.5 w-3.5 text-amber-500 inline shrink-0" />}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+                    Forma
                   </span>
+                  <p className="mt-0.5 font-bold tabular-nums text-white">{BEST_OF_LABEL[t.bestOf]}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+                    Registrati
+                  </span>
+                  <p className="mt-0.5 flex items-center gap-1 font-bold tabular-nums text-white">
+                    {joinedCount}/{t.maxPlayers}
+                    {t.isPrivate && <Lock className="h-3.5 w-3.5 text-amber-500" />}
+                  </p>
                 </div>
               </div>
 
-              {/* Participants Section */}
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold px-1">Partecipanti</span>
-                {joinedCount === 0 && t.status !== 'in_registrazione' ? (
-                  <span className="text-xs text-white/40 italic px-1">—</span>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {t.participants.map((p) => {
-                      const { country, deck } = getMockParticipantDetails(p.username, t.format);
-                      return (
-                        <div
-                          key={p.id}
-                          className="relative group flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 ring-1 ring-white/15 text-xs text-white/85 cursor-help"
-                        >
-                          <span>{country.flag}</span>
-                          <span className="font-bold">{p.username}</span>
-                          <span className="text-[10px] text-white/40 max-w-[80px] truncate font-mono">({deck})</span>
-
-                          {/* Tooltip on tap/hover for mobile details */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-48 z-30 hidden group-hover:block">
-                            <div className="animate-auth-enter">
-                              <div className="bg-slate-950/95 backdrop-blur-md rounded-2xl border border-white/20 p-3 shadow-2xl text-left">
-                                <div className="flex flex-col gap-1.5 font-sans">
-                                  <div className="flex items-center justify-between border-b border-white/10 pb-1">
-                                    <span className="text-xs font-bold text-white truncate max-w-[100px]">{p.username}</span>
-                                    <span className="flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded text-white/80 font-bold text-[10px] shrink-0">
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img
-                                        src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
-                                        alt={country.code}
-                                        className="w-3.5 h-2.5 object-cover rounded-sm border border-white/10 shrink-0"
-                                      />
-                                      {country.code}
-                                    </span>
-                                  </div>
-                                  <div className="text-[10px] text-white/70">
-                                    <div className="flex items-center justify-between">
-                                      <span>Paese:</span>
-                                      <span className="text-white font-semibold">{country.name}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-0.5">
-                                      <span>Stato:</span>
-                                      <span className="text-emerald-400 font-bold">Online</span>
-                                    </div>
-                                    <div className="mt-1.5 border-t border-white/5 pt-1">
-                                      <span className="text-white/50 block text-[9px] uppercase tracking-wider">Mazzo in uso</span>
-                                      <span className="text-marquee font-bold block truncate mt-0.5 text-xs">{deck}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="w-2.5 h-2.5 bg-slate-950/95 border-r border-b border-white/20 rotate-45 mx-auto -mt-1.5" />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    
-                    {t.status === 'in_registrazione' && !isFull && (
-                      <div>
-                        <MobileJoinButton isPrivate={t.isPrivate} />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              {joinedCount === 0 && t.status !== 'in_registrazione' ? (
+                <span className="text-xs text-white/35">Nessun partecipante</span>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 border-t border-white/8 pt-3">
+                  {t.participants.map((p) => {
+                    const { country, deck } = getMockParticipantDetails(p.username, t.format);
+                    return (
+                      <span
+                        key={p.id}
+                        className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-0.5 text-xs text-white/80 ring-1 ring-white/10"
+                      >
+                        <span>{country.flag}</span>
+                        <span className="font-semibold">{p.username}</span>
+                        <span className="max-w-[72px] truncate text-[10px] text-white/40">{deck}</span>
+                      </span>
+                    );
+                  })}
+                  {t.status === 'in_registrazione' && !isFull && (
+                    <MobileJoinButton isPrivate={t.isPrivate} />
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
       {/* DESKTOP VIEW (Table) */}
-      <div className="hidden md:block brx-glass overflow-x-auto md:overflow-visible rounded-3xl border border-white/15">
-        <table className="w-full min-w-[680px] text-left text-sm text-white">
+      <div className="hidden overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] md:block">
+        <table className="w-full min-w-[640px] text-left text-sm text-white">
           <thead>
-            <tr className="border-b border-white/15 font-sans text-xs font-bold uppercase tracking-widest text-marquee">
-              <th scope="col" className="px-5 py-4">Buy-In</th>
-              <th scope="col" className="px-5 py-4">Forma</th>
-              <th scope="col" className="px-5 py-4">Stato</th>
-              <th scope="col" className="px-5 py-4">Registrati</th>
-              <th scope="col" className="px-5 py-4">Partecipanti</th>
+            <tr className="border-b border-white/8 font-sans text-[10px] font-bold uppercase tracking-[0.15em] text-white/45">
+              <th scope="col" className="px-4 py-3">Buy-In</th>
+              <th scope="col" className="px-4 py-3">Forma</th>
+              <th scope="col" className="px-4 py-3">Stato</th>
+              <th scope="col" className="px-4 py-3">Registrati</th>
+              <th scope="col" className="px-4 py-3">Partecipanti</th>
             </tr>
           </thead>
           <tbody>
-            {tournaments.map((t) => {
-              return (
-                <tr
-                  key={t.id}
-                  className="border-b border-white/5 transition-colors last:border-0 hover:bg-white/[0.06]"
-                >
-                  <td className="px-5 py-4">
-                    <span className="font-sans text-sm font-bold uppercase tracking-wide text-marquee">
-                      For Fun
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 font-sans text-lg font-bold text-white/90">
-                    {BEST_OF_LABEL[t.bestOf]}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={t.status} />
-                      {t.status === 'iniziata' && (
-                        <div className="relative group cursor-pointer shrink-0">
-                          <Eye className="h-4 w-4 text-white/70 hover:text-white transition-colors" />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 z-30 hidden group-hover:block">
-                            <div className="animate-auth-enter">
-                              <div className="bg-slate-950/95 backdrop-blur-md rounded-lg border border-white/20 px-2 py-1 text-center shadow-xl">
-                                <span className="text-[10px] font-bold text-white whitespace-nowrap">Guarda partita live</span>
-                              </div>
-                              <div className="w-1.5 h-1.5 bg-slate-950/95 border-r border-b border-white/20 rotate-45 mx-auto -mt-1" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 font-sans text-lg font-bold tabular-nums text-white/90 overflow-visible">
-                    <div className="flex items-center gap-1.5">
-                      <span>{t.participants.length}/{t.maxPlayers}</span>
-                      {t.isPrivate && (
-                        <div className="relative group cursor-help shrink-0 ml-auto">
-                          <Lock className="h-4 w-4 text-amber-500" />
-                          
-                          {/* Tooltip Partita Privata */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-28 z-30 hidden group-hover:block">
-                            <div className="animate-auth-enter">
-                              <div className="bg-slate-950/95 backdrop-blur-md rounded-lg border border-white/20 px-2 py-1 text-center shadow-xl">
-                                <span className="text-[10px] font-bold text-white whitespace-nowrap">Partita privata</span>
-                              </div>
-                              <div className="w-1.5 h-1.5 bg-slate-950/95 border-r border-b border-white/20 rotate-45 mx-auto -mt-1" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 overflow-visible">
-                    {t.participants.length === 0 && t.status !== 'in_registrazione' ? (
-                      <span className="text-white/35">—</span>
-                    ) : (
-                      <ul className="flex flex-wrap gap-2 items-center">
-                        {t.participants.map((p) => {
-                          const { country, deck } = getMockParticipantDetails(p.username, t.format);
-                          return (
-                            <li
-                              key={p.id}
-                              className="relative group flex items-center rounded-full bg-white/10 px-2.5 py-0.5 ring-1 ring-white/15 cursor-help"
-                            >
-                              <span className="text-xs font-semibold text-white/85">{p.username}</span>
-  
-                              {/* Pop-up mockup (Liquid Glass Card) */}
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-48 z-30 hidden group-hover:block">
-                                <div className="animate-auth-enter">
-                                  <div className="bg-slate-950/95 backdrop-blur-md rounded-2xl border border-white/20 p-3 shadow-2xl text-left">
-                                  <div className="flex flex-col gap-1.5 font-sans">
-                                    <div className="flex items-center justify-between border-b border-white/10 pb-1">
-                                      <span className="text-xs font-bold text-white truncate max-w-[100px]">{p.username}</span>
-                                      <span className="flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded text-white/80 font-bold text-[10px] shrink-0">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img
-                                          src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
-                                          alt={country.code}
-                                          className="w-3.5 h-2.5 object-cover rounded-sm border border-white/10 shrink-0"
-                                        />
-                                        {country.code}
-                                      </span>
-                                    </div>
-                                    <div className="text-[10px] text-white/70">
-                                      <div className="flex items-center justify-between">
-                                        <span>Paese:</span>
-                                        <span className="text-white font-semibold">{country.name}</span>
-                                      </div>
-                                      <div className="flex items-center justify-between mt-0.5">
-                                        <span>Stato:</span>
-                                        <span className="text-emerald-400 font-bold">Online</span>
-                                      </div>
-                                      <div className="mt-1.5 border-t border-white/5 pt-1">
-                                        <span className="text-white/50 block text-[9px] uppercase tracking-wider">Mazzo in uso</span>
-                                        <span className="text-marquee font-bold block truncate mt-0.5 text-xs">{deck}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="w-2.5 h-2.5 bg-slate-950/95 border-r border-b border-white/20 rotate-45 mx-auto -mt-1.5" />
-                              </div>
-                            </div>
-                            </li>
-                          );
-                        })}
-                        {t.status === 'in_registrazione' && (
-                          <li>
-                            {t.isPrivate ? (
-                              <button className="brx-liquid-glass-btn flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold text-white transition-all hover:scale-105 shadow-md">
-                                <UserPlus className="h-3.5 w-3.5 shrink-0" />
-                                Chiedi di partecipare
-                              </button>
-                            ) : (
-                              <button className="brx-liquid-glass-btn flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold text-white transition-all hover:scale-105 shadow-md">
-                                <Plus className="h-3.5 w-3.5 shrink-0" />
-                                Partecipa
-                              </button>
-                            )}
-                          </li>
-                        )}
-                      </ul>
+            {tournaments.map((t) => (
+              <tr
+                key={t.id}
+                className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.04]"
+              >
+                <td className="px-4 py-3">
+                  <span className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-marquee ring-1 ring-primary/20">
+                    {getBuyInLabel(t.buyIn)}
+                  </span>
+                </td>
+                <td className="px-4 py-3 font-bold tabular-nums text-white/90">
+                  {BEST_OF_LABEL[t.bestOf]}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={t.status} />
+                    {t.status === 'iniziata' && (
+                      <Eye className="h-3.5 w-3.5 text-white/50" aria-hidden />
                     )}
-                  </td>
-                </tr>
-              );
-            })}
+                  </div>
+                </td>
+                <td className="px-4 py-3 font-bold tabular-nums text-white/90">
+                  <span className="inline-flex items-center gap-1.5">
+                    {t.participants.length}/{t.maxPlayers}
+                    {t.isPrivate && (
+                      <Lock className="h-3.5 w-3.5 text-amber-500" aria-label="Partita privata" />
+                    )}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  {t.participants.length === 0 && t.status !== 'in_registrazione' ? (
+                    <span className="text-white/30">—</span>
+                  ) : (
+                    <ul className="flex flex-wrap items-center gap-1.5">
+                      {t.participants.map((p) => {
+                        const { country, deck } = getMockParticipantDetails(p.username, t.format);
+                        return (
+                          <li
+                            key={p.id}
+                            className="group relative flex items-center rounded-full bg-white/8 px-2 py-0.5 ring-1 ring-white/10"
+                          >
+                            <span className="text-xs font-semibold text-white/85">{p.username}</span>
+                            <div className="absolute bottom-full left-1/2 z-30 mb-2 hidden w-44 -translate-x-1/2 group-hover:block">
+                              <div className="rounded-xl border border-white/15 bg-slate-950/95 p-2.5 text-left shadow-xl backdrop-blur-md">
+                                <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1">
+                                  <span className="truncate text-xs font-bold">{p.username}</span>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={`https://flagcdn.com/${country.code.toLowerCase()}.svg`}
+                                    alt={country.code}
+                                    className="h-2.5 w-3.5 rounded-sm border border-white/10 object-cover"
+                                  />
+                                </div>
+                                <p className="mt-1 text-[10px] text-white/55">{country.name}</p>
+                                <p className="mt-1 truncate text-xs font-bold text-marquee">{deck}</p>
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                      {t.status === 'in_registrazione' && (
+                        <li>
+                          {t.isPrivate ? (
+                            <button
+                              type="button"
+                              className={tournamentActionButtonClass('sm')}
+                            >
+                              <UserPlus className={tournamentActionIconClass} />
+                              Chiedi
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className={tournamentActionButtonClass('sm')}
+                            >
+                              <Plus className={tournamentActionIconClass} />
+                              Partecipa
+                            </button>
+                          )}
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

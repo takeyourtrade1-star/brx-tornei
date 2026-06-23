@@ -4,13 +4,15 @@ import type { Participant, Tournament } from '@/types/tournament';
 import type { Selection } from '@/lib/validations/selection';
 import type { CreateTournamentInput } from '@/lib/validations/tournament';
 
+import { extendMockTournaments } from './mock-tournament-seed';
+
 /**
  * Data layer tornei — confine col backend.
  * MVP: store in-memory con i dati del mockup. Quando l'API tornei sarà pronta,
  * solo questo file cambia (fetch autenticato col token dal cookie); le pagine no.
  */
 
-let mockTournaments: Tournament[] = [
+let mockTournaments: Tournament[] = extendMockTournaments([
   // ── Old School ──
   {
     id: 't-os-1',
@@ -28,19 +30,18 @@ let mockTournaments: Tournament[] = [
     id: 't-os-4',
     format: 'old-school',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'micro',
     bestOf: 'BO3',
     status: 'in_registrazione',
     maxPlayers: 2,
     participants: [],
     createdAt: '2026-06-10T08:30:00Z',
-    isPrivate: false,
   },
   {
     id: 't-os-2',
     format: 'old-school',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'low',
     bestOf: 'BO3',
     status: 'iniziata',
     maxPlayers: 2,
@@ -54,7 +55,7 @@ let mockTournaments: Tournament[] = [
     id: 't-os-3',
     format: 'old-school',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'mid',
     bestOf: 'BO5',
     status: 'terminata',
     maxPlayers: 2,
@@ -81,7 +82,7 @@ let mockTournaments: Tournament[] = [
     id: 't-pm-2',
     format: 'premodern',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'micro',
     bestOf: 'BO5',
     status: 'terminata',
     maxPlayers: 2,
@@ -97,7 +98,7 @@ let mockTournaments: Tournament[] = [
     id: 't-pi-1',
     format: 'pioneer',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'low',
     bestOf: 'BO3',
     status: 'iniziata',
     maxPlayers: 2,
@@ -111,7 +112,7 @@ let mockTournaments: Tournament[] = [
     id: 't-pi-2',
     format: 'pioneer',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'mid',
     bestOf: 'BO5',
     status: 'in_registrazione',
     maxPlayers: 2,
@@ -135,7 +136,7 @@ let mockTournaments: Tournament[] = [
     id: 't-mo-2',
     format: 'modern',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'low',
     bestOf: 'BO3',
     status: 'iniziata',
     maxPlayers: 2,
@@ -149,7 +150,7 @@ let mockTournaments: Tournament[] = [
     id: 't-mo-3',
     format: 'modern',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'high',
     bestOf: 'BO5',
     status: 'terminata',
     maxPlayers: 2,
@@ -165,7 +166,7 @@ let mockTournaments: Tournament[] = [
     id: 't-st-1',
     format: 'standard',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'micro',
     bestOf: 'BO3',
     status: 'in_registrazione',
     maxPlayers: 2,
@@ -176,7 +177,7 @@ let mockTournaments: Tournament[] = [
     id: 't-st-2',
     format: 'standard',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'mid',
     bestOf: 'BO5',
     status: 'iniziata',
     maxPlayers: 2,
@@ -203,7 +204,7 @@ let mockTournaments: Tournament[] = [
     id: 't-lg-2',
     format: 'legacy',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'low',
     bestOf: 'BO3',
     status: 'terminata',
     maxPlayers: 2,
@@ -230,7 +231,7 @@ let mockTournaments: Tournament[] = [
     id: 't-pau-2',
     format: 'pauper',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'micro',
     bestOf: 'BO5',
     status: 'iniziata',
     maxPlayers: 2,
@@ -246,7 +247,7 @@ let mockTournaments: Tournament[] = [
     id: 't-cmd-1',
     format: 'commander',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'mid',
     bestOf: 'BO3',
     status: 'iniziata',
     maxPlayers: 2,
@@ -260,14 +261,14 @@ let mockTournaments: Tournament[] = [
     id: 't-cmd-2',
     format: 'commander',
     mode: 'heads-up',
-    buyIn: 'for_fun',
+    buyIn: 'high',
     bestOf: 'BO5',
     status: 'in_registrazione',
     maxPlayers: 2,
     participants: [{ id: 'u-4', username: 'marco_mengoni' }],
     createdAt: '2026-06-10T19:00:00Z',
   },
-];
+]);
 
 const simulateLatency = () => new Promise((r) => setTimeout(r, 50));
 

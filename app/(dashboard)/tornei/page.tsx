@@ -5,6 +5,7 @@ import { getTournaments } from '@/lib/data/tournaments';
 import { getMyInventory } from '@/lib/data/inventory';
 import { parseSelection } from '@/lib/validations/selection';
 import { getFormat, getMode } from '@/lib/data/catalog';
+import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { TournamentGameView } from '@/components/feature/tornei/tournament-game-view';
 
 export const metadata: Metadata = { title: 'Tornei' };
@@ -19,7 +20,7 @@ interface PageProps {
  */
 export default async function TorneiPage({ searchParams }: PageProps) {
   const selection = parseSelection(await searchParams);
-  if (!selection) redirect('/hub');
+  if (!selection) redirect(DEFAULT_TOURNAMENTS_PATH);
 
   const session = await getSession();
   if (!session) redirect('/login');

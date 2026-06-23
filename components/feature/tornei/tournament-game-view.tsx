@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { CheckCircle2, Gamepad2, Home, LogOut, Smartphone, X } from 'lucide-react';
+import { CheckCircle2, Home, LogOut, Smartphone, X } from 'lucide-react';
 import { getCdnImageUrl } from '@/lib/config';
 import { logoutAction } from '@/actions/auth';
 import {
@@ -13,10 +13,8 @@ import {
   HEADER_BRX_LOGO_OVERLAY_IMAGE_CLASS,
   HEADER_BRX_LOGO_PATH,
 } from '@/components/layout/header-brx-column';
-import { TournamentGameLoadingScreen } from './tournament-game-loading-screen';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import { TournamentsTable } from './tournaments-table';
-import { CreateTournamentButton } from './create-tournament-button';
+import { TournamentsDashboard } from './tournaments-dashboard';
 import { WebcamLinkModal } from './webcam-link-modal';
 import { MatchViewModal, type MatchRole } from './match/match-view-modal';
 import { MatchPip } from './match/match-pip';
@@ -25,7 +23,9 @@ import dynamic from 'next/dynamic';
 import type { Tournament } from '@/types/tournament';
 import type { InventoryItem } from '@/types/inventory';
 import type { Selection } from '@/lib/validations/selection';
+import type { FormatId, ModeId } from '@/lib/data/catalog';
 import { createTournamentFromGameAction, joinTournamentAction } from '@/actions/tournaments';
+import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 
 // Import target game component dynamically to bypass canvas SSR requirements
 const IsoRoomGame = dynamic(() => import('@/minigioco-test/IsoRoomGame'), {
@@ -70,8 +70,8 @@ export function TournamentGameView({
   const [pip, setPip] = useState<Tournament | null>(null);
   /** Popup "richiesta inviata" per i tornei privati. */
   const [requestSent, setRequestSent] = useState<string | null>(null);
-  /** "Vista semplice": mostra la pagina classica (come da mobile) senza mini-gioco. */
-  const [simpleView, setSimpleView] = useState(false);
+  /** Vista semplificata attiva di default; il minigioco si apre su richiesta (desktop). */
+  const [simpleView, setSimpleView] = useState(true);
   const router = useRouter();
   const [creating, startTransition] = useTransition();
   const logoUrl = getCdnImageUrl(HEADER_BRX_LOGO_PATH);
@@ -149,24 +149,19 @@ export function TournamentGameView({
     });
   };
 
-  // Safe skeleton loader during SSR / hydration resolution
+  // Skeleton durante la risoluzione mobile/desktop (vista semplificata di default)
   if (isMobile === null) {
     return (
-      <>
-        {/* Mobile skeleton placeholder */}
-        <div className="block md:hidden min-h-screen bg-[#0f172a]" aria-busy="true" aria-label="Caricamento tornei">
-          <div className="header-gradient h-20 w-full" />
-          <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 sm:px-6">
-            <div className="flex items-end justify-between">
-              <div className="h-10 w-64 animate-pulse rounded-lg bg-white/10" />
-              <div className="h-11 w-44 animate-pulse rounded-full bg-white/10" />
-            </div>
-            <div className="brx-glass h-72 animate-pulse rounded-3xl border border-white/15" />
+      <div className="min-h-screen" aria-busy="true" aria-label="Caricamento tornei">
+        <div className="header-gradient h-20 w-full" />
+        <div className="mx-auto mt-4 flex w-full max-w-content flex-col gap-6 px-4 sm:px-6">
+          <div className="flex items-end justify-between">
+            <div className="h-10 w-64 animate-pulse rounded-lg bg-white/10" />
+            <div className="h-11 w-44 animate-pulse rounded-full bg-white/10" />
           </div>
+          <div className="brx-glass h-72 animate-pulse rounded-3xl border border-white/15" />
         </div>
-
-        <TournamentGameLoadingScreen />
-      </>
+      </div>
     );
   }
 
@@ -175,51 +170,32 @@ export function TournamentGameView({
       <>
         <DashboardHeader
           user={user}
-          formatId={formatId}
-          formatName={formatName}
-          modeName={modeName}
+          showMinigameBack={simpleView && !isMobile}
+          onBackToMinigame={() => setSimpleView(false)}
         />
-        <main className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pb-16 sm:px-6 mt-6 animate-auth-enter">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="font-display text-3xl font-black uppercase tracking-wide text-white drop-shadow">
-                Tornei <span className="text-primary">{formatName}</span>
-              </h1>
-              <p className="mt-1 text-sm text-white/60">
-                {modeName} · Buy-In <span className="font-bold text-marquee">For Fun</span>
-              </p>
-            </div>
-            <CreateTournamentButton selection={selection} />
-          </div>
-
-          {/* Ritorno al mini-gioco (solo quando si è scelta la vista semplice da desktop) */}
-          {simpleView && !isMobile && (
-            <button
-              type="button"
-              onClick={() => setSimpleView(false)}
-              className="brx-glass inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/80 transition hover:border-[#FF7300]/50 hover:text-white"
-            >
-              <Gamepad2 className="h-4 w-4 text-[#FF7300]" />
-              Torna al mini-gioco
-            </button>
-          )}
-
+        <main className="mx-auto mt-4 flex w-full max-w-content flex-col px-4 pb-16 sm:px-6 animate-auth-enter">
           {/* Nota mobile: i tornei si giocano da PC, il telefono fa da webcam */}
           {isMobile && (
-            <div className="brx-glass flex items-start gap-3 rounded-2xl border border-[#FF7300]/25 p-4">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#FF7300]/40 bg-[#FF7300]/15 text-[#FF7300]">
+            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-primary/40 bg-primary/15 text-primary">
                 <Smartphone className="h-4 w-4" />
               </div>
               <p className="text-sm leading-relaxed text-white/75">
                 I tornei si giocano <span className="font-bold text-white">dal PC</span>. Il tuo
-                telefono può però fare da <span className="font-bold text-[#FF7300]">webcam</span>:
+                telefono può però fare da <span className="font-bold text-primary">webcam</span>:
                 apri i tornei sul computer e, quando crei la partita, inquadra il QR per usare
                 questa fotocamera.
               </p>
             </div>
           )}
 
-          <TournamentsTable tournaments={tournaments} />
+          <TournamentsDashboard
+            tournaments={tournaments}
+            selection={selection}
+            formatId={formatId as FormatId}
+            formatName={formatName}
+            modeName={modeName}
+          />
         </main>
       </>
     );
@@ -232,6 +208,8 @@ export function TournamentGameView({
           <IsoRoomGame
             roomName={`Sala Tornei · ${formatName}`}
             username={username}
+            formatId={formatId as FormatId}
+            modeId={selection.mode as ModeId}
             formatName={formatName}
             modeName={modeName}
             tournaments={tournaments}
@@ -258,8 +236,8 @@ export function TournamentGameView({
             />
           </Link>
           <Link
-            href="/hub"
-            aria-label="Torna alla selezione"
+            href={DEFAULT_TOURNAMENTS_PATH}
+            aria-label="Tornei"
             className="text-white/60 hover:text-white transition-colors duration-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
           >
             <Home className="h-5 w-5" />

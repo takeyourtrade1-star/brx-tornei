@@ -4,6 +4,7 @@ import { VerifyMfaView } from './verify-mfa-view';
 import { getPreAuthCookie } from '@/lib/auth/pre-auth-cookie';
 import { getSession } from '@/lib/auth/session';
 import { sanitizeRedirect } from '@/lib/auth/redirect';
+import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 
 export const metadata: Metadata = { title: 'Verifica MFA' };
 
@@ -21,7 +22,7 @@ export default async function VerifyMfaPage({ searchParams }: VerifyMfaPageProps
   const preAuth = await getPreAuthCookie();
   if (!preAuth) {
     redirect(
-      redirectTo !== '/hub'
+      redirectTo !== DEFAULT_TOURNAMENTS_PATH
         ? `/login?accesso=1&redirect=${encodeURIComponent(redirectTo)}`
         : '/login?accesso=1'
     );

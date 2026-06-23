@@ -1,7 +1,5 @@
 import type { FormatId, ModeId } from '@/lib/data/catalog';
-
-/** Per ora tutti i tornei sono "For Fun" (vedi specifiche MVP). */
-export type BuyIn = 'for_fun';
+import type { BuyIn } from '@/lib/data/buy-in';
 
 /** "Forma" dal mockup: best-of (2/3 = BO3, 3/5 = BO5). */
 export type BestOf = 'BO1' | 'BO3' | 'BO5';
@@ -18,6 +16,7 @@ export interface Tournament {
   /** Formato di gioco selezionato (Old School, Modern, Commander...). */
   format: FormatId;
   mode: ModeId;
+  /** Quota di ingresso (stile buy-in poker). */
   buyIn: BuyIn;
   bestOf: BestOf;
   status: TournamentStatus;
@@ -27,3 +26,5 @@ export interface Tournament {
   createdAt: string; // ISO
   isPrivate?: boolean; // Partita privata con lucchetto
 }
+
+export type { BuyIn };

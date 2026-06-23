@@ -1,21 +1,19 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { LoginTournamentShowcase } from '@/components/feature/auth/login-tournament-showcase';
 import { AUTH_SPLIT_PANEL_CLASS } from '@/components/layout/auth-split-styles';
 import { AuthShell } from '@/components/layout/AuthShell';
 import { cn } from '@/lib/utils';
 
-const SHOWCASE_COLUMN_CLASS = cn(
-  'order-2 flex w-full flex-1 flex-col justify-start',
-  'px-6 pb-6 pt-0 sm:px-10 sm:pb-8',
-  'lg:order-1 lg:w-1/2 lg:min-h-0 lg:min-w-0 lg:isolate lg:overflow-hidden lg:px-10 lg:pb-8 lg:pt-0 xl:px-14'
+/** Colonna sinistra: riserva il 50% desktop; il video è nello sfondo assoluto di AuthShell. */
+const VIDEO_COLUMN_CLASS = cn(
+  'hidden min-h-0 lg:col-start-1 lg:row-start-1 lg:block'
 );
 
 const FORM_COLUMN_BASE_CLASS = cn(
-  'order-1 flex w-full flex-1 flex-col bg-white/90',
+  'col-start-1 row-start-1 flex w-full flex-1 flex-col bg-white/90',
   'px-6 py-6 sm:px-8 sm:py-8',
-  'lg:order-2 lg:w-1/2 lg:min-h-0 lg:overflow-y-auto lg:bg-transparent',
+  'lg:col-start-2 lg:min-h-0 lg:overflow-y-auto lg:bg-transparent',
   'lg:px-8 lg:py-10 xl:px-10 xl:py-12'
 );
 
@@ -26,7 +24,7 @@ interface AuthSplitLayoutProps {
   panelClassName?: string;
 }
 
-/** Layout auth 50/50: showcase tornei a sinistra, form a destra. */
+/** Layout auth 50/50: video a sinistra, form a destra. */
 export function AuthSplitLayout({
   children,
   formPlacement = 'center',
@@ -37,11 +35,7 @@ export function AuthSplitLayout({
 
   return (
     <AuthShell splitHero compact>
-      <aside className={SHOWCASE_COLUMN_CLASS}>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto lg:overflow-hidden">
-          <LoginTournamentShowcase className="mx-auto w-full max-w-xl lg:max-w-none" />
-        </div>
-      </aside>
+      <aside className={VIDEO_COLUMN_CLASS} aria-hidden />
 
       <section
         className={cn(

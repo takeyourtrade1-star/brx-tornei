@@ -64,21 +64,12 @@ export function AuthShell({
         <LandingBackgroundVideo splitLeft />
 
         <div
-          className="pointer-events-none absolute inset-0 z-0 lg:right-1/2"
-          style={{
-            background:
-              'radial-gradient(120% 80% at 12% 8%, rgba(61,101,198,0.45) 0%, transparent 55%), linear-gradient(180deg, rgba(29,49,96,0.42) 0%, rgba(15,23,42,0.82) 100%)',
-          }}
-          aria-hidden
-        />
-
-        <div
           className="absolute inset-y-0 right-0 z-[1] hidden w-1/2 bg-white/90 lg:block"
           aria-hidden
         />
 
         <div className="relative z-10 flex min-h-screen flex-col">
-          <div className="flex min-h-0 w-full flex-1 flex-col lg:flex-row">{children}</div>
+          <div className="grid min-h-0 w-full flex-1 grid-cols-1 lg:grid-cols-2">{children}</div>
         </div>
       </div>
     );

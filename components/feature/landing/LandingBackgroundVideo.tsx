@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { getCdnVideoUrl } from '@/lib/config';
 
 const LANDING_BG_VIDEO = 'videos/sfondo_carte.webm';
+/** Sfondo auth split — asset locale in public/videos. */
+const AUTH_SPLIT_BG_VIDEO = '/videos/auth-hero.webm';
 const PLAYBACK_RATE = 1.12;
 
 type LandingBackgroundVideoProps = {
@@ -21,17 +23,17 @@ export function LandingBackgroundVideo({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const videoUrl = getCdnVideoUrl(LANDING_BG_VIDEO);
+  const videoUrl = splitLeft ? AUTH_SPLIT_BG_VIDEO : getCdnVideoUrl(LANDING_BG_VIDEO);
 
   const tryPlay = useCallback(() => {
     const el = videoRef.current;
     if (!el || failed) return;
-    el.playbackRate = PLAYBACK_RATE;
+    el.playbackRate = splitLeft ? 1 : PLAYBACK_RATE;
     const p = el.play();
     if (p && typeof p.catch === 'function') {
       p.catch(() => {});
     }
-  }, [failed]);
+  }, [failed, splitLeft]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -114,17 +116,21 @@ export function LandingBackgroundVideo({
           style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' as const }}
         >
           <source src={videoUrl} type="video/webm" />
-          <source src={videoUrl.replace('.webm', '.mp4')} type="video/mp4" />
+          {!splitLeft && (
+            <source src={videoUrl.replace('.webm', '.mp4')} type="video/mp4" />
+          )}
         </video>
       )}
 
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(15,23,42,0.69) 0%, rgba(29,49,96,0.58) 50%, rgba(15,23,42,0.76) 100%)',
-        }}
-      />
+      {!splitLeft && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(15,23,42,0.69) 0%, rgba(29,49,96,0.58) 50%, rgba(15,23,42,0.76) 100%)',
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -31,7 +31,7 @@ export const INTERACTIVES_ARCADE = {
   kakegurui: { name: "Tavolo Duello", icon: "🎴", desc: "Sasso/Carta/Forbice", approach: [[4, 6], [7, 6], [5, 8], [6, 8]], footTiles: [[5, 6], [6, 6], [5, 7], [6, 7]], focus: { x: 436, y: 380, z: 1.45 }, faceTile: [5, 7], game: "kakegurui" },
   doorBack: { name: "Porta Tornei", icon: "🏆", desc: "Torna alla Sala Tornei", approach: [[1, 4], [1, 5]], footTiles: [], focus: { x: 150, y: 260, z: 1.4 }, faceTile: [0, 4], action: "changeRoom", target: "tournament" },
 };
-export const DOOR_TOUR = { id: "door", name: "Porta Arcade", icon: "🕹️", desc: "Sala Giochi Retro", approach: [[5, 1], [6, 1], [4, 1]], footTiles: [], focus: { x: 520, y: 200, z: 1.4 }, faceTile: [6, 0], action: "changeRoom", target: "arcade" };
+export const DOOR_TOUR = { id: "door", name: "Porta Arcade", icon: "🕹️", desc: "Sala Giochi Retro", approach: [[10, 4], [10, 5], [10, 3]], footTiles: [], focus: { x: 590, y: 340, z: 1.42 }, faceTile: [11, 4], action: "changeRoom", target: "arcade" };
 export const STATIONS = [
   { id: "tcgJump", name: "TCG Jump", kind: "Platformer", accent: "#39ff14", icon: "🍄" },
   { id: "stackAttack", name: "Stack Attack", kind: "Timing", accent: "#05d9e8", icon: "🃏" },
@@ -39,4 +39,4 @@ export const STATIONS = [
   { id: "kakegurui", name: "Tavolo Duello", kind: "1v1 · Sasso/Carta/Forbice", accent: "#ff2a6d", icon: "🎴" },
 ];
 export const ARC_ENTRY_TILE = { cx: 1, cy: 4 };
-export const TOUR_ENTRY_TILE = { cx: 6, cy: 1 };
+export const TOUR_ENTRY_TILE = { cx: 10, cy: 4 };

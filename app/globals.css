@@ -109,6 +109,77 @@
     scrollbar-width: none;  /* Firefox */
   }
 
+  /* Toolbar tornei: transizione sticky ↔ espansa */
+  .tournaments-toolbar-ease {
+    transition:
+      margin 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+      padding 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+      backdrop-filter 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .tournaments-toolbar-section-collapse {
+    display: grid;
+    transition:
+      grid-template-rows 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .tournaments-toolbar-section-collapse[data-open='true'] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
+  .tournaments-toolbar-section-collapse[data-open='false'] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+
+  @keyframes toolbar-compact-settle {
+    0% {
+      transform: translateY(-10px) scale(0.985);
+      opacity: 0.86;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes toolbar-expand-settle {
+    0% {
+      transform: translateY(6px) scale(0.992);
+      opacity: 0.9;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-toolbar-compact-settle {
+    animation: toolbar-compact-settle 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-toolbar-expand-settle {
+    animation: toolbar-expand-settle 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tournaments-toolbar-ease,
+    .tournaments-toolbar-section-collapse {
+      transition: none;
+    }
+    .animate-toolbar-compact-settle,
+    .animate-toolbar-expand-settle {
+      animation: none;
+    }
+  }
+
   .mode-card-glow {
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
@@ -161,18 +232,18 @@
   }
   html {
     min-height: 100%;
+    scrollbar-gutter: stable;
   }
-  /* Sfondo identico a Ebartex: gradiente palette + pattern BRX.
-     Copiare brx_bg.png da new_frontend_brx/public/ (o usare --brx-bg-url da CDN). */
+  /* Sfondo tornei: gradiente semplice blu → arancione (palette Ebartex). */
   body {
     @apply transition-colors duration-300 min-h-screen font-medium;
     font-family: var(--font-sans), serif;
-    background-image:
-      linear-gradient(rgba(15, 23, 42, 0.32), rgba(15, 23, 42, 0.48)),
-      url('/images/sfondo-tornei.webp'),
-      linear-gradient(180deg, #3D65C6 0%, #1D3160 100%);
-    background-repeat: no-repeat, no-repeat, no-repeat;
-    background-size: cover, cover, cover;
+    background: linear-gradient(
+      135deg,
+      var(--color-brand) 0%,
+      var(--color-brand-dark) 55%,
+      #ff7300 100%
+    );
     background-attachment: fixed;
     color: #fff;
   }

@@ -28,6 +28,15 @@ import {
   ARC_ENTRY_TILE, TOUR_ENTRY_TILE, ARC_DEFAULT_CAM,
 } from "./arcade-room/arcade-config";
 import ArcadeGameModal from "./arcade-room/ArcadeGameModal";
+import { getBuyInLabel } from "@/lib/data/buy-in";
+import { FormatSelectorGrid } from "@/components/feature/tornei/format-selector-grid";
+import { tournamentActionButtonCssRules } from "@/components/feature/tornei/tournament-action-button-styles";
+import {
+  applyTournamentFilters,
+  DEFAULT_TOURNAMENT_FILTERS,
+  hasActiveTournamentFilters,
+} from "@/lib/tournament-list-filters";
+import { TournamentFilters } from "@/components/feature/tornei/tournament-filters";
 
 /* ============================== 1. CONFIG ============================== */
 
@@ -549,9 +558,75 @@ function makeSil(sp, color = "#ffd76e") {
   return sil;
 }
 
-/* punti sulle pareti: parete sinistra lungo cx=0, parete di fondo lungo cy=0 */
+/* punti sulle pareti:
+   wallL → parete sinistra (parametro = riga cy)
+   wallR → parete di fondo (parametro = colonna cx)
+   wallFar → parete destra (parametro = riga cy, bordo cx=COLS) */
 const wallL = (c, hh) => ({ x: -c * HTW + OX, y: c * HTH - hh + OY });
 const wallR = (c, hh) => ({ x: c * HTW + OX, y: c * HTH - hh + OY });
+const wallFar = (row, hh) => {
+  const b = tileTop(COLS, row);
+  return { x: b.x + HTW, y: b.y - hh };
+};
+
+/* Porta Arcade sulla parete destra (righe ~4–5, lontano da bacheca e tavolo) */
+const TOUR_DOOR = { r0: 3.8, r1: 5.4, hTop: 90, hBot: 28 };
+
+/** Interpolazione UV su un quad di parete (topA→topB in alto, botA→botB in basso). */
+function wallFace(topA, topB, botB, botA, u, v) {
+  const b = { x: botA.x + (botB.x - botA.x) * u, y: botA.y + (botB.y - botA.y) * u };
+  const t = { x: topA.x + (topB.x - topA.x) * u, y: topA.y + (topB.y - topA.y) * u };
+  return { x: b.x + (t.x - b.x) * v, y: b.y + (t.y - b.y) * v };
+}
+
+/** Porta in legno su parete laterale: stipite, anta a pannelli, maniglia. */
+function drawWoodDoor(ctx, topA, topB, botB, botA, label) {
+  const face = (u, v) => wallFace(topA, topB, botB, botA, u, v);
+  quadFill(ctx, [topA, topB, botB, botA], shade(P.wallDark, 0.78));
+  quadFill(ctx, [topA, topB, botB, botA], false, P.woodXD, 2);
+  const leaf = [face(0.1, 0.96), face(0.9, 0.96), face(0.9, 0.06), face(0.1, 0.06)];
+  quadFill(ctx, leaf, P.wood);
+  quadFill(ctx, leaf, false, P.woodD, 1);
+  const panel = (v0, v1) => {
+    const o = [face(0.2, v1), face(0.8, v1), face(0.8, v0), face(0.2, v0)];
+    quadFill(ctx, o, shade(P.wood, 0.72));
+    quadFill(ctx, o, false, shade(P.woodD, 1.2), 1);
+    quadFill(ctx, [face(0.28, v1 - 0.02), face(0.72, v1 - 0.02), face(0.72, v0 + 0.02), face(0.28, v0 + 0.02)], shade(P.woodL, 0.88));
+  };
+  panel(0.08, 0.44); panel(0.52, 0.88);
+  const h = face(0.22, 0.52);
+  ctx.fillStyle = P.gold;
+  ctx.beginPath(); ctx.arc(h.x, h.y, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = P.metalL;
+  ctx.fillRect(Math.round(h.x) - 1, Math.round(h.y) - 4, 3, 8);
+  const s0 = face(0.12, 0.05), s1 = face(0.88, 0.05);
+  ctx.strokeStyle = "rgba(60,40,20,0.55)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(s1.x, s1.y); ctx.stroke();
+  if (label) {
+    ctx.save();
+    const WROT = Math.atan2(HTH, HTW);
+    const mid = face(0.5, 0.74);
+    ctx.translate(mid.x, mid.y);
+    ctx.rotate(WROT);
+    ctx.font = "5px 'Press Start 2P', monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = P.woodXD;
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+  }
+}
+
+function tourDoorBounds() {
+  const { r0, r1, hTop, hBot } = TOUR_DOOR;
+  const topA = wallFar(r0, hTop), topB = wallFar(r1, hTop);
+  const botA = wallFar(r0, hBot), botB = wallFar(r1, hBot);
+  const xs = [topA.x, topB.x, botA.x, botB.x];
+  const ys = [topA.y, topB.y, botA.y, botB.y];
+  return {
+    topA, topB, botA, botB,
+    hit: { x: Math.min(...xs) - 2, y: Math.min(...ys) - 2, w: Math.max(...xs) - Math.min(...xs) + 4, h: Math.max(...ys) - Math.min(...ys) + 4 },
+  };
+}
 
 /** disegna pavimento + pareti + finestra + poster + tappeto + luce nel bg */
 function buildBackground(phase = dayPhase(), stats = null, posters = null) {
@@ -807,50 +882,6 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
     }
   }
 
-  /* — porta Sala Arcade (parete di fondo, c=5.0–6.5, hh=40–88) — */
-  {
-    const WROT = Math.atan2(HTH, HTW);
-    const dTL = wallR(5.0, 88), dTR = wallR(6.5, 88);
-    const dBL = wallR(5.0, 40), dBR = wallR(6.5, 40);
-    // rientranza
-    quadFill(ctx, [wallR(4.8, 95), wallR(6.7, 95), wallR(6.7, 36), wallR(4.8, 36)], shade(P.wall, 0.72));
-    // pannello porta (sfondo scuro)
-    quadFill(ctx, [dTL, dTR, dBR, dBL], shade(P.wallDark, 0.7));
-    // bordo dorato
-    ctx.strokeStyle = P.gold; ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(dTL.x, dTL.y); ctx.lineTo(dTR.x, dTR.y);
-    ctx.lineTo(dBR.x, dBR.y); ctx.lineTo(dBL.x, dBL.y); ctx.closePath(); ctx.stroke();
-    // pannello interno
-    const ip = (pts, d) => pts.map((p, i) => ({
-      x: p.x + ([0,3].includes(i) ? d : -d),
-      y: p.y + ([0,1].includes(i) ? d : -d),
-    }));
-    quadFill(ctx, ip([dTL, dTR, dBR, dBL], 4), shade(P.wallDark, 0.85));
-    // riga orizzontale a metà (pannelli porta)
-    const mh = 64;
-    quadFill(ctx, [wallR(5.0, mh), wallR(6.5, mh), wallR(6.5, mh - 3), wallR(5.0, mh - 3)], hexA(P.gold, 0.45));
-    // maniglia
-    const han = wallR(6.15, 60);
-    ctx.fillStyle = P.gold;
-    ctx.fillRect(Math.round(han.x) - 1, Math.round(han.y) - 5, 3, 10);
-    // insegna "ARCADE" sopra la porta
-    const signPt = wallR(5.75, 93);
-    ctx.save();
-    ctx.translate(signPt.x, signPt.y);
-    ctx.rotate(WROT);
-    ctx.fillStyle = "#151a2e";
-    ctx.fillRect(-24, -6, 48, 10);
-    ctx.strokeStyle = P.gold; ctx.lineWidth = 1;
-    ctx.strokeRect(-24, -6, 48, 10);
-    ctx.fillStyle = P.gold;
-    ctx.font = "bold 6px 'Press Start 2P', monospace";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("ARCADE", 0, 0);
-    ctx.restore();
-  }
-
   /* — pennanti tornei sulla parete di fondo — */
   {
     // Due striscioline colorate verticali appese in alto, come decorazioni da torneo
@@ -864,7 +895,7 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
     };
     drawPennant(3.5, P.red);
     drawPennant(7.5, P.gold);
-    drawPennant(9.2, "#4a7fd6");
+    drawPennant(10.8, "#4a7fd6");
   }
 
   /* — battiscopa — */
@@ -968,6 +999,26 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
   // pulsante
   const ib = wallR(10.85, 46);
   ctx.fillStyle = P.gold; ctx.fillRect(Math.round(ib.x) - 2, Math.round(ib.y) - 2, 4, 4);
+
+  /* — porta Sala Arcade (parete destra, sopra pavimento e arredi statici) — */
+  {
+    const { topA, topB, botA, botB } = tourDoorBounds();
+    drawWoodDoor(ctx, topA, topB, botB, botA, null);
+    const signPt = wallFace(topA, topB, botB, botA, 0.5, 0.02);
+    const WROT = Math.atan2(HTH, HTW);
+    ctx.save();
+    ctx.translate(signPt.x, signPt.y);
+    ctx.rotate(WROT);
+    ctx.fillStyle = P.woodD;
+    ctx.fillRect(-22, -5, 44, 9);
+    ctx.strokeStyle = P.gold; ctx.lineWidth = 1;
+    ctx.strokeRect(-22, -5, 44, 9);
+    ctx.fillStyle = P.gold;
+    ctx.font = "bold 5px 'Press Start 2P', monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("ARCADE", 0, 0);
+    ctx.restore();
+  }
 
   return cv;
 }
@@ -2066,7 +2117,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   };
 
   /* — porta Sala Arcade: disegnata nel background, hitRect statico — */
-  inter.door.hitRect = { x: wallR(5.0, 88).x, y: wallR(5.0, 88).y, w: wallR(6.5, 88).x - wallR(5.0, 88).x, h: wallR(5.0, 40).y - wallR(5.0, 88).y + 8 };
+  inter.door.hitRect = tourDoorBounds().hit;
   inter.door.hitCv = null;
 
   /* ====================== SALA ARCADE — dati stanza ====================== */
@@ -2193,11 +2244,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   };
   /* — busta lettere: scivola dalla porta sul pavimento — */
   const LETTER_START = (() => {
-    const p = tileTop(10.2, 7.2);
-    return { x: p.x + 18, y: p.y + HTH - 8 };
+    const p = tileTop(10.2, 4.4);
+    return { x: p.x - 6, y: p.y + HTH - 8 };
   })();
   const LETTER_REST = (() => {
-    const p = tileTop(9.8, 8.0);
+    const p = tileTop(10, 5.5);
     return { x: p.x, y: p.y + HTH - 4 };
   })();
   const letterHitRect = (lt) => ({ x: lt.x - 14, y: lt.y - 18, w: 28, h: 20 });
@@ -5983,17 +6034,8 @@ const CSS_TEXT = [
   ".irg-pclab{display:block;margin-top:7px;padding-top:5px;border-top:1px solid rgba(242,185,75,.15);",
   "font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.5);}",
   ".irg-pcdeck{display:block;margin-top:2px;font-size:11.5px;font-weight:800;color:#F3C76A;}",
-  ".irg-ebx-join{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 14px;",
-  "font-family:'Press Start 2P','Courier New',monospace;font-size:9px;letter-spacing:.5px;",
-  "color:#fff;cursor:pointer;text-transform:uppercase;",
-  "background:linear-gradient(135deg,rgba(255,115,0,.5),rgba(255,115,0,.18));",
-  "border:1.5px solid rgba(255,115,0,.65);",
-  "box-shadow:inset 0 1px 1.5px rgba(255,255,255,.4),0 4px 12px rgba(0,0,0,.3),0 0 12px rgba(255,115,0,.3);",
-  "transition:all .15s ease;}",
-  ".irg-ebx-join:hover{background:linear-gradient(135deg,rgba(255,115,0,.6),rgba(255,115,0,.28));",
-  "box-shadow:inset 0 1px 2px rgba(255,255,255,.5),0 8px 20px rgba(0,0,0,.4),0 0 22px rgba(255,115,0,.6);",
-  "transform:translateY(-2px) scale(1.02);}",
-  ".irg-ebx-join:active{transform:translateY(0) scale(.98);}",
+  ".irg-pc-filters{margin:12px 0 4px;padding:0 2px;}",
+  tournamentActionButtonCssRules(".irg-ebx-join"),
   ".irg-ebx-empty{padding:48px 20px;text-align:center;}",
   ".irg-ebx-empty p{margin:0;font-family:'Press Start 2P','Courier New',monospace;font-size:13px;",
   "text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.75);}",
@@ -6011,19 +6053,8 @@ const CSS_TEXT = [
   ".irg-ebx-table{font-size:12px;}",
   ".irg-mtitle{font-size:11px;}",
   "}",
-  /* — Tornei Live: 7 card formati orizzontali con video all'hover — */
-  ".irg-fmts{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin:16px 0 4px;}",
-  ".irg-fmtcard{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;cursor:pointer;",
-  "background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 8px 18px rgba(0,0,0,.4);",
-  "transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s ease;will-change:transform;}",
-  ".irg-fmtcard:hover{transform:scale(1.3);z-index:10;",
-  "box-shadow:inset 0 0 0 1px rgba(255,115,0,.55),0 16px 34px rgba(0,0,0,.55),0 0 22px rgba(255,115,0,.35);}",
-  ".irg-fmtimg,.irg-fmtvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}",
-  ".irg-fmtvid{opacity:0;transition:opacity .25s ease;}",
-  ".irg-fmtcard:hover .irg-fmtvid{opacity:1;}",
-  ".irg-fmtlabel{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:16px 8px 6px;",
-  "font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#fff;text-align:center;",
-  "text-shadow:0 1px 4px rgba(0,0,0,.85);background:linear-gradient(to top,rgba(0,0,0,.78),transparent);}",
+  /* — Tornei Live: griglia formati (stessa logica vista semplificata) — */
+  ".irg-fmts{margin:16px 0 4px;}",
   /* — modalità leggera — */
   ".irg-quality-low .irg-backdrop,.irg-quality-low .irg-m-decks,.irg-quality-low .irg-m-pc{",
   "backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(10,12,22,.94);}",
@@ -6031,8 +6062,7 @@ const CSS_TEXT = [
   ".irg-quality-low .irg-led{animation:none;}",
   ".irg-quality-low .irg-dot,.irg-quality-low .irg-pulse{animation:none;}",
   ".irg-quality-low .irg-card.irg-r-leggendaria .irg-cardart:after{display:none;}",
-  ".irg-quality-low .irg-fmtcard video{display:none;}",
-  /* — Select stilizzato (coerente col minigioco) — */
+  ".irg-quality-low .irg-fmts video{display:none;}",
   ".irg-select{position:relative;width:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;}",
   ".irg-select-trigger{width:100%;display:flex;align-items:center;gap:8px;",
   "padding:9px 12px;border-radius:10px;",
@@ -6724,44 +6754,19 @@ function MiniTip({ text }) {
   );
 }
 
-/* — Tornei Live: 8 formati orizzontali (immagine + video all'hover) — */
-const FORMATS_OR = [
-  { key: "old-school", label: "Old School", img: "/immagini-formato-orizzontale/old-school-or.webp", vid: "/video-animazione-orizzontale/animazione-old-school.webm" },
-  { key: "pre-modern", label: "Pre-Modern", img: "/immagini-formato-orizzontale/pre-modern-or.webp", vid: "/video-animazione-orizzontale/animazione-pre-modern.webm" },
-  { key: "pioneer", label: "Pioneer", img: "/immagini-formato-orizzontale/pioneer-or.webp", vid: "/video-animazione-orizzontale/animazione-piooner.webm" },
-  { key: "modern", label: "Modern", img: "/immagini-formato-orizzontale/modern-or.webp", vid: "/video-animazione-orizzontale/animazione-modern.webm" },
-  { key: "standard", label: "Standard", img: "/immagini-formato-orizzontale/standard-or.webp", vid: "/video-animazione-orizzontale/animazione-standard.webm" },
-  { key: "legacy", label: "Legacy", img: "/immagini-formato-orizzontale/legacy-or.webp", vid: "/video-animazione-orizzontale/animazione-legacy.webm" },
-  { key: "pauper", label: "Pauper", img: "/immagini-formato-orizzontale/pauper-or.webp", vid: "/video-animazione-orizzontale/animazione-pauper.webm" },
-  { key: "commander", label: "Commander", img: "/immagini-formato-orizzontale/commander-or.webp", vid: "/video-animazione-orizzontale/animazione-commander.webm" },
-];
+function PcModal({ tournaments, onJoin, onObserve, me, formatId, modeId, formatName, modeName }) {
+  const [filters, setFilters] = useState(DEFAULT_TOURNAMENT_FILTERS);
 
-function FormatCard({ fmt }) {
-  const vref = React.useRef(null);
-  const onEnter = () => {
-    const v = vref.current;
-    if (!v) return;
-    try {
-      v.currentTime = 0;
-      const p = v.play();
-      if (p && p.catch) p.catch(() => {});
-    } catch (e) { /* play interrotto */ }
-  };
-  const onLeave = () => {
-    const v = vref.current;
-    if (!v) return;
-    try { v.pause(); v.currentTime = 0; } catch (e) { /* noop */ }
-  };
-  return (
-    <div className="irg-fmtcard" onMouseEnter={onEnter} onMouseLeave={onLeave}>
-      <img className="irg-fmtimg" src={fmt.img} alt={fmt.label} loading="lazy" draggable="false" />
-      <video ref={vref} className="irg-fmtvid" src={fmt.vid} muted loop playsInline preload="none" />
-      <span className="irg-fmtlabel">{fmt.label}</span>
-    </div>
+  useEffect(() => {
+    setFilters(DEFAULT_TOURNAMENT_FILTERS);
+  }, [formatId, modeId]);
+
+  const filteredTournaments = useMemo(
+    () => applyTournamentFilters(tournaments, filters),
+    [tournaments, filters],
   );
-}
+  const filtersActive = hasActiveTournamentFilters(filters);
 
-function PcModal({ tournaments, onJoin, onObserve, me, formatName, modeName }) {
   return (
     <>
       <div className="irg-screen">
@@ -6769,17 +6774,29 @@ function PcModal({ tournaments, onJoin, onObserve, me, formatName, modeName }) {
           <div className="irg-ebx-h1">Tornei <b>Live</b></div>
           <div className="irg-ebx-sub">
             {formatName && <>{formatName} · </>}
-            {modeName} · Buy-In <b>For Fun</b> <span className="irg-esc">ESC per chiudere</span>
+            {modeName}
+            <span className="irg-esc">ESC per chiudere</span>
           </div>
           <div className="irg-fmts">
-            {FORMATS_OR.map((f) => (
-              <FormatCard key={f.key} fmt={f} />
-            ))}
+            <FormatSelectorGrid selectedFormatId={formatId} currentModeId={modeId} />
           </div>
-          {tournaments.length === 0 ? (
+          <div className="irg-pc-filters">
+            <TournamentFilters
+              buyInSelectId="pc-buy-in-filter"
+              filters={filters}
+              onChange={setFilters}
+              resultCount={filteredTournaments.length}
+              totalCount={tournaments.length}
+            />
+          </div>
+          {filteredTournaments.length === 0 ? (
             <div className="irg-glass irg-ebx-empty">
               <p>Nessun torneo per questa selezione</p>
-              <span>Creane uno dalla bacheca con “Crea Torneo”.</span>
+              <span>
+                {filtersActive
+                  ? "Prova ad allargare i filtri o creane uno dalla bacheca."
+                  : "Creane uno dalla bacheca con “Crea Torneo”."}
+              </span>
             </div>
           ) : (
             <div className="irg-glass">
@@ -6795,14 +6812,14 @@ function PcModal({ tournaments, onJoin, onObserve, me, formatName, modeName }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {tournaments.map((t) => {
+                    {filteredTournaments.map((t) => {
                       const full = t.participants.length >= t.maxPlayers;
                       const joined = t.participants.some((p) => p.username === me);
                       const shown = t.participants.slice(0, 2); // max 2 pill per partita
                       const extra = t.participants.length - shown.length;
                       return (
                         <tr key={t.id}>
-                          <td><span className="irg-buyin">For Fun</span></td>
+                          <td><span className="irg-buyin">{getBuyInLabel(t.buyIn)}</span></td>
                           <td><span className="irg-forma">{BEST_OF_LABEL[t.bestOf] || "2/3"}</span></td>
                           <td>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -6873,7 +6890,7 @@ function PcModal({ tournaments, onJoin, onObserve, me, formatName, modeName }) {
                                 {t.status === "in_registrazione" && !joined && !full && (
                                   <li>
                                     <button type="button" className="irg-ebx-join" onClick={() => onJoin(t.id)}>
-                                      {t.isPrivate ? <><IcoUserPlus /> Chiedi di partecipare</> : <><IcoPlus /> Partecipa</>}
+                                      {t.isPrivate ? <><IcoUserPlus /> Chiedi</> : <><IcoPlus /> Partecipa</>}
                                     </button>
                                   </li>
                                 )}
@@ -7151,6 +7168,8 @@ function AssoPixel() {
 export default function IsoRoomGame({
   roomName = "Sala Tornei",
   username = "PrincessLeo",
+  formatId = "modern",
+  modeId = "heads-up",
   formatName = "",
   modeName = "Heads-Up",
   tournaments: pTournaments,
@@ -7648,7 +7667,16 @@ export default function IsoRoomGame({
       )}
       {modal === "pc" && (
         <ModalShell id="pc" closing={closing} onClose={closeModal} className="irg-m-pc">
-          <PcModal tournaments={data.tournaments} onJoin={handleJoin} onObserve={handleObserve} me={username} formatName={formatName} modeName={modeName} />
+          <PcModal
+            tournaments={data.tournaments}
+            onJoin={handleJoin}
+            onObserve={handleObserve}
+            me={username}
+            formatId={formatId}
+            modeId={modeId}
+            formatName={formatName}
+            modeName={modeName}
+          />
         </ModalShell>
       )}
       {modal === "mirror" && (

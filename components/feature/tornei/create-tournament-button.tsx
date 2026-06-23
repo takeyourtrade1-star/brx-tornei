@@ -4,6 +4,10 @@ import { useState, useTransition } from 'react';
 import { Plus } from 'lucide-react';
 import { createTournamentAction } from '@/actions/tournaments';
 import type { Selection } from '@/lib/validations/selection';
+import {
+  tournamentActionButtonClass,
+  tournamentActionIconClass,
+} from './tournament-action-button-styles';
 
 /**
  * Bottone "Crea Torneo" — unico punto interattivo della dashboard.
@@ -35,12 +39,13 @@ export function CreateTournamentButton({ selection }: { selection: Selection }) 
         </p>
       )}
       <button
+        type="button"
         onClick={handleClick}
         disabled={isPending}
-        className="brx-liquid-glass-btn flex items-center gap-2 rounded-full px-6 py-2.5 font-sans font-bold text-sm uppercase tracking-wide text-white disabled:pointer-events-none disabled:opacity-50"
+        className={tournamentActionButtonClass('md')}
       >
-        <Plus className="h-4 w-4" />
-        {isPending ? 'Creazione…' : 'Crea Torneo'}
+        <Plus className={tournamentActionIconClass} />
+        {isPending ? 'Creazione…' : 'Crea torneo'}
       </button>
     </div>
   );

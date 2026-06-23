@@ -2,6 +2,10 @@
 
 import { useState } from 'react';
 import { Plus, Smartphone, UserPlus, X } from 'lucide-react';
+import {
+  tournamentActionButtonClass,
+  tournamentActionIconClass,
+} from './tournament-action-button-styles';
 
 /**
  * Bottone "Partecipa" / "Chiedi di partecipare" della vista MOBILE.
@@ -16,12 +20,12 @@ export function MobileJoinButton({ isPrivate }: { isPrivate?: boolean }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="brx-liquid-glass-btn flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold text-white transition-all shadow-md active:scale-95"
+        className={tournamentActionButtonClass('sm')}
       >
         {isPrivate ? (
-          <UserPlus className="h-3.5 w-3.5 shrink-0" />
+          <UserPlus className={tournamentActionIconClass} />
         ) : (
-          <Plus className="h-3.5 w-3.5 shrink-0" />
+          <Plus className={tournamentActionIconClass} />
         )}
         {isPrivate ? 'Chiedi di partecipare' : 'Partecipa'}
       </button>

@@ -1,10 +1,13 @@
 import React from 'react';
+import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { Tournament } from '@/types/tournament';
 import type { InventoryItem } from '@/types/inventory';
 
 export interface IsoRoomGameProps {
   roomName?: string;
   username?: string;
+  formatId?: FormatId;
+  modeId?: ModeId;
   formatName?: string;
   modeName?: string;
   tournaments?: Tournament[];
