@@ -77,7 +77,7 @@ export function TournamentsStickyToolbar({
   }, [settleAnim]);
 
   return (
-    <div className="sticky top-[4.25rem] z-40">
+    <div className="sticky top-[4.25rem] z-50 isolate">
       <div
         data-compact={compact ? 'true' : 'false'}
         className={cn(
@@ -85,7 +85,7 @@ export function TournamentsStickyToolbar({
           settleAnim === 'compact' && 'animate-toolbar-compact-settle',
           settleAnim === 'expand' && 'animate-toolbar-expand-settle',
           compact
-            ? 'my-1 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.65),0_16px_40px_-16px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:my-2 sm:rounded-3xl sm:px-5'
+            ? 'my-1 rounded-2xl border border-white/12 bg-[#12141f]/[0.97] px-4 py-3.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:my-2 sm:rounded-3xl sm:px-5'
             : 'border border-transparent bg-transparent px-0 py-0 shadow-none backdrop-blur-none',
         )}
       >
@@ -93,14 +93,14 @@ export function TournamentsStickyToolbar({
           className={cn(
             'flex w-full flex-col transition-[gap] items-center',
             TOOLBAR_MORPH_EASE,
-            compact ? 'gap-2.5' : 'gap-6',
+            compact ? 'gap-3' : 'gap-6',
           )}
         >
           <section
             className={cn(
               'flex w-full flex-col items-center transition-[gap]',
               TOOLBAR_MORPH_EASE,
-              compact ? 'gap-1.5' : 'gap-3',
+              compact ? 'gap-2' : 'gap-3',
             )}
           >
             <ToolbarSectionLabel open={!compact}>Formato</ToolbarSectionLabel>
@@ -115,7 +115,7 @@ export function TournamentsStickyToolbar({
             className={cn(
               'flex w-full flex-col items-center transition-[gap]',
               TOOLBAR_MORPH_EASE,
-              compact ? 'gap-1.5' : 'gap-3',
+              compact ? 'gap-2 border-t border-white/10 pt-3' : 'gap-3',
             )}
           >
             <ToolbarSectionLabel open={!compact}>Modalità</ToolbarSectionLabel>
@@ -123,18 +123,24 @@ export function TournamentsStickyToolbar({
               selectedModeId={modeId}
               currentFormatId={formatId}
               compact={compact}
-              lightPanel={compact}
             />
           </section>
 
-          <TournamentFilters
-            filters={filters}
-            onChange={onFiltersChange}
-            resultCount={resultCount}
-            totalCount={totalCount}
-            compact={compact}
-            lightPanel={compact}
-          />
+          <div
+            className={cn(
+              'w-full transition-[border,padding] duration-500',
+              TOOLBAR_MORPH_EASE,
+              compact && 'border-t border-white/10 pt-3',
+            )}
+          >
+            <TournamentFilters
+              filters={filters}
+              onChange={onFiltersChange}
+              resultCount={resultCount}
+              totalCount={totalCount}
+              compact={compact}
+            />
+          </div>
         </div>
       </div>
     </div>

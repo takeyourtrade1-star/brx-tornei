@@ -51,7 +51,7 @@ export function BuyInFilterSelect({
         options={BUY_IN_OPTIONS}
         placeholder="Tutte"
         triggerClassName={cn(
-          compact ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[11px]',
+          compact ? 'px-2.5 py-1 text-[10px]' : 'px-2.5 py-1 text-[11px]',
           isActive
             ? 'bg-primary/20 text-primary ring-primary/40 hover:brightness-105'
             : lightPanel && compact

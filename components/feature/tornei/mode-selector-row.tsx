@@ -99,9 +99,8 @@ function ModeCard({
         'flex items-center text-left',
         MODE_MORPH_EASE,
         compact
-          ? 'h-7 shrink-0 gap-1.5 rounded-full px-2.5 text-[10px] font-bold uppercase tracking-wide ring-1'
+          ? 'h-8 shrink-0 gap-2 rounded-full px-3 text-[11px] font-bold uppercase tracking-wide ring-1'
           : 'h-14 min-h-14 w-full gap-3 rounded-xl border px-4 sm:h-16 sm:min-h-16 sm:flex-1',
-        compact && available && (lightPanel ? 'hover:bg-black/8' : 'hover:bg-white/10'),
         compact &&
           selected &&
           available &&
@@ -109,14 +108,10 @@ function ModeCard({
         compact &&
           !selected &&
           available &&
-          (lightPanel
-            ? 'bg-black/[0.06] text-slate-600 ring-black/10 hover:text-slate-800'
-            : 'bg-white/5 text-white/65 ring-white/10'),
+          'bg-white/8 text-white/75 ring-white/15 hover:bg-white/12 hover:text-white',
         compact &&
           !available &&
-          (lightPanel
-            ? 'cursor-not-allowed bg-black/[0.04] text-slate-400 ring-black/10'
-            : 'cursor-not-allowed bg-white/[0.02] text-white/35 ring-white/10'),
+          'cursor-not-allowed bg-white/[0.03] text-white/35 ring-white/10',
         !compact && available && 'hover:border-primary/40 hover:bg-white/[0.06]',
         !compact && selected && available && 'border-primary/60 bg-primary/10 ring-1 ring-primary/30',
         !compact && !selected && available && 'border-white/15 bg-white/[0.03]',
