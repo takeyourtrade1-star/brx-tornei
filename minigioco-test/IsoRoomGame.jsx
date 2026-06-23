@@ -22,7 +22,7 @@ import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-
 import { DecksModal } from "./decks-modal";
 import { StyledSelect } from "./styled-select";
 import { buildArcadeBackground } from "./arcade-room/ArcadeBackground";
-import { buildArcadeFurniture, buildDoorArcade } from "./arcade-room/ArcadeSprites";
+import { buildArcadeFurniture } from "./arcade-room/ArcadeSprites";
 import {
   FURN_ARCADE, INTERACTIVES_ARCADE, DOOR_TOUR,
   ARC_ENTRY_TILE, TOUR_ENTRY_TILE, ARC_DEFAULT_CAM,
@@ -805,6 +805,66 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
       band(wallR, 1.97, 2.67, 52, 49.5, "rgba(255,255,255,0.7)");
       band(wallR, 2.07, 2.57, 47.5, 45.8, "rgba(224,58,48,0.8)");
     }
+  }
+
+  /* — porta Sala Arcade (parete di fondo, c=5.0–6.5, hh=40–88) — */
+  {
+    const WROT = Math.atan2(HTH, HTW);
+    const dTL = wallR(5.0, 88), dTR = wallR(6.5, 88);
+    const dBL = wallR(5.0, 40), dBR = wallR(6.5, 40);
+    // rientranza
+    quadFill(ctx, [wallR(4.8, 95), wallR(6.7, 95), wallR(6.7, 36), wallR(4.8, 36)], shade(P.wall, 0.72));
+    // pannello porta (sfondo scuro)
+    quadFill(ctx, [dTL, dTR, dBR, dBL], shade(P.wallDark, 0.7));
+    // bordo dorato
+    ctx.strokeStyle = P.gold; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(dTL.x, dTL.y); ctx.lineTo(dTR.x, dTR.y);
+    ctx.lineTo(dBR.x, dBR.y); ctx.lineTo(dBL.x, dBL.y); ctx.closePath(); ctx.stroke();
+    // pannello interno
+    const ip = (pts, d) => pts.map((p, i) => ({
+      x: p.x + ([0,3].includes(i) ? d : -d),
+      y: p.y + ([0,1].includes(i) ? d : -d),
+    }));
+    quadFill(ctx, ip([dTL, dTR, dBR, dBL], 4), shade(P.wallDark, 0.85));
+    // riga orizzontale a metà (pannelli porta)
+    const mh = 64;
+    quadFill(ctx, [wallR(5.0, mh), wallR(6.5, mh), wallR(6.5, mh - 3), wallR(5.0, mh - 3)], hexA(P.gold, 0.45));
+    // maniglia
+    const han = wallR(6.15, 60);
+    ctx.fillStyle = P.gold;
+    ctx.fillRect(Math.round(han.x) - 1, Math.round(han.y) - 5, 3, 10);
+    // insegna "ARCADE" sopra la porta
+    const signPt = wallR(5.75, 93);
+    ctx.save();
+    ctx.translate(signPt.x, signPt.y);
+    ctx.rotate(WROT);
+    ctx.fillStyle = "#151a2e";
+    ctx.fillRect(-24, -6, 48, 10);
+    ctx.strokeStyle = P.gold; ctx.lineWidth = 1;
+    ctx.strokeRect(-24, -6, 48, 10);
+    ctx.fillStyle = P.gold;
+    ctx.font = "bold 6px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("ARCADE", 0, 0);
+    ctx.restore();
+  }
+
+  /* — pennanti tornei sulla parete di fondo — */
+  {
+    // Due striscioline colorate verticali appese in alto, come decorazioni da torneo
+    const drawPennant = (wc, col) => {
+      for (let i = 0; i < 5; i++) {
+        const h0 = WALL_H - 6 - i * 12, h1 = h0 - 10;
+        quadFill(ctx, [wallR(wc - 0.08, h0), wallR(wc + 0.08, h0),
+                        wallR(wc + 0.08, h1), wallR(wc - 0.08, h1)],
+          (i % 2 === 0) ? col : shade(col, 0.65));
+      }
+    };
+    drawPennant(3.5, P.red);
+    drawPennant(7.5, P.gold);
+    drawPennant(9.2, "#4a7fd6");
   }
 
   /* — battiscopa — */
@@ -2005,11 +2065,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     board: makeSil({ cv: boardSp.cv }),
   };
 
-  /* — porta Sala Tornei → Sala Arcade (sprite sulla parete destra) — */
-  const doorArcadeSp = buildDoorArcade();
-  inter.door.hitRect = { x: doorArcadeSp.wx, y: doorArcadeSp.wy, w: doorArcadeSp.cv.width, h: doorArcadeSp.cv.height };
-  inter.door.hitCv = doorArcadeSp.cv;
-  sils.door = makeSil({ cv: doorArcadeSp.cv }, "#ff2a6d");
+  /* — porta Sala Arcade: disegnata nel background, hitRect statico — */
+  inter.door.hitRect = { x: wallR(5.0, 88).x, y: wallR(5.0, 88).y, w: wallR(6.5, 88).x - wallR(5.0, 88).x, h: wallR(5.0, 40).y - wallR(5.0, 88).y + 8 };
+  inter.door.hitCv = null;
 
   /* ====================== SALA ARCADE — dati stanza ====================== */
   const arcadeBg = buildArcadeBackground();
@@ -2145,6 +2203,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const letterHitRect = (lt) => ({ x: lt.x - 14, y: lt.y - 18, w: 28, h: 20 });
 
   /* — stato — */
+  const tutDone = typeof localStorage !== "undefined" && localStorage.getItem("irg-tutorial-done") === "1";
   const st = {
     t: 0, last: 0, raf: 0, destroyed: false,
     room: "tournament", transition: null,
@@ -2159,7 +2218,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     flicker: { next: 1.4, until: 0 },
     lampF: { next: 2.4, until: 0 },
     introDone: false, hintHidden: false,
-    tut: { active: true, i: 0, phase: "init", t: 0, announced: false }, // tutorial guidato (ad ogni accesso)
+    tut: { active: !tutDone, i: 0, phase: "init", t: 0, announced: false }, // tutorial guidato (una volta sola)
     keys: new Set(), lastKey: null,
     /* nuove feature */
     fx: [],                       // particelle (cuori, zzz, note, scintille)
@@ -2461,6 +2520,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     tutOutro(false);
     if (apiRef.current.setTutorial) apiRef.current.setTutorial(false);
     showBubble("Tocca a te! 🎮", 3);
+    try { localStorage.setItem("irg-tutorial-done", "1"); } catch (e) {}
   }
 
   function hitObject(sx, sy) {
@@ -4504,11 +4564,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       ], false, "#ffffff", 2);
       wctx.globalAlpha = 1;
     }
-    // bacheca + porta (sempre dietro alle entità, solo Sala Tornei)
+    // bacheca (sempre dietro alle entità, solo Sala Tornei)
     if (isTour) {
       if (st.nearObj && st.nearObj.id === "board" && !st.modal) drawGlow(sils.board, boardSp.wx, boardSp.wy);
       wctx.drawImage(boardSp.cv, boardSp.wx, boardSp.wy);
-      wctx.drawImage(doorArcadeSp.cv, doorArcadeSp.wx, doorArcadeSp.wy);
     }
     // entità + avatar in profondità
     // da seduto l'avatar va dietro alla sedia (testa e spalle oltre lo schienale)
@@ -7126,11 +7185,16 @@ export default function IsoRoomGame({
   const [typedCaption, setTypedCaption] = useState("");
   const [typing, setTyping] = useState(false);
   // Helper Asso persistente: compare a destra una volta finito il tutorial.
-  const [helperVisible, setHelperVisible] = useState(false);
+  const [helperVisible, setHelperVisible] = useState(() => {
+    if (typeof localStorage !== "undefined" && localStorage.getItem("irg-tutorial-done") === "1") return true;
+    return false;
+  });
   const [helperBubble, setHelperBubble] = useState(null);
   const helperBubbleTimeoutRef = useRef(null);
   const helperLineIdxRef = useRef(-1);
   const tutorialWasActiveRef = useRef(false);
+  const tutorialConfirmRef = useRef(false);
+  const nextRedoAtRef = useRef(0);
   const [powering, setPowering] = useState(false);
   const [quality, setQuality] = useState(() => {
     const saved = loadQuality();
@@ -7301,10 +7365,35 @@ export default function IsoRoomGame({
       tutorialWasActiveRef.current = true;
     } else if (tutorialWasActiveRef.current) {
       setHelperVisible(true);
+      nextRedoAtRef.current = Date.now() + 5 * 60 * 1000;
     }
   }, [tutorialActive]);
 
   const handleHelperClick = useCallback(() => {
+    const now = Date.now();
+    if (tutorialConfirmRef.current) {
+      tutorialConfirmRef.current = false;
+      setHelperBubble(null);
+      if (helperBubbleTimeoutRef.current) {
+        window.clearTimeout(helperBubbleTimeoutRef.current);
+        helperBubbleTimeoutRef.current = null;
+      }
+      try { localStorage.removeItem("irg-tutorial-done"); } catch (e) {}
+      if (gameRef.current && gameRef.current.restartTutorial) gameRef.current.restartTutorial();
+      return;
+    }
+    if (now >= nextRedoAtRef.current) {
+      tutorialConfirmRef.current = true;
+      nextRedoAtRef.current = now + 5 * 60 * 1000;
+      setHelperBubble("Vuoi rifare il tutorial? Clicca di nuovo per confermare. 🃏");
+      if (helperBubbleTimeoutRef.current) window.clearTimeout(helperBubbleTimeoutRef.current);
+      helperBubbleTimeoutRef.current = window.setTimeout(() => {
+        setHelperBubble(null);
+        tutorialConfirmRef.current = false;
+        helperBubbleTimeoutRef.current = null;
+      }, 4000);
+      return;
+    }
     let idx = Math.floor(Math.random() * HELPER_LINES.length);
     if (HELPER_LINES.length > 1 && idx === helperLineIdxRef.current) {
       idx = (idx + 1) % HELPER_LINES.length;
