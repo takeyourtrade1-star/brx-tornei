@@ -184,7 +184,7 @@ function FilterGroup<T extends string>({
             'simple-pill shrink-0 font-bold uppercase tracking-wide',
             compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs',
             value === opt.value
-              ? 'simple-pill-active'
+              ? 'simple-pill-active ring-inset'
               : lightPanel && compact
                 ? 'bg-black/[0.06] text-slate-600 ring-black/10 hover:bg-black/10 hover:text-slate-800'
                 : 'simple-pill-inactive',

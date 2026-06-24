@@ -119,7 +119,7 @@ function ModeCard({
       >
         <Icon className={cn('transition-all duration-500', compact ? 'h-3 w-3' : 'h-5 w-5')} />
       </span>
-      <span className={cn('min-w-0 flex-1', compact && 'flex items-center gap-1')}>
+      <span className={cn('min-w-0', compact ? 'flex shrink-0 items-center gap-1' : 'flex-1')}>
         <span className={cn('flex items-center', compact ? 'gap-1' : 'gap-2')}>
           <span
             className={cn(
@@ -144,8 +144,10 @@ function ModeCard({
         </span>
         <span
           className={cn(
-            'grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-            compact ? 'grid-rows-[0fr] opacity-0' : 'mt-0.5 grid-rows-[1fr] opacity-100',
+            'overflow-hidden transition-[grid-template-rows,opacity,margin,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+            compact
+              ? 'grid h-0 w-0 grid-rows-[0fr] opacity-0'
+              : 'mt-0.5 grid w-full grid-rows-[1fr] opacity-100',
           )}
         >
           <span className="block truncate text-xs text-white/55">{description}</span>
