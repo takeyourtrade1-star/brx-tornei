@@ -65,7 +65,7 @@ export function FormatSelectorGrid({
         {current && (
           <span className="pointer-events-none absolute inset-0" aria-hidden>
             <Image
-              src={current.image}
+              src={current.pill}
               alt=""
               fill
               sizes="(max-width: 768px) 100vw, 320px"
@@ -83,7 +83,7 @@ export function FormatSelectorGrid({
           variant="pill"
           ariaLabelledBy="tornei-format-label"
           className="relative flex w-full"
-          triggerClassName="w-full justify-between bg-transparent px-3.5 py-2 text-[11px] font-bold uppercase tracking-wide text-white ring-0 [text-shadow:0_1px_3px_rgba(0,0,0,0.6)] hover:bg-white/[0.04]"
+          triggerClassName="h-14 w-full justify-between bg-transparent px-4 text-[13px] font-bold uppercase tracking-wide text-white ring-0 [text-shadow:0_1px_3px_rgba(0,0,0,0.6)] hover:bg-white/[0.04]"
         />
       </div>
     );
