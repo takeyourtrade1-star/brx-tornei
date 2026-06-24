@@ -20,6 +20,7 @@ interface TournamentsDashboardProps {
   formatId: FormatId;
   formatName: string;
   modeName: string;
+  mobile?: boolean;
 }
 
 export function TournamentsDashboard({
@@ -28,6 +29,7 @@ export function TournamentsDashboard({
   formatId,
   formatName,
   modeName,
+  mobile = false,
 }: TournamentsDashboardProps) {
   const [filters, setFilters] = useState<TournamentFiltersState>(DEFAULT_TOURNAMENT_FILTERS);
 
@@ -51,6 +53,7 @@ export function TournamentsDashboard({
         onFiltersChange={setFilters}
         resultCount={filteredTournaments.length}
         totalCount={tournaments.length}
+        mobile={mobile}
       />
 
       <section className="flex scroll-mt-52 flex-col gap-4">

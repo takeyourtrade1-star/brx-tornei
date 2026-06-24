@@ -37,7 +37,7 @@ export function BuyInFilterSelect({
         id={`${id}-label`}
         className={cn(
           'shrink-0 font-bold uppercase tracking-wider text-white/40',
-          compact ? 'text-[8px]' : 'sr-only',
+          compact ? 'text-[8px]' : 'text-[10px]',
         )}
       >
         Buy-In

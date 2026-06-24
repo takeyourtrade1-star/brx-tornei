@@ -6,6 +6,7 @@ import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import type { SessionUser } from '@/types/auth';
 import { Layers, LogOut, Gamepad2, Swords } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 
 interface DashboardHeaderProps {
   user: SessionUser;
@@ -23,9 +24,30 @@ const ACTION_LINK =
 export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: DashboardHeaderProps) {
   const displayName = user.name ?? user.email;
   const initial = (displayName[0] ?? '?').toUpperCase();
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Espone l'altezza reale dell'header (che su mobile può andare a capo) come
+  // CSS var, così la toolbar sticky si aggancia esattamente sotto di esso.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () =>
+      document.documentElement.style.setProperty('--dash-header-h', `${el.offsetHeight}px`);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
 
   return (
-    <header className="header-gradient sticky top-0 z-50 w-full pb-3 font-sans text-white md:pb-4">
+    <header
+      ref={headerRef}
+      className="header-gradient sticky top-0 z-50 w-full pb-3 font-sans text-white md:pb-4"
+    >
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
         <div className="flex items-center gap-2 overflow-visible py-1">
           <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" />
@@ -34,7 +56,7 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
           </span>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           {showMinigameBack && onBackToMinigame && (
             <button
               type="button"
@@ -54,7 +76,7 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold">
               {initial}
             </span>
-            <span className="max-w-[8rem] truncate font-sans text-sm font-semibold sm:max-w-[10rem]">
+            <span className="max-w-[5.5rem] truncate font-sans text-sm font-semibold sm:max-w-[10rem]">
               {displayName}
             </span>
           </Link>
@@ -70,11 +92,11 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
 
           <Link
             href="/partite"
-            className={`${ACTION_LINK} bg-white/10 ring-1 ring-white/20 hover:bg-white/20`}
+            aria-label="Le mie partite"
+            className="flex items-center gap-2 rounded-full bg-white/10 p-2 text-sm font-bold uppercase tracking-wide ring-1 ring-white/20 transition-colors hover:bg-white/20 sm:px-4 sm:py-1.5"
           >
             <Swords className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Le mie partite</span>
-            <span className="sm:hidden">Partite</span>
           </Link>
 
           <form action={logoutAction}>

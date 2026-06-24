@@ -1,6 +1,8 @@
 'use client';
 
-import { Smartphone } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, Smartphone } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { TournamentsDashboard } from './tournaments-dashboard';
 import type { FormatId } from '@/lib/data/catalog';
@@ -30,6 +32,8 @@ export function TournamentSimpleView({
   formatName,
   modeName,
 }: TournamentSimpleViewProps) {
+  const [noteOpen, setNoteOpen] = useState(false);
+
   return (
     <>
       <DashboardHeader
@@ -38,18 +42,44 @@ export function TournamentSimpleView({
         onBackToMinigame={onBackToMinigame}
       />
       <main className="mx-auto mt-4 flex w-full max-w-content animate-auth-enter flex-col px-4 pb-16 sm:px-6">
-        {/* Nota mobile: i tornei si giocano da PC, il telefono fa da webcam */}
+        {/* Nota mobile: i tornei si giocano da PC, il telefono fa da webcam.
+            Comprimibile per non rubare spazio: si espande al tocco. */}
         {isMobile && (
-          <div className="simple-card mb-6 flex items-start gap-3 rounded-3xl border-primary/25 p-4">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-primary/40 bg-primary/15 text-primary">
-              <Smartphone className="h-4 w-4" />
+          <div className="simple-card mb-4 overflow-hidden rounded-3xl border-primary/25">
+            <button
+              type="button"
+              onClick={() => setNoteOpen((v) => !v)}
+              aria-expanded={noteOpen}
+              className="flex w-full items-center gap-3 p-3 text-left"
+            >
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-2xl border border-primary/40 bg-primary/15 text-primary">
+                <Smartphone className="h-4 w-4" />
+              </div>
+              <p className="flex-1 text-[13px] font-semibold text-white/85">
+                I tornei si giocano <span className="text-primary">dal PC</span>
+              </p>
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 shrink-0 text-white/50 transition-transform duration-300',
+                  noteOpen && 'rotate-180',
+                )}
+                aria-hidden
+              />
+            </button>
+            <div
+              className={cn(
+                'grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
+                noteOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+              )}
+            >
+              <div className="overflow-hidden">
+                <p className="px-3 pb-3 text-sm leading-relaxed text-white/75">
+                  Il tuo telefono può però fare da{' '}
+                  <span className="font-bold text-primary">webcam</span>: apri i tornei sul computer
+                  e, quando crei la partita, inquadra il QR per usare questa fotocamera.
+                </p>
+              </div>
             </div>
-            <p className="text-sm leading-relaxed text-white/75">
-              I tornei si giocano <span className="font-bold text-white">dal PC</span>. Il tuo
-              telefono può però fare da <span className="font-bold text-primary">webcam</span>:
-              apri i tornei sul computer e, quando crei la partita, inquadra il QR per usare
-              questa fotocamera.
-            </p>
           </div>
         )}
 
@@ -59,6 +89,7 @@ export function TournamentSimpleView({
           formatId={formatId}
           formatName={formatName}
           modeName={modeName}
+          mobile={isMobile}
         />
       </main>
     </>

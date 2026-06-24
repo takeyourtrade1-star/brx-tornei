@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { FORMATS_WITH_MEDIA } from '@/lib/data/format-media';
 import type { FormatId, ModeId } from '@/lib/data/catalog';
 import { cn } from '@/lib/utils';
+import { StyledSelect } from '@/components/ui/styled-select';
 
 const CARD_MORPH_EASE =
   'transition-[width,flex-basis,max-width,transform,box-shadow,filter,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
@@ -14,12 +15,15 @@ interface FormatSelectorGridProps {
   selectedFormatId: FormatId;
   currentModeId: ModeId;
   compact?: boolean;
+  /** Layout dedicato mobile: pillole orizzontali (immagine + nome). */
+  mobile?: boolean;
 }
 
 export function FormatSelectorGrid({
   selectedFormatId,
   currentModeId,
   compact = false,
+  mobile = false,
 }: FormatSelectorGridProps) {
   const router = useRouter();
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
@@ -51,6 +55,39 @@ export function FormatSelectorGrid({
     if (formatId === selectedFormatId) return;
     router.replace(`/tornei?format=${formatId}&mode=${currentModeId}`, { scroll: false });
   };
+
+  // Mobile: dropdown compatto (niente scroll laterale, una sola riga).
+  // L'immagine del formato selezionato fa da sfondo sfumato sulla metà destra.
+  if (mobile) {
+    const current = FORMATS_WITH_MEDIA.find((f) => f.id === selectedFormatId);
+    return (
+      <div className="relative w-full overflow-hidden rounded-full bg-header-bg/80 ring-1 ring-white/[0.12]">
+        {current && (
+          <span className="pointer-events-none absolute inset-0" aria-hidden>
+            <Image
+              src={current.image}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 320px"
+              className="object-cover object-center brightness-90"
+              draggable={false}
+            />
+            {/* Sfumatura: pieno a sinistra (testo leggibile) → immagine visibile a destra. */}
+            <span className="absolute inset-0 bg-gradient-to-r from-header-bg via-header-bg/65 to-header-bg/10" />
+          </span>
+        )}
+        <StyledSelect
+          value={selectedFormatId}
+          onChange={(id) => selectFormat(id)}
+          options={FORMATS_WITH_MEDIA.map((f) => ({ value: f.id, label: f.name }))}
+          variant="pill"
+          ariaLabelledBy="tornei-format-label"
+          className="relative flex w-full"
+          triggerClassName="w-full justify-between bg-transparent px-3.5 py-2 text-[11px] font-bold uppercase tracking-wide text-white ring-0 [text-shadow:0_1px_3px_rgba(0,0,0,0.6)] hover:bg-white/[0.04]"
+        />
+      </div>
+    );
+  }
 
   return (
     <div

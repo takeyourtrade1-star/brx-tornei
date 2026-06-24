@@ -14,6 +14,8 @@ interface ModeSelectorRowProps {
   currentFormatId: string;
   compact?: boolean;
   lightPanel?: boolean;
+  /** Layout dedicato mobile: due pillole affiancate. */
+  mobile?: boolean;
 }
 
 export function ModeSelectorRow({
@@ -21,6 +23,7 @@ export function ModeSelectorRow({
   currentFormatId,
   compact = false,
   lightPanel = false,
+  mobile = false,
 }: ModeSelectorRowProps) {
   const router = useRouter();
 
@@ -31,6 +34,28 @@ export function ModeSelectorRow({
     if (!available || modeId === selectedModeId) return;
     router.replace(`/tornei?format=${currentFormatId}&mode=${modeId}`, { scroll: false });
   };
+
+  // Mobile: due pillole affiancate a larghezza piena.
+  if (mobile) {
+    return (
+      <div className="flex w-full gap-2">
+        <ModePill
+          title={headsUp.name}
+          icon={Swords}
+          selected={selectedModeId === 'heads-up'}
+          available
+          onSelect={() => selectMode('heads-up', true)}
+        />
+        <ModePill
+          title={torneo.name}
+          icon={Users}
+          selected={selectedModeId === 'multiplayer'}
+          available={torneo.available}
+          onSelect={() => selectMode('multiplayer', torneo.available)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -63,6 +88,38 @@ export function ModeSelectorRow({
         onSelect={() => selectMode('multiplayer', torneo.available)}
       />
     </div>
+  );
+}
+
+interface ModePillProps {
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  selected: boolean;
+  available: boolean;
+  onSelect: () => void;
+}
+
+/** Pillola modalità per il layout mobile. */
+function ModePill({ title, icon: Icon, selected, available, onSelect }: ModePillProps) {
+  return (
+    <button
+      type="button"
+      disabled={!available}
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        'simple-pill flex h-9 flex-1 items-center justify-center gap-1.5 px-3',
+        'text-[11px] font-bold uppercase tracking-wide',
+        !available
+          ? 'cursor-not-allowed bg-white/[0.03] text-white/55 ring-1 ring-white/10'
+          : selected
+            ? 'simple-pill-active'
+            : 'simple-pill-inactive',
+      )}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{title}</span>
+    </button>
   );
 }
 

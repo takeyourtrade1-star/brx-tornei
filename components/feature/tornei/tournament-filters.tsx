@@ -6,6 +6,7 @@ import {
 } from '@/lib/tournament-list-filters';
 import { cn } from '@/lib/utils';
 import { BuyInFilterSelect } from './buy-in-filter-select';
+import { StyledSelect } from '@/components/ui/styled-select';
 
 export {
   applyTournamentFilters,
@@ -43,6 +44,8 @@ interface TournamentFiltersProps {
   buyInSelectId?: string;
   compact?: boolean;
   lightPanel?: boolean;
+  /** Layout dedicato mobile: etichette inline e riga pillole scrollabile a sinistra. */
+  mobile?: boolean;
 }
 
 export function TournamentFilters({
@@ -53,6 +56,7 @@ export function TournamentFilters({
   buyInSelectId,
   compact = false,
   lightPanel = false,
+  mobile = false,
 }: TournamentFiltersProps) {
   const hasActiveFilters =
     filters.status !== 'all' ||
@@ -60,19 +64,69 @@ export function TournamentFilters({
     filters.visibility !== 'all' ||
     filters.buyIn !== 'all';
 
+  // Su mobile usiamo sempre le pillole dense con etichette inline.
+  const dense = compact || mobile;
+
+  // Mobile: filtri come dropdown che vanno a capo — niente scroll laterale.
+  if (mobile) {
+    return (
+      <div className="flex w-full flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-white/40">
+            Filtri
+          </span>
+          <span className="text-[11px] font-semibold tabular-nums text-white/55">
+            {resultCount} di {totalCount}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <BuyInFilterSelect
+            id={buyInSelectId}
+            value={filters.buyIn}
+            onChange={(buyIn) => onChange({ ...filters, buyIn })}
+            compact
+            lightPanel={lightPanel}
+          />
+          <FilterSelect
+            label="Stato"
+            options={STATUS_OPTIONS}
+            value={filters.status}
+            onChange={(status) => onChange({ ...filters, status })}
+          />
+          <FilterSelect
+            label="Best Of"
+            options={BEST_OF_OPTIONS}
+            value={filters.bestOf}
+            onChange={(bestOf) => onChange({ ...filters, bestOf })}
+          />
+          <FilterSelect
+            label="Visibilità"
+            options={VISIBILITY_OPTIONS}
+            value={filters.visibility}
+            onChange={(visibility) => onChange({ ...filters, visibility })}
+          />
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() => onChange(DEFAULT_TOURNAMENT_FILTERS)}
+              className="shrink-0 text-[11px] font-semibold text-primary transition-colors hover:text-primary/80"
+            >
+              Azzera
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
         'flex w-full flex-col transition-[gap] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
-        compact ? 'items-stretch gap-2' : 'gap-3',
+        dense ? 'items-stretch gap-2' : 'gap-3',
       )}
     >
-      <div
-        className={cn(
-          'flex w-full items-center',
-          compact ? 'justify-between' : 'justify-between',
-        )}
-      >
+      <div className="flex w-full items-center justify-between">
         {!compact && (
           <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-white/40">
             Filtri
@@ -81,7 +135,7 @@ export function TournamentFilters({
         <span
           className={cn(
             'tabular-nums',
-            compact ? 'ml-auto text-[11px] font-semibold text-white/55' : 'text-[11px] text-white/40',
+            dense ? 'ml-auto text-[11px] font-semibold text-white/55' : 'text-[11px] text-white/40',
           )}
         >
           {resultCount} di {totalCount}
@@ -90,15 +144,18 @@ export function TournamentFilters({
 
       <div
         className={cn(
-          'flex w-full items-center gap-1.5 overflow-x-auto scrollbar-none',
-          compact && 'justify-center',
+          'flex w-full items-center overflow-x-auto scrollbar-none',
+          // Più spazio tra i gruppi (con etichetta) in desktop espanso; va a capo se serve.
+          dense ? 'gap-1.5' : 'flex-wrap gap-x-4 gap-y-2',
+          // Su mobile la riga scorre da sinistra; il centraggio è solo per il compact desktop.
+          compact && !mobile && 'justify-center',
         )}
       >
         <BuyInFilterSelect
           id={buyInSelectId}
           value={filters.buyIn}
           onChange={(buyIn) => onChange({ ...filters, buyIn })}
-          compact={compact}
+          compact={dense}
           lightPanel={lightPanel}
         />
         <FilterGroup
@@ -106,7 +163,7 @@ export function TournamentFilters({
           options={STATUS_OPTIONS}
           value={filters.status}
           onChange={(status) => onChange({ ...filters, status })}
-          compact={compact}
+          compact={dense}
           lightPanel={lightPanel}
         />
         <FilterGroup
@@ -114,7 +171,7 @@ export function TournamentFilters({
           options={BEST_OF_OPTIONS}
           value={filters.bestOf}
           onChange={(bestOf) => onChange({ ...filters, bestOf })}
-          compact={compact}
+          compact={dense}
           lightPanel={lightPanel}
         />
         <FilterGroup
@@ -122,7 +179,7 @@ export function TournamentFilters({
           options={VISIBILITY_OPTIONS}
           value={filters.visibility}
           onChange={(visibility) => onChange({ ...filters, visibility })}
-          compact={compact}
+          compact={dense}
           lightPanel={lightPanel}
         />
 
@@ -132,13 +189,46 @@ export function TournamentFilters({
             onClick={() => onChange(DEFAULT_TOURNAMENT_FILTERS)}
             className={cn(
               'shrink-0 font-semibold text-primary transition-colors hover:text-primary/80',
-              compact ? 'text-[11px]' : 'text-xs',
+              dense ? 'text-[11px]' : 'text-xs',
             )}
           >
-            Azzera{compact ? '' : ' filtri'}
+            Azzera{dense ? '' : ' filtri'}
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+interface FilterSelectProps<T extends string> {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}
+
+/** Dropdown filtro per il layout mobile (etichetta inline + select a pillola). */
+function FilterSelect<T extends string>({ label, options, value, onChange }: FilterSelectProps<T>) {
+  const labelId = `filter-${label.toLowerCase().replace(/\s+/g, '-')}-label`;
+  // La prima opzione è sempre il valore neutro ("Tutti/Tutte").
+  const isActive = value !== options[0]?.value;
+
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <span id={labelId} className="text-[8px] font-bold uppercase tracking-wider text-white/40">
+        {label}
+      </span>
+      <StyledSelect
+        value={value}
+        onChange={onChange}
+        options={options}
+        variant="pill"
+        ariaLabelledBy={labelId}
+        triggerClassName={cn(
+          'simple-pill px-2.5 py-1 text-[10px]',
+          isActive ? 'simple-pill-active hover:brightness-105' : 'simple-pill-inactive',
+        )}
+      />
     </div>
   );
 }
@@ -168,11 +258,14 @@ function FilterGroup<T extends string>({
       )}
       aria-label={label}
     >
-      {compact && (
-        <span className="mr-0.5 text-[8px] font-bold uppercase tracking-wider text-white/40">
-          {label}
-        </span>
-      )}
+      <span
+        className={cn(
+          'shrink-0 font-bold uppercase tracking-wider text-white/40',
+          compact ? 'mr-0.5 text-[8px]' : 'mr-1 text-[10px]',
+        )}
+      >
+        {label}
+      </span>
       {options.map((opt) => (
         <button
           key={opt.value}
