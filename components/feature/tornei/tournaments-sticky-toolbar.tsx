@@ -85,7 +85,7 @@ export function TournamentsStickyToolbar({
           settleAnim === 'compact' && 'animate-toolbar-compact-settle',
           settleAnim === 'expand' && 'animate-toolbar-expand-settle',
           compact
-            ? 'my-1 rounded-2xl border border-white/12 bg-[#12141f]/[0.97] px-4 py-3.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:my-2 sm:rounded-3xl sm:px-5'
+            ? 'simple-panel-solid my-1 px-4 py-3.5 backdrop-blur-xl sm:my-2 sm:px-5'
             : 'border border-transparent bg-transparent px-0 py-0 shadow-none backdrop-blur-none',
         )}
       >

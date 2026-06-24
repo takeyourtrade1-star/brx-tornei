@@ -152,12 +152,26 @@ export default function StackAttackGame({ onExit, onResult }) {
   useArcadeCanvas(canvasRef, wrapRef, (ctx, w, h, dt) => {
     const g = G.current;
     const sx = w / WORLD_W;
-    // sfondo: griglia stellata + scanline
-    ctx.fillStyle = "#04040a";
-    ctx.fillRect(0, 0, w, h);
+    // sfondo: nebulosa verticale + stelle + pavimento neon
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, "#0a0820"); bg.addColorStop(0.55, "#070612"); bg.addColorStop(1, "#04040a");
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+    const glow = ctx.createRadialGradient(w / 2, h * 0.78, 10, w / 2, h * 0.78, w * 0.7);
+    glow.addColorStop(0, "rgba(5,217,232,.10)"); glow.addColorStop(1, "rgba(5,217,232,0)");
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h);
     drawStars(ctx, w, h, performance.now() / 1000);
 
     if (!g) return;
+
+    // piano/podio neon alla base della torre
+    const baseY = h * ROW_Y - (0 - g.camY) * sx + BLOCK_H * sx;
+    if (baseY > 0 && baseY < h + 40) {
+      ctx.fillStyle = "rgba(5,217,232,.07)"; ctx.fillRect(0, baseY, w, h - baseY);
+      ctx.strokeStyle = "rgba(5,217,232,.5)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, baseY + 1); ctx.lineTo(w, baseY + 1); ctx.stroke();
+      ctx.strokeStyle = "rgba(5,217,232,.12)"; ctx.lineWidth = 1;
+      for (let gx = (w / 2) % 28; gx < w; gx += 28) { ctx.beginPath(); ctx.moveTo(gx, baseY); ctx.lineTo(gx, h); ctx.stroke(); }
+    }
 
     // shake
     g.shake = Math.max(0, g.shake - dt * 40);
@@ -273,21 +287,49 @@ function lerpN(a, b, t) { return a + (b - a) * t; }
 
 function drawCard(ctx, x, y, w, h, ci, perfect, active) {
   const c = blockColor(ci);
-  // corpo
-  ctx.fillStyle = c.fill;
-  rr(ctx, x, y, w, h, Math.min(5, h / 3)); ctx.fill();
-  // banda superiore (luce)
-  ctx.fillStyle = c.top;
-  rr(ctx, x, y, w, Math.max(3, h * 0.32), Math.min(5, h / 3)); ctx.fill();
+  const rad = Math.min(5, h / 3);
+  // ombra di caduta
+  ctx.fillStyle = "rgba(0,0,0,.28)";
+  rr(ctx, x + 2, y + 2, w, h, rad); ctx.fill();
+  // corpo carta (gradiente verticale)
+  const g = ctx.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, c.top); g.addColorStop(0.5, c.fill); g.addColorStop(1, c.side);
+  ctx.fillStyle = g;
+  rr(ctx, x, y, w, h, rad); ctx.fill();
+  // finestra "arte" centrale più scura con riflesso
+  const iw = w - 8, ih = h - 7;
+  if (iw > 8 && ih > 5) {
+    ctx.fillStyle = "rgba(8,10,22,.55)";
+    rr(ctx, x + 4, y + 4, iw, ih, Math.min(3, rad)); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.10)";
+    rr(ctx, x + 4, y + 4, iw, Math.max(2, ih * 0.4), Math.min(3, rad)); ctx.fill();
+    // pip/emblema centrale
+    const cx = x + w / 2, cy = y + h / 2 + 0.5;
+    ctx.fillStyle = c.top;
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; const r = Math.min(w, h) * 0.16; ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * (r + 1)); }
+    ctx.closePath(); ctx.fill();
+  }
+  // riflesso lucido sul bordo alto
+  ctx.fillStyle = "rgba(255,255,255,.22)";
+  rr(ctx, x + 1.5, y + 1.5, w - 3, Math.max(1.5, h * 0.16), rad); ctx.fill();
   // bordo
   ctx.lineWidth = perfect ? 2 : 1;
-  ctx.strokeStyle = perfect ? "#fff" : (active ? "rgba(255,255,255,.8)" : "rgba(0,0,0,.35)");
-  rr(ctx, x + 0.5, y + 0.5, w - 1, h - 1, Math.min(5, h / 3)); ctx.stroke();
+  ctx.strokeStyle = perfect ? "#fff" : (active ? "rgba(255,255,255,.85)" : "rgba(0,0,0,.4)");
+  rr(ctx, x + 0.5, y + 0.5, w - 1, h - 1, rad); ctx.stroke();
+  // gemma rarità in alto a sinistra
+  if (w > 26) { ctx.fillStyle = (ci % 5 === 0 && ci > 0) ? ACCENT : "rgba(255,255,255,.6)"; ctx.beginPath(); ctx.arc(x + 5, y + h / 2, 1.6, 0, Math.PI * 2); ctx.fill(); }
   // bordo neon ogni 5 carte
   if (ci > 0 && ci % 5 === 0) {
-    ctx.strokeStyle = ACCENT;
-    ctx.lineWidth = 1.5;
-    rr(ctx, x + 1, y + 1, w - 2, h - 2, Math.min(5, h / 3)); ctx.stroke();
+    ctx.save(); ctx.shadowColor = ACCENT; ctx.shadowBlur = 6;
+    ctx.strokeStyle = ACCENT; ctx.lineWidth = 1.5;
+    rr(ctx, x + 1, y + 1, w - 2, h - 2, rad); ctx.stroke(); ctx.restore();
+  }
+  // glow extra per la carta attiva
+  if (active) {
+    ctx.save(); ctx.shadowColor = ACCENT; ctx.shadowBlur = 10;
+    ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 1;
+    rr(ctx, x + 1, y + 1, w - 2, h - 2, rad); ctx.stroke(); ctx.restore();
   }
 }
 

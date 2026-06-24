@@ -69,19 +69,19 @@ export function TournamentFilters({
     >
       <div
         className={cn(
-          'flex w-full flex-wrap items-center gap-2',
+          'flex w-full items-center',
           compact ? 'justify-between' : 'justify-between',
         )}
       >
         {!compact && (
-          <span className="font-sans text-xs font-bold uppercase tracking-widest text-white/50">
+          <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-white/40">
             Filtri
           </span>
         )}
         <span
           className={cn(
             'tabular-nums',
-            compact ? 'ml-auto text-[11px] font-semibold text-white/55' : 'text-xs text-white/45',
+            compact ? 'ml-auto text-[11px] font-semibold text-white/55' : 'text-[11px] text-white/40',
           )}
         >
           {resultCount} di {totalCount}
@@ -90,69 +90,54 @@ export function TournamentFilters({
 
       <div
         className={cn(
-          compact
-            ? 'flex w-full flex-col gap-2'
-            : 'flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4',
+          'flex w-full items-center gap-1.5 overflow-x-auto scrollbar-none',
+          compact && 'justify-center',
         )}
       >
-        <div
-          className={cn(
-            'flex flex-wrap items-center',
-            compact ? 'justify-center gap-1.5' : 'gap-4',
-          )}
-        >
-          <BuyInFilterSelect
-            id={buyInSelectId}
-            value={filters.buyIn}
-            onChange={(buyIn) => onChange({ ...filters, buyIn })}
-            compact={compact}
-            lightPanel={lightPanel}
-          />
-          <FilterGroup
-            label="Stato"
-            options={STATUS_OPTIONS}
-            value={filters.status}
-            onChange={(status) => onChange({ ...filters, status })}
-            compact={compact}
-            lightPanel={lightPanel}
-          />
-        </div>
-        <div
-          className={cn(
-            'flex flex-wrap items-center',
-            compact ? 'justify-center gap-1.5' : 'gap-4',
-          )}
-        >
-          <FilterGroup
-            label="Forma"
-            options={BEST_OF_OPTIONS}
-            value={filters.bestOf}
-            onChange={(bestOf) => onChange({ ...filters, bestOf })}
-            compact={compact}
-            lightPanel={lightPanel}
-          />
-          <FilterGroup
-            label="Visibilità"
-            options={VISIBILITY_OPTIONS}
-            value={filters.visibility}
-            onChange={(visibility) => onChange({ ...filters, visibility })}
-            compact={compact}
-            lightPanel={lightPanel}
-          />
+        <BuyInFilterSelect
+          id={buyInSelectId}
+          value={filters.buyIn}
+          onChange={(buyIn) => onChange({ ...filters, buyIn })}
+          compact={compact}
+          lightPanel={lightPanel}
+        />
+        <FilterGroup
+          label="Stato"
+          options={STATUS_OPTIONS}
+          value={filters.status}
+          onChange={(status) => onChange({ ...filters, status })}
+          compact={compact}
+          lightPanel={lightPanel}
+        />
+        <FilterGroup
+          label="Best Of"
+          options={BEST_OF_OPTIONS}
+          value={filters.bestOf}
+          onChange={(bestOf) => onChange({ ...filters, bestOf })}
+          compact={compact}
+          lightPanel={lightPanel}
+        />
+        <FilterGroup
+          label="Visibilità"
+          options={VISIBILITY_OPTIONS}
+          value={filters.visibility}
+          onChange={(visibility) => onChange({ ...filters, visibility })}
+          compact={compact}
+          lightPanel={lightPanel}
+        />
 
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={() => onChange(DEFAULT_TOURNAMENT_FILTERS)}
-              className={cn(
-                'shrink-0 font-semibold text-primary transition-colors hover:text-primary/80',
-                compact ? 'text-[11px]' : 'text-xs sm:ml-auto',
-              )}
-            >
-              Azzera{compact ? '' : ' filtri'}
-            </button>
-          )}
-        </div>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={() => onChange(DEFAULT_TOURNAMENT_FILTERS)}
+            className={cn(
+              'shrink-0 font-semibold text-primary transition-colors hover:text-primary/80',
+              compact ? 'text-[11px]' : 'text-xs',
+            )}
+          >
+            Azzera{compact ? '' : ' filtri'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -181,9 +166,12 @@ function FilterGroup<T extends string>({
         'flex shrink-0 items-center',
         compact ? 'justify-center gap-1' : 'flex-wrap gap-1.5',
       )}
+      aria-label={label}
     >
-      {!compact && (
-        <span className="mr-1 text-[10px] font-bold uppercase tracking-wider text-white/40">{label}</span>
+      {compact && (
+        <span className="mr-0.5 text-[8px] font-bold uppercase tracking-wider text-white/40">
+          {label}
+        </span>
       )}
       {options.map((opt) => (
         <button
@@ -193,13 +181,13 @@ function FilterGroup<T extends string>({
           aria-pressed={value === opt.value}
           aria-label={compact ? `${label}: ${opt.label}` : undefined}
           className={cn(
-            'shrink-0 rounded-full font-bold uppercase tracking-wide transition-colors',
-            compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[11px]',
+            'simple-pill shrink-0 font-bold uppercase tracking-wide',
+            compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs',
             value === opt.value
-              ? 'bg-primary/20 text-primary ring-1 ring-primary/40'
+              ? 'simple-pill-active'
               : lightPanel && compact
-                ? 'bg-black/[0.06] text-slate-600 ring-1 ring-black/10 hover:bg-black/10 hover:text-slate-800'
-                : 'bg-white/5 text-white/60 ring-1 ring-white/10 hover:bg-white/10 hover:text-white/80',
+                ? 'bg-black/[0.06] text-slate-600 ring-black/10 hover:bg-black/10 hover:text-slate-800'
+                : 'simple-pill-inactive',
           )}
         >
           {opt.label}

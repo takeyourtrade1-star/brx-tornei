@@ -2,35 +2,18 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { CheckCircle2, Home, LogOut, Smartphone, X } from 'lucide-react';
-import { getCdnImageUrl } from '@/lib/config';
-import { logoutAction } from '@/actions/auth';
-import {
-  HEADER_BRX_LOGO_INTRINSIC_HEIGHT,
-  HEADER_BRX_LOGO_INTRINSIC_WIDTH,
-  HEADER_BRX_LOGO_OVERLAY_IMAGE_CLASS,
-  HEADER_BRX_LOGO_PATH,
-} from '@/components/layout/header-brx-column';
-import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import { TournamentsDashboard } from './tournaments-dashboard';
+import { createTournamentFromGameAction, joinTournamentAction } from '@/actions/tournaments';
 import { WebcamLinkModal } from './webcam-link-modal';
 import { MatchViewModal, type MatchRole } from './match/match-view-modal';
 import { MatchPip } from './match/match-pip';
+import { TournamentRequestSentModal } from './tournament-request-sent-modal';
+import { TournamentGameCanvas } from './tournament-game-canvas';
+import { TournamentSimpleView } from './tournament-simple-view';
 import { webcamLink } from '@/lib/webrtc/webcam-stream-store';
-import dynamic from 'next/dynamic';
-import type { Tournament } from '@/types/tournament';
+import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { InventoryItem } from '@/types/inventory';
 import type { Selection } from '@/lib/validations/selection';
-import type { FormatId, ModeId } from '@/lib/data/catalog';
-import { createTournamentFromGameAction, joinTournamentAction } from '@/actions/tournaments';
-import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
-
-// Import target game component dynamically to bypass canvas SSR requirements
-const IsoRoomGame = dynamic(() => import('@/minigioco-test/IsoRoomGame'), {
-  ssr: false,
-});
+import type { Tournament } from '@/types/tournament';
 
 interface TournamentGameViewProps {
   tournaments: Tournament[];
@@ -42,12 +25,10 @@ interface TournamentGameViewProps {
   modeName: string;
 }
 
-/** Azione in attesa del passo "webcam via QR" prima di essere eseguita. */
 type PendingAction =
   | { kind: 'create'; tournament: Tournament }
   | { kind: 'join'; id: string };
 
-/** Partita aperta nella vista match (da giocatore o da osservatore). */
 interface MatchSession {
   tournament: Tournament;
   role: MatchRole;
@@ -64,39 +45,22 @@ export function TournamentGameView({
 }: TournamentGameViewProps) {
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
-  /** Vista match aperta a tutto schermo (giocatore o osservatore). */
   const [match, setMatch] = useState<MatchSession | null>(null);
-  /** Partita osservata in Picture-in-Picture (fuori dal minigioco). */
   const [pip, setPip] = useState<Tournament | null>(null);
-  /** Popup "richiesta inviata" per i tornei privati. */
   const [requestSent, setRequestSent] = useState<string | null>(null);
-  /** Vista semplificata attiva di default; il minigioco si apre su richiesta (desktop). */
   const [simpleView, setSimpleView] = useState(true);
   const router = useRouter();
   const [creating, startTransition] = useTransition();
-  const logoUrl = getCdnImageUrl(HEADER_BRX_LOGO_PATH);
-  const username = user.name ?? user.email;
 
   useEffect(() => {
-    const checkMobile = () => {
-      // breakpoint for mobile view matches Tailwind's md (768px)
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // "Crea Torneo": prima il QR per collegare la webcam del telefono, poi la
-  // creazione vera (alla conferma del modale).
-  const handleCreateTournament = (t: Tournament) => {
-    setPending({ kind: 'create', tournament: t });
-  };
+  const handleCreateTournament = (t: Tournament) => setPending({ kind: 'create', tournament: t });
 
-  // "Partecipa": stesso passo QR prima dell'iscrizione. I tornei privati
-  // ("Chiedi di partecipare") inviano solo la richiesta e mostrano un popup di
-  // conferma: il QR comparirà dopo l'approvazione (flusso da collegare).
   const handleJoinTournament = (id: string) => {
     const t = tournaments.find((x) => x.id === id);
     if (t?.isPrivate) {
@@ -110,25 +74,21 @@ export function TournamentGameView({
     setPending({ kind: 'join', id });
   };
 
-  // "Osserva" (icona occhio nel minigioco): apre la vista match come spettatore
-  // della partita live di altri giocatori.
   const handleObserveTournament = (id: string) => {
     const t = tournaments.find((x) => x.id === id);
     if (t) setMatch({ tournament: t, role: 'observer' });
   };
 
-  // Skip del QR: simula la scansione e apre direttamente la vista match come
-  // giocatore (per ora senza webcam reale → anteprime simulate).
   const handleSkipToMatch = () => {
     if (!pending) return;
-    let t: Tournament | undefined;
-    if (pending.kind === 'join') t = tournaments.find((x) => x.id === pending.id);
-    else t = pending.tournament;
+    const t =
+      pending.kind === 'join'
+        ? tournaments.find((x) => x.id === pending.id)
+        : pending.tournament;
     setPending(null);
     if (t) setMatch({ tournament: t, role: 'player' });
   };
 
-  // Attiva il Picture-in-Picture: chiude il modale ma tiene la mini-partita.
   const handleActivatePip = () => {
     if (match) {
       setPip(match.tournament);
@@ -149,7 +109,6 @@ export function TournamentGameView({
     });
   };
 
-  // Skeleton durante la risoluzione mobile/desktop (vista semplificata di default)
   if (isMobile === null) {
     return (
       <div className="min-h-screen" aria-busy="true" aria-label="Caricamento tornei">
@@ -159,7 +118,7 @@ export function TournamentGameView({
             <div className="h-10 w-64 animate-pulse rounded-lg bg-white/10" />
             <div className="h-11 w-44 animate-pulse rounded-full bg-white/10" />
           </div>
-          <div className="brx-glass h-72 animate-pulse rounded-3xl border border-white/15" />
+          <div className="simple-panel h-72 animate-pulse" />
         </div>
       </div>
     );
@@ -167,97 +126,35 @@ export function TournamentGameView({
 
   if (isMobile || simpleView) {
     return (
-      <>
-        <DashboardHeader
-          user={user}
-          showMinigameBack={simpleView && !isMobile}
-          onBackToMinigame={() => setSimpleView(false)}
-        />
-        <main className="mx-auto mt-4 flex w-full max-w-content flex-col px-4 pb-16 sm:px-6 animate-auth-enter">
-          {/* Nota mobile: i tornei si giocano da PC, il telefono fa da webcam */}
-          {isMobile && (
-            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-primary/40 bg-primary/15 text-primary">
-                <Smartphone className="h-4 w-4" />
-              </div>
-              <p className="text-sm leading-relaxed text-white/75">
-                I tornei si giocano <span className="font-bold text-white">dal PC</span>. Il tuo
-                telefono può però fare da <span className="font-bold text-primary">webcam</span>:
-                apri i tornei sul computer e, quando crei la partita, inquadra il QR per usare
-                questa fotocamera.
-              </p>
-            </div>
-          )}
-
-          <TournamentsDashboard
-            tournaments={tournaments}
-            selection={selection}
-            formatId={formatId as FormatId}
-            formatName={formatName}
-            modeName={modeName}
-          />
-        </main>
-      </>
+      <TournamentSimpleView
+        user={user}
+        isMobile={isMobile}
+        showMinigameBack={simpleView && !isMobile}
+        onBackToMinigame={() => setSimpleView(false)}
+        tournaments={tournaments}
+        selection={selection}
+        formatId={formatId as FormatId}
+        formatName={formatName}
+        modeName={modeName}
+      />
     );
   }
 
   return (
     <>
-      <div className="fixed inset-0 w-screen h-screen bg-[#191b2e] z-40 overflow-hidden select-none animate-auth-enter">
-        <div className="w-full h-full relative">
-          <IsoRoomGame
-            roomName={`Sala Tornei · ${formatName}`}
-            username={username}
-            formatId={formatId as FormatId}
-            modeId={selection.mode as ModeId}
-            formatName={formatName}
-            modeName={modeName}
-            tournaments={tournaments}
-            inventory={inventory}
-            onCreateTournament={handleCreateTournament}
-            onJoinTournament={handleJoinTournament}
-            onObserveTournament={handleObserveTournament}
-            onExitToSimple={() => setSimpleView(true)}
-          />
-        </div>
-
-        {/* Floating Overlays */}
-        {/* Logo & Home button overlay (top-left, left of the shifted title chip) */}
-        <div className="absolute top-[12px] left-[16px] z-50 flex items-center gap-4">
-          <Link href="/" className="transition-opacity hover:opacity-90 flex items-center justify-center">
-            <Image
-              src={logoUrl}
-              alt="Ebartex"
-              width={HEADER_BRX_LOGO_INTRINSIC_WIDTH}
-              height={HEADER_BRX_LOGO_INTRINSIC_HEIGHT}
-              className={HEADER_BRX_LOGO_OVERLAY_IMAGE_CLASS}
-              priority
-              unoptimized
-            />
-          </Link>
-          <Link
-            href={DEFAULT_TOURNAMENTS_PATH}
-            aria-label="Tornei"
-            className="text-white/60 hover:text-white transition-colors duration-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
-          >
-            <Home className="h-5 w-5" />
-          </Link>
-        </div>
-
-        {/* Email & Logout overlay (top-right, left of the mute button) */}
-        <div className="absolute top-[12px] right-[60px] z-50 flex items-center gap-4 text-sm font-semibold text-white/50 select-none h-8">
-          <span className="flex items-center">{user.email}</span>
-          <form action={logoutAction} className="flex items-center">
-            <button
-              type="submit"
-              aria-label="Esci"
-              className="text-white/60 hover:text-red-400 transition-colors duration-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </form>
-        </div>
-      </div>
+      <TournamentGameCanvas
+        user={user}
+        formatId={formatId as FormatId}
+        formatName={formatName}
+        modeId={selection.mode as ModeId}
+        modeName={modeName}
+        tournaments={tournaments}
+        inventory={inventory}
+        onCreateTournament={handleCreateTournament}
+        onJoinTournament={handleJoinTournament}
+        onObserveTournament={handleObserveTournament}
+        onExitToSimple={() => setSimpleView(true)}
+      />
 
       <WebcamLinkModal
         open={!!pending}
@@ -268,22 +165,20 @@ export function TournamentGameView({
         onSkip={handleSkipToMatch}
       />
 
-      {/* Vista partita live: da giocatore (skip QR) o da osservatore (occhio). */}
       <MatchViewModal
         open={!!match}
         tournament={match?.tournament ?? null}
         role={match?.role ?? 'observer'}
-        me={username}
+        me={user.name ?? user.email}
         playerStream={webcamLink.get()}
         onClose={() => setMatch(null)}
         onPip={handleActivatePip}
       />
 
-      {/* Picture-in-Picture dello spettatore, fuori dal minigioco. */}
       {pip && (
         <MatchPip
           tournament={pip}
-          me={username}
+          me={user.name ?? user.email}
           onExpand={() => {
             setMatch({ tournament: pip, role: 'observer' });
             setPip(null);
@@ -292,44 +187,11 @@ export function TournamentGameView({
         />
       )}
 
-      {/* Popup conferma richiesta per i tornei privati. */}
-      {requestSent && (
-        <div className="fixed inset-0 z-[125] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setRequestSent(null)}
-            aria-hidden
-          />
-          <div className="brx-glass relative w-full max-w-sm rounded-3xl border border-white/15 p-6 text-center">
-            <button
-              type="button"
-              onClick={() => setRequestSent(null)}
-              aria-label="Chiudi"
-              className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 transition hover:bg-white/15 hover:text-white"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-emerald-400/40 bg-emerald-400/15 text-emerald-300">
-              <CheckCircle2 className="h-7 w-7" />
-            </div>
-            <h3 className="font-display text-lg font-black uppercase tracking-wide text-white">
-              Richiesta di partecipare inviata
-            </h3>
-            <p className="mt-1.5 text-sm text-white/60">
-              La tua richiesta per il torneo{' '}
-              <span className="font-bold capitalize text-marquee">{requestSent}</span> è stata
-              inviata all&apos;organizzatore. Riceverai il QR per la webcam dopo l&apos;approvazione.
-            </p>
-            <button
-              type="button"
-              onClick={() => setRequestSent(null)}
-              className="brx-liquid-glass-btn mt-5 w-full rounded-full px-6 py-2.5 text-sm font-bold uppercase tracking-wide text-white"
-            >
-              Ho capito
-            </button>
-          </div>
-        </div>
-      )}
+      <TournamentRequestSentModal
+        open={!!requestSent}
+        requestLabel={requestSent ?? ''}
+        onClose={() => setRequestSent(null)}
+      />
     </>
   );
 }

@@ -29,9 +29,9 @@ export const INTERACTIVES_ARCADE = {
   arcade2: { name: "TCG Jump", icon: "🎮", desc: "Platformer · 3 livelli", approach: [[5, 3], [6, 3]], footTiles: [[5, 2], [6, 2]], focus: { x: 436, y: 220, z: 1.55 }, faceTile: [5, 2], game: "tcgJump" },
   arcade3: { name: "Card Memory", icon: "🎮", desc: "Memory · 3 livelli", approach: [[8, 3], [9, 3]], footTiles: [[8, 2], [9, 2]], focus: { x: 532, y: 220, z: 1.55 }, faceTile: [8, 2], game: "cardMemory" },
   kakegurui: { name: "Tavolo Duello", icon: "🎴", desc: "Sasso/Carta/Forbice", approach: [[4, 6], [7, 6], [5, 8], [6, 8]], footTiles: [[5, 6], [6, 6], [5, 7], [6, 7]], focus: { x: 436, y: 380, z: 1.45 }, faceTile: [5, 7], game: "kakegurui" },
-  doorBack: { name: "Porta Tornei", icon: "🏆", desc: "Torna alla Sala Tornei", approach: [[1, 4], [1, 5]], footTiles: [], focus: { x: 150, y: 260, z: 1.4 }, faceTile: [0, 4], action: "changeRoom", target: "tournament" },
+  doorBack: { name: "Porta Tornei", icon: "🏆", desc: "Torna alla Sala Tornei", approach: [[1, 4], [1, 5], [1, 3]], footTiles: [], focus: { x: 188, y: 184, z: 1.42 }, faceTile: [0, 4], action: "changeRoom", target: "tournament" },
 };
-export const DOOR_TOUR = { id: "door", name: "Porta Arcade", icon: "🕹️", desc: "Sala Giochi Retro", approach: [[10, 4], [10, 5], [10, 3]], footTiles: [], focus: { x: 590, y: 340, z: 1.42 }, faceTile: [11, 4], action: "changeRoom", target: "arcade" };
+export const DOOR_TOUR = { id: "door", name: "Porta Arcade", icon: "🕹️", desc: "Sala Giochi Retro", approach: [[9, 0], [10, 0], [8, 0]], footTiles: [], focus: { x: 636, y: 232, z: 1.45 }, faceTile: null, action: "changeRoom", target: "arcade" };
 export const STATIONS = [
   { id: "tcgJump", name: "TCG Jump", kind: "Platformer", accent: "#39ff14", icon: "🍄" },
   { id: "stackAttack", name: "Stack Attack", kind: "Timing", accent: "#05d9e8", icon: "🃏" },

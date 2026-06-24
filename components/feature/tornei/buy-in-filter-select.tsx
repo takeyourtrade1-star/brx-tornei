@@ -37,7 +37,7 @@ export function BuyInFilterSelect({
         id={`${id}-label`}
         className={cn(
           'shrink-0 font-bold uppercase tracking-wider text-white/40',
-          compact ? 'sr-only' : 'text-[10px]',
+          compact ? 'text-[8px]' : 'sr-only',
         )}
       >
         Buy-In
@@ -51,12 +51,13 @@ export function BuyInFilterSelect({
         options={BUY_IN_OPTIONS}
         placeholder="Tutte"
         triggerClassName={cn(
-          compact ? 'px-2.5 py-1 text-[10px]' : 'px-2.5 py-1 text-[11px]',
+          'simple-pill',
+          compact ? 'px-2.5 py-1 text-[10px]' : 'px-2.5 py-1 text-xs',
           isActive
-            ? 'bg-primary/20 text-primary ring-primary/40 hover:brightness-105'
+            ? 'simple-pill-active hover:brightness-105'
             : lightPanel && compact
               ? 'bg-black/[0.06] text-slate-600 ring-black/10 hover:bg-black/10 hover:text-slate-800'
-              : 'bg-white/5 text-white/60 ring-white/10 hover:bg-white/10 hover:text-white/80',
+              : 'simple-pill-inactive',
         )}
       />
     </div>

@@ -55,12 +55,12 @@ export function TournamentsDashboard({
 
       <section className="flex scroll-mt-52 flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="font-sans text-sm font-semibold text-white/90 sm:text-base">
-            Tornei <span className="text-primary">{formatName}</span>
-            <span className="mx-1.5 text-white/35" aria-hidden>
+          <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-white/50">
+            Tornei <span className="text-white">{formatName}</span>
+            <span className="mx-1.5 text-white/30" aria-hidden>
               ·
             </span>
-            <span className="font-medium text-white/60">{modeName}</span>
+            <span className="text-white/60">{modeName}</span>
           </h2>
           <CreateTournamentButton selection={selection} />
         </div>

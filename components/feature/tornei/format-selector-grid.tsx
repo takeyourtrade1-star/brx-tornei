@@ -73,15 +73,15 @@ export function FormatSelectorGrid({
             aria-pressed={isSelected}
             aria-label={`Formato ${format.name}`}
             className={cn(
-              'group relative aspect-video shrink-0 overflow-hidden rounded-xl',
+              'group relative aspect-video shrink-0 overflow-hidden rounded-3xl',
               CARD_MORPH_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
                 : 'w-[calc(50%-0.25rem)] hover:z-10 hover:scale-[1.04] sm:w-[calc(25%-0.5625rem)] lg:w-auto lg:min-w-0 lg:flex-1',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
+              !isSelected && 'shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]',
               isSelected &&
-                'z-[1] shadow-[inset_0_0_0_2px_#FF7300,0_0_16px_rgba(255,115,0,0.25)]',
-              !isSelected && 'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3)]',
+                'z-[1] ring-[3px] ring-primary ring-inset shadow-[0_0_28px_-6px_rgba(255,115,0,0.45)]',
             )}
           >
             <Image
@@ -91,7 +91,7 @@ export function FormatSelectorGrid({
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 12vw"
               className={cn(
                 'object-cover transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-                !isSelected && 'brightness-[0.55] saturate-75 group-hover:brightness-90 group-hover:saturate-100',
+                !isSelected && 'brightness-90 saturate-[0.85] group-hover:brightness-105 group-hover:saturate-100',
               )}
               draggable={false}
             />
@@ -107,22 +107,22 @@ export function FormatSelectorGrid({
               preload="none"
               className={cn(
                 'pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-100 max-md:hidden motion-reduce:transition-none',
-                !isSelected && 'brightness-[0.55] saturate-75 group-hover:brightness-90 group-hover:saturate-100',
+                !isSelected && 'brightness-90 saturate-[0.85] group-hover:brightness-105 group-hover:saturate-100',
               )}
             />
             {!isSelected && (
               <span
-                className="pointer-events-none absolute inset-0 z-[1] bg-black/35 transition-colors duration-500 group-hover:bg-black/10"
+                className="pointer-events-none absolute inset-0 z-[1] bg-black/25 transition-colors duration-500 group-hover:bg-black/5"
                 aria-hidden
               />
             )}
             <span
               className={cn(
-                'absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-black/80 via-black/40 to-transparent text-center font-sans font-bold uppercase tracking-wide transition-[padding,font-size] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                'absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-black/80 via-black/35 to-transparent text-center font-sans font-bold uppercase tracking-wide transition-[padding,font-size] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
                 compact
                   ? 'px-1 pb-0.5 pt-3 text-[7px] leading-tight sm:text-[8px]'
-                  : 'px-2 pb-1.5 pt-6 text-[10px] sm:text-xs',
-                isSelected ? 'text-white' : 'text-white/60 group-hover:text-white/90',
+                  : 'px-3 pb-2.5 pt-8 text-[11px] sm:text-sm',
+                isSelected ? 'text-white' : 'text-white/70 group-hover:text-white',
               )}
             >
               {format.name}

@@ -52,16 +52,28 @@ function mkChairSprite(ctx, tx, ty, backNorth) {
   isoBox(ctx, tx, by, w, 0.08, 13, P.sofaD, { z: 12, top: P.sofa, noEdge: true });
 }
 
-/* Divanetto rosso 2x1 con braccioli e cuscini. */
+/* Divanetto rosso 2 posti, snello e su piedini: silhouette pulita (schienale
+   sottile, braccioli bassi, due cuscini separati) così non sembra un blocco
+   fuso con gli arredi vicini. */
 function mkSofa() {
-  return mkSprite(2, 1, 40, (ctx) => {
-    isoBox(ctx, 0, 0, 2, 1, 16, P.sofa, { top: P.sofaL, left: shade(P.sofa, 0.9), right: shade(P.sofa, 0.75) });
-    isoBox(ctx, -0.12, 0, 0.18, 1, 20, P.sofaD, { z: 16, noEdge: true });
-    isoBox(ctx, 1.94, 0, 0.18, 1, 20, P.sofaD, { z: 16, noEdge: true });
-    isoBox(ctx, 0, 0, 2, 0.22, 22, P.sofaD, { z: 16, noEdge: true });
-    isoBox(ctx, 0.1, 0.12, 1.8, 0.76, 6, P.sofaL, { z: 16, noEdge: true });
-    isoBox(ctx, 0.15, 0.15, 0.8, 0.7, 8, P.sofa, { z: 22, noEdge: true });
-    isoBox(ctx, 1.05, 0.15, 0.8, 0.7, 8, P.sofa, { z: 22, noEdge: true });
+  const L = 6; // altezza piedini
+  return mkSprite(2, 1, 44, (ctx) => {
+    /* piedini metallici */
+    for (const [lx, ly] of [[0.14, 0.2], [1.78, 0.2], [0.14, 0.78], [1.78, 0.78]])
+      isoBox(ctx, lx, ly, 0.08, 0.08, L, P.metalD, { noEdge: true });
+    /* schienale sottile e alto (lato nord) */
+    isoBox(ctx, 0.1, 0.14, 1.8, 0.14, 23, P.sofaD, { z: L, top: P.sofa, left: shade(P.sofa, 0.82), right: shade(P.sofa, 0.66) });
+    /* due cuscini schienale */
+    isoBox(ctx, 0.22, 0.2, 0.7, 0.1, 15, P.sofa, { z: L + 7, top: P.sofaL, left: shade(P.sofa, 0.9), noEdge: true });
+    isoBox(ctx, 1.08, 0.2, 0.7, 0.1, 15, P.sofa, { z: L + 7, top: P.sofaL, left: shade(P.sofa, 0.9), noEdge: true });
+    /* braccioli bassi e sottili */
+    isoBox(ctx, 0.1, 0.18, 0.14, 0.74, 13, P.sofa, { z: L, top: P.sofaL, left: shade(P.sofa, 0.82), right: shade(P.sofa, 0.66) });
+    isoBox(ctx, 1.76, 0.18, 0.14, 0.74, 13, P.sofa, { z: L, top: P.sofaL, left: shade(P.sofa, 0.82), right: shade(P.sofa, 0.66) });
+    /* base seduta (slab sottile) */
+    isoBox(ctx, 0.22, 0.3, 1.56, 0.6, 6, P.sofaD, { z: L, top: shade(P.sofa, 0.85), noEdge: true });
+    /* due cuscini seduta separati da una fessura centrale */
+    isoBox(ctx, 0.28, 0.34, 0.64, 0.52, 7, P.sofa, { z: L + 6, top: P.sofaL, left: shade(P.sofa, 0.88), right: shade(P.sofa, 0.7) });
+    isoBox(ctx, 1.08, 0.34, 0.64, 0.52, 7, P.sofa, { z: L + 6, top: P.sofaL, left: shade(P.sofa, 0.88), right: shade(P.sofa, 0.7) });
   });
 }
 
@@ -75,7 +87,10 @@ function mkTicketMachine() {
     ctx.strokeStyle = P.neonYellow; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pane[0].x, pane[0].y); ctx.lineTo(pane[1].x, pane[1].y); ctx.lineTo(pane[2].x, pane[2].y); ctx.lineTo(pane[3].x, pane[3].y); ctx.closePath(); ctx.stroke();
     ctx.fillStyle = P.neonYellow; for (let i = 0; i < 8; i++) { const y = c.y - 46 + i * 4; ctx.fillRect(Math.round(c.x) - 5, Math.round(y), 10, 2); }
     ctx.fillStyle = P.neonPink; ctx.fillRect(Math.round(c.x - 8), Math.round(c.y - 14), 16, 10);
-    ctx.fillStyle = "#0d0d1a"; ctx.font = "5px 'Press Start 2P', monospace"; ctx.textAlign = "center"; ctx.fillText("🎫", c.x, c.y - 8);
+    // ticket disegnato (cartoncino con tacche e linea)
+    ctx.fillStyle = "#fdf3d0"; ctx.fillRect(Math.round(c.x - 6), Math.round(c.y - 12), 12, 6);
+    ctx.fillStyle = P.neonPink; ctx.fillRect(Math.round(c.x - 6), Math.round(c.y - 10), 1, 2); ctx.fillRect(Math.round(c.x + 5), Math.round(c.y - 10), 1, 2);
+    ctx.fillStyle = "#c9a834"; ctx.fillRect(Math.round(c.x - 3), Math.round(c.y - 10), 6, 1);
     ctx.fillStyle = "#0d0d1a"; ctx.fillRect(Math.round(c.x - 6), Math.round(c.y - 2), 12, 3);
     ctx.fillStyle = P.neonYellow; ctx.fillRect(Math.round(c.x - 5), Math.round(c.y - 1), 10, 1);
     ctx.fillStyle = P.neonBlue; ctx.beginPath(); ctx.arc(c.x, c.y + 8, 3, 0, Math.PI * 2); ctx.fill();

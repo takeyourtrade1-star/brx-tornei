@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "noEmit": true, "allowJs": true, "checkJs": false,
+    "jsx": "preserve", "module": "esnext", "target": "es2020",
+    "moduleResolution": "bundler", "skipLibCheck": true
+  },
+  "include": [
+    "minigioco-test/arcade-room/TcgJumpGame.jsx",
+    "minigioco-test/arcade-room/StackAttackGame.jsx",
+    "minigioco-test/arcade-room/CardMemoryGame.jsx",
+    "minigioco-test/arcade-room/ArcadeBackground.jsx",
+    "minigioco-test/arcade-room/ArcadeSprites.jsx",
+    "minigioco-test/arcade-room/arcade-config.js",
+    "minigioco-test/IsoRoomGame.jsx"
+  ]
+}

@@ -21,7 +21,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMe
 import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-config";
 import { DecksModal } from "./decks-modal";
 import { StyledSelect } from "./styled-select";
-import { buildArcadeBackground } from "./arcade-room/ArcadeBackground";
+import { buildArcadeBackground, arcadeDoorBounds } from "./arcade-room/ArcadeBackground";
 import { buildArcadeFurniture } from "./arcade-room/ArcadeSprites";
 import {
   FURN_ARCADE, INTERACTIVES_ARCADE, DOOR_TOUR,
@@ -569,8 +569,10 @@ const wallFar = (row, hh) => {
   return { x: b.x + HTW, y: b.y - hh };
 };
 
-/* Porta Arcade sulla parete destra (righe ~4–5, lontano da bacheca e tavolo) */
-const TOUR_DOOR = { r0: 3.8, r1: 5.4, hTop: 90, hBot: 28 };
+/* Porta Arcade — incassata nella parete di fondo (parete vera, illuminata),
+   nell'angolo destro dove prima c'era un poster decorativo. Posizione sensata:
+   accanto al citofono, lontana da bacheca e tavolo. */
+const TOUR_DOOR = { c0: 8.65, c1: 10.2, hTop: 92, hBot: 1 };
 
 /** Interpolazione UV su un quad di parete (topA→topB in alto, botA→botB in basso). */
 function wallFace(topA, topB, botB, botA, u, v) {
@@ -579,33 +581,41 @@ function wallFace(topA, topB, botB, botA, u, v) {
   return { x: b.x + (t.x - b.x) * v, y: b.y + (t.y - b.y) * v };
 }
 
-/** Porta in legno su parete laterale: stipite, anta a pannelli, maniglia. */
+/** Porta in legno chiusa: architrave, anta piena a due pannelli, maniglia.
+    Pulita, senza fessure/bande neon. */
 function drawWoodDoor(ctx, topA, topB, botB, botA, label) {
   const face = (u, v) => wallFace(topA, topB, botB, botA, u, v);
-  quadFill(ctx, [topA, topB, botB, botA], shade(P.wallDark, 0.78));
+  const WROT = Math.atan2(HTH, HTW);
+  /* architrave / stipite (cornice in legno scuro con smusso chiaro) */
+  quadFill(ctx, [topA, topB, botB, botA], shade(P.woodD, 0.95));
+  quadFill(ctx, [face(0.03, 0.99), face(0.97, 0.99), face(0.97, 0.02), face(0.03, 0.02)], shade(P.woodD, 1.18));
   quadFill(ctx, [topA, topB, botB, botA], false, P.woodXD, 2);
-  const leaf = [face(0.1, 0.96), face(0.9, 0.96), face(0.9, 0.06), face(0.1, 0.06)];
-  quadFill(ctx, leaf, P.wood);
+  /* anta in legno piena (chiusa, tutta larghezza del vano) */
+  const leaf = [face(0.1, 0.95), face(0.9, 0.95), face(0.9, 0.05), face(0.1, 0.05)];
+  const lt = face(0.5, 0.95), lb = face(0.5, 0.05);
+  const lg = ctx.createLinearGradient(lt.x, lt.y, lb.x, lb.y);
+  lg.addColorStop(0, shade(P.wood, 1.08)); lg.addColorStop(1, shade(P.wood, 0.82));
+  quadFill(ctx, leaf, lg);
   quadFill(ctx, leaf, false, P.woodD, 1);
   const panel = (v0, v1) => {
     const o = [face(0.2, v1), face(0.8, v1), face(0.8, v0), face(0.2, v0)];
-    quadFill(ctx, o, shade(P.wood, 0.72));
-    quadFill(ctx, o, false, shade(P.woodD, 1.2), 1);
-    quadFill(ctx, [face(0.28, v1 - 0.02), face(0.72, v1 - 0.02), face(0.72, v0 + 0.02), face(0.28, v0 + 0.02)], shade(P.woodL, 0.88));
+    quadFill(ctx, o, shade(P.wood, 0.7));
+    quadFill(ctx, o, false, shade(P.woodL, 0.95), 1);
+    quadFill(ctx, [face(0.27, v1 - 0.02), face(0.73, v1 - 0.02), face(0.73, v0 + 0.02), face(0.27, v0 + 0.02)], shade(P.wood, 0.92));
   };
-  panel(0.08, 0.44); panel(0.52, 0.88);
-  const h = face(0.22, 0.52);
-  ctx.fillStyle = P.gold;
-  ctx.beginPath(); ctx.arc(h.x, h.y, 2.5, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = P.metalL;
-  ctx.fillRect(Math.round(h.x) - 1, Math.round(h.y) - 4, 3, 8);
-  const s0 = face(0.12, 0.05), s1 = face(0.88, 0.05);
-  ctx.strokeStyle = "rgba(60,40,20,0.55)"; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(s1.x, s1.y); ctx.stroke();
+  panel(0.1, 0.45); panel(0.52, 0.87);
+  /* linea di mezzeria (battuta dell'anta) */
+  const m0 = face(0.5, 0.95), m1 = face(0.5, 0.05);
+  ctx.strokeStyle = shade(P.woodD, 0.85); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(m0.x, m0.y); ctx.lineTo(m1.x, m1.y); ctx.stroke();
+  /* maniglia (piastra + pomello dorato) */
+  const h = face(0.62, 0.5);
+  ctx.fillStyle = P.metalD; ctx.fillRect(Math.round(h.x) - 1, Math.round(h.y) - 5, 3, 10);
+  ctx.fillStyle = P.gold; ctx.beginPath(); ctx.arc(h.x, h.y, 2.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.fillRect(Math.round(h.x) - 1, Math.round(h.y) - 1, 1, 1);
   if (label) {
     ctx.save();
-    const WROT = Math.atan2(HTH, HTW);
-    const mid = face(0.5, 0.74);
+    const mid = face(0.44, 0.72);
     ctx.translate(mid.x, mid.y);
     ctx.rotate(WROT);
     ctx.font = "5px 'Press Start 2P', monospace";
@@ -617,9 +627,9 @@ function drawWoodDoor(ctx, topA, topB, botB, botA, label) {
 }
 
 function tourDoorBounds() {
-  const { r0, r1, hTop, hBot } = TOUR_DOOR;
-  const topA = wallFar(r0, hTop), topB = wallFar(r1, hTop);
-  const botA = wallFar(r0, hBot), botB = wallFar(r1, hBot);
+  const { c0, c1, hTop, hBot } = TOUR_DOOR;
+  const topA = wallR(c0, hTop), topB = wallR(c1, hTop);
+  const botA = wallR(c0, hBot), botB = wallR(c1, hBot);
   const xs = [topA.x, topB.x, botA.x, botB.x];
   const ys = [topA.y, topB.y, botA.y, botB.y];
   return {
@@ -702,20 +712,8 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
   // davanzale
   quadFill(ctx, [wallL(5.66, 28), wallL(7.74, 28), wallL(7.74, 24), wallL(5.66, 24)], P.woodL);
 
-  /* — poster sulla parete di fondo — */
-  quadFill(ctx, [wallR(8.8, 90), wallR(10.1, 90), wallR(10.1, 40), wallR(8.8, 40)], "#2b3050");
-  quadFill(ctx, [wallR(8.88, 87), wallR(10.02, 87), wallR(10.02, 43), wallR(8.88, 43)], false, P.gold, 1.5);
-  // carta stilizzata al centro
-  const pc1 = wallR(9.45, 76), pc2 = wallR(9.45, 52);
-  quadFill(ctx, [
-    { x: pc1.x - 8, y: pc1.y + 2 }, { x: pc1.x + 8, y: pc1.y - 2 },
-    { x: pc2.x + 8, y: pc2.y - 2 }, { x: pc2.x - 8, y: pc2.y + 2 },
-  ], P.paper);
-  const pm = wallR(9.45, 64);
-  quadFill(ctx, [{ x: pm.x, y: pm.y - 7 }, { x: pm.x + 6, y: pm.y }, { x: pm.x, y: pm.y + 7 }, { x: pm.x - 6, y: pm.y }], P.gold);
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillRect(wallR(9.05, 48).x, wallR(9.05, 48).y, 18, 2);
-  ctx.fillRect(wallR(9.05, 45).x, wallR(9.05, 45).y, 12, 2);
+  /* (Il vecchio poster decorativo "carta" nell'angolo destro della parete di
+     fondo è stato rimosso: quello spazio ora ospita la porta della Sala Arcade.) */
 
   /* — poster gaming/anime sulle pareti — */
   const posterBg = (wp, c0, c1, hT, hB, col) => {
@@ -1000,23 +998,25 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
   const ib = wallR(10.85, 46);
   ctx.fillStyle = P.gold; ctx.fillRect(Math.round(ib.x) - 2, Math.round(ib.y) - 2, 4, 4);
 
-  /* — porta Sala Arcade (parete destra, sopra pavimento e arredi statici) — */
+  /* — porta Sala Arcade (parete di fondo, angolo destro accanto al citofono) — */
   {
     const { topA, topB, botA, botB } = tourDoorBounds();
     drawWoodDoor(ctx, topA, topB, botB, botA, null);
-    const signPt = wallFace(topA, topB, botB, botA, 0.5, 0.02);
+    /* insegna luminosa "ARCADE" appena sopra la porta, sull'architrave */
+    const signPt = wallR((TOUR_DOOR.c0 + TOUR_DOOR.c1) / 2, TOUR_DOOR.hTop + 8);
     const WROT = Math.atan2(HTH, HTW);
     ctx.save();
     ctx.translate(signPt.x, signPt.y);
     ctx.rotate(WROT);
-    ctx.fillStyle = P.woodD;
-    ctx.fillRect(-22, -5, 44, 9);
-    ctx.strokeStyle = P.gold; ctx.lineWidth = 1;
-    ctx.strokeRect(-22, -5, 44, 9);
-    ctx.fillStyle = P.gold;
+    ctx.fillStyle = "#15101f";
+    ctx.fillRect(-25, -6, 50, 11);
+    ctx.strokeStyle = "rgba(5,217,232,0.9)"; ctx.lineWidth = 1.2;
+    ctx.strokeRect(-25, -6, 50, 11);
+    ctx.shadowColor = "#05d9e8"; ctx.shadowBlur = 6;
+    ctx.fillStyle = "#cdefff";
     ctx.font = "bold 5px 'Press Start 2P', monospace";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("ARCADE", 0, 0);
+    ctx.fillText("ARCADE", 0, -0.5);
     ctx.restore();
   }
 
@@ -2147,7 +2147,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   arcadeInter.arcade2.hitRect = arcRectOf("cabinet2"); arcadeInter.arcade2.hitCv = arcadeSprMap.cabinet2.cv;
   arcadeInter.arcade3.hitRect = arcRectOf("cabinet3"); arcadeInter.arcade3.hitCv = arcadeSprMap.cabinet3.cv;
   arcadeInter.kakegurui.hitRect = arcRectOf("kakeTable"); arcadeInter.kakegurui.hitCv = arcadeSprMap.kakeTable.cv;
-  arcadeInter.doorBack.hitRect = { x: 178, y: 134, w: 28, h: 52 };
+  arcadeInter.doorBack.hitRect = arcadeDoorBounds().hit;
   arcadeInter.doorBack.hitCv = null;
   const arcadeSils = {
     arcade1: makeSil(arcadeSprMap.cabinet1, "#05d9e8"),
@@ -2242,13 +2242,13 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     x: (screenQuad[0].x + screenQuad[2].x) / 2,
     y: (screenQuad[0].y + screenQuad[2].y) / 2,
   };
-  /* — busta lettere: scivola dalla porta sul pavimento — */
+  /* — busta lettere: scivola da sotto la porta (parete di fondo) sul pavimento — */
   const LETTER_START = (() => {
-    const p = tileTop(10.2, 4.4);
-    return { x: p.x - 6, y: p.y + HTH - 8 };
+    const p = tileTop(9.4, 0.3);
+    return { x: p.x - 4, y: p.y + HTH - 8 };
   })();
   const LETTER_REST = (() => {
-    const p = tileTop(10, 5.5);
+    const p = tileTop(8.9, 1.5);
     return { x: p.x, y: p.y + HTH - 4 };
   })();
   const letterHitRect = (lt) => ({ x: lt.x - 14, y: lt.y - 18, w: 28, h: 20 });

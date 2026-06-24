@@ -99,37 +99,25 @@ function ModeCard({
         'flex items-center text-left',
         MODE_MORPH_EASE,
         compact
-          ? 'h-8 shrink-0 gap-2 rounded-full px-3 text-[11px] font-bold uppercase tracking-wide ring-1'
-          : 'h-14 min-h-14 w-full gap-3 rounded-xl border px-4 sm:h-16 sm:min-h-16 sm:flex-1',
-        compact &&
-          selected &&
-          available &&
-          'bg-primary/20 text-primary ring-primary/40',
-        compact &&
-          !selected &&
-          available &&
-          'bg-white/8 text-white/75 ring-white/15 hover:bg-white/12 hover:text-white',
-        compact &&
-          !available &&
-          'cursor-not-allowed bg-white/[0.03] text-white/35 ring-white/10',
-        !compact && available && 'hover:border-primary/40 hover:bg-white/[0.06]',
-        !compact && selected && available && 'border-primary/60 bg-primary/10 ring-1 ring-primary/30',
-        !compact && !selected && available && 'border-white/15 bg-white/[0.03]',
-        !compact && !available && 'cursor-not-allowed border-white/10 bg-white/[0.02] opacity-55',
+          ? 'simple-pill h-8 shrink-0 gap-2 px-3 text-[11px] font-bold uppercase tracking-wide'
+          : 'h-14 min-h-14 w-full gap-3 rounded-3xl border border-white/[0.06] bg-white/[0.03] px-4 transition-colors sm:h-16 sm:min-h-16 sm:flex-1',
+        compact && selected && available && 'simple-pill-active',
+        compact && !selected && available && 'simple-pill-inactive',
+        compact && !available && 'cursor-not-allowed bg-white/[0.03] text-white/35 ring-white/10',
+        !compact && available && 'hover:border-white/[0.12] hover:bg-white/[0.05]',
+        !compact && selected && available && 'border-primary/30 bg-primary/[0.08]',
+        !compact && !available && 'cursor-not-allowed border-white/[0.04] bg-white/[0.02] opacity-50',
       )}
     >
-      <span
+        <span
         className={cn(
           'flex shrink-0 items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-          compact
-            ? 'h-3 w-3'
-            : cn(
-                'h-9 w-9 rounded-lg',
-                selected && available ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white/70',
-              ),
+          compact ? 'h-3 w-3' : 'h-6 w-6',
+          !compact && selected && available && 'text-primary',
+          !compact && !(selected && available) && 'text-white/60',
         )}
       >
-        <Icon className={cn('transition-all duration-500', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+        <Icon className={cn('transition-all duration-500', compact ? 'h-3 w-3' : 'h-5 w-5')} />
       </span>
       <span className={cn('min-w-0 flex-1', compact && 'flex items-center gap-1')}>
         <span className={cn('flex items-center', compact ? 'gap-1' : 'gap-2')}>
@@ -144,7 +132,7 @@ function ModeCard({
           {badge && (
             <span
               className={cn(
-                'shrink-0 rounded-full bg-white/10 font-bold uppercase text-marquee transition-all duration-500',
+                'shrink-0 rounded-full bg-white/[0.06] font-bold uppercase text-marquee transition-all duration-500',
                 compact
                   ? 'px-1.5 py-px text-[8px]'
                   : 'px-2 py-0.5 text-[10px] tracking-wider',
@@ -160,7 +148,7 @@ function ModeCard({
             compact ? 'grid-rows-[0fr] opacity-0' : 'mt-0.5 grid-rows-[1fr] opacity-100',
           )}
         >
-          <span className="block truncate text-xs text-white/50">{description}</span>
+          <span className="block truncate text-xs text-white/55">{description}</span>
         </span>
       </span>
     </button>
