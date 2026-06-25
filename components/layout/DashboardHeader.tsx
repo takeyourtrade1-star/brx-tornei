@@ -68,10 +68,9 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
             </button>
           )}
 
-          <Link
-            href="/tessera"
-            aria-label="La mia tessera"
-            className="flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-white/15 transition-colors hover:bg-white/20 hover:ring-primary/40"
+          <div
+            aria-label="Profilo"
+            className="flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-white/15"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold">
               {initial}
@@ -79,7 +78,7 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
             <span className="max-w-[5.5rem] truncate font-sans text-sm font-semibold sm:max-w-[10rem]">
               {displayName}
             </span>
-          </Link>
+          </div>
 
           <Link
             href="/mazzi"

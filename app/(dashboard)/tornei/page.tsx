@@ -7,7 +7,6 @@ import { parseSelection } from '@/lib/validations/selection';
 import { getFormat, getMode } from '@/lib/data/catalog';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { TournamentGameView } from '@/components/feature/tornei/tournament-game-view';
-import { MembershipGate } from '@/components/feature/membership/membership-gate';
 
 export const metadata: Metadata = { title: 'Tornei' };
 
@@ -34,16 +33,14 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   ]);
 
   return (
-    <MembershipGate>
-      <TournamentGameView
-        tournaments={tournaments}
-        inventory={inventory}
-        selection={selection}
-        user={session.user}
-        formatId={format.id}
-        formatName={format.name}
-        modeName={mode.name}
-      />
-    </MembershipGate>
+    <TournamentGameView
+      tournaments={tournaments}
+      inventory={inventory}
+      selection={selection}
+      user={session.user}
+      formatId={format.id}
+      formatName={format.name}
+      modeName={mode.name}
+    />
   );
 }
