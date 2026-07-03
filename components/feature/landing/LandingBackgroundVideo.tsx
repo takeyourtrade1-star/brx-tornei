@@ -6,7 +6,7 @@ import { getCdnVideoUrl } from '@/lib/config';
 
 const LANDING_BG_VIDEO = 'videos/sfondo_carte.webm';
 /** Sfondo auth split — asset locale in public/videos. */
-const AUTH_SPLIT_BG_VIDEO = '/videos/auth-hero.webm';
+const AUTH_SPLIT_BG_VIDEO = '/videos/tournament-video-trial.webm';
 const PLAYBACK_RATE = 1.12;
 
 type LandingBackgroundVideoProps = {
@@ -116,9 +116,7 @@ export function LandingBackgroundVideo({
           style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' as const }}
         >
           <source src={videoUrl} type="video/webm" />
-          {!splitLeft && (
-            <source src={videoUrl.replace('.webm', '.mp4')} type="video/mp4" />
-          )}
+          <source src={videoUrl.replace('.webm', '.mp4')} type="video/mp4" />
         </video>
       )}
 
