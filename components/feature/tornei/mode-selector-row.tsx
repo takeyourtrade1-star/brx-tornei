@@ -7,7 +7,7 @@ import type { ComponentType } from 'react';
 import { Swords, Users } from 'lucide-react';
 
 const MODE_MORPH_EASE =
-  'transition-[height,padding,border-radius,gap,background-color,border-color,box-shadow,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
+  'transition-[height,flex-grow,padding,border-radius,gap,background-color,border-color,box-shadow,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
 
 interface ModeSelectorRowProps {
   selectedModeId: ModeId;
@@ -60,10 +60,8 @@ export function ModeSelectorRow({
   return (
     <div
       className={cn(
-        'flex w-full transition-[gap,flex-direction] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
-        compact
-          ? 'flex-wrap items-center justify-center gap-1.5'
-          : 'flex-col gap-2 sm:flex-row sm:gap-3',
+        'flex w-full items-center justify-center transition-[gap] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
+        compact ? 'flex-wrap gap-1.5' : 'flex-col gap-2 sm:flex-row sm:gap-3',
       )}
     >
       <ModeCard
@@ -156,8 +154,8 @@ function ModeCard({
         'flex items-center text-left',
         MODE_MORPH_EASE,
         compact
-          ? 'simple-pill h-8 shrink-0 gap-2 px-3 text-[11px] font-bold uppercase tracking-wide'
-          : 'h-14 min-h-14 w-full gap-3 rounded-3xl border border-white/[0.06] bg-white/[0.03] px-4 transition-colors sm:h-16 sm:min-h-16 sm:flex-1',
+          ? 'h-8 shrink-0 grow-0 basis-0 gap-2 rounded-full border border-transparent px-3 text-[11px] font-bold uppercase tracking-wide'
+          : 'h-14 min-h-14 w-full gap-3 rounded-3xl border border-white/[0.06] bg-white/[0.03] px-4 sm:h-16 sm:min-h-16 sm:basis-0 sm:grow-[0.5]',
         compact && selected && available && 'simple-pill-active',
         compact && !selected && available && 'simple-pill-inactive',
         compact && !available && 'cursor-not-allowed bg-white/[0.03] text-white/35 ring-white/10',
@@ -203,7 +201,7 @@ function ModeCard({
           className={cn(
             'overflow-hidden transition-[grid-template-rows,opacity,margin,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
             compact
-              ? 'grid h-0 w-0 grid-rows-[0fr] opacity-0'
+              ? 'grid w-0 grid-rows-[0fr] opacity-0'
               : 'mt-0.5 grid w-full grid-rows-[1fr] opacity-100',
           )}
         >
