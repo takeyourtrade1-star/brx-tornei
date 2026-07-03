@@ -5,8 +5,6 @@ import { cn } from '@/lib/utils';
 import { getCdnVideoUrl } from '@/lib/config';
 
 const LANDING_BG_VIDEO = 'videos/sfondo_carte.webm';
-/** Sfondo auth split — asset locale in public/videos. */
-const AUTH_SPLIT_BG_VIDEO = '/videos/tournament-video-trial.webm';
 const PLAYBACK_RATE = 1.12;
 
 type LandingBackgroundVideoProps = {
@@ -23,17 +21,17 @@ export function LandingBackgroundVideo({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const videoUrl = splitLeft ? AUTH_SPLIT_BG_VIDEO : getCdnVideoUrl(LANDING_BG_VIDEO);
+  const videoUrl = getCdnVideoUrl(LANDING_BG_VIDEO);
 
   const tryPlay = useCallback(() => {
     const el = videoRef.current;
     if (!el || failed) return;
-    el.playbackRate = splitLeft ? 1 : PLAYBACK_RATE;
+    el.playbackRate = PLAYBACK_RATE;
     const p = el.play();
     if (p && typeof p.catch === 'function') {
       p.catch(() => {});
     }
-  }, [failed, splitLeft]);
+  }, [failed]);
 
   useEffect(() => {
     const el = videoRef.current;

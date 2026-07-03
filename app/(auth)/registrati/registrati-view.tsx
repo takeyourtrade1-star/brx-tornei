@@ -21,7 +21,7 @@ export function RegistratiView() {
   const registerUrl = `${config.app.mainSiteUrl}/registrati`;
 
   return (
-    <AuthSplitViewShell className="min-h-screen lg:min-h-screen">
+    <AuthSplitViewShell>
       <AuthSplitHeader title="Crea il tuo account in pochi secondi." className="mb-0 shrink-0" />
 
       <div className="flex flex-1 flex-col justify-center py-6 sm:py-8">

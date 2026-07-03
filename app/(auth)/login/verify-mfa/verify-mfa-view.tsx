@@ -21,7 +21,7 @@ export function VerifyMfaView({ redirect }: VerifyMfaViewProps) {
     : '/login?accesso=1';
 
   return (
-    <AuthSplitViewShell centerForm className="min-h-screen lg:min-h-screen">
+    <AuthSplitViewShell centerForm>
       <AuthBackLink href={loginHref} />
 
       <AuthSplitHeader
