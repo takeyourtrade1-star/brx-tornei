@@ -1,12 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { VerifyMfaForm } from '@/components/feature/auth/verify-mfa-form';
 import { AuthBackLink } from '@/components/layout/AuthBackLink';
 import { AuthSplitHeader } from '@/components/layout/AuthSplitHeader';
 import { AuthSplitViewShell } from '@/components/layout/AuthSplitViewShell';
 import {
-  AUTH_SPLIT_LINK_CLASS,
+  AUTH_LINK_CLASS,
   AUTH_SPLIT_MUTED_CLASS,
   AUTH_SPLIT_VIEW_FOOTER_CLASS,
 } from '@/components/layout/auth-split-styles';
@@ -36,7 +35,7 @@ export function VerifyMfaView({ redirect }: VerifyMfaViewProps) {
       <p className={cn(AUTH_SPLIT_VIEW_FOOTER_CLASS, 'mt-5')}>
         <span className={AUTH_SPLIT_MUTED_CLASS}>
           Problemi con MFA? Contatta{' '}
-          <a href="mailto:ebartex.service@gmail.com" className={AUTH_SPLIT_LINK_CLASS}>
+          <a href="mailto:ebartex.service@gmail.com" className={AUTH_LINK_CLASS}>
             ebartex.service@gmail.com
           </a>
         </span>

@@ -16,8 +16,18 @@ export const AUTH_SPLIT_INPUT_CLASS =
 
 export const AUTH_SPLIT_LABEL_CLASS = 'mb-1.5 block text-[14px] font-medium text-[#515154]';
 
-export const AUTH_SPLIT_LINK_CLASS =
+export const AUTH_LINK_CLASS =
   'font-medium text-global-bg-start hover:underline transition-colors';
+
+/** Alias storico — preferire AUTH_LINK_CLASS (allineato a new_frontend_brx). */
+export const AUTH_SPLIT_LINK_CLASS = AUTH_LINK_CLASS;
+
+export const AUTH_REQUIRED_MARKER_CLASS = 'ml-1 text-primary font-semibold';
+
+export const AUTH_SPLIT_REGISTER_LINK_CLASS =
+  'font-semibold text-[#ff7a00] transition-opacity hover:opacity-80';
+
+export const AUTH_SPLIT_FOOTER_LINK_CLASS = 'text-[13px] text-[#515154]';
 
 export const AUTH_SPLIT_FORM_CLASS = 'space-y-3.5';
 

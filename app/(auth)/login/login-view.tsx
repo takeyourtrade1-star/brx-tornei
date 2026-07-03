@@ -1,11 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { LoginForm } from '@/components/feature/auth/login-form';
 import { AuthSplitLayout } from '@/components/layout/AuthSplitLayout';
 import { AuthSplitHeader } from '@/components/layout/AuthSplitHeader';
 import {
-  AUTH_SPLIT_LINK_CLASS,
+  AUTH_LINK_CLASS,
   AUTH_SPLIT_SECTION_CLASS,
 } from '@/components/layout/auth-split-styles';
 import { cn } from '@/lib/utils';
@@ -26,7 +25,6 @@ export function LoginView({ redirect, recoverUrl }: LoginViewProps) {
       <div className="flex flex-1 flex-col justify-center py-6 sm:py-8">
         <AuthSplitHeader
           title="Entra nella sala tornei"
-          subtitle="Usa le credenziali del tuo account Ebartex."
           className="mb-5 shrink-0 sm:mb-6"
         />
         <LoginForm variant="landing" redirect={redirect} recoverUrl={recoverUrl} />
@@ -36,25 +34,22 @@ export function LoginView({ redirect, recoverUrl }: LoginViewProps) {
         <p>
           <a
             href={config.app.mainSiteUrl}
-            className={`font-semibold ${AUTH_SPLIT_LINK_CLASS} transition-colors hover:underline`}
+            className={`font-semibold ${AUTH_LINK_CLASS} transition-colors hover:underline`}
           >
             Esplora il sito Ebartex
           </a>
         </p>
         <p className="mt-2">
-          Dopo l&apos;accesso entri nella stanza tornei con inventario e profilo già sincronizzati.
+          Usa le credenziali del tuo account Ebartex per accedere a tornei, iscrizioni e classifiche.
         </p>
         <p className="mt-2">
-          Serve aiuto?{' '}
-          <a href="mailto:ebartex.service@gmail.com" className={`font-medium ${AUTH_SPLIT_LINK_CLASS}`}>
+          Problemi? Scrivici a{' '}
+          <a href="mailto:ebartex.service@gmail.com" className={`font-medium ${AUTH_LINK_CLASS}`}>
             ebartex.service@gmail.com
           </a>
         </p>
         <p className="mt-2 font-medium text-[#86868b]/90">
-          Non hai un account?{' '}
-          <Link href="/registrati" className={AUTH_SPLIT_LINK_CLASS}>
-            Registrati su Ebartex
-          </Link>
+          La piattaforma tornei è in evoluzione: potresti incontrare aggiornamenti o piccole imperfezioni.
         </p>
       </div>
     </AuthSplitLayout>

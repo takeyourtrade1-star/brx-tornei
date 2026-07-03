@@ -14,12 +14,12 @@ import {
   AUTH_MUTED_TEXT,
 } from '@/components/layout/auth-styles';
 import {
+  AUTH_LINK_CLASS,
   AUTH_SPLIT_BODY_CLASS,
   AUTH_SPLIT_BUTTON_CLASS,
   AUTH_SPLIT_CAPTION_CLASS,
   AUTH_SPLIT_FORM_CLASS,
   AUTH_SPLIT_INPUT_CLASS,
-  AUTH_SPLIT_LINK_CLASS,
   AUTH_SPLIT_MUTED_CLASS,
 } from '@/components/layout/auth-split-styles';
 
@@ -172,7 +172,7 @@ export function LoginCodeForm({ redirect = '', variant = 'default' }: LoginCodeF
                 type="button"
                 onClick={handleResend}
                 disabled={isPending || countdown > 0}
-                className={`text-[13px] ${AUTH_SPLIT_LINK_CLASS} disabled:opacity-50 disabled:hover:no-underline`}
+                className={`text-[13px] ${AUTH_LINK_CLASS} disabled:opacity-50 disabled:hover:no-underline`}
               >
                 Reinvia codice
               </button>

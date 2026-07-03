@@ -12,9 +12,11 @@ import {
   AUTH_MUTED_TEXT,
 } from '@/components/layout/auth-styles';
 import {
+  AUTH_LINK_CLASS,
+  AUTH_REQUIRED_MARKER_CLASS,
   AUTH_SPLIT_INPUT_CLASS,
   AUTH_SPLIT_LABEL_CLASS,
-  AUTH_SPLIT_LINK_CLASS,
+  AUTH_SPLIT_REGISTER_LINK_CLASS,
 } from '@/components/layout/auth-split-styles';
 import { cn } from '@/lib/utils';
 
@@ -73,6 +75,9 @@ export function LoginForm({
           <div>
             <label htmlFor="identifier" className={AUTH_SPLIT_LABEL_CLASS}>
               Email o username
+              <span className={AUTH_REQUIRED_MARKER_CLASS} aria-hidden>
+                *
+              </span>
             </label>
             <input
               id="identifier"
@@ -89,6 +94,9 @@ export function LoginForm({
             <div className="min-w-0 flex-1">
               <label htmlFor="password" className={AUTH_SPLIT_LABEL_CLASS}>
                 Password
+                <span className={AUTH_REQUIRED_MARKER_CLASS} aria-hidden>
+                  *
+                </span>
               </label>
               <div className="relative">
                 <input
@@ -128,10 +136,10 @@ export function LoginForm({
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Link href={codeHref} className={`text-[14px] ${AUTH_SPLIT_LINK_CLASS}`}>
+          <Link href={codeHref} className={`text-[14px] ${AUTH_LINK_CLASS}`}>
             Accedi con codice monouso
           </Link>
-          <a href={recoverUrl} className={`text-[14px] ${AUTH_SPLIT_LINK_CLASS}`}>
+          <a href={recoverUrl} className={`text-[14px] ${AUTH_LINK_CLASS}`}>
             Recupera credenziali
           </a>
         </div>
@@ -139,13 +147,12 @@ export function LoginForm({
         <AuthErrorAlert message={error} />
 
         <div className="border-t border-gray-200/60 pt-4 text-center">
-          <p className="text-[14px] font-medium text-[#515154]">Non hai un account?</p>
-          <Link
-            href="/registrati"
-            className="mx-auto mt-3 inline-flex min-w-[11rem] justify-center rounded-full bg-gradient-global px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_3px_10px_rgba(61,101,198,0.28)] transition-transform hover:scale-[1.01] active:scale-[0.99]"
-          >
-            Registrati
-          </Link>
+          <p className="text-[14px] text-[#515154]">
+            Non hai ancora un account?{' '}
+            <Link href="/registrati" className={AUTH_SPLIT_REGISTER_LINK_CLASS}>
+              REGISTRATI
+            </Link>
+          </p>
         </div>
       </form>
     );
