@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Layers } from 'lucide-react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { InventoryMacroCard } from '@/components/feature/inventory/inventory-macro-card';
 import { InventoryScanPanel } from '@/components/feature/inventory/inventory-scan-panel';
@@ -100,26 +101,48 @@ export function MazziWorkspace({ initialInventory, initialDecks, user }: MazziWo
       <DashboardHeader user={user} />
 
       <div className="mx-auto w-full max-w-content px-4 py-6 sm:px-6">
-        <header className="mb-6">
-          <h1 className="font-sans text-2xl font-bold text-white sm:text-3xl">
-            Crea mazzo
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-white/60">
-            Scansiona le carte, costruisci l&apos;inventario e assembla mazzi per formato con
-            verifica Scryfall e Camera Match.
-          </p>
+        <header className="relative mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-transparent p-5 sm:p-7">
+          <div
+            className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#FF7300]/20 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] shadow-[0_10px_30px_rgba(255,115,0,0.35)]">
+              <Layers className="h-7 w-7 text-white" strokeWidth={2.2} aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-display text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
+                Crea mazzo
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/60">
+                Scansiona le carte con <span className="font-semibold text-white/80">Asso Vision</span>,
+                costruisci l&apos;inventario e assembla mazzi per formato con verifica Scryfall.
+              </p>
+            </div>
+          </div>
+
+          <dl className="relative mt-5 grid grid-cols-2 gap-3 sm:max-w-md">
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-white/40">Carte</dt>
+              <dd className="mt-0.5 font-display text-xl font-black text-white">{inventory.length}</dd>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-white/40">Mazzi</dt>
+              <dd className="mt-0.5 font-display text-xl font-black text-white">{decks.length}</dd>
+            </div>
+          </dl>
         </header>
 
-        <div className="mb-6 flex gap-2">
+        <div className="mb-6 inline-flex gap-1 rounded-full border border-white/10 bg-white/5 p-1">
           {(['inventario', 'mazzi'] as const).map((key) => (
             <button
               key={key}
               type="button"
               onClick={() => setTab(key)}
-              className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
+              className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wide transition-all ${
                 tab === key
-                  ? 'bg-[#FF7300] text-white'
-                  : 'bg-white/10 text-white/70 hover:bg-white/15'
+                  ? 'bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-[0_4px_14px_rgba(255,115,0,0.3)]'
+                  : 'text-white/60 hover:text-white'
               }`}
             >
               {key === 'inventario' ? 'Tutte le carte' : 'I miei mazzi'}

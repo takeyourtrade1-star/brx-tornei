@@ -97,7 +97,7 @@ export function JoinTournamentDeckModal({
         {(scryfallRequired || scanRequired) && (
           <ul className="mb-4 space-y-1 text-xs text-amber-200/90">
             {scryfallRequired && <li>• Controllo legalità Scryfall richiesto</li>}
-            {scanRequired && <li>• Verifica fisica Camera Match richiesta (ultime 24h)</li>}
+            {scanRequired && <li>• Verifica fisica Asso Vision richiesta (ultime 24h)</li>}
           </ul>
         )}
 

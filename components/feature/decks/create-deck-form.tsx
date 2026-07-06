@@ -13,7 +13,7 @@ interface CreateDeckFormProps {
   isSubmitting?: boolean;
 }
 
-const FORMAT_META: Record<FormatId, { color: string; hint: string }> = {
+export const FORMAT_META: Record<FormatId, { color: string; hint: string }> = {
   'old-school': { color: '#a86b32', hint: '1993–1997 · carte originali' },
   premodern: { color: '#7a5a2e', hint: '1995–2003 · no border' },
   pioneer: { color: '#3b82f6', hint: 'da 2012 a oggi' },

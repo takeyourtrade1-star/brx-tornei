@@ -4,6 +4,7 @@ import { useCallback, useState, useTransition } from 'react';
 import { Camera, CheckCircle2, Loader2 } from 'lucide-react';
 import { addScannedCardAction } from '@/actions/inventory';
 import { ScannerModal } from '@/components/feature/scanner/ScannerModal';
+import { AssoVisionEyes } from '@/components/feature/scanner/AssoVisionEyes';
 import type { ScanResult } from '@/hooks/scanner/scanner-types';
 import type { ResolveScanResult } from '@/types/resolve-scan';
 import { CardLegalityBadges } from './card-legality-badges';
@@ -60,22 +61,36 @@ export function InventoryScanPanel({ onCardAdded }: InventoryScanPanelProps) {
   );
 
   return (
-    <section className="rounded-2xl border border-[#FF7300]/25 bg-gradient-to-br from-[#FF7300]/10 to-transparent p-4 sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-sans text-lg font-semibold text-white">
-            Scansiona con Camera Match
-          </h2>
-          <p className="mt-1 max-w-xl text-sm text-white/60">
-            Inquadra le carte: le associamo al catalogo, le aggiungiamo al tuo inventario e
-            Scryfall ne verifica subito legalità e ban per ogni formato.
-          </p>
+    <section className="relative overflow-hidden rounded-2xl border border-[#FF7300]/25 bg-gradient-to-br from-[#FF7300]/12 via-[#FF7300]/5 to-transparent p-5 sm:p-6">
+      <div
+        className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-[#FF7300]/20 blur-3xl"
+        aria-hidden
+      />
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#FF7300]/30 bg-[#0a0f1a]/60 shadow-[0_6px_20px_rgba(255,115,0,0.18)]">
+            <AssoVisionEyes size={40} active />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-lg font-black uppercase tracking-wide text-white">
+                Asso Vision
+              </h2>
+              <span className="rounded-full border border-[#FF7300]/30 bg-[#FF7300]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FF7300]">
+                Beta
+              </span>
+            </div>
+            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-white/60">
+              Inquadra le carte: <span className="font-semibold text-white/80">Asso</span> le riconosce,
+              le aggiunge al tuo inventario e Scryfall verifica subito legalità e ban per ogni formato.
+            </p>
+          </div>
         </div>
         <button
           type="button"
           onClick={() => setScannerOpen(true)}
           disabled={isPending}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-[0_8px_24px_rgba(255,115,0,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
         >
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

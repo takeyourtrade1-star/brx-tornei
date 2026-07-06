@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type * as OrtLib from 'onnxruntime-web';
 
+import { BALANCED } from '@/lib/scanner/balancedProfile';
 import {
   fetchAndCacheOnnxModel,
   ONNX_LOAD_PROGRESS_IDLE,
@@ -69,10 +70,25 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
   const tensorBufferRef = useRef<Float32Array | null>(null);
   const embedWorkerRef = useRef<Worker | null>(null);
   const workerReadyRef = useRef(false);
+  const embedTokenRef = useRef(0);
   const embedPendingRef = useRef<{
+    token: number;
     resolve: (v: Float32Array) => void;
     reject: (e: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
   } | null>(null);
+
+  const settleEmbed = useCallback(
+    (token: number, action: (p: NonNullable<typeof embedPendingRef.current>) => void) => {
+      const pending = embedPendingRef.current;
+      // Ignora risposte di un embed già scaduto/sostituito (token non combacia).
+      if (!pending || pending.token !== token) return;
+      clearTimeout(pending.timer);
+      embedPendingRef.current = null;
+      action(pending);
+    },
+    [],
+  );
 
   /** ONNX InferenceSession (set once after model loads). */
   const sessionRef = useRef<OrtLib.InferenceSession | null>(null);
@@ -145,20 +161,18 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
             );
             workerOk = await new Promise<boolean>((resolve) => {
               const t = setTimeout(() => resolve(false), 45_000);
-              worker.onmessage = (ev: MessageEvent<{ type: string; vector?: Float32Array; message?: string }>) => {
+              worker.onmessage = (ev: MessageEvent<{ type: string; vector?: Float32Array; message?: string; token?: number }>) => {
                 if (ev.data.type === 'ready') {
                   clearTimeout(t);
                   workerReadyRef.current = true;
                   embedWorkerRef.current = worker;
                   resolve(true);
-                } else if (ev.data.type === 'vector' && ev.data.vector && embedPendingRef.current) {
-                  embedPendingRef.current.resolve(ev.data.vector);
-                  embedPendingRef.current = null;
-                } else if (ev.data.type === 'error') {
-                  if (embedPendingRef.current) {
-                    embedPendingRef.current.reject(new Error(ev.data.message ?? 'worker embed failed'));
-                    embedPendingRef.current = null;
-                  }
+                } else if (ev.data.type === 'vector' && ev.data.vector && ev.data.token != null) {
+                  const vector = ev.data.vector;
+                  settleEmbed(ev.data.token, (p) => p.resolve(vector));
+                } else if (ev.data.type === 'error' && ev.data.token != null) {
+                  const message = ev.data.message ?? 'worker embed failed';
+                  settleEmbed(ev.data.token, (p) => p.reject(new Error(message)));
                 }
               };
               worker.onerror = () => {
@@ -266,9 +280,23 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
       if (workerReadyRef.current && embedWorkerRef.current) {
         const worker = embedWorkerRef.current;
         const payload = tensor.slice();
+        const token = ++embedTokenRef.current;
         return new Promise((resolve, reject) => {
-          embedPendingRef.current = { resolve, reject };
-          worker.postMessage({ type: 'embed', tensor: payload }, [payload.buffer]);
+          // Se un embed precedente è ancora appeso, lo abbandoniamo: il worker
+          // elabora in serie, quindi la sua vecchia risposta verrà scartata dal
+          // token e non deve lasciare bloccato il chiamante.
+          if (embedPendingRef.current) {
+            clearTimeout(embedPendingRef.current.timer);
+            embedPendingRef.current.reject(new Error('embed superseded'));
+          }
+          const timer = setTimeout(() => {
+            if (embedPendingRef.current?.token === token) {
+              embedPendingRef.current = null;
+              reject(new Error('embed timeout'));
+            }
+          }, BALANCED.embedTimeoutMs);
+          embedPendingRef.current = { token, resolve, reject, timer };
+          worker.postMessage({ type: 'embed', tensor: payload, token }, [payload.buffer]);
         });
       }
       const ort = ortRef.current;

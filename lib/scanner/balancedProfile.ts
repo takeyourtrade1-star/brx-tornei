@@ -45,6 +45,15 @@ export const BALANCED = {
   /** Rete / FAISS */
   requestTimeoutMs: 3200,
   searchTopK: 5,
+
+  /** Timeout embedding ONNX (worker): oltre questo lo consideriamo bloccato. */
+  embedTimeoutMs: 4500,
+  /**
+   * Tetto massimo per identificare UNA foto in coda (embed + search + verify).
+   * Oltre questo la foto va in errore e viene chiesto all'utente, così non si
+   * resta bloccati all'infinito su uno scatto difficile.
+   */
+  captureMaxMs: 8000,
 } as const;
 
 export type TurboMatchInput = {

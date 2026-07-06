@@ -135,12 +135,15 @@ async function identifyOnnx(params: IdentifyCaptureParams): Promise<IdentifyCapt
   let method = 'v3+vec';
 
   if (shouldRunOrbVerify(margin, top1.confidence)) {
+    const verifyController = new AbortController();
+    const verifyTimeout = setTimeout(() => verifyController.abort(), params.requestTimeoutMs);
     try {
       const b64 = await blobToBase64Strip(params.blob);
       const verifyResp = await fetch(`${params.apiBaseUrl}/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ meta_idx: top1.meta_idx, image_b64: b64 }),
+        signal: verifyController.signal,
       });
       if (verifyResp.ok) {
         const vd = (await verifyResp.json()) as { verified?: boolean; confidence?: number };
@@ -151,6 +154,8 @@ async function identifyOnnx(params: IdentifyCaptureParams): Promise<IdentifyCapt
       }
     } catch {
       // verifica opzionale — continua con solo vettore
+    } finally {
+      clearTimeout(verifyTimeout);
     }
   }
 

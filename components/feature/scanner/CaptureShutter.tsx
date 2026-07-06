@@ -46,21 +46,23 @@ function QueueThumb({ item, onSelect }: { item: CaptureQueueItem; onSelect: () =
           ? 'ring-2 ring-[#FF7300]'
           : 'ring-1 ring-white/20';
 
+  const reviewable = item.status === 'ready' || item.status === 'error';
+
   return (
     <button
       type="button"
-      onClick={item.status === 'ready' ? onSelect : undefined}
-      disabled={item.status !== 'ready'}
+      onClick={reviewable ? onSelect : undefined}
+      disabled={!reviewable}
       className={cn(
         'relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-black/40',
         ring,
-        item.status === 'ready' && 'cursor-pointer hover:brightness-110',
+        reviewable && 'cursor-pointer hover:brightness-110',
       )}
       aria-label={
         item.status === 'ready'
           ? `Rivedi ${item.result?.card_name ?? 'carta'}`
           : item.status === 'error'
-            ? 'Identificazione fallita'
+            ? 'Non riconosciuta — tocca per riprovare'
             : 'In analisi'
       }
     >
@@ -84,6 +86,7 @@ export function CaptureQueuePanel({
   queue,
   reviewItemId,
   readyCount,
+  pendingReviewCount,
   processingCount,
   onSelect,
   onDismiss,
@@ -92,6 +95,7 @@ export function CaptureQueuePanel({
   queue: CaptureQueueItem[];
   reviewItemId: string | null;
   readyCount: number;
+  pendingReviewCount: number;
   processingCount: number;
   onSelect: (id: string) => void;
   onDismiss: (id: string) => void;
@@ -99,7 +103,7 @@ export function CaptureQueuePanel({
 }) {
   if (queue.length === 0) return null;
 
-  const pendingReview = readyCount > 0 && reviewItemId == null;
+  const pendingReview = pendingReviewCount > 0 && reviewItemId == null;
 
   return (
     <div className="absolute inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 px-3">
@@ -121,7 +125,7 @@ export function CaptureQueuePanel({
             onClick={onReviewReady}
             className="mb-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF7300] px-4 py-3 text-sm font-bold uppercase tracking-wide text-[#1a0f08] shadow-[0_4px_16px_rgba(255,115,0,0.35)] transition hover:brightness-110 active:scale-[0.98]"
           >
-            Rivedi {readyCount === 1 ? 'carta' : `${readyCount} carte`}
+            Rivedi {pendingReviewCount === 1 ? 'carta' : `${pendingReviewCount} carte`}
           </button>
         )}
 

@@ -10,12 +10,12 @@ const VECTOR_DIM = 384;
 
 type WorkerIn =
   | { type: 'init'; model: ArrayBuffer; wasmBase: string; useWebGl: boolean }
-  | { type: 'embed'; tensor: Float32Array };
+  | { type: 'embed'; tensor: Float32Array; token: number };
 
 type WorkerOut =
   | { type: 'ready' }
-  | { type: 'vector'; vector: Float32Array }
-  | { type: 'error'; message: string };
+  | { type: 'vector'; vector: Float32Array; token: number }
+  | { type: 'error'; message: string; token?: number };
 
 let session: ort.InferenceSession | null = null;
 
@@ -81,11 +81,12 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       const raw = outputs[session.outputNames[0]].data as Float32Array;
       const cls = new Float32Array(raw.buffer, raw.byteOffset, VECTOR_DIM);
       const vector = l2Normalize(new Float32Array(cls));
-      post({ type: 'vector', vector }, [vector.buffer]);
+      post({ type: 'vector', vector, token: msg.token }, [vector.buffer]);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    post({ type: 'error', message });
+    const token = ev.data.type === 'embed' ? ev.data.token : undefined;
+    post({ type: 'error', message, token });
   }
 };
 

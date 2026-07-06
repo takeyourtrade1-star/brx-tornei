@@ -35,12 +35,15 @@ export interface UseBrxScannerReturn {
   queue: CaptureQueueItem[];
   processingCount: number;
   readyCount: number;
+  pendingReviewCount: number;
   reviewItemId: string | null;
+  reviewItem: CaptureQueueItem | null;
   capturePhoto: () => Promise<void>;
   openReview: (id: string) => void;
   openFirstReady: () => boolean;
   openNextReady: () => boolean;
   dismissAndAdvance: (id: string) => boolean;
+  retryItem: (id: string) => void;
   closeReview: () => void;
   dismissItem: (id: string) => void;
   openCamera: () => Promise<void>;
@@ -90,13 +93,16 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     queue,
     processingCount,
     readyCount,
+    pendingReviewCount,
     reviewItemId,
+    reviewItem,
     reviewResult,
     capturePhoto,
     openReview,
     openFirstReady,
     openNextReady,
     dismissAndAdvance,
+    retryItem,
     closeReview,
     dismissItem,
     resetQueue,
@@ -106,6 +112,7 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     apiBaseUrl,
     scanMode,
     requestTimeoutMs,
+    captureMaxMs: BALANCED.captureMaxMs,
     isTurboReady,
     runOnnxEmbed,
     onnxCanvasRef,
@@ -188,7 +195,9 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     queue,
     processingCount,
     readyCount,
+    pendingReviewCount,
     reviewItemId,
+    reviewItem,
     capturePhoto,
     openReview: (id: string) => {
       openReview(id);
@@ -209,6 +218,10 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       if (opened) setState('matched');
       else setState((s) => (s === 'matched' ? 'scanning' : s));
       return opened;
+    },
+    retryItem: (id: string) => {
+      retryItem(id);
+      setState((s) => (s === 'matched' ? 'scanning' : s));
     },
     closeReview: handleCloseReview,
     dismissItem,

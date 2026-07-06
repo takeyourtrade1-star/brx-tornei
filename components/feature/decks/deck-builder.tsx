@@ -223,15 +223,18 @@ export function DeckBuilder({
 
       <div className="grid min-h-[420px] grid-cols-1 gap-4 lg:grid-cols-3 lg:min-h-[520px]">
         <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/5 p-3 lg:min-h-0">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-bold uppercase text-white/70">Inventario</p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
+              Inventario
+            </p>
             <button
               type="button"
               onClick={() => setScannerOpen(true)}
-              className="rounded-md bg-[#FF7300]/20 p-1.5 text-[#FF7300]"
-              aria-label="Scansiona carta"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#FF7300]/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#FF7300] ring-1 ring-[#FF7300]/25 transition-colors hover:bg-[#FF7300]/25"
+              aria-label="Scansiona carta con Asso Vision"
             >
               <Camera className="h-3.5 w-3.5" />
+              Scansiona
             </button>
           </div>
           <input
@@ -258,11 +261,24 @@ export function DeckBuilder({
         </div>
 
         <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/5 p-3 lg:min-h-0">
-          <div className="mb-2 flex justify-between">
-            <p className="text-xs font-bold uppercase text-white/70">Main deck</p>
-            <span className="text-[10px] font-bold text-white/60">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
+              Main deck
+            </p>
+            <span
+              className={`text-[11px] font-bold ${mainCount >= minMain ? 'text-emerald-300' : 'text-white/60'}`}
+            >
               {mainCount}/{minMain}
             </span>
+          </div>
+          <div className="mb-2 h-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${minMain > 0 ? Math.min(100, Math.round((mainCount / minMain) * 100)) : 100}%`,
+                backgroundColor: mainCount >= minMain ? '#34d399' : '#FF7300',
+              }}
+            />
           </div>
           <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
             {deck.main.map((card) => {
@@ -284,9 +300,11 @@ export function DeckBuilder({
         </div>
 
         <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/5 p-3 lg:min-h-0">
-          <div className="mb-2 flex justify-between">
-            <p className="text-xs font-bold uppercase text-white/70">Sideboard</p>
-            <span className="text-[10px] font-bold text-white/60">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
+              Sideboard
+            </p>
+            <span className="text-[11px] font-bold text-white/60">
               {sideCount}/{maxSide > 0 ? maxSide : '—'}
             </span>
           </div>

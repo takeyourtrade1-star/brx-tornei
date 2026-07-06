@@ -13,31 +13,70 @@ export interface UseCaptureQueueParams {
   apiBaseUrl: string;
   scanMode: 'auto' | 'fast' | 'full';
   requestTimeoutMs: number;
+  /**
+   * Tetto massimo per identificare una singola foto (embed + rete + verify).
+   * Superato questo la foto va in errore e viene chiesto all'utente, così la
+   * coda non resta mai bloccata su uno scatto difficile.
+   */
+  captureMaxMs: number;
   isTurboReady: () => boolean;
   runOnnxEmbed: (tensor: Float32Array) => Promise<Float32Array>;
   onnxCanvasRef: React.MutableRefObject<HTMLCanvasElement | null>;
   onnxCtxRef: React.MutableRefObject<CanvasRenderingContext2D | null>;
   tensorBufferRef: React.MutableRefObject<Float32Array | null>;
-  /** In modalità singola apre subito la revisione al primo risultato. */
+  /** In modalità singola apre subito la revisione appena una foto è pronta o fallisce. */
   autoReviewOnReady?: boolean;
-  onReviewOpen?: (result: ScanResult) => void;
+  onReviewOpen?: (item: CaptureQueueItem) => void;
 }
 
 export interface UseCaptureQueueReturn {
   queue: CaptureQueueItem[];
   processingCount: number;
   readyCount: number;
+  /** Foto che richiedono l'attenzione dell'utente (pronte + fallite). */
+  pendingReviewCount: number;
   reviewItemId: string | null;
+  reviewItem: CaptureQueueItem | null;
   reviewResult: ScanResult | null;
   capturePhoto: () => Promise<void>;
   openReview: (id: string) => void;
+  /** Apre la prima foto da rivedere (pronta o fallita). */
   openFirstReady: () => boolean;
+  /** Apre la prossima foto da rivedere diversa da quella corrente. */
   openNextReady: () => boolean;
-  /** Rimuove la carta corrente e apre la prossima pronta (atomico, no race). */
+  /** Rimuove la carta corrente e apre la prossima da rivedere (atomico, no race). */
   dismissAndAdvance: (id: string) => boolean;
+  /** Rimette in coda una foto fallita per un nuovo tentativo. */
+  retryItem: (id: string) => void;
   closeReview: () => void;
   dismissItem: (id: string) => void;
   resetQueue: () => void;
+}
+
+/** Una foto è "da rivedere" quando è pronta (conferma) o fallita (chiedi all'utente). */
+function isReviewable(item: CaptureQueueItem): boolean {
+  return item.status === 'ready' || item.status === 'error';
+}
+
+/**
+ * Esegue una promise con un tetto massimo di tempo. Non annulla il lavoro
+ * sottostante (fetch/worker hanno i loro abort), ma garantisce che la coda
+ * avanzi anche se qualcosa resta appeso all'infinito.
+ */
+function withCeiling<T>(promise: Promise<T>, ms: number): Promise<T | { timedOut: true }> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve({ timedOut: true }), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve({ timedOut: true });
+      },
+    );
+  });
 }
 
 export function useCaptureQueue({
@@ -46,6 +85,7 @@ export function useCaptureQueue({
   apiBaseUrl,
   scanMode,
   requestTimeoutMs,
+  captureMaxMs,
   isTurboReady,
   runOnnxEmbed,
   onnxCanvasRef,
@@ -56,9 +96,28 @@ export function useCaptureQueue({
 }: UseCaptureQueueParams): UseCaptureQueueReturn {
   const [queue, setQueue] = useState<CaptureQueueItem[]>([]);
   const [reviewItemId, setReviewItemId] = useState<string | null>(null);
+  // Fonte di verità sincrona per il worker: leggere lo stato React dentro un
+  // updater di setState non è garantito sincrono e faceva "bloccare" la coda.
+  const queueRef = useRef<CaptureQueueItem[]>([]);
   const blobsRef = useRef(new Map<string, Blob>());
   const thumbUrlsRef = useRef(new Set<string>());
   const workerBusyRef = useRef(false);
+
+  // onReviewOpen può cambiare identità ad ogni render: lo teniamo in un ref così
+  // pumpWorker resta stabile e non ricrea/riavvia il loop di elaborazione.
+  const onReviewOpenRef = useRef(onReviewOpen);
+  onReviewOpenRef.current = onReviewOpen;
+  const autoReviewRef = useRef(autoReviewOnReady);
+  autoReviewRef.current = autoReviewOnReady;
+
+  const setBoth = useCallback(
+    (updater: (prev: CaptureQueueItem[]) => CaptureQueueItem[]) => {
+      const next = updater(queueRef.current);
+      queueRef.current = next;
+      setQueue(next);
+    },
+    [],
+  );
 
   const revokeThumb = useCallback((url: string) => {
     URL.revokeObjectURL(url);
@@ -75,87 +134,112 @@ export function useCaptureQueue({
     [revokeThumb],
   );
 
+  const openItem = useCallback((item: CaptureQueueItem) => {
+    setReviewItemId(item.id);
+    onReviewOpenRef.current?.(item);
+  }, []);
+
   const pumpWorker = useCallback(async () => {
     if (workerBusyRef.current) return;
 
-    const turboReady = isTurboReady();
-    const onnxCanvas = onnxCanvasRef.current;
-    const onnxCtx = onnxCtxRef.current;
+    // Leggiamo la prossima foto in coda dal ref (sincrono e affidabile).
+    const next = queueRef.current.find((q) => q.status === 'queued');
+    if (!next) return;
+
     const tensorBuf = tensorBufferRef.current;
-    if (turboReady && (!onnxCanvas || !onnxCtx || !tensorBuf)) return;
+    // Turbo pronto ma buffer non ancora inizializzato: riprova a breve invece di
+    // lasciare la foto ferma in coda per sempre.
+    if (isTurboReady() && !tensorBuf) {
+      setTimeout(() => void pumpWorker(), 120);
+      return;
+    }
 
-    let nextId: string | null = null;
-    setQueue((prev) => {
-      const next = prev.find((q) => q.status === 'queued');
-      if (!next) return prev;
-      nextId = next.id;
-      return prev.map((q) => (q.id === next.id ? { ...q, status: 'processing' as const } : q));
-    });
-    if (!nextId) return;
-
+    const nextId = next.id;
     const blob = blobsRef.current.get(nextId);
     if (!blob) {
-      setQueue((prev) => removeItemInternal(nextId!, prev));
+      setBoth((prev) => removeItemInternal(nextId, prev));
+      void pumpWorker();
       return;
     }
 
     workerBusyRef.current = true;
+    setBoth((prev) =>
+      prev.map((q) => (q.id === nextId ? { ...q, status: 'processing' as const } : q)),
+    );
+
     const embedCanvas =
-      onnxCanvas ??
+      onnxCanvasRef.current ??
       (typeof document !== 'undefined' ? document.createElement('canvas') : null);
     const embedCtx = embedCanvas?.getContext('2d') ?? null;
+
+    let readyItem: CaptureQueueItem | null = null;
+
     if (!embedCanvas || !embedCtx) {
-      setQueue((prev) =>
+      setBoth((prev) =>
         prev.map((q) =>
           q.id === nextId
             ? { ...q, status: 'error' as const, error: 'Elaborazione foto non disponibile.' }
             : q,
         ),
       );
-      workerBusyRef.current = false;
-      void pumpWorker();
-      return;
-    }
+    } else {
+      const outcome = await withCeiling(
+        identifyCapture({
+          blob,
+          apiBaseUrl,
+          scanMode,
+          requestTimeoutMs,
+          isTurboReady,
+          runOnnxEmbed,
+          onnxCanvas: embedCanvas,
+          onnxCtx: embedCtx,
+          tensorBuffer: tensorBuf ?? new Float32Array(0),
+        }),
+        captureMaxMs,
+      );
 
-    const outcome = await identifyCapture({
-      blob,
-      apiBaseUrl,
-      scanMode,
-      requestTimeoutMs,
-      isTurboReady,
-      runOnnxEmbed,
-      onnxCanvas: embedCanvas,
-      onnxCtx: embedCtx,
-      tensorBuffer: tensorBuf ?? new Float32Array(0),
-    });
-    setQueue((prev) =>
-      prev.map((q) => {
-        if (q.id !== nextId) return q;
-        if (outcome.ok) {
-          return { ...q, status: 'ready' as const, result: outcome.result };
-        }
-        return { ...q, status: 'error' as const, error: outcome.error };
-      }),
-    );
-
-    if (outcome.ok && autoReviewOnReady) {
-      setReviewItemId(nextId);
-      onReviewOpen?.(outcome.result);
+      setBoth((prev) =>
+        prev.map((q) => {
+          if (q.id !== nextId) return q;
+          if ('timedOut' in outcome) {
+            return {
+              ...q,
+              status: 'error' as const,
+              error: 'Non sono riuscito a riconoscerla in tempo.',
+            };
+          }
+          if (outcome.ok) {
+            readyItem = { ...q, status: 'ready' as const, result: outcome.result };
+            return readyItem;
+          }
+          return { ...q, status: 'error' as const, error: outcome.error };
+        }),
+      );
     }
 
     workerBusyRef.current = false;
+
+    // Modalità singola: appena una foto è pronta (o è fallita) la portiamo subito
+    // in revisione, così l'utente non resta in attesa e può decidere.
+    if (autoReviewRef.current) {
+      const current = queueRef.current.find((q) => q.id === nextId);
+      if (current && isReviewable(current)) {
+        openItem(readyItem ?? current);
+      }
+    }
+
     void pumpWorker();
   }, [
     apiBaseUrl,
-    autoReviewOnReady,
+    captureMaxMs,
     isTurboReady,
     onnxCanvasRef,
-    onnxCtxRef,
-    onReviewOpen,
+    openItem,
     removeItemInternal,
     requestTimeoutMs,
     runOnnxEmbed,
     scanMode,
+    setBoth,
     tensorBufferRef,
   ]);
 
@@ -171,63 +255,61 @@ export function useCaptureQueue({
     blobsRef.current.set(id, snap.blob);
     thumbUrlsRef.current.add(snap.thumbnailUrl);
 
-    setQueue((prev) => [
-      ...prev,
-      { id, thumbnailUrl: snap.thumbnailUrl, status: 'queued' },
-    ]);
+    setBoth((prev) => [...prev, { id, thumbnailUrl: snap.thumbnailUrl, status: 'queued' }]);
     void pumpWorker();
-  }, [canvasRef, pumpWorker, videoRef]);
+  }, [canvasRef, pumpWorker, setBoth, videoRef]);
 
   const openReview = useCallback(
     (id: string) => {
-      const item = queue.find((q) => q.id === id);
-      if (!item?.result) return;
-      setReviewItemId(id);
-      onReviewOpen?.(item.result);
+      const item = queueRef.current.find((q) => q.id === id);
+      if (!item || !isReviewable(item)) return;
+      openItem(item);
     },
-    [onReviewOpen, queue],
+    [openItem],
   );
 
   const openFirstReady = useCallback((): boolean => {
-    const item = queue.find((q) => q.status === 'ready' && q.result);
-    if (!item?.result) return false;
-    setReviewItemId(item.id);
-    onReviewOpen?.(item.result);
+    const item = queueRef.current.find(isReviewable);
+    if (!item) return false;
+    openItem(item);
     return true;
-  }, [onReviewOpen, queue]);
+  }, [openItem]);
 
   const openNextReady = useCallback((): boolean => {
-    const item = queue.find(
-      (q) => q.status === 'ready' && q.result && q.id !== reviewItemId,
-    );
-    if (!item?.result) return false;
-    setReviewItemId(item.id);
-    onReviewOpen?.(item.result);
+    const item = queueRef.current.find((q) => isReviewable(q) && q.id !== reviewItemId);
+    if (!item) return false;
+    openItem(item);
     return true;
-  }, [onReviewOpen, queue, reviewItemId]);
+  }, [openItem, reviewItemId]);
 
   const dismissAndAdvance = useCallback(
     (id: string): boolean => {
-      let nextId: string | null = null;
-      let nextResult: ScanResult | null = null;
-      setQueue((prev) => {
-        const updated = removeItemInternal(id, prev);
-        const item = updated.find((q) => q.status === 'ready' && q.result);
-        if (item?.result) {
-          nextId = item.id;
-          nextResult = item.result;
-        }
-        return updated;
-      });
-      if (nextId && nextResult) {
-        setReviewItemId(nextId);
-        onReviewOpen?.(nextResult);
+      const updated = removeItemInternal(id, queueRef.current);
+      queueRef.current = updated;
+      setQueue(updated);
+      const next = updated.find(isReviewable);
+      if (next) {
+        openItem(next);
         return true;
       }
       setReviewItemId((cur) => (cur === id ? null : cur));
       return false;
     },
-    [onReviewOpen, removeItemInternal],
+    [openItem, removeItemInternal],
+  );
+
+  const retryItem = useCallback(
+    (id: string) => {
+      if (!blobsRef.current.has(id)) return;
+      setBoth((prev) =>
+        prev.map((q) =>
+          q.id === id ? { ...q, status: 'queued' as const, error: undefined, result: undefined } : q,
+        ),
+      );
+      setReviewItemId((cur) => (cur === id ? null : cur));
+      void pumpWorker();
+    },
+    [pumpWorker, setBoth],
   );
 
   const closeReview = useCallback(() => {
@@ -236,17 +318,16 @@ export function useCaptureQueue({
 
   const dismissItem = useCallback(
     (id: string) => {
-      setQueue((prev) => removeItemInternal(id, prev));
+      setBoth((prev) => removeItemInternal(id, prev));
       setReviewItemId((cur) => (cur === id ? null : cur));
     },
-    [removeItemInternal],
+    [removeItemInternal, setBoth],
   );
 
   const resetQueue = useCallback(() => {
-    setQueue((prev) => {
-      for (const q of prev) revokeThumb(q.thumbnailUrl);
-      return [];
-    });
+    for (const q of queueRef.current) revokeThumb(q.thumbnailUrl);
+    queueRef.current = [];
+    setQueue([]);
     blobsRef.current.clear();
     setReviewItemId(null);
   }, [revokeThumb]);
@@ -265,23 +346,26 @@ export function useCaptureQueue({
   ).length;
 
   const readyCount = queue.filter((q) => q.status === 'ready').length;
+  const pendingReviewCount = queue.filter(isReviewable).length;
 
-  const reviewResult =
-    reviewItemId != null
-      ? (queue.find((q) => q.id === reviewItemId)?.result ?? null)
-      : null;
+  const reviewItem =
+    reviewItemId != null ? (queue.find((q) => q.id === reviewItemId) ?? null) : null;
+  const reviewResult = reviewItem?.result ?? null;
 
   return {
     queue,
     processingCount,
     readyCount,
+    pendingReviewCount,
     reviewItemId,
+    reviewItem,
     reviewResult,
     capturePhoto,
     openReview,
     openFirstReady,
     openNextReady,
     dismissAndAdvance,
+    retryItem,
     closeReview,
     dismissItem,
     resetQueue,

@@ -17,7 +17,7 @@ export function ScannerBetaNotice({ className }: { className?: string }) {
           Beta
         </span>
         <p className="text-[10px] font-medium leading-snug text-white/65 sm:text-[11px]">
-          Camera Match è in beta: tieni la carta ben illuminata e centrata nel riquadro.
+          Asso Vision è in beta: tieni la carta ben illuminata e centrata nel riquadro.
         </p>
       </div>
     </div>

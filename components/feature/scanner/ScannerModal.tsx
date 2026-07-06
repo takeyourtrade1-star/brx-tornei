@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useCallback, useRef, useState, type RefObject } from 'react';
-import { Camera, X, Lightbulb } from 'lucide-react';
+import { X, Lightbulb } from 'lucide-react';
 import { useBrxScanner } from '@/hooks/useBrxScanner';
 import type { ScanResult } from '@/hooks/scanner/scanner-types';
 import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
 import { ScannerBetaNotice } from '@/components/feature/scanner/ScannerBetaNotice';
 import { CaptureQueuePanel, CaptureShutter } from '@/components/feature/scanner/CaptureShutter';
+import { AssoVisionEyes } from '@/components/feature/scanner/AssoVisionEyes';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -220,9 +221,9 @@ function StatusBar({ status }: { status: StatusBarState }) {
   const messages: Record<StatusBarState, string> = {
     idle: 'Inizializzazione fotocamera…',
     scanning: 'Inquadra la carta nel riquadro e scatta',
-    processing: 'Analisi in background…',
+    processing: 'Asso sta analizzando…',
     matched: 'Carta identificata — conferma o rifiuta',
-    slow: 'Analisi in corso…',
+    slow: 'Asso sta analizzando…',
   };
 
   const dotColor =
@@ -415,6 +416,101 @@ function MatchPreview({
 }
 
 // ---------------------------------------------------------------------------
+// Unrecognized preview — la carta non è stata identificata: chiedi all'utente
+// ---------------------------------------------------------------------------
+
+function UnrecognizedPreview({
+  thumbnailUrl,
+  message,
+  busy,
+  remainingReady,
+  onRetry,
+  onDiscard,
+  onNext,
+}: {
+  thumbnailUrl: string;
+  message: string;
+  busy?: boolean;
+  remainingReady?: number;
+  onRetry: () => void;
+  onDiscard: () => void;
+  onNext?: () => void;
+}) {
+  return (
+    <div
+      className="absolute inset-x-0 bottom-0 z-30 overflow-hidden rounded-t-[2rem]"
+      style={{ animation: 'slide-up 0.4s cubic-bezier(0.16,1,0.3,1) forwards' }}
+      role="dialog"
+      aria-label="Carta non riconosciuta"
+      aria-live="polite"
+    >
+      <style>{`
+        @keyframes slide-up {
+          from { transform: translateY(100%); opacity: 0; }
+          to   { transform: translateY(0);   opacity: 1; }
+        }
+      `}</style>
+
+      <div
+        className="absolute inset-0 rounded-t-[2rem] border border-white/10 bg-gradient-to-b from-[#1a1020]/95 via-[#0a0f1a]/92 to-[#050810]/98 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-12px_48px_rgba(0,0,0,0.55)]"
+        aria-hidden
+      />
+
+      <div className="relative flex flex-col gap-5 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
+        <div className="mx-auto h-1 w-12 rounded-full bg-white/25" aria-hidden />
+
+        <div className="flex items-start gap-4">
+          <div className="w-[5.5rem] shrink-0 overflow-hidden rounded-2xl border border-amber-400/25 bg-white/[0.06] shadow-lg ring-1 ring-amber-400/20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={thumbnailUrl} alt="" className="aspect-[5/7] w-full object-cover" loading="eager" />
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-0.5">
+            <p className="font-display text-lg font-bold leading-tight tracking-wide text-white">
+              Carta non riconosciuta
+            </p>
+            <p className="text-sm leading-snug text-white/55">{message}</p>
+            <p className="mt-0.5 text-[12px] leading-snug text-white/40">
+              Riprova con più luce e la carta ben dritta, oppure scartala e cercala a mano.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={busy}
+            className="flex-1 rounded-2xl bg-[#FF7300] px-4 py-3.5 text-sm font-bold uppercase tracking-wide text-[#1a0f08] shadow-[0_6px_20px_rgba(255,115,0,0.35)] transition hover:brightness-110 active:scale-[0.98] disabled:opacity-70"
+          >
+            Riprova
+          </button>
+          <button
+            type="button"
+            onClick={onDiscard}
+            disabled={busy}
+            className="flex-1 rounded-2xl border border-white/18 bg-white/[0.08] px-4 py-3.5 text-sm font-semibold text-white/85 backdrop-blur-md transition hover:bg-white/[0.12] active:scale-[0.98] disabled:opacity-50"
+          >
+            Scarta
+          </button>
+        </div>
+
+        {remainingReady != null && remainingReady > 0 && onNext && (
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={busy}
+            className="w-full rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 active:scale-[0.98] disabled:opacity-50"
+          >
+            Prossima carta ({remainingReady} rimanenti)
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Error panel
 // ---------------------------------------------------------------------------
 
@@ -490,12 +586,15 @@ export function ScannerModal({
     queue,
     processingCount,
     readyCount,
+    pendingReviewCount,
     reviewItemId,
+    reviewItem,
     capturePhoto,
     openReview,
     openFirstReady,
     openNextReady,
     dismissAndAdvance,
+    retryItem,
     closeReview,
     dismissItem,
     openCamera,
@@ -611,6 +710,11 @@ export function ScannerModal({
     }
   }, [reviewItemId, dismissItem, batchMode, finishBatchItem, closeReview]);
 
+  const handleRetry = useCallback(() => {
+    if (!reviewItemId) return;
+    retryItem(reviewItemId);
+  }, [reviewItemId, retryItem]);
+
   const handleCloseBtn = useCallback(() => {
     stopScanning();
     onClose();
@@ -634,7 +738,7 @@ export function ScannerModal({
   const showQueue = queue.length > 0 && showCaptureUi;
   const showStatusBar = (state === 'scanning' || state === 'matched') && queue.length === 0;
   const remainingReady =
-    batchMode && reviewItemId ? Math.max(0, readyCount - 1) : undefined;
+    batchMode && reviewItemId ? Math.max(0, pendingReviewCount - 1) : undefined;
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black" aria-modal aria-label="Scanner Magic">
@@ -658,15 +762,18 @@ export function ScannerModal({
         )}
       >
         <div className="flex items-center gap-2 justify-self-start">
-          <Camera className="h-6 w-6 text-[#FF7300]" strokeWidth={2} aria-hidden />
+          <AssoVisionEyes
+            size={38}
+            active={processingCount > 0 || state === 'scanning'}
+          />
         </div>
 
         <div className="flex flex-col items-center justify-center px-1">
           <span className="font-display text-[1.05rem] font-bold uppercase tracking-[0.22em] text-white drop-shadow-sm sm:text-xl">
-            Scan
+            Asso Vision
           </span>
           <span className="mt-0.5 hidden text-[9px] font-semibold uppercase tracking-[0.28em] text-[#FF7300]/90 sm:block">
-            Magic
+            {processingCount > 0 ? 'Sto analizzando…' : 'Scanner Magic'}
           </span>
         </div>
 
@@ -734,6 +841,7 @@ export function ScannerModal({
           queue={queue}
           reviewItemId={reviewItemId}
           readyCount={readyCount}
+          pendingReviewCount={pendingReviewCount}
           processingCount={processingCount}
           onSelect={openReview}
           onDismiss={dismissItem}
@@ -743,7 +851,7 @@ export function ScannerModal({
 
       <TorchToolbar torchOn={torchOn} torchSupported={torchSupported} onToggle={toggleTorch} />
 
-      {state === 'matched' && result && (
+      {state === 'matched' && reviewItem?.status === 'ready' && result && (
         <MatchPreview
           cardName={result.card_name}
           setName={result.set_name}
@@ -753,6 +861,18 @@ export function ScannerModal({
           remainingReady={remainingReady}
           onUseCard={() => void handleUseCard()}
           onNotThisCard={handleNotThisCard}
+          onNext={batchMode ? advanceBatchReview : undefined}
+        />
+      )}
+
+      {state === 'matched' && reviewItem?.status === 'error' && (
+        <UnrecognizedPreview
+          thumbnailUrl={reviewItem.thumbnailUrl}
+          message={reviewItem.error ?? 'Non è stato possibile identificare la carta.'}
+          busy={confirming}
+          remainingReady={remainingReady}
+          onRetry={handleRetry}
+          onDiscard={handleNotThisCard}
           onNext={batchMode ? advanceBatchReview : undefined}
         />
       )}
