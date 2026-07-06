@@ -101,27 +101,39 @@ export function MazziWorkspace({ initialInventory, initialDecks, user }: MazziWo
       <DashboardHeader user={user} />
 
       <div className="mx-auto w-full max-w-content px-4 py-6 sm:px-6">
-        <header className="relative mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-transparent p-5 sm:p-7">
+        <header className="relative mb-5 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-transparent p-3.5 sm:p-6">
           <div
-            className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#FF7300]/20 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#FF7300]/15 blur-3xl"
             aria-hidden
           />
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] shadow-[0_10px_30px_rgba(255,115,0,0.35)]">
-              <Layers className="h-7 w-7 text-white" strokeWidth={2.2} aria-hidden />
+          <div className="relative flex items-center gap-3 sm:gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] shadow-[0_6px_18px_rgba(255,115,0,0.3)] sm:h-14 sm:w-14 sm:rounded-2xl">
+              <Layers className="h-5 w-5 text-white sm:h-7 sm:w-7" strokeWidth={2.2} aria-hidden />
             </div>
-            <div className="min-w-0">
-              <h1 className="font-display text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display text-lg font-black uppercase tracking-wide text-white sm:text-3xl">
                 Crea mazzo
               </h1>
-              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/60">
+              <p className="mt-1 hidden max-w-2xl text-sm leading-relaxed text-white/60 sm:block">
                 Scansiona le carte con <span className="font-semibold text-white/80">Asso Vision</span>,
                 costruisci l&apos;inventario e assembla mazzi per formato con verifica legalità automatica.
               </p>
             </div>
+
+            {/* Stat compatte: inline su mobile, evitano di appesantire l'header */}
+            <div className="flex shrink-0 items-center gap-2 sm:hidden">
+              <div className="rounded-xl border border-white/10 bg-black/20 px-2.5 py-1.5 text-center">
+                <div className="font-display text-base font-black leading-none text-white">{inventory.length}</div>
+                <div className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-white/40">Carte</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 px-2.5 py-1.5 text-center">
+                <div className="font-display text-base font-black leading-none text-white">{decks.length}</div>
+                <div className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-white/40">Mazzi</div>
+              </div>
+            </div>
           </div>
 
-          <dl className="relative mt-5 grid grid-cols-2 gap-3 sm:max-w-md">
+          <dl className="relative mt-5 hidden grid-cols-2 gap-3 sm:grid sm:max-w-md">
             <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
               <dt className="text-[10px] font-bold uppercase tracking-wide text-white/40">Carte</dt>
               <dd className="mt-0.5 font-display text-xl font-black text-white">{inventory.length}</dd>

@@ -8,15 +8,25 @@ export function CaptureShutter({
   onCapture,
   disabled,
   processingCount,
+  raised,
 }: {
   onCapture: () => void;
   disabled?: boolean;
   processingCount: number;
+  /** Alza lo scatto sopra la coda scatti per non sovrapporsi. */
+  raised?: boolean;
 }) {
   return (
-    <div className="absolute bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))] left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2">
-      {processingCount > 0 && (
-        <span className="rounded-full border border-white/15 bg-black/55 px-3 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md">
+    <div
+      className={cn(
+        'absolute left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2.5',
+        raised
+          ? 'bottom-[max(9.5rem,calc(env(safe-area-inset-bottom)+8.5rem))]'
+          : 'bottom-[max(2rem,env(safe-area-inset-bottom))]',
+      )}
+    >
+      {processingCount > 0 && !raised && (
+        <span className="rounded-full border border-[#FF7300]/30 bg-black/55 px-3 py-1 text-[11px] font-medium text-white/85 backdrop-blur-md">
           {processingCount} in analisi…
         </span>
       )}
@@ -26,12 +36,16 @@ export function CaptureShutter({
         disabled={disabled}
         aria-label="Scatta foto carta"
         className={cn(
-          'flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full border-[3px] border-white bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.45)] transition active:scale-95 disabled:opacity-50',
+          'flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border-[3px] border-white/90 bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition active:scale-95 disabled:opacity-50',
         )}
       >
-        <span className="h-[3.1rem] w-[3.1rem] rounded-full bg-white" />
+        <span className="h-[3.35rem] w-[3.35rem] rounded-full bg-white" />
       </button>
-      <p className="text-[11px] font-medium text-white/70">Scatta · puoi fare più foto di fila</p>
+      {!raised && (
+        <p className="rounded-full bg-black/45 px-3 py-1 text-center text-[11px] font-medium text-white/75 backdrop-blur-sm">
+          Inquadra la carta e scatta · più foto di fila
+        </p>
+      )}
     </div>
   );
 }

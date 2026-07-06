@@ -8,6 +8,33 @@ import type { ResolveScanInput, ResolveScanResult } from '@/types/resolve-scan';
 
 export type { ResolveScanInput, ResolveScanResult } from '@/types/resolve-scan';
 
+/**
+ * Deriva un blueprintId sintetico e *stabile* per una carta riconosciuta da
+ * Asso Vision ma non presente nel catalogo Ebartex. Asso Vision si basa su
+ * Scryfall, quindi una carta identificata deve comunque finire in inventario
+ * (con legalità e immagine) invece di fallire alla conferma.
+ *
+ * Usiamo un range negativo dedicato per non collidere mai con i blueprint reali
+ * (positivi) del catalogo. Lo stesso scan → stesso seed → stesso id, così le
+ * copie multiple della stessa carta si sommano invece di duplicarsi.
+ */
+function syntheticBlueprintId(
+  input: ResolveScanInput,
+  enrichment: Awaited<ReturnType<typeof enrichCardFromScryfall>>
+): number {
+  const seed =
+    enrichment?.scryfallId ??
+    input.scryfallId ??
+    enrichment?.oracleId ??
+    `${input.cardName.trim().toLowerCase()}|${input.setCode ?? ''}|${input.collectorNumber ?? ''}`;
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return -(2_000_000 + (Math.abs(h) % 1_000_000_000));
+}
+
 function buildFallbackCard(input: ResolveScanInput, enrichment: Awaited<ReturnType<typeof enrichCardFromScryfall>>): CardCatalogHit {
   return {
     id: enrichment?.scryfallId ?? `scan-${input.cardName}-${input.setCode ?? 'unknown'}`,
@@ -51,7 +78,7 @@ export async function resolveScanAndAddToInventory(
     catalogCard = await searchCardByScryfallId(input.scryfallId);
   }
 
-  const mergedCard: CardCatalogHit = {
+  let mergedCard: CardCatalogHit = {
     ...(catalogCard ?? buildFallbackCard(input, enrichment)),
     image:
       catalogCard?.image ??
@@ -68,12 +95,12 @@ export async function resolveScanAndAddToInventory(
     tournamentLegalities: enrichment?.tournamentLegalities,
   };
 
-  const blueprintId = Number(mergedCard.id);
-  if (Number.isNaN(blueprintId) || blueprintId <= 0) {
-    return {
-      ok: false,
-      error: 'Carta non trovata nel catalogo Ebartex. Verifica nome e set.',
-    };
+  let blueprintId = Number(mergedCard.id);
+  if (!Number.isInteger(blueprintId) || blueprintId <= 0) {
+    // Non è nel catalogo Ebartex: la aggiungiamo comunque con i dati Asso Vision
+    // (Scryfall) e un id sintetico stabile, così legalità e ban restano attivi.
+    blueprintId = syntheticBlueprintId(input, enrichment);
+    mergedCard = { ...mergedCard, id: String(blueprintId) };
   }
 
   const existing = existingItems.find((i) => i.blueprintId === blueprintId);

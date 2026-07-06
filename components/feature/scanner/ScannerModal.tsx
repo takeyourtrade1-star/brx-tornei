@@ -212,49 +212,6 @@ function ScanAreaBlurMask() {
 }
 
 // ---------------------------------------------------------------------------
-// Status bar
-// ---------------------------------------------------------------------------
-
-type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow';
-
-function StatusBar({ status }: { status: StatusBarState }) {
-  const messages: Record<StatusBarState, string> = {
-    idle: 'Inizializzazione fotocamera…',
-    scanning: 'Inquadra la carta nel riquadro e scatta',
-    processing: 'Asso sta analizzando…',
-    matched: 'Carta identificata — conferma o rifiuta',
-    slow: 'Asso sta analizzando…',
-  };
-
-  const dotColor =
-    status === 'matched'
-      ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]'
-      : status === 'processing' || status === 'slow'
-      ? 'bg-[#FF7300] shadow-[0_0_10px_rgba(255,115,0,0.55)]'
-      : 'bg-white/70';
-
-  return (
-    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10">
-      <div className="flex max-w-lg items-center gap-3 rounded-2xl border border-white/20 bg-[#0a0f1a]/50 px-5 py-3.5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-        <span
-          className={cn(
-            'h-2 w-2 shrink-0 rounded-full',
-            dotColor,
-            status === 'processing' || status === 'slow'
-              ? 'animate-[pulse_1s_ease-in-out_infinite]'
-              : '',
-          )}
-          aria-hidden
-        />
-        <p className="text-center text-[13px] font-medium leading-snug tracking-wide text-white/95">
-          {messages[status]}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Requesting camera loader
 // ---------------------------------------------------------------------------
 
@@ -279,14 +236,23 @@ function TorchToolbar({
   torchOn,
   torchSupported,
   onToggle,
+  raised,
 }: {
   torchOn: boolean;
   torchSupported: boolean;
   onToggle: () => void;
+  raised?: boolean;
 }) {
   if (!torchSupported) return null;
   return (
-    <div className="absolute bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4rem))] left-1/2 z-30 -translate-x-1/2">
+    <div
+      className={cn(
+        'absolute right-5 z-30 sm:right-8',
+        raised
+          ? 'bottom-[max(10.5rem,calc(env(safe-area-inset-bottom)+9.5rem))]'
+          : 'bottom-[max(5rem,calc(env(safe-area-inset-bottom)+3rem))]',
+      )}
+    >
       <button
         type="button"
         onClick={onToggle}
@@ -744,20 +710,10 @@ export function ScannerModal({
   const bracketState: BracketState =
     state === 'matched' ? 'matched' : 'idle';
 
-  const statusBarState: StatusBarState =
-    state === 'matched'
-      ? 'matched'
-      : processingCount > 0
-        ? 'processing'
-        : state === 'scanning'
-          ? 'scanning'
-          : 'idle';
-
   const showCaptureUi = state === 'scanning' || state === 'matched';
   const showShutter =
     state === 'scanning' || (batchMode && state === 'matched' && reviewItemId == null);
   const showQueue = queue.length > 0 && showCaptureUi;
-  const showStatusBar = (state === 'scanning' || state === 'matched') && queue.length === 0;
   const remainingReady =
     batchMode && reviewItemId ? Math.max(0, pendingReviewCount - 1) : undefined;
 
@@ -893,15 +849,7 @@ export function ScannerModal({
 
           <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
             <ScanCorners bracketState={bracketState} />
-
-            {state !== 'matched' && (
-              <p className="mt-5 max-w-[min(92vw,22rem)] text-center text-[12px] font-medium leading-relaxed text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[13px]">
-                Inquadra la carta nel riquadro e premi scatta
-              </p>
-            )}
           </div>
-
-          {showStatusBar && <StatusBar status={statusBarState} />}
         </>
       )}
 
@@ -909,6 +857,7 @@ export function ScannerModal({
         <CaptureShutter
           onCapture={() => void capturePhoto()}
           processingCount={processingCount}
+          raised={showQueue}
         />
       )}
 
@@ -925,7 +874,14 @@ export function ScannerModal({
         />
       )}
 
-      <TorchToolbar torchOn={torchOn} torchSupported={torchSupported} onToggle={toggleTorch} />
+      {showShutter && (
+        <TorchToolbar
+          torchOn={torchOn}
+          torchSupported={torchSupported}
+          onToggle={toggleTorch}
+          raised={showQueue}
+        />
+      )}
 
       {state === 'matched' && reviewItem?.status === 'ready' && result && (
         <MatchPreview
