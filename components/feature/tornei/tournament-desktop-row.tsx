@@ -11,9 +11,15 @@ import type { Tournament } from '@/types/tournament';
 
 interface TournamentDesktopRowProps {
   tournament: Tournament;
+  onJoin?: (id: string) => void;
+  onObserve?: (id: string) => void;
 }
 
-export function TournamentDesktopRow({ tournament }: TournamentDesktopRowProps) {
+export function TournamentDesktopRow({
+  tournament,
+  onJoin,
+  onObserve,
+}: TournamentDesktopRowProps) {
   return (
     <tr className="transition-colors hover:bg-white/[0.03]">
       <td className="px-4 py-3.5">
@@ -25,7 +31,16 @@ export function TournamentDesktopRow({ tournament }: TournamentDesktopRowProps) 
       <td className="px-4 py-3.5">
         <div className="flex items-center gap-2">
           <StatusBadge status={tournament.status} />
-          {tournament.status === 'iniziata' && <Eye className="h-3.5 w-3.5 text-white/60" aria-hidden />}
+          {tournament.status === 'iniziata' && (
+            <button
+              type="button"
+              onClick={() => onObserve?.(tournament.id)}
+              aria-label="Guarda partita live"
+              className="rounded-full p-1 text-white/60 transition hover:bg-white/10 hover:text-white"
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </td>
       <td className="px-4 py-3.5 font-bold tabular-nums text-white">
@@ -47,12 +62,20 @@ export function TournamentDesktopRow({ tournament }: TournamentDesktopRowProps) 
             {tournament.status === 'in_registrazione' && (
               <li>
                 {tournament.isPrivate ? (
-                  <button type="button" className={tournamentActionButtonClass('sm')}>
+                  <button
+                    type="button"
+                    onClick={() => onJoin?.(tournament.id)}
+                    className={tournamentActionButtonClass('sm')}
+                  >
                     <UserPlus className={tournamentActionIconClass} />
                     Chiedi
                   </button>
                 ) : (
-                  <button type="button" className={tournamentActionButtonClass('sm')}>
+                  <button
+                    type="button"
+                    onClick={() => onJoin?.(tournament.id)}
+                    className={tournamentActionButtonClass('sm')}
+                  >
                     <Plus className={tournamentActionIconClass} />
                     Partecipa
                   </button>

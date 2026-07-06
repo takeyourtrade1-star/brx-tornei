@@ -7,9 +7,15 @@ import type { Tournament } from '@/types/tournament';
 
 interface TournamentMobileCardProps {
   tournament: Tournament;
+  onJoin?: (id: string) => void;
+  onObserve?: (id: string) => void;
 }
 
-export function TournamentMobileCard({ tournament }: TournamentMobileCardProps) {
+export function TournamentMobileCard({
+  tournament,
+  onJoin,
+  onObserve,
+}: TournamentMobileCardProps) {
   const joinedCount = tournament.participants.length;
   const isFull = joinedCount >= tournament.maxPlayers;
 
@@ -24,6 +30,7 @@ export function TournamentMobileCard({ tournament }: TournamentMobileCardProps) 
           {tournament.status === 'iniziata' && (
             <button
               type="button"
+              onClick={() => onObserve?.(tournament.id)}
               aria-label="Guarda partita live"
               className="rounded-full p-1.5 text-white/60 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
             >
@@ -65,7 +72,10 @@ export function TournamentMobileCard({ tournament }: TournamentMobileCardProps) 
             );
           })}
           {tournament.status === 'in_registrazione' && !isFull && (
-            <MobileJoinButton isPrivate={tournament.isPrivate} />
+            <MobileJoinButton
+              isPrivate={tournament.isPrivate}
+              onJoin={() => onJoin?.(tournament.id)}
+            />
           )}
         </div>
       )}

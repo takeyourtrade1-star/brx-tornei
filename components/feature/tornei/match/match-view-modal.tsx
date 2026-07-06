@@ -2,10 +2,9 @@
 
 import { Eye, PictureInPicture2, Swords, X } from 'lucide-react';
 import type { Tournament } from '@/types/tournament';
-import { useMatchSimulation } from './use-match-simulation';
-import { PlayerDualWebcam } from './player-dual-webcam';
+import { usePlayerWebcam } from '@/hooks/use-player-webcam';
+import { matchPlayers } from './match-players';
 import { WebcamTile } from './webcam-tile';
-import { MatchDataPanel } from './match-data-panel';
 
 export type MatchRole = 'player' | 'observer';
 
@@ -14,40 +13,32 @@ interface MatchViewModalProps {
   tournament: Tournament | null;
   role: MatchRole;
   me?: string;
-  /** Stream telefono (mani) via QR/WebRTC, se disponibile. */
-  playerStream?: MediaStream | null;
   onClose: () => void;
-  /** Attiva il Picture-in-Picture (solo osservatore). */
   onPip?: () => void;
 }
 
 /**
- * Vista partita live di Magic. Il giocatore ha doppia camera (volto PC + mani
- * telefono); l'avversario resta simulato finché non c'è WebRTC reale.
+ * Vista partita live (modale legacy). Due webcam e nomi giocatori.
  */
 export function MatchViewModal({
   open,
   tournament,
   role,
-  me,
-  playerStream,
   onClose,
   onPip,
 }: MatchViewModalProps) {
-  // La simulazione resta attiva solo a modale aperto.
-  const state = useMatchSimulation(tournament, me, open);
-
-  if (!open || !tournament || !state) return null;
-
   const isObserver = role === 'observer';
-  const handsStream = !isObserver ? (playerStream ?? null) : null;
+  const { stream: localStream, feedLabel } = usePlayerWebcam(open && !isObserver);
+
+  if (!open || !tournament) return null;
+
+  const [playerA, playerB] = matchPlayers(tournament);
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} aria-hidden />
 
-      <div className="brx-glass relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/15 p-5 sm:p-6">
-        {/* Header */}
+      <div className="brx-glass relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/15 p-5 sm:p-6">
         <header className="mb-4 flex items-center justify-between gap-3 pr-2">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[#FF7300]/40 bg-[#FF7300]/15 text-[#FF7300]">
@@ -58,8 +49,7 @@ export function MatchViewModal({
                 {isObserver ? 'Stai osservando' : 'La tua partita'}
               </h2>
               <p className="text-xs text-white/55">
-                {state.players[0].username} vs {state.players[1].username} ·{' '}
-                <span className="capitalize">{state.format.replace('-', ' ')}</span>
+                {playerA.username} vs {playerB.username}
               </p>
             </div>
           </div>
@@ -86,42 +76,20 @@ export function MatchViewModal({
           </div>
         </header>
 
-        {/* Corpo: webcam + dati */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
-          {/* Webcam dei due giocatori */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="relative aspect-video sm:aspect-auto sm:min-h-[280px]">
-              {isObserver ? (
-                <WebcamTile
-                  username={state.players[0].username}
-                  flag={state.players[0].flag}
-                  deck={state.players[0].deck}
-                  badge={`♥ ${state.players[0].life}`}
-                />
-              ) : (
-                <PlayerDualWebcam
-                  handsStream={handsStream}
-                  username={state.players[0].username}
-                  flag={state.players[0].flag}
-                  deck={state.players[0].deck}
-                  badge={`♥ ${state.players[0].life}`}
-                  active={open}
-                />
-              )}
-            </div>
-            <div className="relative aspect-video sm:aspect-auto sm:min-h-[260px]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="relative aspect-video sm:aspect-auto sm:min-h-[260px]">
+            {isObserver ? (
+              <WebcamTile username={playerA.username} />
+            ) : (
               <WebcamTile
-                username={state.players[1].username}
-                flag={state.players[1].flag}
-                deck={state.players[1].deck}
-                badge={`♥ ${state.players[1].life}`}
+                stream={localStream}
+                username={playerA.username}
+                feedLabel={feedLabel}
               />
-            </div>
+            )}
           </div>
-
-          {/* Pannello dati partita */}
-          <div className="min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-            <MatchDataPanel state={state} />
+          <div className="relative aspect-video sm:aspect-auto sm:min-h-[260px]">
+            <WebcamTile username={playerB.username} />
           </div>
         </div>
       </div>

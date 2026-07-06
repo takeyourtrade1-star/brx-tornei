@@ -12,7 +12,11 @@ function loadDecks(): Deck[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? (parsed as Deck[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    return (parsed as Deck[]).map((d) => ({
+      ...d,
+      verificationStatus: d.verificationStatus ?? 'none',
+    }));
   } catch {
     return [];
   }
@@ -89,6 +93,7 @@ export function useDecks(): UseDecksReturn {
       main: [],
       side: [],
       createdAt: new Date().toISOString(),
+      verificationStatus: 'none',
     };
     setDecks((prev) => [newDeck, ...prev]);
     return newDeck;

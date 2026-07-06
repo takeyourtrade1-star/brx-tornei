@@ -8,6 +8,8 @@ interface TournamentsTableProps {
   formatName?: string;
   modeName?: string;
   filtersActive?: boolean;
+  onJoinTournament?: (id: string) => void;
+  onObserveTournament?: (id: string) => void;
 }
 
 /**
@@ -18,6 +20,8 @@ export function TournamentsTable({
   formatName,
   modeName,
   filtersActive = false,
+  onJoinTournament,
+  onObserveTournament,
 }: TournamentsTableProps) {
   if (tournaments.length === 0) {
     const contextLabel =
@@ -31,7 +35,12 @@ export function TournamentsTable({
       {/* Mobile: lista card */}
       <div className="flex flex-col gap-3 md:hidden">
         {tournaments.map((t) => (
-          <TournamentMobileCard key={t.id} tournament={t} />
+          <TournamentMobileCard
+            key={t.id}
+            tournament={t}
+            onJoin={onJoinTournament}
+            onObserve={onObserveTournament}
+          />
         ))}
       </div>
 
@@ -49,7 +58,12 @@ export function TournamentsTable({
           </thead>
           <tbody>
             {tournaments.map((t) => (
-              <TournamentDesktopRow key={t.id} tournament={t} />
+              <TournamentDesktopRow
+                key={t.id}
+                tournament={t}
+                onJoin={onJoinTournament}
+                onObserve={onObserveTournament}
+              />
             ))}
           </tbody>
         </table>

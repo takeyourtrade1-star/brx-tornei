@@ -30,8 +30,14 @@ export class SignalingChannel {
   private stopped = false;
   private onMessage: (m: SignalMessage) => void;
 
-  constructor(sessionId: string, role: SignalRole, onMessage: (m: SignalMessage) => void) {
-    this.base = `/api/tornei/webcam/${encodeURIComponent(sessionId)}`;
+  constructor(
+    sessionId: string,
+    role: SignalRole,
+    onMessage: (m: SignalMessage) => void,
+    basePath?: string,
+  ) {
+    this.base =
+      basePath ?? `/api/tornei/webcam/${encodeURIComponent(sessionId)}`;
     this.role = role;
     this.onMessage = onMessage;
   }

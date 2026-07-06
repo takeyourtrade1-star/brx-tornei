@@ -1,28 +1,40 @@
 'use client';
 
+import type { WebcamSource } from '@/types/webcam';
+
 /**
- * Holder globale del flusso telefono (mani) attivo via WebRTC/QR.
- *
- * La webcam del volto (PC) si avvia localmente con `useLocalWebcam` nella
- * vista match; non passa da qui.
+ * Holder globale della webcam attiva del giocatore (PC o telefono via QR).
+ * Una sola sorgente per partita.
  */
 
-type Listener = (stream: MediaStream | null) => void;
+type Listener = () => void;
 
 let current: MediaStream | null = null;
+let currentSource: WebcamSource | null = null;
 let stopFn: (() => void) | null = null;
 const listeners = new Set<Listener>();
+
+function notify(): void {
+  listeners.forEach((l) => l());
+}
 
 export const webcamLink = {
   get(): MediaStream | null {
     return current;
   },
-  /** Registra lo stream attivo e l'eventuale funzione di chiusura. */
-  set(stream: MediaStream | null, stop?: () => void): void {
+
+  getSource(): WebcamSource | null {
+    return currentSource;
+  },
+
+  /** Registra sorgente, stream attivo e l'eventuale funzione di chiusura. */
+  set(source: WebcamSource, stream: MediaStream | null, stop?: () => void): void {
+    currentSource = source;
     current = stream;
     if (stop) stopFn = stop;
-    listeners.forEach((l) => l(current));
+    notify();
   },
+
   /** Chiude il link e azzera lo stato. */
   stop(): void {
     try {
@@ -32,11 +44,16 @@ export const webcamLink = {
     }
     stopFn = null;
     current = null;
-    listeners.forEach((l) => l(null));
+    currentSource = null;
+    notify();
   },
+
+  clear(): void {
+    this.stop();
+  },
+
   subscribe(l: Listener): () => void {
     listeners.add(l);
-    l(current);
     return () => {
       listeners.delete(l);
     };

@@ -1,5 +1,7 @@
-import type { FormatId } from '@/lib/data/catalog';
+import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { CardCatalogHit } from './card';
+import type { DeckLegalityIssue } from './card-legality';
+import type { DeckVerificationStatus } from './match-verification';
 
 /** Archetipi/strategie di mazzo Magic sensati e ricorrenti. */
 export type DeckArchetypeId =
@@ -37,6 +39,11 @@ export interface Deck {
   main: DeckCard[];
   side: DeckCard[];
   createdAt: string;
+  modeId?: ModeId;
+  verificationStatus: DeckVerificationStatus;
+  lastVerifiedAt?: string;
+  legalityCheckedAt?: string;
+  legalityErrors?: DeckLegalityIssue[];
 }
 
 /** Stato di un mazzo durante la costruzione. */

@@ -13,18 +13,30 @@ export interface Participant {
 
 export interface Tournament {
   id: string;
-  /** Formato di gioco selezionato (Old School, Modern, Commander...). */
   format: FormatId;
   mode: ModeId;
-  /** Quota di ingresso (stile buy-in poker). */
   buyIn: BuyIn;
   bestOf: BestOf;
   status: TournamentStatus;
-  /** Posti totali (Heads-Up = 2). */
   maxPlayers: number;
   participants: Participant[];
-  createdAt: string; // ISO
-  isPrivate?: boolean; // Partita privata con lucchetto
+  createdAt: string;
+  isPrivate?: boolean;
+  /** Torneo strutturato (verifica mazzo obbligatoria). */
+  isTournament?: boolean;
+  enableScryfallCheck?: boolean;
+  enablePhysicalVerification?: boolean;
+  webcamSessionId?: string;
+  matchId?: string;
+  matchWebcamSessionId?: string;
+  createdById?: string;
+}
+
+/** Risultato join torneo (può avviare un match). */
+export interface JoinTournamentResult {
+  tournament: Tournament;
+  matchId?: string;
+  matchWebcamSessionId?: string;
 }
 
 export type { BuyIn };

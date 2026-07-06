@@ -12,14 +12,26 @@ import {
  * Su telefono i tornei non si giocano: al tap spiega che si partecipa dal PC
  * e che questo telefono può essere usato come webcam (inquadrando il QR sul PC).
  */
-export function MobileJoinButton({ isPrivate }: { isPrivate?: boolean }) {
+export function MobileJoinButton({
+  isPrivate,
+  onJoin,
+}: {
+  isPrivate?: boolean;
+  onJoin?: () => void;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (onJoin) {
+            onJoin();
+            return;
+          }
+          setOpen(true);
+        }}
         className={tournamentActionButtonClass('sm')}
       >
         {isPrivate ? (
@@ -56,9 +68,8 @@ export function MobileJoinButton({ isPrivate }: { isPrivate?: boolean }) {
                   Partecipa dal PC
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-white/70">
-                  I tornei si giocano dal computer. Apri il torneo sul PC e usa questo telefono
-                  come <span className="font-bold text-[#FF7300]">webcam</span>: ti basterà
-                  inquadrare il QR che comparirà sullo schermo.
+                  I tornei si giocano dal computer. Puoi usare la webcam del PC o del telefono
+                  (una sola): quando crei o partecipi, scegli la sorgente o inquadra il QR.
                 </p>
               </div>
             </div>

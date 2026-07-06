@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ChevronDown, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import { TournamentsDashboard } from './tournaments-dashboard';
+import { TournamentLiveOrchestrator } from './tournament-live-orchestrator';
 import type { FormatId } from '@/lib/data/catalog';
 import type { Selection } from '@/lib/validations/selection';
 import type { Tournament } from '@/types/tournament';
@@ -74,16 +74,16 @@ export function TournamentSimpleView({
             >
               <div className="overflow-hidden">
                 <p className="px-3 pb-3 text-sm leading-relaxed text-white/75">
-                  Il tuo telefono può però fare da{' '}
-                  <span className="font-bold text-primary">webcam</span>: apri i tornei sul computer
-                  e, quando crei la partita, inquadra il QR per usare questa fotocamera.
+                  Puoi usare la webcam del <span className="font-bold text-primary">PC</span> oppure
+                  quella del <span className="font-bold text-primary">telefono</span> (una sola per
+                  partita): apri i tornei sul computer e scegli la sorgente quando crei o partecipi.
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        <TournamentsDashboard
+        <TournamentLiveOrchestrator
           tournaments={tournaments}
           selection={selection}
           formatId={formatId}

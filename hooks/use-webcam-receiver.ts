@@ -20,8 +20,8 @@ function makeSessionId(): string {
  * stream ricevuto e RTT. `detach` stacca il controller SENZA chiuderlo (per
  * passare lo stream attivo al match dopo la conferma).
  */
-export function useWebcamReceiver() {
-  const [sessionId, setSessionId] = useState(makeSessionId);
+export function useWebcamReceiver(externalSessionId?: string | null) {
+  const [sessionId, setSessionId] = useState(() => externalSessionId ?? makeSessionId());
   const [state, setState] = useState<LinkState>('idle');
   const [rtt, setRtt] = useState<number | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -67,6 +67,10 @@ export function useWebcamReceiver() {
     ctrlRef.current = null;
     return c;
   }, []);
+
+  useEffect(() => {
+    if (externalSessionId) setSessionId(externalSessionId);
+  }, [externalSessionId]);
 
   useEffect(() => {
     return () => {

@@ -19,7 +19,7 @@
  */
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
 import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-config";
-import { DecksModal } from "./decks-modal";
+import { DecksModal } from "@/components/feature/decks/decks-modal";
 import { StyledSelect } from "./styled-select";
 import { buildArcadeBackground, arcadeDoorBounds } from "./arcade-room/ArcadeBackground";
 import { buildArcadeFurniture } from "./arcade-room/ArcadeSprites";

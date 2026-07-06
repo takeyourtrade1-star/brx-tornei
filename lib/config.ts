@@ -3,6 +3,8 @@
  * Stesso pattern di new_frontend_brx/lib/config.ts.
  */
 
+import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
+
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 const normalizeURL = (url: string): string => url.replace(/\/+$/, '');
@@ -41,35 +43,30 @@ const getSyncApiURL = (): string => {
   return normalizeURL(envUrl);
 };
 
-/** Configurazione Meilisearch per il catalogo carte (server-only). */
-const getMeilisearchHost = (): string => {
-  const url =
-    process.env.MEILISEARCH_URL ||
-    process.env.NEXT_PUBLIC_MEILISEARCH_URL ||
-    process.env.MEILI_URL ||
+/** URL del Tournament Service — CRUD tornei, join, signaling. */
+const getTournamentsApiURL = (): string => {
+  const envUrl =
+    process.env.NEXT_PUBLIC_TOURNAMENTS_API_URL ||
+    process.env.TOURNAMENTS_API_URL ||
     '';
-  if (!url && isDevelopment) {
-    console.warn('[Config] MEILISEARCH_URL non configurato.');
+  if (!envUrl && isDevelopment) {
+    console.warn('[Config] NEXT_PUBLIC_TOURNAMENTS_API_URL non configurato.');
   }
-  return normalizeURL(url);
+  return normalizeURL(envUrl);
 };
 
-const getMeilisearchApiKey = (): string => {
-  return (
-    process.env.MEILISEARCH_API_KEY ||
-    process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
-    process.env.MEILI_API_KEY ||
-    ''
-  );
-};
-
-const getMeilisearchIndex = (): string => {
-  return (
-    process.env.MEILISEARCH_INDEX ||
-    process.env.NEXT_PUBLIC_MEILISEARCH_INDEX ||
-    'cards'
-  );
-};
+/** Configurazione Meilisearch — stesse env di new_frontend_brx (server-only). */
+function getMeilisearchConfig() {
+  const { url, apiKey, index } = getMeilisearchServerConfig();
+  if (!url && isDevelopment) {
+    console.warn('[Config] MEILISEARCH_URL / NEXT_PUBLIC_MEILISEARCH_URL non configurato.');
+  }
+  return {
+    host: normalizeURL(url),
+    apiKey,
+    indexName: index,
+  };
+}
 
 export const ASSETS = {
   cdnUrl: cdnBase,
@@ -94,13 +91,10 @@ export const config = {
   api: {
     baseURL: getAuthApiURL(),
     syncBaseURL: getSyncApiURL(),
+    tournamentsBaseURL: getTournamentsApiURL(),
     timeout: 30000,
   },
-  meilisearch: {
-    host: getMeilisearchHost(),
-    apiKey: getMeilisearchApiKey(),
-    indexName: getMeilisearchIndex(),
-  },
+  meilisearch: getMeilisearchConfig(),
   auth: {
     /** Stessi nomi cookie del proxy del sito principale → SSO cross-subdomain. */
     accessCookie: 'ebartex_access_token',

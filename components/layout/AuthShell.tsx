@@ -60,7 +60,7 @@ export function AuthShell({
 
   if (splitHero) {
     return (
-      <div className="relative h-screen max-h-screen w-full overflow-hidden bg-[#2d2d2d]">
+      <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
         <LandingBackgroundVideo splitLeft />
 
         <div
@@ -77,7 +77,7 @@ export function AuthShell({
           aria-hidden
         />
 
-        <div className="relative z-10 flex h-full min-h-0 flex-col">
+        <div className="relative z-10 flex min-h-screen flex-col">
           <div className="flex min-h-0 w-full flex-1 flex-col lg:flex-row">{children}</div>
         </div>
       </div>

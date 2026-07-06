@@ -1,5 +1,5 @@
 import 'server-only';
-import { config } from '@/lib/config';
+import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 import type { CardCatalogHit } from '@/types/card';
 
 const ATTRIBUTES_TO_RETRIEVE = [
@@ -11,6 +11,8 @@ const ATTRIBUTES_TO_RETRIEVE = [
   'cardtrader_id',
   'rarity',
   'collector_number',
+  'oracle_id',
+  'scryfall_id',
 ];
 
 export type BlueprintToCardMap = Record<number, CardCatalogHit>;
@@ -24,6 +26,12 @@ interface MeiliSearchHit {
   cardtrader_id?: number;
   rarity?: string;
   collector_number?: string;
+  oracle_id?: string;
+  scryfall_id?: string;
+}
+
+function escapeMeiliFilterValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 function normalizeHit(hit: MeiliSearchHit): CardCatalogHit | null {
@@ -41,7 +49,38 @@ function normalizeHit(hit: MeiliSearchHit): CardCatalogHit | null {
     setCode: hit.set_code,
     rarity: hit.rarity,
     collectorNumber: hit.collector_number,
+    oracleId: hit.oracle_id,
+    scryfallId: hit.scryfall_id,
   };
+}
+
+async function meiliSearch(body: Record<string, unknown>): Promise<MeiliSearchHit[]> {
+  const { url, apiKey, index } = getMeilisearchServerConfig();
+  if (!url) return [];
+
+  const searchUrl = `${url}/indexes/${index}/search`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
+  try {
+    const res = await fetch(searchUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) return [];
+    const data = (await res.json().catch(() => null)) as { hits?: MeiliSearchHit[] } | null;
+    return Array.isArray(data?.hits) ? data.hits : [];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -51,7 +90,8 @@ function normalizeHit(hit: MeiliSearchHit): CardCatalogHit | null {
 export async function getCardsByBlueprintIds(
   blueprintIds: number[]
 ): Promise<BlueprintToCardMap> {
-  if (!config.meilisearch.host) {
+  const { url, apiKey, index } = getMeilisearchServerConfig();
+  if (!url) {
     console.warn('[CatalogCards] MEILISEARCH_URL non configurato');
     return {};
   }
@@ -59,13 +99,13 @@ export async function getCardsByBlueprintIds(
   const uniqueIds = [...new Set(blueprintIds)].filter((n) => Number.isInteger(n) && n > 0);
   if (uniqueIds.length === 0) return {};
 
-  const searchUrl = `${config.meilisearch.host}/indexes/${config.meilisearch.indexName}/search`;
+  const searchUrl = `${url}/indexes/${index}/search`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
-  if (config.meilisearch.apiKey) {
-    headers.Authorization = `Bearer ${config.meilisearch.apiKey}`;
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
   }
 
   try {
@@ -78,7 +118,7 @@ export async function getCardsByBlueprintIds(
         attributesToRetrieve: ATTRIBUTES_TO_RETRIEVE,
       }),
       cache: 'no-store',
-      signal: AbortSignal.timeout(config.api.timeout),
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!res.ok) {
@@ -105,4 +145,40 @@ export async function getCardsByBlueprintIds(
     console.error('[CatalogCards] Errore fetch catalogo:', err);
     return {};
   }
+}
+
+/**
+ * Cerca una carta nel catalogo per nome + set (usato dopo Camera Match).
+ */
+export async function searchCardByNameSet(
+  cardName: string,
+  setCode: string
+): Promise<CardCatalogHit | null> {
+  const name = cardName.trim();
+  const set = setCode.trim().toLowerCase();
+  if (!name || !set) return null;
+
+  const filters = [
+    `name = "${escapeMeiliFilterValue(name)}"`,
+    `set_code = "${escapeMeiliFilterValue(set)}"`,
+  ];
+
+  const hits = await meiliSearch({
+    filter: filters.join(' AND '),
+    limit: 5,
+    attributesToRetrieve: ATTRIBUTES_TO_RETRIEVE,
+  });
+
+  if (hits.length > 0) {
+    return normalizeHit(hits[0]);
+  }
+
+  const fuzzyHits = await meiliSearch({
+    q: name,
+    filter: `set_code = "${escapeMeiliFilterValue(set)}"`,
+    limit: 3,
+    attributesToRetrieve: ATTRIBUTES_TO_RETRIEVE,
+  });
+
+  return fuzzyHits.length > 0 ? normalizeHit(fuzzyHits[0]) : null;
 }

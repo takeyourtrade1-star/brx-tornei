@@ -1,52 +1,56 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { createTournamentAction } from '@/actions/tournaments';
 import type { Selection } from '@/lib/validations/selection';
 import {
   tournamentActionButtonClass,
   tournamentActionIconClass,
 } from './tournament-action-button-styles';
+import {
+  CreateTournamentModal,
+  type CreateTournamentResult,
+} from './create-tournament-modal';
 
-/**
- * Bottone "Crea Torneo" — unico punto interattivo della dashboard.
- * MVP: crea direttamente un torneo BO3 For Fun; in M4+ aprirà un form/modal.
- */
-export function CreateTournamentButton({ selection }: { selection: Selection }) {
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+interface CreateTournamentButtonProps {
+  selection: Selection;
+  formatName: string;
+  modeName: string;
+  onCreated?: (result: CreateTournamentResult) => void;
+}
 
-  function handleClick() {
-    const formData = new FormData();
-    formData.set('format', selection.format);
-    formData.set('mode', selection.mode);
-    formData.set('bestOf', 'BO3');
+export function CreateTournamentButton({
+  selection,
+  formatName,
+  modeName,
+  onCreated,
+}: CreateTournamentButtonProps) {
+  const [open, setOpen] = useState(false);
 
-    setError(null);
-    startTransition(async () => {
-      const result = await createTournamentAction(formData);
-      if (result.error) setError(result.error);
-      // In caso di successo revalidatePath('/tornei') aggiorna la tabella.
-    });
+  function handleCreated(result: CreateTournamentResult) {
+    setOpen(false);
+    onCreated?.(result);
   }
 
   return (
-    <div className="flex items-center gap-3">
-      {error && (
-        <p role="alert" className="text-sm font-medium text-red-300">
-          {error}
-        </p>
-      )}
+    <>
       <button
         type="button"
-        onClick={handleClick}
-        disabled={isPending}
+        onClick={() => setOpen(true)}
         className={tournamentActionButtonClass('md')}
       >
         <Plus className={tournamentActionIconClass} />
-        {isPending ? 'Creazione…' : 'Crea torneo'}
+        Crea torneo
       </button>
-    </div>
+
+      <CreateTournamentModal
+        open={open}
+        selection={selection}
+        formatName={formatName}
+        modeName={modeName}
+        onClose={() => setOpen(false)}
+        onCreated={handleCreated}
+      />
+    </>
   );
 }

@@ -23,11 +23,12 @@ export function LoginCodeView({ redirect }: LoginCodeViewProps) {
   return (
     <AuthSplitLayout
       formPlacement="start"
-      panelClassName="flex h-full min-h-0 flex-1 flex-col"
+      className="min-h-screen lg:min-h-screen"
+      panelClassName="flex min-h-full flex-1 flex-col"
     >
       <AuthBackLink href={loginHref} label="Torna al login" />
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center py-4">
+      <div className="flex flex-1 flex-col justify-center py-6 sm:py-8">
         <LoginCodeForm redirect={redirect} variant="split" />
       </div>
 

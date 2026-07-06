@@ -19,12 +19,13 @@ export function LoginView({ redirect, recoverUrl }: LoginViewProps) {
   return (
     <AuthSplitLayout
       formPlacement="start"
-      panelClassName="flex h-full min-h-0 flex-1 flex-col"
+      className="min-h-screen lg:min-h-screen"
+      panelClassName="flex min-h-full flex-1 flex-col"
     >
-      <div className="flex min-h-0 flex-1 flex-col justify-center py-4">
+      <div className="flex flex-1 flex-col justify-center py-6 sm:py-8">
         <AuthSplitHeader
           title="Entra nella sala tornei"
-          className="mb-4 shrink-0"
+          className="mb-5 shrink-0 sm:mb-6"
         />
         <LoginForm variant="landing" redirect={redirect} recoverUrl={recoverUrl} />
       </div>

@@ -21,6 +21,9 @@ interface TournamentsDashboardProps {
   formatName: string;
   modeName: string;
   mobile?: boolean;
+  onTournamentCreated?: (result: { createdId: string; webcamSessionId?: string }) => void;
+  onJoinTournament?: (id: string) => void;
+  onObserveTournament?: (id: string) => void;
 }
 
 export function TournamentsDashboard({
@@ -30,6 +33,9 @@ export function TournamentsDashboard({
   formatName,
   modeName,
   mobile = false,
+  onTournamentCreated,
+  onJoinTournament,
+  onObserveTournament,
 }: TournamentsDashboardProps) {
   const [filters, setFilters] = useState<TournamentFiltersState>(DEFAULT_TOURNAMENT_FILTERS);
 
@@ -65,7 +71,12 @@ export function TournamentsDashboard({
             </span>
             <span className="text-white/60">{modeName}</span>
           </h2>
-          <CreateTournamentButton selection={selection} />
+          <CreateTournamentButton
+            selection={selection}
+            formatName={formatName}
+            modeName={modeName}
+            onCreated={onTournamentCreated}
+          />
         </div>
 
         <TournamentsTable
@@ -73,6 +84,8 @@ export function TournamentsDashboard({
           formatName={formatName}
           modeName={modeName}
           filtersActive={filtersActive}
+          onJoinTournament={onJoinTournament}
+          onObserveTournament={onObserveTournament}
         />
       </section>
     </div>

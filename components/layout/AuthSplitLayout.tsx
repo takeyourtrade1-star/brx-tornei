@@ -14,10 +14,10 @@ const TUTORIAL_COLUMN_CLASS = cn(
 );
 
 const FORM_COLUMN_BASE_CLASS = cn(
-  'order-1 flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-white/90',
+  'order-1 flex w-full flex-1 flex-col bg-white/90',
   'px-6 py-6 sm:px-8 sm:py-8',
-  'lg:order-2 lg:w-1/2 lg:bg-transparent',
-  'lg:px-8 lg:py-6 xl:px-10 xl:py-8'
+  'lg:order-2 lg:w-1/2 lg:min-h-0 lg:overflow-y-auto lg:bg-transparent',
+  'lg:px-8 lg:py-10 xl:px-10 xl:py-12'
 );
 
 interface AuthSplitLayoutProps {
@@ -47,7 +47,7 @@ export function AuthSplitLayout({
       <section
         className={cn(
           FORM_COLUMN_BASE_CLASS,
-          isCentered ? 'justify-start lg:justify-center' : 'justify-start',
+          isCentered ? 'justify-start lg:min-h-screen lg:justify-center' : 'justify-start',
           className
         )}
       >

@@ -1,3 +1,5 @@
+import type { TournamentLegalities } from './card-legality';
+
 /**
  * Dati essenziali di una carta dal catalogo Meilisearch.
  * Usato per arricchire gli item dell'inventario e per mostrare le carte nei mazzi.
@@ -17,4 +19,10 @@ export interface CardCatalogHit {
   rarity?: string;
   /** Numero collezionista. */
   collectorNumber?: string;
+  /** Oracle ID Scryfall (stessa carta, stampe diverse). */
+  oracleId?: string;
+  /** UUID stampa Scryfall. */
+  scryfallId?: string;
+  /** Legalità per i formati torneo (popolato via Scryfall al resolve-scan). */
+  tournamentLegalities?: TournamentLegalities;
 }

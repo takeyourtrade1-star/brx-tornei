@@ -2,6 +2,10 @@ import 'server-only';
 import { config } from '@/lib/config';
 import { getAccessToken } from '@/lib/auth/session';
 import { getCardsByBlueprintIds } from './catalog-cards';
+import {
+  getScannedInventoryItems,
+  mergeInventoryItems,
+} from './scanned-inventory-mock';
 import type { InventoryItem } from '@/types/inventory';
 
 export interface SyncInventoryItem {
@@ -87,24 +91,30 @@ export async function getUserInventory(
 
 /**
  * Recupera l'inventario completo di un utente, arricchito con i dati catalogo.
+ * Include carte aggiunte via scan (overlay mock fino a API Sync write).
  */
 export async function getMyInventory(userId: string): Promise<InventoryItem[]> {
   const rawItems = await getUserInventory(userId);
-  if (rawItems.length === 0) return [];
 
-  const blueprintIds = rawItems.map((item) => item.blueprint_id);
-  const cardMap = await getCardsByBlueprintIds(blueprintIds);
+  let syncItems: InventoryItem[] = [];
+  if (rawItems.length > 0) {
+    const blueprintIds = rawItems.map((item) => item.blueprint_id);
+    const cardMap = await getCardsByBlueprintIds(blueprintIds);
 
-  return rawItems
-    .map((item) => {
-      const card = cardMap[item.blueprint_id];
-      if (!card) return null;
-      return {
-        id: item.id,
-        blueprintId: item.blueprint_id,
-        quantity: item.quantity,
-        card,
-      };
-    })
-    .filter((item): item is InventoryItem => item !== null);
+    syncItems = rawItems
+      .map((item) => {
+        const card = cardMap[item.blueprint_id];
+        if (!card) return null;
+        return {
+          id: item.id,
+          blueprintId: item.blueprint_id,
+          quantity: item.quantity,
+          card,
+        };
+      })
+      .filter((item): item is InventoryItem => item !== null);
+  }
+
+  const scannedItems = getScannedInventoryItems(userId);
+  return mergeInventoryItems(syncItems, scannedItems);
 }
