@@ -6,7 +6,10 @@ export const resolveScanSchema = z.object({
   setName: z.string().optional().nullable(),
   collectorNumber: z.string().optional().nullable(),
   scryfallId: z.string().optional().nullable(),
-  imageUri: z.string().url().optional().nullable(),
+  imageUri: z.preprocess(
+    (v) => (v === '' || v == null ? null : v),
+    z.string().url().nullable().optional(),
+  ),
   searchQuery: z.string().optional(),
 });
 

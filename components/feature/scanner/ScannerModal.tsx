@@ -16,7 +16,7 @@ interface ScannerModalProps {
   onConfirm: (query: string) => void;
   onClose: () => void;
   /** Callback con il risultato completo dello scan (per inventario/mazzi). */
-  onConfirmResult?: (result: ScanResult) => void;
+  onConfirmResult?: (result: ScanResult) => void | Promise<void>;
   /** Se true, dopo la conferma riprende lo scan senza chiudere la modale. */
   batchMode?: boolean;
 }
@@ -310,6 +310,7 @@ function MatchPreview({
   setName,
   imageUri,
   confidence,
+  confirming,
   onUseCard,
   onNotThisCard,
 }: {
@@ -317,6 +318,7 @@ function MatchPreview({
   setName: string;
   imageUri: string | null;
   confidence: number;
+  confirming?: boolean;
   onUseCard: () => void;
   onNotThisCard: () => void;
 }) {
@@ -377,14 +379,16 @@ function MatchPreview({
           <button
             type="button"
             onClick={onUseCard}
-            className="flex-1 rounded-2xl bg-[#FF7300] px-4 py-3.5 text-sm font-bold uppercase tracking-wide text-[#1a0f08] shadow-[0_6px_20px_rgba(255,115,0,0.35)] transition hover:brightness-110 active:scale-[0.98]"
+            disabled={confirming}
+            className="flex-1 rounded-2xl bg-[#FF7300] px-4 py-3.5 text-sm font-bold uppercase tracking-wide text-[#1a0f08] shadow-[0_6px_20px_rgba(255,115,0,0.35)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
           >
-            Usa questa carta
+            {confirming ? 'Aggiungo…' : 'Usa questa carta'}
           </button>
           <button
             type="button"
             onClick={onNotThisCard}
-            className="flex-1 rounded-2xl border border-white/18 bg-white/[0.08] px-4 py-3.5 text-sm font-semibold text-white/85 backdrop-blur-md transition hover:bg-white/[0.12] active:scale-[0.98]"
+            disabled={confirming}
+            className="flex-1 rounded-2xl border border-white/18 bg-white/[0.08] px-4 py-3.5 text-sm font-semibold text-white/85 backdrop-blur-md transition hover:bg-white/[0.12] active:scale-[0.98] disabled:opacity-50"
           >
             Non è questa carta
           </button>
@@ -456,6 +460,7 @@ export function ScannerModal({
 }: ScannerModalProps) {
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const {
     state,
@@ -525,17 +530,22 @@ export function ScannerModal({
     }
   }, [torchOn, videoRef]);
 
-  const handleUseCard = useCallback(() => {
-    if (!result) return;
-    onConfirm(result.search_query);
-    onConfirmResult?.(result);
-    if (batchMode) {
-      restartScanning();
-      return;
+  const handleUseCard = useCallback(async () => {
+    if (!result || confirming) return;
+    setConfirming(true);
+    try {
+      onConfirm(result.search_query);
+      await onConfirmResult?.(result);
+      if (batchMode) {
+        restartScanning();
+        return;
+      }
+      stopScanning();
+      onClose();
+    } finally {
+      setConfirming(false);
     }
-    stopScanning();
-    onClose();
-  }, [result, stopScanning, onConfirm, onConfirmResult, onClose, batchMode, restartScanning]);
+  }, [result, confirming, stopScanning, onConfirm, onConfirmResult, onClose, batchMode, restartScanning]);
 
   const handleNotThisCard = useCallback(() => {
     restartScanning();
@@ -653,7 +663,8 @@ export function ScannerModal({
           setName={result.set_name}
           imageUri={result.image_uri}
           confidence={result.confidence}
-          onUseCard={handleUseCard}
+          confirming={confirming}
+          onUseCard={() => void handleUseCard()}
           onNotThisCard={handleNotThisCard}
         />
       )}

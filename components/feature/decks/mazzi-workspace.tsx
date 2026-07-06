@@ -180,6 +180,7 @@ export function MazziWorkspace({ initialInventory, initialDecks, user }: MazziWo
                   setEditingDeckId(null);
                 }}
                 onDeckPatched={handleDeckPatched}
+                onCardAdded={handleCardAdded}
               />
             ) : (
               <DeckList

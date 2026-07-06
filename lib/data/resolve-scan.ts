@@ -1,5 +1,5 @@
 import 'server-only';
-import { searchCardByNameSet } from './catalog-cards';
+import { searchCardByNameSet, searchCardByScryfallId } from './catalog-cards';
 import { enrichCardFromScryfall } from './scryfall';
 import { addScannedCardToMockInventory } from './scanned-inventory-mock';
 import type { CardCatalogHit } from '@/types/card';
@@ -46,6 +46,9 @@ export async function resolveScanAndAddToInventory(
   let catalogCard: CardCatalogHit | null = null;
   if (input.setCode) {
     catalogCard = await searchCardByNameSet(cardName, input.setCode);
+  }
+  if (!catalogCard && input.scryfallId) {
+    catalogCard = await searchCardByScryfallId(input.scryfallId);
   }
 
   const mergedCard: CardCatalogHit = {

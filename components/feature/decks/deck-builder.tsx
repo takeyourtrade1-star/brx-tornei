@@ -12,6 +12,7 @@ import type { ScanResult } from '@/hooks/scanner/scanner-types';
 import type { DeckLegalityIssue } from '@/types/card-legality';
 import type { Deck } from '@/types/deck';
 import type { InventoryItem } from '@/types/inventory';
+import type { ResolveScanResult } from '@/types/resolve-scan';
 import { DeckCard } from './deck-card';
 import { DeckLegalityPanel } from './deck-legality-panel';
 import { DeckVerifyWizard } from './deck-verify-wizard';
@@ -32,6 +33,8 @@ interface DeckBuilderProps {
   onRemoveCard: (blueprintId: number, section: 'main' | 'side') => void;
   onDeleteDeck: () => void;
   onDeckPatched?: (deck: Deck) => void;
+  /** Aggiorna inventario locale dopo scan (stesso handler della tab inventario). */
+  onCardAdded?: (result: ResolveScanResult) => void;
 }
 
 export function DeckBuilder({
@@ -44,10 +47,13 @@ export function DeckBuilder({
   onRemoveCard,
   onDeleteDeck,
   onDeckPatched,
+  onCardAdded,
 }: DeckBuilderProps) {
   const [search, setSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanSuccess, setScanSuccess] = useState<string | null>(null);
   const [legalityIssues, setLegalityIssues] = useState<DeckLegalityIssue[]>(
     deck.legalityErrors ?? []
   );
@@ -104,21 +110,24 @@ export function DeckBuilder({
     });
   };
 
-  const handleScanResult = (scan: ScanResult) => {
-    startTransition(async () => {
-      const res = await addScannedCardAction({
-        cardName: scan.card_name,
-        setCode: scan.set_code,
-        setName: scan.set_name,
-        imageUri: scan.image_uri,
-      });
-      if ('error' in res) return;
-      setSearch(scan.card_name);
-      const item = inventory.find((i) => i.blueprintId === res.data.blueprintId) ?? {
-        ...res.data.inventoryItem,
-      };
-      onAddCard(item, 'main');
+  const handleScanResult = async (scan: ScanResult) => {
+    setScanError(null);
+    setScanSuccess(null);
+    const res = await addScannedCardAction({
+      cardName: scan.card_name,
+      setCode: scan.set_code,
+      setName: scan.set_name,
+      scryfallId: scan.scryfall_id,
+      imageUri: scan.image_uri,
     });
+    if ('error' in res) {
+      setScanError(res.error);
+      throw new Error(res.error);
+    }
+    onCardAdded?.(res.data);
+    setSearch(scan.card_name);
+    onAddCard(res.data.inventoryItem, 'main');
+    setScanSuccess(`${scan.card_name} aggiunta al mazzo`);
   };
 
   const verificationBadge = (() => {
@@ -198,6 +207,19 @@ export function DeckBuilder({
       </div>
 
       <DeckLegalityPanel issues={legalityIssues} loading={isPending} legal={legal} />
+
+      {(scanError || scanSuccess) && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            scanError
+              ? 'border-amber-500/30 bg-amber-500/10 text-amber-100'
+              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+          }`}
+          role="status"
+        >
+          {scanError ?? scanSuccess}
+        </div>
+      )}
 
       <div className="grid min-h-[420px] grid-cols-1 gap-4 lg:grid-cols-3 lg:min-h-[520px]">
         <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/5 p-3 lg:min-h-0">

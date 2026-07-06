@@ -34,6 +34,7 @@ export function InventoryScanPanel({ onCardAdded }: InventoryScanPanelProps) {
           cardName: scan.card_name,
           setCode: scan.set_code,
           setName: scan.set_name,
+          scryfallId: scan.scryfall_id,
           imageUri: scan.image_uri,
         });
 

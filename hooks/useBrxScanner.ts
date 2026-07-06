@@ -189,8 +189,8 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 640, max: 960 },
-          height: { ideal: 480, max: 720 },
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
           frameRate: { ideal: 30, max: 30 },
         },
         audio: false,

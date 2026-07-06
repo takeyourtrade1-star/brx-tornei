@@ -182,3 +182,19 @@ export async function searchCardByNameSet(
 
   return fuzzyHits.length > 0 ? normalizeHit(fuzzyHits[0]) : null;
 }
+
+/** Cerca una carta nel catalogo per UUID Scryfall (fallback dopo Camera Match). */
+export async function searchCardByScryfallId(
+  scryfallId: string
+): Promise<CardCatalogHit | null> {
+  const id = scryfallId.trim();
+  if (!id) return null;
+
+  const hits = await meiliSearch({
+    filter: `scryfall_id = "${escapeMeiliFilterValue(id)}"`,
+    limit: 1,
+    attributesToRetrieve: ATTRIBUTES_TO_RETRIEVE,
+  });
+
+  return hits.length > 0 ? normalizeHit(hits[0]) : null;
+}

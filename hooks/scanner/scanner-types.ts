@@ -15,6 +15,7 @@ export interface ScanResult {
   set_name: string;
   set_code: string;
   image_uri: string | null;
+  scryfall_id?: string | null;
   confidence: number;
   method: string;
   search_url: string;
