@@ -1,8 +1,14 @@
 /**
  * copy-ort-wasm.mjs — postinstall script
  *
- * Copies the onnxruntime-web WASM files to public/ort-wasm/ so Next.js
- * serves them as static assets at /ort-wasm/*.wasm.
+ * Copies the onnxruntime-web runtime files to public/ort-wasm/ so Next.js
+ * serves them as static assets at /ort-wasm/*.
+ *
+ * IMPORTANT: onnxruntime-web (>=1.22) ships the WASM backend as a `.wasm`
+ * binary PLUS a `.mjs` module loader next to it (es. ort-wasm-simd-threaded.mjs
+ * e .jsep.mjs). ORT fa `import()` del `.mjs` dal wasmPaths a runtime: se manca,
+ * fallisce con "importing a module script failed" / "no available backend
+ * found". Vanno quindi copiati ANCHE i .mjs, non solo i .wasm.
  *
  * The hook sets:
  *   ort.env.wasm.wasmPaths = '/ort-wasm/';
@@ -31,8 +37,12 @@ mkdirSync(destDir, { recursive: true });
 let copied = 0;
 let skipped = 0;
 
+// Backend WASM: binari .wasm + i loader module .mjs affiancati (ort-wasm-*.mjs).
+const shouldCopy = (file) =>
+  file.endsWith('.wasm') || /^ort-wasm.*\.mjs$/.test(file);
+
 for (const file of readdirSync(srcDir)) {
-  if (!file.endsWith('.wasm')) continue;
+  if (!shouldCopy(file)) continue;
   try {
     copyFileSync(join(srcDir, file), join(destDir, file));
     console.log('[copy-ort-wasm] copied:', file);

@@ -160,7 +160,10 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
               { type: 'module' },
             );
             workerOk = await new Promise<boolean>((resolve) => {
-              const t = setTimeout(() => resolve(false), 45_000);
+              // 18s: abbastanza per init su telefoni lenti, ma se il backend
+              // WASM non parte l'errore emerge in fretta (poi c'è comunque lo
+              // skip a modalità standard).
+              const t = setTimeout(() => resolve(false), 18_000);
               worker.onmessage = (ev: MessageEvent<{ type: string; vector?: Float32Array; message?: string; token?: number }>) => {
                 if (ev.data.type === 'ready') {
                   clearTimeout(t);

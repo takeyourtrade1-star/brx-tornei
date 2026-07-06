@@ -94,7 +94,7 @@ export function ScannerModelGate({
         )}
 
         <div className="mt-8 flex flex-col gap-3">
-          {failed && (
+          {failed ? (
             <>
               <button
                 type="button"
@@ -111,9 +111,19 @@ export function ScannerModelGate({
                 Continua in modalità standard
               </button>
             </>
-          )}
-          {!failed && (
-            <p className="text-[11px] text-white/40">Non chiudere la pagina durante il download</p>
+          ) : (
+            <>
+              {/* Skip sempre disponibile: se il motore AI non parte (o è lento),
+                  l'utente non resta mai bloccato sul gate. */}
+              <button
+                type="button"
+                onClick={onUseStandard}
+                className="w-full rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10 active:scale-[0.98]"
+              >
+                Salta e usa modalità standard
+              </button>
+              <p className="text-[11px] text-white/40">Non chiudere la pagina durante il download</p>
+            </>
           )}
         </div>
       </div>

@@ -6,9 +6,20 @@ export type BestOf = 'BO1' | 'BO3' | 'BO5';
 
 export type TournamentStatus = 'in_registrazione' | 'iniziata' | 'terminata';
 
+/** Mazzo dichiarato/verificato dal giocatore per la partita (se disponibile). */
+export interface ParticipantDeck {
+  name: string;
+  /** Archetipo/tipologia (es. "Aggro"), se noto. */
+  archetype?: string;
+  /** Stato verifica del mazzo per questa partita. */
+  verified?: boolean;
+}
+
 export interface Participant {
   id: string;
   username: string;
+  /** Mazzo usato in partita — popolato dal backend quando disponibile. */
+  deck?: ParticipantDeck;
 }
 
 export interface Tournament {
