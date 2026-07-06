@@ -6,6 +6,7 @@ import { useBrxScanner } from '@/hooks/useBrxScanner';
 import type { ScanResult } from '@/hooks/scanner/scanner-types';
 import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
 import { ScannerBetaNotice } from '@/components/feature/scanner/ScannerBetaNotice';
+import { CaptureQueuePanel, CaptureShutter } from '@/components/feature/scanner/CaptureShutter';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -218,10 +219,10 @@ type StatusBarState = 'idle' | 'scanning' | 'processing' | 'matched' | 'slow';
 function StatusBar({ status }: { status: StatusBarState }) {
   const messages: Record<StatusBarState, string> = {
     idle: 'Inizializzazione fotocamera…',
-    scanning: 'Punta la fotocamera verso una carta Magic',
-    processing: 'Analisi in corso…',
-    matched: 'Carta trovata!',
-    slow: 'Analisi in corso… (qualche secondo in più)',
+    scanning: 'Inquadra la carta nel riquadro e scatta',
+    processing: 'Analisi in background…',
+    matched: 'Carta identificata — conferma o rifiuta',
+    slow: 'Analisi in corso…',
   };
 
   const dotColor =
@@ -471,14 +472,21 @@ export function ScannerModal({
     modelError,
     videoRef,
     canvasRef,
+    queue,
+    processingCount,
+    reviewItemId,
+    capturePhoto,
+    openReview,
+    closeReview,
+    dismissItem,
     openCamera,
     stopScanning,
-    restartScanning,
     retryModelDownload,
     continueWithStandardMode,
     turboSkipped,
   } = useBrxScanner({
     autoOpenCamera: true,
+    autoReviewOnReady: !batchMode,
     apiBaseUrl: '/brx-match',
     scanMode: 'auto',
   });
@@ -531,25 +539,37 @@ export function ScannerModal({
   }, [torchOn, videoRef]);
 
   const handleUseCard = useCallback(async () => {
-    if (!result || confirming) return;
+    if (!result || !reviewItemId || confirming) return;
     setConfirming(true);
     try {
       onConfirm(result.search_query);
       await onConfirmResult?.(result);
-      if (batchMode) {
-        restartScanning();
-        return;
+      dismissItem(reviewItemId);
+      closeReview();
+      if (!batchMode) {
+        stopScanning();
+        onClose();
       }
-      stopScanning();
-      onClose();
     } finally {
       setConfirming(false);
     }
-  }, [result, confirming, stopScanning, onConfirm, onConfirmResult, onClose, batchMode, restartScanning]);
+  }, [
+    result,
+    reviewItemId,
+    confirming,
+    stopScanning,
+    onConfirm,
+    onConfirmResult,
+    onClose,
+    batchMode,
+    dismissItem,
+    closeReview,
+  ]);
 
   const handleNotThisCard = useCallback(() => {
-    restartScanning();
-  }, [restartScanning]);
+    if (reviewItemId) dismissItem(reviewItemId);
+    closeReview();
+  }, [reviewItemId, dismissItem, closeReview]);
 
   const handleCloseBtn = useCallback(() => {
     stopScanning();
@@ -557,19 +577,25 @@ export function ScannerModal({
   }, [stopScanning, onClose]);
 
   const bracketState: BracketState =
-    state === 'matched' ? 'matched'
-    : state === 'scanning' || state === 'processing' ? 'scanning'
-    : 'idle';
+    state === 'matched' ? 'matched' : 'idle';
 
   const statusBarState: StatusBarState =
-    state === 'matched' ? 'matched'
-    : state === 'processing' ? 'processing'
-    : state === 'scanning' ? 'scanning'
-    : 'idle';
+    state === 'matched'
+      ? 'matched'
+      : processingCount > 0
+        ? 'processing'
+        : state === 'scanning'
+          ? 'scanning'
+          : 'idle';
+
+  const showCaptureUi = state === 'scanning' || state === 'matched';
+  const showShutter =
+    state === 'scanning' || (batchMode && state === 'matched' && reviewItemId == null);
+  const showQueue = queue.length > 0 && showCaptureUi;
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black" aria-modal aria-label="Scanner Magic">
-      <TopLoadingBar active={state === 'processing'} />
+      <TopLoadingBar active={processingCount > 0 && state !== 'matched'} />
 
       {showModelGate && (
         <ScannerModelGate
@@ -635,7 +661,7 @@ export function ScannerModal({
         <ErrorPanel message={errorMessage ?? 'Impossibile accedere alla fotocamera.'} onClose={handleCloseBtn} />
       )}
 
-      {(state === 'scanning' || state === 'processing' || state === 'matched') && (
+      {(state === 'scanning' || state === 'matched') && (
         <>
           <ScanAreaBlurMask />
 
@@ -644,15 +670,29 @@ export function ScannerModal({
 
             {state !== 'matched' && (
               <p className="mt-5 max-w-[min(92vw,22rem)] text-center text-[12px] font-medium leading-relaxed text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[13px]">
-                {state === 'processing'
-                  ? 'Analisi in corso… tieni ferma la carta.'
-                  : 'Inquadra la carta Magic nel riquadro'}
+                Inquadra la carta nel riquadro e premi scatta
               </p>
             )}
           </div>
 
           {state !== 'matched' && <StatusBar status={statusBarState} />}
         </>
+      )}
+
+      {showShutter && (
+        <CaptureShutter
+          onCapture={() => void capturePhoto()}
+          processingCount={processingCount}
+        />
+      )}
+
+      {showQueue && (
+        <CaptureQueuePanel
+          queue={queue}
+          reviewItemId={reviewItemId}
+          onSelect={openReview}
+          onDismiss={dismissItem}
+        />
       )}
 
       <TorchToolbar torchOn={torchOn} torchSupported={torchSupported} onToggle={toggleTorch} />

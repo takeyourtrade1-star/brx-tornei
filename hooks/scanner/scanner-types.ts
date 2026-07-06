@@ -31,3 +31,14 @@ export interface DebugInfo {
   lastOutcome: 'matched' | 'not_matched' | 'pending' | null;
   lastMethod: string | null;
 }
+
+export type CaptureItemStatus = 'queued' | 'processing' | 'ready' | 'error';
+
+/** Voce coda: foto scattata → identificazione in background → revisione utente. */
+export interface CaptureQueueItem {
+  id: string;
+  thumbnailUrl: string;
+  status: CaptureItemStatus;
+  result?: ScanResult;
+  error?: string;
+}
