@@ -3,9 +3,10 @@
 import { useEffect, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Check, ChevronDown, Lock, ScanLine, Swords, Trophy, X } from 'lucide-react';
+import { Check, Lock, ScanLine, Swords, Trophy, X } from 'lucide-react';
 import { createTournamentAction } from '@/actions/tournaments';
-import { FORMATS, getFormat, type FormatId } from '@/lib/data/catalog';
+import { getFormat, type FormatId } from '@/lib/data/catalog';
+import { FormatPillSelect } from '@/components/feature/tornei/format-pill-select';
 import type { Selection } from '@/lib/validations/selection';
 import type { BestOf } from '@/types/tournament';
 import { BEST_OF_LABEL } from './tournament-mock-details';
@@ -282,32 +283,17 @@ export function CreateTournamentModal({
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pb-5 pt-1">
           {/* Formato — pre-compilato dalla home, ma modificabile qui */}
           <section>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
+            <p
+              id="create-tournament-format-label"
+              className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40"
+            >
               Formato
             </p>
-            <div className="relative">
-              <span
-                className="pointer-events-none absolute left-3.5 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full"
-                style={{ backgroundColor: accent }}
-                aria-hidden
-              />
-              <select
-                value={format}
-                onChange={(e) => setFormat(e.target.value as FormatId)}
-                aria-label="Formato del torneo"
-                className="w-full appearance-none rounded-2xl border border-white/12 bg-white/[0.04] py-3 pl-8 pr-10 text-sm font-semibold text-white outline-none transition focus:border-primary/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-primary/25"
-              >
-                {FORMATS.map((f) => (
-                  <option key={f.id} value={f.id} className="bg-[#0F172A] text-white">
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45"
-                aria-hidden
-              />
-            </div>
+            <FormatPillSelect
+              value={format}
+              onChange={setFormat}
+              ariaLabelledBy="create-tournament-format-label"
+            />
           </section>
 
           {/* Tipo partita */}

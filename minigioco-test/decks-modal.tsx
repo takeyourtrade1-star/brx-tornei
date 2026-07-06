@@ -52,7 +52,7 @@ export function DecksModal({ inventory }: DecksModalProps) {
         deck={editingDeck}
         inventory={inventory}
         onBack={handleBack}
-        onAddCard={(item, section) => addCard(editingDeck.id, item, section)}
+        onAddCard={(item, section) => addCard(editingDeck.id, item.card, section)}
         onUpdateQuantity={(bp, section, qty, max) =>
           updateQuantity(editingDeck.id, bp, section, qty, max)
         }

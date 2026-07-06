@@ -6,9 +6,11 @@ import {
   deleteDeckAction,
   updateDeckAction,
 } from '@/actions/decks';
+import { getRemainingCopies } from '@/lib/deck-copy-limits';
+import { getSideboardMaxSize, countCards } from '@/lib/data/deck-utils';
 import type { Deck, DeckCard } from '@/types/deck';
 import type { CreateDeckInput } from '@/lib/validations/deck';
-import type { InventoryItem } from '@/types/inventory';
+import type { CardCatalogHit } from '@/types/card';
 
 function findCardIndex(cards: DeckCard[], blueprintId: number): number {
   return cards.findIndex((c) => Number(c.id) === blueprintId);
@@ -87,17 +89,24 @@ export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOpti
   );
 
   const addCard = useCallback(
-    (deckId: string, item: InventoryItem, section: 'main' | 'side') => {
-      if (item.quantity <= 0) return { success: false as const, reason: 'Carta non disponibile' };
+    (deckId: string, catalogCard: CardCatalogHit, section: 'main' | 'side') => {
       patchDeck(deckId, (deck) => {
-        const target = section === 'main' ? deck.main : deck.side;
-        const idx = findCardIndex(target, item.blueprintId);
-        const usedMain = deck.main.find((c) => Number(c.id) === item.blueprintId)?.quantity ?? 0;
-        const usedSide = deck.side.find((c) => Number(c.id) === item.blueprintId)?.quantity ?? 0;
-        if (usedMain + usedSide >= item.quantity) return deck;
+        const blueprintId = Number(catalogCard.id);
+        if (!Number.isInteger(blueprintId) || blueprintId <= 0) return deck;
 
-        const card: DeckCard = { ...item.card, quantity: 1 };
+        const remaining = getRemainingCopies(deck.formatId, catalogCard, deck.main, deck.side);
+        if (remaining <= 0) return deck;
+
+        const maxSide = getSideboardMaxSize(deck.formatId);
+        if (section === 'side' && maxSide > 0 && countCards(deck.side) >= maxSide) {
+          return deck;
+        }
+
+        const target = section === 'main' ? deck.main : deck.side;
+        const idx = findCardIndex(target, blueprintId);
+        const card: DeckCard = { ...catalogCard, quantity: 1 };
         const next = { ...deck };
+
         if (idx >= 0) {
           const sectionCards = [...target];
           sectionCards[idx] = { ...sectionCards[idx], quantity: sectionCards[idx].quantity + 1 };
@@ -105,6 +114,7 @@ export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOpti
         } else {
           next[section] = [...target, card];
         }
+
         return { ...next, verificationStatus: 'declared' as const };
       });
       return { success: true as const };

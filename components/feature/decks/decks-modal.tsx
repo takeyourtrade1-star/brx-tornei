@@ -2,16 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import { useDecks } from '@/hooks/use-decks';
-import type { InventoryItem } from '@/types/inventory';
 import type { CreateDeckInput } from '@/lib/validations/deck';
 import { DeckBuilder } from './deck-builder';
 import { DeckList } from './deck-list';
 
-interface DecksModalProps {
-  inventory: InventoryItem[];
-}
-
-export function DecksModal({ inventory }: DecksModalProps) {
+export function DecksModal() {
   const { decks, createDeck, deleteDeck, addCard, removeCard, updateQuantity, moveCard, getDeck } =
     useDecks();
   const [view, setView] = useState<'list' | 'builder'>('list');
@@ -49,9 +44,8 @@ export function DecksModal({ inventory }: DecksModalProps) {
     return (
       <DeckBuilder
         deck={editingDeck}
-        inventory={inventory}
         onBack={handleBack}
-        onAddCard={(item, section) => addCard(editingDeck.id, item, section)}
+        onAddCard={(card, section) => addCard(editingDeck.id, card, section)}
         onUpdateQuantity={(bp, section, qty, max) =>
           updateQuantity(editingDeck.id, bp, section, qty, max)
         }

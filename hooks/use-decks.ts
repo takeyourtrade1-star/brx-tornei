@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { getRemainingCopies } from '@/lib/deck-copy-limits';
+import { countCards, getSideboardMaxSize } from '@/lib/data/deck-utils';
+import type { CardCatalogHit } from '@/types/card';
 import type { Deck, DeckCard } from '@/types/deck';
-import type { InventoryItem } from '@/types/inventory';
 import type { CreateDeckInput } from '@/lib/validations/deck';
 
 const STORAGE_KEY = 'ebartex-tournaments-decks';
@@ -46,7 +48,7 @@ export interface UseDecksReturn {
   deleteDeck: (deckId: string) => void;
   addCard: (
     deckId: string,
-    inventoryItem: InventoryItem,
+    catalogCard: CardCatalogHit,
     section: 'main' | 'side'
   ) => { success: boolean; reason?: string };
   removeCard: (deckId: string, blueprintId: number, section: 'main' | 'side') => void;
@@ -106,36 +108,36 @@ export function useDecks(): UseDecksReturn {
   const addCard = useCallback(
     (
       deckId: string,
-      inventoryItem: InventoryItem,
+      catalogCard: CardCatalogHit,
       section: 'main' | 'side'
     ): { success: boolean; reason?: string } => {
-      if (inventoryItem.quantity <= 0) {
-        return { success: false, reason: 'Carta non disponibile in inventario' };
+      const blueprintId = Number(catalogCard.id);
+      if (!Number.isInteger(blueprintId) || blueprintId <= 0) {
+        return { success: false, reason: 'Carta non valida' };
       }
 
       setDecks((prev) => {
         const deck = prev.find((d) => d.id === deckId);
         if (!deck) return prev;
 
-        const target = section === 'main' ? deck.main : deck.side;
-        const idx = findCardIndex(target, inventoryItem.blueprintId);
+        const remaining = getRemainingCopies(deck.formatId, catalogCard, deck.main, deck.side);
+        if (remaining <= 0) return prev;
 
-        // Limite globale: non si può mettere nel mazzo più copie di quante se ne possiedano.
-        const currentQty = idx >= 0 ? target[idx].quantity : 0;
-        if (currentQty >= inventoryItem.quantity) {
+        const maxSide = getSideboardMaxSize(deck.formatId);
+        if (section === 'side' && maxSide > 0 && countCards(deck.side) >= maxSide) {
           return prev;
         }
 
+        const target = section === 'main' ? deck.main : deck.side;
+        const idx = findCardIndex(target, blueprintId);
         const next = { ...deck };
+
         if (idx >= 0) {
           const nextSection = [...target];
           nextSection[idx] = { ...nextSection[idx], quantity: nextSection[idx].quantity + 1 };
           next[section] = nextSection;
         } else {
-          const newCard: DeckCard = {
-            ...inventoryItem.card,
-            quantity: 1,
-          };
+          const newCard: DeckCard = { ...catalogCard, quantity: 1 };
           next[section] = [...target, newCard];
         }
 

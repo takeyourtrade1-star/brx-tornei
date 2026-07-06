@@ -1,28 +1,23 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { Camera, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { validateDeckLegalityAction } from '@/actions/decks';
-import { addScannedCardAction } from '@/actions/inventory';
 import { getFormat } from '@/lib/data/catalog';
 import { getDeckArchetype } from '@/lib/data/deck-archetypes';
+import { getMaxQuantityForDeckRow } from '@/lib/deck-copy-limits';
 import { countCards, getMainDeckMinSize, getSideboardMaxSize } from '@/lib/data/deck-utils';
-import { ScannerModal } from '@/components/feature/scanner/ScannerModal';
-import type { ScanResult } from '@/hooks/scanner/scanner-types';
+import type { CardCatalogHit } from '@/types/card';
 import type { DeckLegalityIssue } from '@/types/card-legality';
 import type { Deck } from '@/types/deck';
-import type { InventoryItem } from '@/types/inventory';
-import type { ResolveScanResult } from '@/types/resolve-scan';
 import { DeckCard } from './deck-card';
+import { DeckCardSearch } from './deck-card-search';
 import { DeckLegalityPanel } from './deck-legality-panel';
-import { DeckVerifyWizard } from './deck-verify-wizard';
-import { InventoryCard } from './inventory-card';
 
 interface DeckBuilderProps {
   deck: Deck;
-  inventory: InventoryItem[];
   onBack: () => void;
-  onAddCard: (item: InventoryItem, section: 'main' | 'side') => void;
+  onAddCard: (card: CardCatalogHit, section: 'main' | 'side') => void;
   onUpdateQuantity: (
     blueprintId: number,
     section: 'main' | 'side',
@@ -33,13 +28,10 @@ interface DeckBuilderProps {
   onRemoveCard: (blueprintId: number, section: 'main' | 'side') => void;
   onDeleteDeck: () => void;
   onDeckPatched?: (deck: Deck) => void;
-  /** Aggiorna inventario locale dopo scan (stesso handler della tab inventario). */
-  onCardAdded?: (result: ResolveScanResult) => void;
 }
 
 export function DeckBuilder({
   deck,
-  inventory,
   onBack,
   onAddCard,
   onUpdateQuantity,
@@ -47,13 +39,7 @@ export function DeckBuilder({
   onRemoveCard,
   onDeleteDeck,
   onDeckPatched,
-  onCardAdded,
 }: DeckBuilderProps) {
-  const [search, setSearch] = useState('');
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [verifyOpen, setVerifyOpen] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [scanSuccess, setScanSuccess] = useState<string | null>(null);
   const [legalityIssues, setLegalityIssues] = useState<DeckLegalityIssue[]>(
     deck.legalityErrors ?? []
   );
@@ -68,37 +54,21 @@ export function DeckBuilder({
   const maxSide = getSideboardMaxSize(deck.formatId);
   const isSizeLegal = mainCount >= minMain && sideCount <= maxSide;
 
-  const inventoryQty = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const item of inventory) map.set(item.blueprintId, item.quantity);
-    return map;
-  }, [inventory]);
+  const legalityBadge = (() => {
+    if (legal === true) return 'bg-emerald-500/20 text-emerald-300';
+    if (legal === false) return 'bg-red-500/20 text-red-300';
+    if (deck.legalityErrors && deck.legalityErrors.length > 0) {
+      return 'bg-amber-500/20 text-amber-300';
+    }
+    return 'bg-white/10 text-white/50';
+  })();
 
-  const deckMainQty = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const c of deck.main) map.set(Number(c.id), c.quantity);
-    return map;
-  }, [deck.main]);
-
-  const deckSideQty = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const c of deck.side) map.set(Number(c.id), c.quantity);
-    return map;
-  }, [deck.side]);
-
-  const filteredInventory = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return inventory;
-    return inventory.filter((item) => item.card.name.toLowerCase().includes(term));
-  }, [inventory, search]);
-
-  const getCanAdd = (item: InventoryItem, section: 'main' | 'side') => {
-    const usedMain = deckMainQty.get(item.blueprintId) ?? 0;
-    const usedSide = deckSideQty.get(item.blueprintId) ?? 0;
-    if (usedMain + usedSide >= item.quantity) return false;
-    if (section === 'side' && maxSide > 0 && sideCount >= maxSide) return false;
-    return true;
-  };
+  const legalityLabel = (() => {
+    if (legal === true) return 'Legale';
+    if (legal === false) return 'Non legale';
+    if (deck.legalityCheckedAt) return 'Verificato';
+    return 'Da verificare';
+  })();
 
   const runLegalityCheck = () => {
     startTransition(async () => {
@@ -110,39 +80,21 @@ export function DeckBuilder({
     });
   };
 
-  const handleScanResult = async (scan: ScanResult) => {
-    setScanError(null);
-    setScanSuccess(null);
-    const res = await addScannedCardAction({
-      cardName: scan.card_name,
-      setCode: scan.set_code,
-      setName: scan.set_name,
-      scryfallId: scan.scryfall_id,
-      imageUri: scan.image_uri,
-    });
-    if ('error' in res) {
-      setScanError(res.error);
-      throw new Error(res.error);
+  const mainMaxQty = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const card of deck.main) {
+      map.set(Number(card.id), getMaxQuantityForDeckRow(deck.formatId, card, deck.main, deck.side, 'main'));
     }
-    onCardAdded?.(res.data);
-    setSearch(scan.card_name);
-    onAddCard(res.data.inventoryItem, 'main');
-    setScanSuccess(`${scan.card_name} aggiunta al mazzo`);
-  };
+    return map;
+  }, [deck.formatId, deck.main, deck.side]);
 
-  const verificationBadge = (() => {
-    switch (deck.verificationStatus) {
-      case 'verified':
-        return 'bg-emerald-500/20 text-emerald-300';
-      case 'mismatch':
-        return 'bg-red-500/20 text-red-300';
-      case 'scanned':
-      case 'declared':
-        return 'bg-amber-500/20 text-amber-300';
-      default:
-        return 'bg-white/10 text-white/50';
+  const sideMaxQty = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const card of deck.side) {
+      map.set(Number(card.id), getMaxQuantityForDeckRow(deck.formatId, card, deck.main, deck.side, 'side'));
     }
-  })();
+    return map;
+  }, [deck.formatId, deck.main, deck.side]);
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -165,12 +117,8 @@ export function DeckBuilder({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${verificationBadge}`}>
-            {deck.verificationStatus === 'verified'
-              ? 'Verificato'
-              : deck.verificationStatus === 'mismatch'
-                ? 'Discrepanza'
-                : 'Non verificato'}
+          <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${legalityBadge}`}>
+            {legalityLabel}
           </span>
           <span
             className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${
@@ -183,18 +131,10 @@ export function DeckBuilder({
             type="button"
             onClick={runLegalityCheck}
             disabled={isPending}
-            className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-3 py-1 text-xs font-bold uppercase text-white"
+            className="inline-flex items-center gap-1 rounded-lg bg-[#FF7300]/20 px-3 py-1 text-xs font-bold uppercase text-[#FF7300] ring-1 ring-[#FF7300]/25 disabled:opacity-50"
           >
             <ShieldCheck className="h-3.5 w-3.5" />
-            Legalità
-          </button>
-          <button
-            type="button"
-            onClick={() => setVerifyOpen(true)}
-            className="inline-flex items-center gap-1 rounded-lg bg-[#FF7300]/20 px-3 py-1 text-xs font-bold uppercase text-[#FF7300]"
-          >
-            <Camera className="h-3.5 w-3.5" />
-            Verifica fisica
+            Verifica legalità
           </button>
           <button
             type="button"
@@ -208,56 +148,15 @@ export function DeckBuilder({
 
       <DeckLegalityPanel issues={legalityIssues} loading={isPending} legal={legal} />
 
-      {(scanError || scanSuccess) && (
-        <div
-          className={`rounded-xl border px-4 py-3 text-sm ${
-            scanError
-              ? 'border-amber-500/30 bg-amber-500/10 text-amber-100'
-              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
-          }`}
-          role="status"
-        >
-          {scanError ?? scanSuccess}
-        </div>
-      )}
-
       <div className="grid min-h-[420px] grid-cols-1 gap-4 lg:grid-cols-3 lg:min-h-[520px]">
         <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/5 p-3 lg:min-h-0">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
-              Inventario
-            </p>
-            <button
-              type="button"
-              onClick={() => setScannerOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#FF7300]/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#FF7300] ring-1 ring-[#FF7300]/25 transition-colors hover:bg-[#FF7300]/25"
-              aria-label="Scansiona carta con Asso Vision"
-            >
-              <Camera className="h-3.5 w-3.5" />
-              Scansiona
-            </button>
-          </div>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cerca carta..."
-            className="mb-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-white placeholder:text-white/30 focus:border-[#FF7300] focus:outline-none"
+          <DeckCardSearch
+            formatId={deck.formatId}
+            main={deck.main}
+            side={deck.side}
+            sideCount={sideCount}
+            onAddCard={onAddCard}
           />
-          <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
-            {filteredInventory.map((item) => (
-              <InventoryCard
-                key={item.blueprintId}
-                item={item}
-                mainQty={deckMainQty.get(item.blueprintId) ?? 0}
-                sideQty={deckSideQty.get(item.blueprintId) ?? 0}
-                canAddMain={getCanAdd(item, 'main')}
-                canAddSide={getCanAdd(item, 'side')}
-                onAddMain={() => onAddCard(item, 'main')}
-                onAddSide={() => onAddCard(item, 'side')}
-              />
-            ))}
-          </div>
         </div>
 
         <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/5 p-3 lg:min-h-0">
@@ -281,21 +180,27 @@ export function DeckBuilder({
             />
           </div>
           <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
-            {deck.main.map((card) => {
-              const bp = Number(card.id);
-              const max = (inventoryQty.get(bp) ?? 0) - (deckSideQty.get(bp) ?? 0);
-              return (
-                <DeckCard
-                  key={bp}
-                  card={card}
-                  maxQuantity={max}
-                  onChangeQuantity={(q) => onUpdateQuantity(bp, 'main', q, max)}
-                  onMove={() => onMoveCard(bp, 'main', 'side')}
-                  onRemove={() => onRemoveCard(bp, 'main')}
-                  moveLabel="→ Side"
-                />
-              );
-            })}
+            {deck.main.length === 0 ? (
+              <p className="py-6 text-center text-xs text-white/35">
+                Cerca una carta e aggiungila al main deck
+              </p>
+            ) : (
+              deck.main.map((card) => {
+                const bp = Number(card.id);
+                const max = mainMaxQty.get(bp) ?? 4;
+                return (
+                  <DeckCard
+                    key={bp}
+                    card={card}
+                    maxQuantity={max}
+                    onChangeQuantity={(q) => onUpdateQuantity(bp, 'main', q, max)}
+                    onMove={() => onMoveCard(bp, 'main', 'side')}
+                    onRemove={() => onRemoveCard(bp, 'main')}
+                    moveLabel="→ Side"
+                  />
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -311,10 +216,14 @@ export function DeckBuilder({
           <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
             {maxSide === 0 ? (
               <p className="text-center text-xs text-white/40">Commander non usa sideboard</p>
+            ) : deck.side.length === 0 ? (
+              <p className="py-6 text-center text-xs text-white/35">
+                Aggiungi carte al sideboard dalla ricerca
+              </p>
             ) : (
               deck.side.map((card) => {
                 const bp = Number(card.id);
-                const max = (inventoryQty.get(bp) ?? 0) - (deckMainQty.get(bp) ?? 0);
+                const max = sideMaxQty.get(bp) ?? 4;
                 return (
                   <DeckCard
                     key={bp}
@@ -331,26 +240,6 @@ export function DeckBuilder({
           </div>
         </div>
       </div>
-
-      {scannerOpen && (
-        <ScannerModal
-          batchMode
-          onConfirm={() => {}}
-          onConfirmResult={handleScanResult}
-          onClose={() => setScannerOpen(false)}
-        />
-      )}
-
-      {verifyOpen && (
-        <DeckVerifyWizard
-          deck={deck}
-          onClose={() => setVerifyOpen(false)}
-          onVerified={(d) => {
-            onDeckPatched?.(d);
-            setVerifyOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 }
