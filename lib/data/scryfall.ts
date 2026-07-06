@@ -59,6 +59,9 @@ async function fetchScryfallRequest<T>(path: string, init?: RequestInit): Promis
       ...init,
       headers: {
         Accept: 'application/json',
+        // Scryfall rifiuta (HTTP 400) le richieste senza User-Agent, e il fetch
+        // server-side di Node non ne manda uno di default.
+        'User-Agent': 'EbartexTornei/1.0 (backsoftware.crm@gmail.com)',
         ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
         ...init?.headers,
       },
