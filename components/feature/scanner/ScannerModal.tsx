@@ -312,16 +312,20 @@ function MatchPreview({
   imageUri,
   confidence,
   confirming,
+  remainingReady,
   onUseCard,
   onNotThisCard,
+  onNext,
 }: {
   cardName: string;
   setName: string;
   imageUri: string | null;
   confidence: number;
   confirming?: boolean;
+  remainingReady?: number;
   onUseCard: () => void;
   onNotThisCard: () => void;
+  onNext?: () => void;
 }) {
   const pct = Math.round(confidence * 100);
   const badgeColor = pct >= 90 ? 'bg-green-500' : pct >= 80 ? 'bg-amber-500' : 'bg-zinc-500';
@@ -394,6 +398,17 @@ function MatchPreview({
             Non è questa carta
           </button>
         </div>
+
+        {remainingReady != null && remainingReady > 0 && onNext && (
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={confirming}
+            className="w-full rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 active:scale-[0.98] disabled:opacity-50"
+          >
+            Prossima carta ({remainingReady} rimanenti)
+          </button>
+        )}
       </div>
     </div>
   );
@@ -474,9 +489,13 @@ export function ScannerModal({
     canvasRef,
     queue,
     processingCount,
+    readyCount,
     reviewItemId,
     capturePhoto,
     openReview,
+    openFirstReady,
+    openNextReady,
+    dismissAndAdvance,
     closeReview,
     dismissItem,
     openCamera,
@@ -538,15 +557,29 @@ export function ScannerModal({
     }
   }, [torchOn, videoRef]);
 
+  const advanceBatchReview = useCallback(() => {
+    if (!openNextReady()) closeReview();
+  }, [openNextReady, closeReview]);
+
+  const finishBatchItem = useCallback(
+    (id: string) => {
+      if (!dismissAndAdvance(id)) closeReview();
+    },
+    [dismissAndAdvance, closeReview],
+  );
+
   const handleUseCard = useCallback(async () => {
     if (!result || !reviewItemId || confirming) return;
+    const currentId = reviewItemId;
     setConfirming(true);
     try {
       onConfirm(result.search_query);
       await onConfirmResult?.(result);
-      dismissItem(reviewItemId);
-      closeReview();
-      if (!batchMode) {
+      if (batchMode) {
+        finishBatchItem(currentId);
+      } else {
+        dismissItem(currentId);
+        closeReview();
         stopScanning();
         onClose();
       }
@@ -564,12 +597,19 @@ export function ScannerModal({
     batchMode,
     dismissItem,
     closeReview,
+    finishBatchItem,
   ]);
 
   const handleNotThisCard = useCallback(() => {
-    if (reviewItemId) dismissItem(reviewItemId);
-    closeReview();
-  }, [reviewItemId, dismissItem, closeReview]);
+    if (!reviewItemId) return;
+    const currentId = reviewItemId;
+    if (batchMode) {
+      finishBatchItem(currentId);
+    } else {
+      dismissItem(currentId);
+      closeReview();
+    }
+  }, [reviewItemId, dismissItem, batchMode, finishBatchItem, closeReview]);
 
   const handleCloseBtn = useCallback(() => {
     stopScanning();
@@ -592,6 +632,9 @@ export function ScannerModal({
   const showShutter =
     state === 'scanning' || (batchMode && state === 'matched' && reviewItemId == null);
   const showQueue = queue.length > 0 && showCaptureUi;
+  const showStatusBar = (state === 'scanning' || state === 'matched') && queue.length === 0;
+  const remainingReady =
+    batchMode && reviewItemId ? Math.max(0, readyCount - 1) : undefined;
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden bg-black" aria-modal aria-label="Scanner Magic">
@@ -675,7 +718,7 @@ export function ScannerModal({
             )}
           </div>
 
-          {state !== 'matched' && <StatusBar status={statusBarState} />}
+          {showStatusBar && <StatusBar status={statusBarState} />}
         </>
       )}
 
@@ -690,8 +733,11 @@ export function ScannerModal({
         <CaptureQueuePanel
           queue={queue}
           reviewItemId={reviewItemId}
+          readyCount={readyCount}
+          processingCount={processingCount}
           onSelect={openReview}
           onDismiss={dismissItem}
+          onReviewReady={openFirstReady}
         />
       )}
 
@@ -704,8 +750,10 @@ export function ScannerModal({
           imageUri={result.image_uri}
           confidence={result.confidence}
           confirming={confirming}
+          remainingReady={remainingReady}
           onUseCard={() => void handleUseCard()}
           onNotThisCard={handleNotThisCard}
+          onNext={batchMode ? advanceBatchReview : undefined}
         />
       )}
     </div>

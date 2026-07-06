@@ -39,7 +39,7 @@ export function CaptureShutter({
 function QueueThumb({ item, onSelect }: { item: CaptureQueueItem; onSelect: () => void }) {
   const ring =
     item.status === 'ready'
-      ? 'ring-2 ring-emerald-400'
+      ? 'ring-2 ring-emerald-400 animate-[pulse_2s_ease-in-out_infinite]'
       : item.status === 'error'
         ? 'ring-2 ring-red-400'
         : item.status === 'processing'
@@ -83,17 +83,23 @@ function QueueThumb({ item, onSelect }: { item: CaptureQueueItem; onSelect: () =
 export function CaptureQueuePanel({
   queue,
   reviewItemId,
+  readyCount,
+  processingCount,
   onSelect,
   onDismiss,
+  onReviewReady,
 }: {
   queue: CaptureQueueItem[];
   reviewItemId: string | null;
+  readyCount: number;
+  processingCount: number;
   onSelect: (id: string) => void;
   onDismiss: (id: string) => void;
+  onReviewReady: () => void;
 }) {
   if (queue.length === 0) return null;
 
-  const readyCount = queue.filter((q) => q.status === 'ready').length;
+  const pendingReview = readyCount > 0 && reviewItemId == null;
 
   return (
     <div className="absolute inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 px-3">
@@ -108,6 +114,29 @@ export function CaptureQueuePanel({
             </span>
           )}
         </div>
+
+        {pendingReview && (
+          <button
+            type="button"
+            onClick={onReviewReady}
+            className="mb-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF7300] px-4 py-3 text-sm font-bold uppercase tracking-wide text-[#1a0f08] shadow-[0_4px_16px_rgba(255,115,0,0.35)] transition hover:brightness-110 active:scale-[0.98]"
+          >
+            Rivedi {readyCount === 1 ? 'carta' : `${readyCount} carte`}
+          </button>
+        )}
+
+        {processingCount > 0 && readyCount === 0 && (
+          <p className="mb-2 text-center text-[11px] leading-snug text-white/60">
+            Analisi in corso — puoi continuare a scattare intanto
+          </p>
+        )}
+
+        {processingCount > 0 && readyCount > 0 && (
+          <p className="mb-2 text-center text-[11px] leading-snug text-white/60">
+            Altre {processingCount} in analisi — rivedi quelle pronte o scatta ancora
+          </p>
+        )}
+
         <div className="flex gap-2 overflow-x-auto pb-1">
           {queue.map((item) => (
             <div key={item.id} className="relative shrink-0">

@@ -34,9 +34,13 @@ export interface UseBrxScannerReturn {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   queue: CaptureQueueItem[];
   processingCount: number;
+  readyCount: number;
   reviewItemId: string | null;
   capturePhoto: () => Promise<void>;
   openReview: (id: string) => void;
+  openFirstReady: () => boolean;
+  openNextReady: () => boolean;
+  dismissAndAdvance: (id: string) => boolean;
   closeReview: () => void;
   dismissItem: (id: string) => void;
   openCamera: () => Promise<void>;
@@ -85,10 +89,14 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
   const {
     queue,
     processingCount,
+    readyCount,
     reviewItemId,
     reviewResult,
     capturePhoto,
     openReview,
+    openFirstReady,
+    openNextReady,
+    dismissAndAdvance,
     closeReview,
     dismissItem,
     resetQueue,
@@ -179,11 +187,28 @@ export function useBrxScanner(options: UseBrxScannerOptions = {}): UseBrxScanner
     canvasRef,
     queue,
     processingCount,
+    readyCount,
     reviewItemId,
     capturePhoto,
     openReview: (id: string) => {
       openReview(id);
       setState('matched');
+    },
+    openFirstReady: () => {
+      const opened = openFirstReady();
+      if (opened) setState('matched');
+      return opened;
+    },
+    openNextReady: () => {
+      const opened = openNextReady();
+      if (opened) setState('matched');
+      return opened;
+    },
+    dismissAndAdvance: (id: string) => {
+      const opened = dismissAndAdvance(id);
+      if (opened) setState('matched');
+      else setState((s) => (s === 'matched' ? 'scanning' : s));
+      return opened;
     },
     closeReview: handleCloseReview,
     dismissItem,

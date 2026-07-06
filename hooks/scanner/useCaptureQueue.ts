@@ -26,10 +26,15 @@ export interface UseCaptureQueueParams {
 export interface UseCaptureQueueReturn {
   queue: CaptureQueueItem[];
   processingCount: number;
+  readyCount: number;
   reviewItemId: string | null;
   reviewResult: ScanResult | null;
   capturePhoto: () => Promise<void>;
   openReview: (id: string) => void;
+  openFirstReady: () => boolean;
+  openNextReady: () => boolean;
+  /** Rimuove la carta corrente e apre la prossima pronta (atomico, no race). */
+  dismissAndAdvance: (id: string) => boolean;
   closeReview: () => void;
   dismissItem: (id: string) => void;
   resetQueue: () => void;
@@ -73,10 +78,11 @@ export function useCaptureQueue({
   const pumpWorker = useCallback(async () => {
     if (workerBusyRef.current) return;
 
+    const turboReady = isTurboReady();
     const onnxCanvas = onnxCanvasRef.current;
     const onnxCtx = onnxCtxRef.current;
     const tensorBuf = tensorBufferRef.current;
-    if (!onnxCanvas || !onnxCtx || !tensorBuf) return;
+    if (turboReady && (!onnxCanvas || !onnxCtx || !tensorBuf)) return;
 
     let nextId: string | null = null;
     setQueue((prev) => {
@@ -94,6 +100,23 @@ export function useCaptureQueue({
     }
 
     workerBusyRef.current = true;
+    const embedCanvas =
+      onnxCanvas ??
+      (typeof document !== 'undefined' ? document.createElement('canvas') : null);
+    const embedCtx = embedCanvas?.getContext('2d') ?? null;
+    if (!embedCanvas || !embedCtx) {
+      setQueue((prev) =>
+        prev.map((q) =>
+          q.id === nextId
+            ? { ...q, status: 'error' as const, error: 'Elaborazione foto non disponibile.' }
+            : q,
+        ),
+      );
+      workerBusyRef.current = false;
+      void pumpWorker();
+      return;
+    }
+
     const outcome = await identifyCapture({
       blob,
       apiBaseUrl,
@@ -101,9 +124,9 @@ export function useCaptureQueue({
       requestTimeoutMs,
       isTurboReady,
       runOnnxEmbed,
-      onnxCanvas,
-      onnxCtx,
-      tensorBuffer: tensorBuf,
+      onnxCanvas: embedCanvas,
+      onnxCtx: embedCtx,
+      tensorBuffer: tensorBuf ?? new Float32Array(0),
     });
     setQueue((prev) =>
       prev.map((q) => {
@@ -165,6 +188,48 @@ export function useCaptureQueue({
     [onReviewOpen, queue],
   );
 
+  const openFirstReady = useCallback((): boolean => {
+    const item = queue.find((q) => q.status === 'ready' && q.result);
+    if (!item?.result) return false;
+    setReviewItemId(item.id);
+    onReviewOpen?.(item.result);
+    return true;
+  }, [onReviewOpen, queue]);
+
+  const openNextReady = useCallback((): boolean => {
+    const item = queue.find(
+      (q) => q.status === 'ready' && q.result && q.id !== reviewItemId,
+    );
+    if (!item?.result) return false;
+    setReviewItemId(item.id);
+    onReviewOpen?.(item.result);
+    return true;
+  }, [onReviewOpen, queue, reviewItemId]);
+
+  const dismissAndAdvance = useCallback(
+    (id: string): boolean => {
+      let nextId: string | null = null;
+      let nextResult: ScanResult | null = null;
+      setQueue((prev) => {
+        const updated = removeItemInternal(id, prev);
+        const item = updated.find((q) => q.status === 'ready' && q.result);
+        if (item?.result) {
+          nextId = item.id;
+          nextResult = item.result;
+        }
+        return updated;
+      });
+      if (nextId && nextResult) {
+        setReviewItemId(nextId);
+        onReviewOpen?.(nextResult);
+        return true;
+      }
+      setReviewItemId((cur) => (cur === id ? null : cur));
+      return false;
+    },
+    [onReviewOpen, removeItemInternal],
+  );
+
   const closeReview = useCallback(() => {
     setReviewItemId(null);
   }, []);
@@ -199,6 +264,8 @@ export function useCaptureQueue({
     (q) => q.status === 'queued' || q.status === 'processing',
   ).length;
 
+  const readyCount = queue.filter((q) => q.status === 'ready').length;
+
   const reviewResult =
     reviewItemId != null
       ? (queue.find((q) => q.id === reviewItemId)?.result ?? null)
@@ -207,10 +274,14 @@ export function useCaptureQueue({
   return {
     queue,
     processingCount,
+    readyCount,
     reviewItemId,
     reviewResult,
     capturePhoto,
     openReview,
+    openFirstReady,
+    openNextReady,
+    dismissAndAdvance,
     closeReview,
     dismissItem,
     resetQueue,
