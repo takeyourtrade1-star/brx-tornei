@@ -12,7 +12,7 @@ export function DeckLegalityPanel({ issues, loading, legal }: DeckLegalityPanelP
   if (loading) {
     return (
       <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/50">
-        Verifica legalità Scryfall in corso…
+        Verifica legalità Asso Vision in corso…
       </div>
     );
   }

@@ -41,7 +41,7 @@ export function InventoryMacroCard({ item }: InventoryMacroCardProps) {
 
       <div>
         <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-white/40">
-          Formati (Scryfall)
+          Formati (Asso Vision)
         </p>
         <CardLegalityBadges legalities={item.card.tournamentLegalities} compact />
       </div>

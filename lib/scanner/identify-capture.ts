@@ -1,6 +1,7 @@
 import { BALANCED, shouldRunOrbVerify } from '@/lib/scanner/balancedProfile';
 import {
   imageDataToTensor,
+  normalizeExposure,
   ONNX_SIZE,
   vectorSearchJson,
 } from '@/lib/scanner/preprocess';
@@ -32,7 +33,11 @@ async function blobToImageData224(
   canvas.height = ONNX_SIZE;
   ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, ONNX_SIZE, ONNX_SIZE);
   bitmap.close();
-  return ctx.getImageData(0, 0, ONNX_SIZE, ONNX_SIZE);
+  const imageData = ctx.getImageData(0, 0, ONNX_SIZE, ONNX_SIZE);
+  // Riporta le carte scure/poco illuminate verso l'esposizione di riferimento
+  // prima dell'embedding: è la causa principale dei match falliti al 1° scatto.
+  normalizeExposure(imageData);
+  return imageData;
 }
 
 export interface IdentifyCaptureParams {

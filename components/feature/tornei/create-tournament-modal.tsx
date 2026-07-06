@@ -3,9 +3,9 @@
 import { useEffect, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Check, Lock, ScanLine, ShieldCheck, Swords, Trophy, X } from 'lucide-react';
+import { Check, ChevronDown, Lock, ScanLine, Swords, Trophy, X } from 'lucide-react';
 import { createTournamentAction } from '@/actions/tournaments';
-import type { FormatId } from '@/lib/data/catalog';
+import { FORMATS, getFormat, type FormatId } from '@/lib/data/catalog';
 import type { Selection } from '@/lib/validations/selection';
 import type { BestOf } from '@/types/tournament';
 import { BEST_OF_LABEL } from './tournament-mock-details';
@@ -121,11 +121,15 @@ export function CreateTournamentModal({
   onClose,
   onCreated,
 }: CreateTournamentModalProps) {
+  // Formato pre-selezionato nella home, ma modificabile qui: non tutti capiscono
+  // che riprende la scelta della schermata precedente.
+  const [format, setFormat] = useState<FormatId>(selection.format as FormatId);
   const [bestOf, setBestOf] = useState<BestOf>('BO3');
   const [isPrivate, setIsPrivate] = useState(false);
   const [isTournament, setIsTournament] = useState(false);
-  const [enableScryfallCheck, setEnableScryfallCheck] = useState(false);
-  const [enablePhysicalVerification, setEnablePhysicalVerification] = useState(false);
+  // Un solo interruttore: la banlist è sempre controllata dal sistema, questo
+  // richiede in più la verifica fisica delle carte con Asso Vision.
+  const [verifyDeck, setVerifyDeck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -152,26 +156,32 @@ export function CreateTournamentModal({
 
   if (!open || !mounted) return null;
 
-  const accent = FORMAT_ACCENT[selection.format as FormatId] ?? '#FF7300';
+  const accent = FORMAT_ACCENT[format] ?? '#FF7300';
+  const currentFormatName = getFormat(format)?.name ?? formatName;
 
   function selectFriendly() {
     setIsTournament(false);
   }
   function selectOfficial() {
     setIsTournament(true);
-    setEnableScryfallCheck(true);
-    setEnablePhysicalVerification(true);
+    setVerifyDeck(true);
   }
 
   function handleSubmit() {
+    // Torneo ufficiale → verifica sempre obbligatoria. Amichevole → dipende dal
+    // toggle. La legalità (banlist) va di pari passo con la verifica fisica.
+    const wantVerify = isTournament || verifyDeck;
+
     const formData = new FormData();
-    formData.set('format', selection.format);
+    formData.set('format', format);
     formData.set('mode', selection.mode);
     formData.set('bestOf', bestOf);
     if (isPrivate) formData.set('isPrivate', 'true');
     if (isTournament) formData.set('isTournament', 'true');
-    if (enableScryfallCheck) formData.set('enableScryfallCheck', 'true');
-    if (enablePhysicalVerification) formData.set('enablePhysicalVerification', 'true');
+    if (wantVerify) {
+      formData.set('enableScryfallCheck', 'true');
+      formData.set('enablePhysicalVerification', 'true');
+    }
 
     setError(null);
     setErrorCode(null);
@@ -249,7 +259,7 @@ export function CreateTournamentModal({
                       style={{ backgroundColor: accent }}
                       aria-hidden
                     />
-                    {formatName}
+                    {currentFormatName}
                   </span>
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-white/55">
                     {modeName}
@@ -270,6 +280,36 @@ export function CreateTournamentModal({
 
         {/* Corpo scrollabile */}
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pb-5 pt-1">
+          {/* Formato — pre-compilato dalla home, ma modificabile qui */}
+          <section>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
+              Formato
+            </p>
+            <div className="relative">
+              <span
+                className="pointer-events-none absolute left-3.5 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full"
+                style={{ backgroundColor: accent }}
+                aria-hidden
+              />
+              <select
+                value={format}
+                onChange={(e) => setFormat(e.target.value as FormatId)}
+                aria-label="Formato del torneo"
+                className="w-full appearance-none rounded-2xl border border-white/12 bg-white/[0.04] py-3 pl-8 pr-10 text-sm font-semibold text-white outline-none transition focus:border-primary/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-primary/25"
+              >
+                {FORMATS.map((f) => (
+                  <option key={f.id} value={f.id} className="bg-[#0F172A] text-white">
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45"
+                aria-hidden
+              />
+            </div>
+          </section>
+
           {/* Tipo partita */}
           <section>
             <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
@@ -318,50 +358,55 @@ export function CreateTournamentModal({
             </div>
           </section>
 
-          {/* Verifiche */}
+          {/* Verifica mazzo */}
           <section>
             <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
               Verifica mazzo
             </p>
             {isTournament ? (
-              <div className="space-y-2 rounded-2xl border border-primary/25 bg-primary/[0.06] p-3.5">
-                <p className="text-xs font-semibold text-primary">
-                  Incluse nel torneo ufficiale
-                </p>
-                <div className="flex items-center gap-2.5 text-sm text-white/85">
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-                  Controllo legalità Scryfall
-                </div>
-                <div className="flex items-center gap-2.5 text-sm text-white/85">
-                  <ScanLine className="h-4 w-4 shrink-0 text-primary" />
-                  Verifica fisica Asso Vision
+              <div className="flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/[0.06] p-3.5">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+                  <ScanLine className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-white">Verifica obbligatoria</p>
+                  <p className="mt-0.5 text-[12px] leading-snug text-white/60">
+                    Nei tornei ufficiali Asso Vision controlla banlist e carte fisiche di ogni
+                    giocatore. Non disattivabile.
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-                <button
-                  type="button"
-                  onClick={() => setEnableScryfallCheck((v) => !v)}
-                  className="flex w-full items-center gap-3 border-b border-white/[0.06] p-3 text-left transition hover:bg-white/[0.03]"
+              <button
+                type="button"
+                onClick={() => setVerifyDeck((v) => !v)}
+                className={cn(
+                  'flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition',
+                  verifyDeck
+                    ? 'border-primary/50 bg-primary/[0.08]'
+                    : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]',
+                )}
+              >
+                <span
+                  className={cn(
+                    'grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-colors',
+                    verifyDeck ? 'bg-primary text-white' : 'bg-white/8 text-white/50',
+                  )}
                 >
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-white/60" />
-                  <span className="flex-1 text-sm font-medium text-white/85">
-                    Controllo legalità Scryfall
+                  <ScanLine className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-white">
+                    Verifica mazzo con Asso Vision
                   </span>
-                  <Switch checked={enableScryfallCheck} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEnablePhysicalVerification((v) => !v)}
-                  className="flex w-full items-center gap-3 p-3 text-left transition hover:bg-white/[0.03]"
-                >
-                  <ScanLine className="h-4 w-4 shrink-0 text-white/60" />
-                  <span className="flex-1 text-sm font-medium text-white/85">
-                    Verifica fisica Asso Vision
+                  <span className="mt-0.5 block text-[12px] leading-snug text-white/55">
+                    La banlist è sempre controllata dal sistema. Attivala per richiedere anche la
+                    scansione fisica delle carte: utile per evitare che si usino carte non
+                    consentite.
                   </span>
-                  <Switch checked={enablePhysicalVerification} />
-                </button>
-              </div>
+                </span>
+                <Switch checked={verifyDeck} />
+              </button>
             )}
           </section>
 

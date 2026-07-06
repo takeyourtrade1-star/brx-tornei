@@ -43,7 +43,7 @@ function checkCardFormatLegality(
       cardName: card.name,
       formatId,
       status: 'not_legal',
-      message: `${card.name}: legalità non verificata (Scryfall)`,
+      message: `${card.name}: legalità non verificata (Asso Vision)`,
     };
   }
   const status = legalities[formatId];

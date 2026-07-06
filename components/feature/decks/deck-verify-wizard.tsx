@@ -26,28 +26,27 @@ export function DeckVerifyWizard({ deck, onClose, onVerified }: DeckVerifyWizard
 
   const diff = diffDeckVsScanned(deck.main, deck.side, scanned);
 
-  const handleScanResult = useCallback((scan: ScanResult) => {
-    startTransition(async () => {
-      const res = await addScannedCardAction({
-        cardName: scan.card_name,
-        setCode: scan.set_code,
-        setName: scan.set_name,
-        imageUri: scan.image_uri,
-      });
-      if ('error' in res) {
-        setError(res.error);
-        return;
-      }
-      setError(null);
-      setScanned((prev) => [
-        ...prev,
-        {
-          blueprintId: res.data.blueprintId,
-          cardName: res.data.card.name,
-          quantity: 1,
-        },
-      ]);
+  // Async + throw su errore: lo scanner mostra l'esito reale della scansione.
+  const handleScanResult = useCallback(async (scan: ScanResult) => {
+    const res = await addScannedCardAction({
+      cardName: scan.card_name,
+      setCode: scan.set_code,
+      setName: scan.set_name,
+      imageUri: scan.image_uri,
     });
+    if ('error' in res) {
+      setError(res.error);
+      throw new Error(res.error);
+    }
+    setError(null);
+    setScanned((prev) => [
+      ...prev,
+      {
+        blueprintId: res.data.blueprintId,
+        cardName: res.data.card.name,
+        quantity: 1,
+      },
+    ]);
   }, []);
 
   const handleConfirm = () => {

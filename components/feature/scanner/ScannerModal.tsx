@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useRef, useState, type RefObject } from 'react';
-import { X, Lightbulb } from 'lucide-react';
+import { X, Lightbulb, Check, AlertTriangle } from 'lucide-react';
 import { useBrxScanner } from '@/hooks/useBrxScanner';
 import type { ScanResult } from '@/hooks/scanner/scanner-types';
 import { ScannerModelGate } from '@/components/feature/scanner/ScannerModelGate';
@@ -573,6 +573,9 @@ export function ScannerModal({
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // Feedback batch: quante carte aggiunte in questa sessione + toast esito.
+  const [addedCount, setAddedCount] = useState(0);
+  const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const {
     state,
@@ -656,6 +659,13 @@ export function ScannerModal({
     }
   }, [torchOn, videoRef]);
 
+  // Il toast di esito sparisce da solo: gli errori restano un po' più a lungo.
+  useEffect(() => {
+    if (!flash) return;
+    const t = window.setTimeout(() => setFlash(null), flash.type === 'ok' ? 1900 : 3400);
+    return () => window.clearTimeout(t);
+  }, [flash]);
+
   const advanceBatchReview = useCallback(() => {
     if (!openNextReady()) closeReview();
   }, [openNextReady, closeReview]);
@@ -670,11 +680,16 @@ export function ScannerModal({
   const handleUseCard = useCallback(async () => {
     if (!result || !reviewItemId || confirming) return;
     const currentId = reviewItemId;
+    const cardName = result.card_name;
     setConfirming(true);
     try {
       onConfirm(result.search_query);
+      // Se il salvataggio fallisce, onConfirmResult deve lanciare: così mostriamo
+      // l'errore invece di far sparire la carta come se fosse andato tutto bene.
       await onConfirmResult?.(result);
       if (batchMode) {
+        setAddedCount((n) => n + 1);
+        setFlash({ type: 'ok', text: `${cardName} aggiunta` });
         finishBatchItem(currentId);
       } else {
         dismissItem(currentId);
@@ -682,6 +697,12 @@ export function ScannerModal({
         stopScanning();
         onClose();
       }
+    } catch (err) {
+      // La carta resta in revisione: l'utente può riprovare o scartarla.
+      setFlash({
+        type: 'err',
+        text: err instanceof Error ? err.message : 'Impossibile aggiungere la carta.',
+      });
     } finally {
       setConfirming(false);
     }
@@ -772,12 +793,38 @@ export function ScannerModal({
           <span className="font-display text-[1.05rem] font-bold uppercase tracking-[0.22em] text-white drop-shadow-sm sm:text-xl">
             Asso Vision
           </span>
-          <span className="mt-0.5 hidden text-[9px] font-semibold uppercase tracking-[0.28em] text-[#FF7300]/90 sm:block">
-            {processingCount > 0 ? 'Sto analizzando…' : 'Scanner Magic'}
+          <span
+            className={cn(
+              'mt-0.5 text-[9px] font-semibold uppercase tracking-[0.28em]',
+              batchMode && addedCount > 0
+                ? 'block text-emerald-300/90'
+                : 'hidden text-[#FF7300]/90 sm:block',
+            )}
+          >
+            {batchMode && addedCount > 0
+              ? `${addedCount} ${addedCount === 1 ? 'carta aggiunta' : 'carte aggiunte'}`
+              : processingCount > 0
+                ? 'Sto analizzando…'
+                : 'Scanner Magic'}
           </span>
         </div>
 
         <div className="flex items-center justify-end gap-2 justify-self-end">
+          {batchMode && (
+            <button
+              type="button"
+              onClick={handleCloseBtn}
+              className="flex h-11 items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-4 text-sm font-bold uppercase tracking-wide text-emerald-200 backdrop-blur-md transition hover:bg-emerald-500/25 active:scale-95"
+            >
+              <Check className="h-4 w-4" strokeWidth={2.6} />
+              Fatto
+              {addedCount > 0 && (
+                <span className="ml-0.5 rounded-full bg-emerald-400/25 px-1.5 text-xs tabular-nums">
+                  {addedCount}
+                </span>
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleCloseBtn}
@@ -788,6 +835,35 @@ export function ScannerModal({
           </button>
         </div>
       </header>
+
+      {/* Toast esito conferma (aggiunta riuscita / errore) */}
+      {flash && (
+        <div className="pointer-events-none absolute left-1/2 top-[max(calc(env(safe-area-inset-top)+4.25rem),5rem)] z-50 w-[min(92vw,26rem)] -translate-x-1/2 px-2">
+          <div
+            role="status"
+            className={cn(
+              'flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-sm font-semibold shadow-[0_8px_28px_rgba(0,0,0,0.45)] backdrop-blur-md',
+              flash.type === 'ok'
+                ? 'border-emerald-400/30 bg-emerald-500/25 text-emerald-50'
+                : 'border-red-400/35 bg-red-500/25 text-red-50',
+            )}
+            style={{ animation: 'flash-in 0.25s cubic-bezier(0.16,1,0.3,1)' }}
+          >
+            {flash.type === 'ok' ? (
+              <Check className="h-4 w-4 shrink-0" strokeWidth={2.8} />
+            ) : (
+              <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2.4} />
+            )}
+            <span className="min-w-0 flex-1 truncate">{flash.text}</span>
+          </div>
+          <style>{`
+            @keyframes flash-in {
+              from { opacity: 0; transform: translate(-50%, -8px); }
+              to   { opacity: 1; transform: translate(-50%, 0); }
+            }
+          `}</style>
+        </div>
+      )}
 
       <ScannerBetaNotice className="top-[max(calc(env(safe-area-inset-top)+3.75rem),4.25rem)]" />
 

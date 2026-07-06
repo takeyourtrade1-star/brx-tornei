@@ -185,7 +185,7 @@ export function JoinTournamentDeckModal({
               {scryfallRequired && (
                 <div className="flex items-center gap-2.5 text-sm text-amber-100/90">
                   <ShieldCheck className="h-4 w-4 shrink-0 text-amber-300" />
-                  Controllo legalità Scryfall
+                  Controllo legalità Asso Vision
                 </div>
               )}
               {scanRequired && (

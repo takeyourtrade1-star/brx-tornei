@@ -116,7 +116,7 @@ export function MazziWorkspace({ initialInventory, initialDecks, user }: MazziWo
               </h1>
               <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/60">
                 Scansiona le carte con <span className="font-semibold text-white/80">Asso Vision</span>,
-                costruisci l&apos;inventario e assembla mazzi per formato con verifica Scryfall.
+                costruisci l&apos;inventario e assembla mazzi per formato con verifica legalità automatica.
               </p>
             </div>
           </div>

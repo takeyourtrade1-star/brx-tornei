@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useState, useTransition } from 'react';
-import { Camera, CheckCircle2, Loader2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Camera, CheckCircle2 } from 'lucide-react';
 import { addScannedCardAction } from '@/actions/inventory';
 import { ScannerModal } from '@/components/feature/scanner/ScannerModal';
 import { AssoVisionEyes } from '@/components/feature/scanner/AssoVisionEyes';
@@ -22,40 +22,35 @@ interface RecentScan {
 export function InventoryScanPanel({ onCardAdded }: InventoryScanPanelProps) {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
-  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
+  // Ritorna una promise: se il salvataggio fallisce lancia, così lo scanner
+  // mostra l'errore invece di trattare la carta come aggiunta.
   const handleScanResult = useCallback(
-    (scan: ScanResult) => {
+    async (scan: ScanResult) => {
       setError(null);
-      setPendingMessage(`Aggiungo ${scan.card_name}…`);
-      startTransition(async () => {
-        const res = await addScannedCardAction({
-          cardName: scan.card_name,
-          setCode: scan.set_code,
-          setName: scan.set_name,
-          scryfallId: scan.scryfall_id,
-          imageUri: scan.image_uri,
-        });
-
-        if ('error' in res) {
-          setError(res.error);
-          setPendingMessage(null);
-          return;
-        }
-
-        setPendingMessage(null);
-        setRecentScans((prev) => [
-          {
-            id: `${Date.now()}-${scan.card_name}`,
-            result: res.data,
-            at: new Date().toISOString(),
-          },
-          ...prev.slice(0, 9),
-        ]);
-        onCardAdded(res.data);
+      const res = await addScannedCardAction({
+        cardName: scan.card_name,
+        setCode: scan.set_code,
+        setName: scan.set_name,
+        scryfallId: scan.scryfall_id,
+        imageUri: scan.image_uri,
       });
+
+      if ('error' in res) {
+        setError(res.error);
+        throw new Error(res.error);
+      }
+
+      setRecentScans((prev) => [
+        {
+          id: `${Date.now()}-${scan.card_name}`,
+          result: res.data,
+          at: new Date().toISOString(),
+        },
+        ...prev.slice(0, 9),
+      ]);
+      onCardAdded(res.data);
     },
     [onCardAdded]
   );
@@ -82,31 +77,23 @@ export function InventoryScanPanel({ onCardAdded }: InventoryScanPanelProps) {
             </div>
             <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-white/60">
               Inquadra le carte: <span className="font-semibold text-white/80">Asso</span> le riconosce,
-              le aggiunge al tuo inventario e Scryfall verifica subito legalità e ban per ogni formato.
+              le aggiunge al tuo inventario e Asso Vision verifica subito legalità e ban per ogni formato.
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => setScannerOpen(true)}
-          disabled={isPending}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-[0_8px_24px_rgba(255,115,0,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-[0_8px_24px_rgba(255,115,0,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
-          {isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : (
-            <Camera className="h-4 w-4" aria-hidden />
-          )}
+          <Camera className="h-4 w-4" aria-hidden />
           Avvia scanner
         </button>
       </div>
 
-      {(pendingMessage || error) && (
+      {error && (
         <div className="mt-3">
-          {pendingMessage && (
-            <p className="text-xs text-[#F3C76A]">{pendingMessage}</p>
-          )}
-          {error && <p className="text-xs text-red-300">{error}</p>}
+          <p className="text-xs text-red-300">{error}</p>
         </div>
       )}
 
