@@ -88,6 +88,32 @@ function toScanResult(
   };
 }
 
+/**
+ * Budget di rete per uno scatto *deliberato* in coda. Il loop live usa
+ * requestTimeoutMs (~3.2s) per restare reattivo, ma qui l'utente ha scattato
+ * apposta e può attendere: 3.2s sono troppo pochi con server freddo o rete
+ * mobile e producevano falsi "errore di rete". Il tetto esterno (captureMaxMs)
+ * limita comunque il totale.
+ */
+function captureNetTimeout(params: IdentifyCaptureParams): number {
+  return Math.max(params.requestTimeoutMs, 6000);
+}
+
+/**
+ * Distingue un vero problema di connessione da un timeout. `err instanceof
+ * DOMException` non è affidabile su iOS Safari (un fetch abortito lì lancia un
+ * TypeError "Load failed"), quindi ci basiamo sul segnale: se è stato abortito
+ * è un timeout, altrimenti è la rete davvero assente.
+ */
+function fetchFailureMessage(controller: AbortController, err: unknown): string {
+  const aborted =
+    controller.signal.aborted ||
+    (err instanceof DOMException && err.name === 'AbortError');
+  return aborted
+    ? 'Il server ci ha messo troppo. Riprova.'
+    : 'Connessione assente: controlla la rete e riprova.';
+}
+
 async function identifyOnnx(params: IdentifyCaptureParams): Promise<IdentifyCaptureOutcome> {
   const t0 = performance.now();
   const imageData = await blobToImageData224(
@@ -103,7 +129,7 @@ async function identifyOnnx(params: IdentifyCaptureParams): Promise<IdentifyCapt
   const vector = await params.runOnnxEmbed(params.tensorBuffer.slice());
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), params.requestTimeoutMs);
+  const timeoutId = setTimeout(() => controller.abort(), captureNetTimeout(params));
 
   let searchResp: Response;
   try {
@@ -115,11 +141,7 @@ async function identifyOnnx(params: IdentifyCaptureParams): Promise<IdentifyCapt
     });
   } catch (err) {
     clearTimeout(timeoutId);
-    const isAbort = err instanceof DOMException && err.name === 'AbortError';
-    return {
-      ok: false,
-      error: isAbort ? 'Timeout identificazione.' : 'Errore di rete.',
-    };
+    return { ok: false, error: fetchFailureMessage(controller, err) };
   }
   clearTimeout(timeoutId);
 
@@ -176,7 +198,7 @@ async function identifyLegacy(params: IdentifyCaptureParams): Promise<IdentifyCa
   formData.append('image', params.blob, 'capture.jpg');
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), params.requestTimeoutMs);
+  const timeoutId = setTimeout(() => controller.abort(), captureNetTimeout(params));
 
   try {
     const resp = await fetch(
@@ -224,11 +246,7 @@ async function identifyLegacy(params: IdentifyCaptureParams): Promise<IdentifyCa
     };
   } catch (err) {
     clearTimeout(timeoutId);
-    const isAbort = err instanceof DOMException && err.name === 'AbortError';
-    return {
-      ok: false,
-      error: isAbort ? 'Timeout identificazione.' : 'Errore di rete.',
-    };
+    return { ok: false, error: fetchFailureMessage(controller, err) };
   }
 }
 

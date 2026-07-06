@@ -171,6 +171,18 @@ export async function fetchScryfallByNameSet(
   return first ?? null;
 }
 
+/**
+ * Lookup fuzzy per solo nome. È il fallback più robusto per le legalità: queste
+ * dipendono dall'oracle (identiche per tutte le stampe), quindi basta trovare
+ * una qualsiasi stampa della carta per averle, anche se id/set non combaciano.
+ */
+export async function fetchScryfallByName(
+  cardName: string
+): Promise<ScryfallCardResponse | null> {
+  const q = encodeURIComponent(cardName.trim());
+  return fetchScryfallJson<ScryfallCardResponse>(`/cards/named?fuzzy=${q}`);
+}
+
 export interface ScryfallEnrichment {
   scryfallId?: string;
   oracleId?: string;
@@ -187,14 +199,35 @@ export async function enrichCardFromScryfall(input: {
   collectorNumber?: string | null;
   scryfallId?: string | null;
 }): Promise<ScryfallEnrichment | null> {
-  let card: ScryfallCardResponse | null = null;
+  // Proviamo le strategie in ordine di precisione e ci fermiamo alla prima che
+  // restituisce le legalità. Prima usavamo un solo tentativo (if/else): se lo
+  // scryfall_id dello scanner non corrispondeva a una stampa reale, il lookup
+  // andava a vuoto senza fallback e la carta restava "non ancora verificata".
+  const attempts: Array<() => Promise<ScryfallCardResponse | null>> = [];
 
   if (input.scryfallId) {
-    card = await fetchScryfallJson<ScryfallCardResponse>(`/cards/${input.scryfallId}`);
-  } else if (input.setCode && input.collectorNumber) {
-    card = await fetchScryfallPrinting(input.setCode, input.collectorNumber);
-  } else if (input.setCode && input.cardName) {
-    card = await fetchScryfallByNameSet(input.cardName, input.setCode);
+    const id = input.scryfallId;
+    attempts.push(() => fetchScryfallJson<ScryfallCardResponse>(`/cards/${id}`));
+  }
+  if (input.setCode && input.collectorNumber) {
+    const set = input.setCode;
+    const num = input.collectorNumber;
+    attempts.push(() => fetchScryfallPrinting(set, num));
+  }
+  if (input.setCode && input.cardName) {
+    const set = input.setCode;
+    const name = input.cardName;
+    attempts.push(() => fetchScryfallByNameSet(name, set));
+  }
+  if (input.cardName) {
+    const name = input.cardName;
+    attempts.push(() => fetchScryfallByName(name));
+  }
+
+  let card: ScryfallCardResponse | null = null;
+  for (const attempt of attempts) {
+    card = await attempt();
+    if (card?.legalities) break;
   }
 
   if (!card?.legalities) return null;
