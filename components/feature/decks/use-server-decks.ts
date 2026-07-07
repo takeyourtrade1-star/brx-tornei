@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import {
   createDeckAction,
   deleteDeckAction,
@@ -20,6 +20,9 @@ function isTempDeckId(deckId: string): boolean {
   return deckId.startsWith('temp-');
 }
 
+/** Debounce del salvataggio: modifiche ravvicinate (es. +1 +1) diventano un solo update. */
+const PERSIST_DEBOUNCE_MS = 600;
+
 interface UseServerDecksOptions {
   /** Quando il server assegna l'id definitivo al posto del temp ottimistico. */
   onDeckIdRemap?: (fromId: string, toId: string) => void;
@@ -28,13 +31,60 @@ interface UseServerDecksOptions {
 export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOptions = {}) {
   const { onDeckIdRemap } = options;
   const [decks, setDecks] = useState<Deck[]>(initialDecks);
+  const [dirtyDeckIds, setDirtyDeckIds] = useState<ReadonlySet<string>>(() => new Set());
   const [isPending, startTransition] = useTransition();
 
-  const persistDeck = useCallback((deck: Deck) => {
-    if (isTempDeckId(deck.id)) return;
-    startTransition(async () => {
-      await updateDeckAction({ deckId: deck.id, main: deck.main, side: deck.side });
-    });
+  const decksRef = useRef(decks);
+  useEffect(() => {
+    decksRef.current = decks;
+  }, [decks]);
+
+  const markDirty = useCallback((deckId: string) => {
+    setDirtyDeckIds((prev) => (prev.has(deckId) ? prev : new Set(prev).add(deckId)));
+  }, []);
+
+  // Persistenza fuori dal ciclo di render. Gli updater di setState devono restare
+  // puri: React li può rieseguire ad ogni tentativo di render, e lanciare lì una
+  // server action (che fa revalidatePath → refresh → nuovo render) creava un loop
+  // di sospensioni che crashava la pagina (React #482) aggiungendo carte in rapida
+  // successione.
+  useEffect(() => {
+    const ready = [...dirtyDeckIds].filter((id) => !isTempDeckId(id));
+    if (ready.length === 0) return;
+
+    const timer = window.setTimeout(() => {
+      setDirtyDeckIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ready) next.delete(id);
+        return next;
+      });
+      startTransition(async () => {
+        for (const id of ready) {
+          const deck = decksRef.current.find((d) => d.id === id);
+          if (deck && !isTempDeckId(deck.id)) {
+            await updateDeckAction({ deckId: deck.id, main: deck.main, side: deck.side });
+          }
+        }
+      });
+    }, PERSIST_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [dirtyDeckIds, decks]);
+
+  // Flush alla smontatura: se il debounce era ancora in attesa, salva comunque.
+  const dirtyRef = useRef(dirtyDeckIds);
+  useEffect(() => {
+    dirtyRef.current = dirtyDeckIds;
+  }, [dirtyDeckIds]);
+  useEffect(() => {
+    return () => {
+      for (const id of dirtyRef.current) {
+        const deck = decksRef.current.find((d) => d.id === id);
+        if (deck && !isTempDeckId(deck.id)) {
+          void updateDeckAction({ deckId: deck.id, main: deck.main, side: deck.side });
+        }
+      }
+    };
   }, []);
 
   const createDeck = useCallback(
@@ -56,10 +106,31 @@ export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOpti
       startTransition(async () => {
         const res = await createDeckAction(input);
         if ('deck' in res) {
-          setDecks((prev) => prev.map((d) => (d.id === tempId ? res.deck : d)));
+          // Conserva le carte aggiunte localmente mentre la creazione era in volo:
+          // il deck del server è vuoto e sovrascriverebbe il lavoro dell'utente.
+          setDecks((prev) =>
+            prev.map((d) =>
+              d.id === tempId
+                ? { ...res.deck, main: d.main, side: d.side, verificationStatus: d.verificationStatus }
+                : d
+            )
+          );
+          setDirtyDeckIds((prev) => {
+            if (!prev.has(tempId)) return prev;
+            const next = new Set(prev);
+            next.delete(tempId);
+            next.add(res.deck.id);
+            return next;
+          });
           onDeckIdRemap?.(tempId, res.deck.id);
         } else {
           setDecks((prev) => prev.filter((d) => d.id !== tempId));
+          setDirtyDeckIds((prev) => {
+            if (!prev.has(tempId)) return prev;
+            const next = new Set(prev);
+            next.delete(tempId);
+            return next;
+          });
         }
       });
 
@@ -70,6 +141,12 @@ export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOpti
 
   const deleteDeck = useCallback((deckId: string) => {
     setDecks((prev) => prev.filter((d) => d.id !== deckId));
+    setDirtyDeckIds((prev) => {
+      if (!prev.has(deckId)) return prev;
+      const next = new Set(prev);
+      next.delete(deckId);
+      return next;
+    });
     if (isTempDeckId(deckId)) return;
     startTransition(async () => {
       await deleteDeckAction(deckId);
@@ -78,14 +155,10 @@ export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOpti
 
   const patchDeck = useCallback(
     (deckId: string, updater: (deck: Deck) => Deck) => {
-      setDecks((prev) => {
-        const next = prev.map((d) => (d.id === deckId ? updater(d) : d));
-        const updated = next.find((d) => d.id === deckId);
-        if (updated) persistDeck(updated);
-        return next;
-      });
+      setDecks((prev) => prev.map((d) => (d.id === deckId ? updater(d) : d)));
+      markDirty(deckId);
     },
-    [persistDeck]
+    [markDirty]
   );
 
   const addCard = useCallback(

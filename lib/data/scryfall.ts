@@ -195,6 +195,36 @@ export interface ScryfallEnrichment {
   tournamentLegalities: TournamentLegalities;
 }
 
+/** Cache dell'enrichment completo, indicizzata sia per scryfallId che per nome. */
+const enrichCache = new Map<string, { at: number; enrichment: ScryfallEnrichment }>();
+
+/**
+ * Chiavi con cui cercare in cache. La chiave per nome è ammessa solo per i
+ * lookup "nome e basta": se l'input specifica una stampa (set/collector o id),
+ * servire l'enrichment di un'altra stampa darebbe l'immagine sbagliata.
+ */
+function enrichCacheKeys(input: {
+  cardName: string;
+  setCode?: string | null;
+  collectorNumber?: string | null;
+  scryfallId?: string | null;
+}): string[] {
+  const keys: string[] = [];
+  if (input.scryfallId) keys.push(cacheKey(['enrich-id', input.scryfallId]));
+  else if (!input.setCode && !input.collectorNumber && input.cardName) {
+    keys.push(cacheKey(['enrich-name', input.cardName.trim().toLowerCase()]));
+  }
+  return keys;
+}
+
+function readEnrichCache(keys: string[]): ScryfallEnrichment | null {
+  for (const key of keys) {
+    const hit = enrichCache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.enrichment;
+  }
+  return null;
+}
+
 /** Arricchisce una carta con dati Scryfall (legalità + immagine). */
 export async function enrichCardFromScryfall(input: {
   cardName: string;
@@ -202,6 +232,9 @@ export async function enrichCardFromScryfall(input: {
   collectorNumber?: string | null;
   scryfallId?: string | null;
 }): Promise<ScryfallEnrichment | null> {
+  const cached = readEnrichCache(enrichCacheKeys(input));
+  if (cached) return cached;
+
   // Proviamo le strategie in ordine di precisione e ci fermiamo alla prima che
   // restituisce le legalità. Prima usavamo un solo tentativo (if/else): se lo
   // scryfall_id dello scanner non corrispondeva a una stampa reale, il lookup
@@ -235,18 +268,25 @@ export async function enrichCardFromScryfall(input: {
 
   if (!card?.legalities) return null;
 
-  const tournamentLegalities = mapLegalities(card.legalities);
-  const key = cacheKey(['enrich', card.id ?? input.cardName]);
-  legalityCache.set(key, { at: Date.now(), legalities: tournamentLegalities });
-
-  return {
+  const enrichment: ScryfallEnrichment = {
     scryfallId: card.id,
     oracleId: card.oracle_id,
     image: imageFromScryfall(card),
     rarity: card.rarity,
     collectorNumber: card.collector_number,
-    tournamentLegalities,
+    tournamentLegalities: mapLegalities(card.legalities),
   };
+
+  // Indicizza sotto le chiavi dell'input (quelle con cui verrà ricercata) e
+  // sotto il nome risolto da Scryfall, così anche i lookup fuzzy successivi
+  // con il nome canonico trovano il risultato.
+  const at = Date.now();
+  const keys = new Set(enrichCacheKeys(input));
+  if (card.id) keys.add(cacheKey(['enrich-id', card.id]));
+  if (card.name) keys.add(cacheKey(['enrich-name', card.name.trim().toLowerCase()]));
+  for (const key of keys) enrichCache.set(key, { at, enrichment });
+
+  return enrichment;
 }
 
 export function isLegalInFormat(

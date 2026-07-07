@@ -1,5 +1,6 @@
 'use client';
 
+import { getCardImageUrl } from '@/lib/assets';
 import type { InventoryItem } from '@/types/inventory';
 import { CardLegalityBadges } from './card-legality-badges';
 
@@ -8,13 +9,14 @@ interface InventoryMacroCardProps {
 }
 
 export function InventoryMacroCard({ item }: InventoryMacroCardProps) {
+  const imageUrl = getCardImageUrl(item.card.image);
   return (
     <article className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 transition-colors hover:bg-white/[0.07]">
       <div className="flex items-start gap-3">
         <div className="relative h-24 w-[4.5rem] shrink-0 overflow-hidden rounded-lg bg-black/30">
-          {item.card.image ? (
+          {imageUrl ? (
             <img
-              src={item.card.image}
+              src={imageUrl}
               alt={item.card.name}
               className="h-full w-full object-cover"
               loading="lazy"

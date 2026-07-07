@@ -51,7 +51,7 @@ export function TournamentsDashboard({
   const filtersActive = hasActiveTournamentFilters(filters);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <TournamentsStickyToolbar
         formatId={formatId}
         modeId={selection.mode as ModeId}
@@ -62,14 +62,14 @@ export function TournamentsDashboard({
         mobile={mobile}
       />
 
-      <section className="flex scroll-mt-52 flex-col gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-white/50">
-            Tornei <span className="text-white">{formatName}</span>
-            <span className="mx-1.5 text-white/30" aria-hidden>
+      <section className="flex scroll-mt-52 flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="font-sans text-base font-bold uppercase tracking-widest text-slate-500 sm:text-lg">
+            Tornei <span className="text-slate-900">{formatName}</span>
+            <span className="mx-2 text-slate-400" aria-hidden>
               ·
             </span>
-            <span className="text-white/60">{modeName}</span>
+            <span className="text-slate-600">{modeName}</span>
           </h2>
           <CreateTournamentButton
             selection={selection}

@@ -17,7 +17,7 @@ export function FormatPillSelect({ value, onChange, ariaLabelledBy }: FormatPill
   const current = FORMATS_WITH_MEDIA.find((f) => f.id === value);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-full bg-header-bg/80 ring-1 ring-white/[0.12]">
+    <div className="relative w-full overflow-hidden rounded-full bg-header-bg/80 text-white ring-1 ring-white/[0.12]">
       {current && (
         <span className="pointer-events-none absolute inset-0" aria-hidden>
           <Image

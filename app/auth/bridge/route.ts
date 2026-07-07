@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
-import { getRefreshToken, setSessionCookies } from '@/lib/auth/session';
+import { clearSessionCookies, getRefreshToken, setSessionCookies } from '@/lib/auth/session';
 import { buildLoginRedirectUrl, sanitizeRedirect } from '@/lib/auth/redirect';
 import type { TokenResponse } from '@/types/auth';
 
@@ -40,6 +40,12 @@ export async function GET(request: NextRequest) {
     >;
 
     if (!res.ok || typeof body.access_token !== 'string') {
+      // Refresh token rifiutato (revocato/scaduto): senza pulizia il middleware
+      // rimanderebbe qui a ogni navigazione. Solo su 4xx espliciti — un errore
+      // transitorio (5xx/timeout) non deve buttare via un token ancora valido.
+      if (res.status >= 400 && res.status < 500) {
+        await clearSessionCookies();
+      }
       return NextResponse.redirect(loginUrl);
     }
 

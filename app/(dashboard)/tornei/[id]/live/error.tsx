@@ -15,7 +15,8 @@ export default function TournamentLiveError({
   }, [error]);
 
   return (
-    <div className="mx-auto flex min-h-[60vh] w-full max-w-lg flex-col items-center justify-center px-4 text-center">
+    <div className="mx-auto flex min-h-[60vh] w-full max-w-lg items-center px-4">
+      <div className="simple-panel flex w-full flex-col items-center px-6 py-12 text-center">
       <h1 className="font-display text-xl font-black uppercase tracking-wide text-white">
         Errore caricamento partita
       </h1>
@@ -38,6 +39,7 @@ export default function TournamentLiveError({
         >
           Torna ai tornei
         </Link>
+      </div>
       </div>
     </div>
   );

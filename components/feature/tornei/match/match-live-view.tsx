@@ -135,13 +135,17 @@ export function MatchLiveView({ tournament, role, me, userId, isHost }: MatchLiv
 
   useEffect(() => {
     if (tournament.status !== 'in_registrazione') return;
-    const timer = setInterval(() => router.refresh(), 5000);
+    // router.refresh() rifà il render RSC dell'intera pagina: a tab nascosta
+    // è lavoro (e traffico) buttato, si riprende al ritorno sulla tab.
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') router.refresh();
+    }, 5000);
     return () => clearInterval(timer);
   }, [tournament.status, router]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-content flex-col px-4 py-4 pb-16 sm:px-6">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <header className="simple-panel mb-4 flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
           <Link
             href="/tornei"

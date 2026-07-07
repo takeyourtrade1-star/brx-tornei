@@ -68,22 +68,16 @@
   font-weight: bold !important;
 }
 
-/* Sfumatura header dal blu a trasparente con sfocatura progressiva (gradual backdrop-blur) */
+/* Header senza sfondo: il contenuto (testi scuri, logo con ombra) poggia
+   direttamente sullo sfondo chiaro della pagina. La classe resta per i
+   segnaposto di layout negli skeleton. */
 .header-gradient {
-  background: linear-gradient(
-    to bottom,
-    rgba(29, 49, 96, 0.85) 0%,
-    rgba(29, 49, 96, 0.45) 55%,
-    rgba(29, 49, 96, 0) 100%
-  );
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  background: transparent;
 }
 
 /* Glass scuro Ebartex (da auth-glass.ts AUTH_GLASS_DARK) — pannelli su sfondo gradiente */
 .brx-glass {
+  color: #fff;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -109,24 +103,22 @@
     scrollbar-width: none;  /* Firefox */
   }
 
-  /* Toolbar tornei: transizione sticky ↔ espansa */
+  /* Toolbar tornei: transizione sticky ↔ espansa.
+     Solo proprietà visive (niente margin/padding/backdrop-filter: animarle
+     rilayouta tutta la pagina a ogni frame durante lo scroll). */
   .tournaments-toolbar-ease {
     transition:
-      margin 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-      padding 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-      border-radius 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-      background-color 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-      backdrop-filter 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-      transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+      border-radius 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .tournaments-toolbar-section-collapse {
     display: grid;
     transition:
-      grid-template-rows 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+      grid-template-rows 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .tournaments-toolbar-section-collapse[data-open='true'] {
@@ -162,11 +154,11 @@
   }
 
   .animate-toolbar-compact-settle {
-    animation: toolbar-compact-settle 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: toolbar-compact-settle 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .animate-toolbar-expand-settle {
-    animation: toolbar-expand-settle 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: toolbar-expand-settle 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -227,15 +219,15 @@
 
   /* — Vista semplificata tornei: pannelli scuri ad alto contrasto — */
   .simple-panel {
-    @apply rounded-3xl border border-white/[0.08] bg-header-bg/90 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.55)];
+    @apply rounded-3xl border border-white/[0.08] bg-header-bg/90 text-white shadow-[0_12px_40px_-16px_rgba(0,0,0,0.55)];
   }
 
   .simple-panel-solid {
-    @apply rounded-3xl border border-white/[0.08] bg-header-bg/[0.97] shadow-[0_12px_40px_-16px_rgba(0,0,0,0.6)];
+    @apply rounded-3xl border border-white/[0.08] bg-header-bg/[0.97] text-white shadow-[0_12px_40px_-16px_rgba(0,0,0,0.6)];
   }
 
   .simple-card {
-    @apply rounded-2xl border border-white/[0.08] bg-header-bg/80 transition-colors hover:bg-header-bg;
+    @apply rounded-2xl border border-white/[0.08] bg-header-bg/80 text-white transition-colors hover:bg-header-bg;
   }
 
   .simple-pill {
@@ -260,18 +252,33 @@
     min-height: 100%;
     scrollbar-gutter: stable;
   }
-  /* Sfondo tornei: gradiente semplice blu → arancione (palette Ebartex). */
+  /* Sfondo: gradiente azzurro sfumato + pattern logo BRX in tile.
+     Tutto in un unico ::before fixed (layer composito, niente repaint allo
+     scroll). L'opacità del pattern è nei fill-opacity dell'SVG locale, così
+     il gradiente resta pieno. */
+  /* Default testo SCURO: lo sfondo pagina è chiaro. I pannelli scuri
+     (.simple-panel, .brx-glass, modali navy) dichiarano text-white loro:
+     così il testo senza classe colore è leggibile ovunque per default. */
   body {
-    @apply transition-colors duration-300 min-h-screen font-medium;
+    @apply min-h-screen font-medium;
     font-family: var(--font-sans), serif;
-    background: linear-gradient(
-      135deg,
-      var(--color-brand) 0%,
-      var(--color-brand-dark) 55%,
-      #ff7300 100%
-    );
-    background-attachment: fixed;
-    color: #fff;
+    background-color: #c9e1f5;
+    color: #0f172a;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      url('/brx-sfondo-logo-tile.svg'),
+      radial-gradient(1100px 540px at 82% -10%, rgba(255, 255, 255, 0.55), transparent 62%),
+      linear-gradient(168deg, #e9f4fd 0%, #d2e7f8 40%, #b5d6f1 76%, #a2cbee 100%);
+    background-size: 460px 460px, auto, auto;
+    background-repeat: repeat, no-repeat, no-repeat;
+    transform: translateZ(0);
+    pointer-events: none;
   }
 }
 

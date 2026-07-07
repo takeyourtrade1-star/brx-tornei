@@ -122,7 +122,7 @@ export function TournamentFilters({
   return (
     <div
       className={cn(
-        'flex w-full flex-col transition-[gap] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
+        'flex w-full flex-col transition-[gap] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
         dense ? 'items-stretch gap-2' : 'gap-3',
       )}
     >

@@ -59,6 +59,7 @@ export async function createTournamentAction(
     mode: formData.get('mode'),
     bestOf: formData.get('bestOf') ?? 'BO3',
     isPrivate: formData.get('isPrivate'),
+    withFriend: formData.get('withFriend'),
     isTournament: formData.get('isTournament'),
     enableScryfallCheck: formData.get('enableScryfallCheck'),
     enablePhysicalVerification: formData.get('enablePhysicalVerification'),

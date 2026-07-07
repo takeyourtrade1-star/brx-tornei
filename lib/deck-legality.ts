@@ -1,32 +1,41 @@
 import type { FormatId } from '@/lib/data/catalog';
 import { countCards, getMainDeckMinSize, getSideboardMaxSize } from '@/lib/data/deck-utils';
 import { isLegalInFormatStatus, legalityLabel } from '@/lib/card-legality-label';
+import { getMaxCopiesForCard, getOracleKey } from '@/lib/deck-copy-limits';
 import type { DeckLegalityIssue } from '@/types/card-legality';
 import type { Deck, DeckCard } from '@/types/deck';
 
-const BASIC_LAND_NAMES = new Set([
-  'plains',
-  'island',
-  'swamp',
-  'mountain',
-  'forest',
-  'wastes',
-  'snow-covered plains',
-  'snow-covered island',
-  'snow-covered swamp',
-  'snow-covered mountain',
-  'snow-covered forest',
-]);
-
-function isBasicLand(name: string): boolean {
-  return BASIC_LAND_NAMES.has(name.trim().toLowerCase());
+interface OracleGroup {
+  /** Nome leggibile della carta (prima stampa incontrata). */
+  name: string;
+  blueprintId: number;
+  quantity: number;
+  /** Limite copie più severo tra le stampe del gruppo. */
+  maxCopies: number;
+  restricted: boolean;
 }
 
-function countByOracle(cards: DeckCard[]): Map<string, number> {
-  const map = new Map<string, number>();
+/** Raggruppa main+side per oracle: stampe diverse della stessa carta contano insieme. */
+function groupByOracle(cards: DeckCard[], formatId: FormatId): Map<string, OracleGroup> {
+  const map = new Map<string, OracleGroup>();
   for (const card of cards) {
-    const key = card.oracleId ?? card.name.toLowerCase();
-    map.set(key, (map.get(key) ?? 0) + card.quantity);
+    const key = getOracleKey(card);
+    const maxCopies = getMaxCopiesForCard(formatId, card);
+    const restricted = card.tournamentLegalities?.[formatId] === 'restricted';
+    const group = map.get(key);
+    if (group) {
+      group.quantity += card.quantity;
+      group.maxCopies = Math.min(group.maxCopies, maxCopies);
+      group.restricted = group.restricted || restricted;
+    } else {
+      map.set(key, {
+        name: card.name,
+        blueprintId: Number(card.id),
+        quantity: card.quantity,
+        maxCopies,
+        restricted,
+      });
+    }
   }
   return map;
 }
@@ -90,50 +99,29 @@ export function validateDeckLegality(deck: Deck, formatId: FormatId = deck.forma
     });
   }
 
+  // Limiti copie per oracle (main + side insieme): 4 standard, 1 in Commander,
+  // 1 per le ristrette, limiti stampati (Seven Dwarves…), nessuno per terre base
+  // e carte "any number".
   const allCards = [...deck.main, ...deck.side];
-  const oracleCounts = countByOracle(allCards);
-
-  if (formatId === 'commander') {
-    for (const [oracle, qty] of oracleCounts) {
-      if (qty > 1 && !isBasicLand(oracle)) {
-        issues.push({
-          blueprintId: 0,
-          cardName: oracle,
-          formatId,
-          status: 'not_legal',
-          message: `Commander: max 1 copia per carta (eccetto terre base) — ${oracle}: ${qty}`,
-        });
-      }
-    }
-  } else {
-    for (const [oracle, qty] of oracleCounts) {
-      if (qty > 4 && !isBasicLand(oracle)) {
-        issues.push({
-          blueprintId: 0,
-          cardName: oracle,
-          formatId,
-          status: 'not_legal',
-          message: `Max 4 copie per carta — ${oracle}: ${qty}`,
-        });
-      }
-    }
+  for (const group of groupByOracle(allCards, formatId).values()) {
+    if (group.quantity <= group.maxCopies) continue;
+    const message = group.restricted
+      ? `${group.name} è ristretta in ${formatId}: massimo 1 copia (nel mazzo: ${group.quantity})`
+      : formatId === 'commander' && group.maxCopies === 1
+        ? `Commander: max 1 copia per carta (eccetto terre base) — ${group.name}: ${group.quantity}`
+        : `Max ${group.maxCopies} copie per carta — ${group.name}: ${group.quantity}`;
+    issues.push({
+      blueprintId: group.blueprintId,
+      cardName: group.name,
+      formatId,
+      status: group.restricted ? 'restricted' : 'not_legal',
+      message,
+    });
   }
 
-  if (formatId === 'pauper') {
-    for (const card of allCards) {
-      const rarity = card.rarity?.toLowerCase();
-      if (rarity && rarity !== 'common') {
-        issues.push({
-          blueprintId: Number(card.id),
-          cardName: card.name,
-          formatId,
-          status: 'not_legal',
-          message: `${card.name} non è Common (Pauper)`,
-        });
-      }
-    }
-  }
-
+  // Legalità per carta (bannate, non legali nel formato, legalità mancante).
+  // Nota Pauper: lo status Scryfall è autoritativo (una carta è legale se è mai
+  // stata stampata comune), quindi niente check sulla rarità della singola stampa.
   for (const card of deck.main) {
     const issue = checkCardFormatLegality(card, formatId, 'main');
     if (issue) issues.push(issue);

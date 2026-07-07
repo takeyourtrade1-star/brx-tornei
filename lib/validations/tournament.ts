@@ -8,6 +8,12 @@ export const createTournamentSchema = selectionSchema.extend({
     (val) => val === true || val === 'true' || val === 'on',
     z.boolean().default(false),
   ),
+  // "Giochi con un amico?": true = P2P diretto (IP visibili tra i due peer,
+  // zero costo relay); false = video forzato sul TURN (IP oscurati).
+  withFriend: z.preprocess(
+    (val) => val === true || val === 'true' || val === 'on',
+    z.boolean().default(false),
+  ),
   isTournament: z.preprocess(
     (val) => val === true || val === 'true' || val === 'on',
     z.boolean().default(false),

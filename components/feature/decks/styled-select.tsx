@@ -9,6 +9,8 @@ export interface StyledSelectOption<T extends string> {
   label: string;
   hint?: string;
   color?: string;
+  /** Icona a sinistra (alternativa più pulita al quadratino colorato). */
+  icon?: React.ReactNode;
 }
 
 interface StyledSelectProps<T extends string> {
@@ -17,6 +19,8 @@ interface StyledSelectProps<T extends string> {
   options: StyledSelectOption<T>[];
   placeholder?: string;
   disabled?: boolean;
+  /** Classi extra per il bottone trigger (es. altezza per allinearlo ad altri campi). */
+  triggerClassName?: string;
 }
 
 interface MenuPos {
@@ -32,6 +36,7 @@ export function StyledSelect<T extends string>({
   options,
   placeholder = 'Seleziona…',
   disabled = false,
+  triggerClassName,
 }: StyledSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<MenuPos | null>(null);
@@ -104,7 +109,7 @@ export function StyledSelect<T extends string>({
         id={`${id}-menu`}
         role="listbox"
         aria-labelledby={`${id}-btn`}
-        className="fixed z-[9999] m-0 list-none overflow-y-auto rounded-xl border border-white/20 bg-[#1a1f3a] p-1.5 shadow-2xl"
+        className="fixed z-[9999] m-0 list-none overflow-y-auto rounded-xl border border-white/20 bg-[#1a1f3a] p-1.5 text-white shadow-2xl"
         style={{
           top: pos.top,
           left: pos.left,
@@ -143,13 +148,23 @@ export function StyledSelect<T extends string>({
                   aria-hidden
                 />
               )}
-              {opt.color && (
+              {opt.icon ? (
+                <span
+                  className={cn(
+                    'grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-white/60',
+                    selected && 'bg-[#FF7300]/20 text-[#FF7300]'
+                  )}
+                  aria-hidden
+                >
+                  {opt.icon}
+                </span>
+              ) : opt.color ? (
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]"
                   style={{ background: opt.color }}
                   aria-hidden
                 />
-              )}
+              ) : null}
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate font-bold">{opt.label}</span>
                 {opt.hint && (
@@ -182,19 +197,27 @@ export function StyledSelect<T extends string>({
           'border-white/15 bg-white/5 shadow-inner',
           'hover:border-[#FF7300]/55 hover:bg-white/[0.07]',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          open && 'border-[#FF7300] ring-2 ring-[#FF7300]/25'
+          open && 'border-[#FF7300] ring-2 ring-[#FF7300]/25',
+          triggerClassName
         )}
       >
         <span className="flex min-w-0 flex-1 items-center gap-2">
           {current ? (
             <>
-              {current.color && (
+              {current.icon ? (
+                <span
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#FF7300]/15 text-[#FF7300]"
+                  aria-hidden
+                >
+                  {current.icon}
+                </span>
+              ) : current.color ? (
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]"
                   style={{ background: current.color }}
                   aria-hidden
                 />
-              )}
+              ) : null}
               <span className="truncate">{current.label}</span>
             </>
           ) : (

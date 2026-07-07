@@ -129,7 +129,7 @@ export function WebcamLinkModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="webcam-modal-title"
-        className="relative flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0F172A] shadow-[0_-16px_50px_rgba(0,0,0,0.6)] sm:max-h-[90vh] sm:rounded-[1.75rem] sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className="relative flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0F172A] text-white shadow-[0_-16px_50px_rgba(0,0,0,0.6)] sm:max-h-[90vh] sm:rounded-[1.75rem] sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
         style={{ animation: 'wl-in 0.28s cubic-bezier(0.16,1,0.3,1)' }}
       >
         <style>{`

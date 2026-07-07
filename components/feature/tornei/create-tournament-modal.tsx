@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Check, Lock, ScanLine, Swords, Trophy, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { createTournamentAction } from '@/actions/tournaments';
 import { getFormat, type FormatId } from '@/lib/data/catalog';
 import { FormatPillSelect } from '@/components/feature/tornei/format-pill-select';
@@ -14,18 +14,6 @@ import { getBuyInLabel } from '@/lib/data/buy-in';
 import { cn } from '@/lib/utils';
 
 const BEST_OF_OPTIONS: BestOf[] = ['BO1', 'BO3', 'BO5'];
-
-/** Accento colore per formato (coerente col resto del sito). */
-const FORMAT_ACCENT: Record<string, string> = {
-  'old-school': '#a86b32',
-  premodern: '#7a5a2e',
-  pioneer: '#3b82f6',
-  modern: '#06b6d4',
-  standard: '#9aa3ad',
-  legacy: '#a855f7',
-  pauper: '#78d64b',
-  commander: '#22c55e',
-};
 
 export interface CreateTournamentResult {
   createdId: string;
@@ -49,64 +37,60 @@ function Switch({ checked }: { checked: boolean }) {
   return (
     <span
       className={cn(
-        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200',
+        'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200',
         checked ? 'bg-primary' : 'bg-white/15',
       )}
       aria-hidden
     >
       <span
         className={cn(
-          'inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200',
-          checked ? 'translate-x-[1.375rem]' : 'translate-x-0.5',
+          'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200',
+          checked ? 'translate-x-[1.125rem]' : 'translate-x-0.5',
         )}
       />
     </span>
   );
 }
 
-function TypeCard({
-  active,
-  icon,
-  title,
-  desc,
-  onClick,
+function SectionLabel({ id, children }: { id?: string; children: React.ReactNode }) {
+  return (
+    <p id={id} className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
+      {children}
+    </p>
+  );
+}
+
+function Segmented({
+  options,
+  value,
+  onChange,
 }: {
-  active: boolean;
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-  onClick: () => void;
+  options: Array<{ id: string; label: string }>;
+  value: string;
+  onChange: (id: string) => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'group relative flex flex-col gap-2 overflow-hidden rounded-2xl border p-3.5 text-left transition-all',
-        active
-          ? 'border-primary/60 bg-primary/[0.12] shadow-[inset_0_0_0_1px_rgba(255,115,0,0.35),0_8px_24px_-8px_rgba(255,115,0,0.4)]'
-          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]',
-      )}
+    <div
+      className="grid gap-1 rounded-xl bg-white/[0.05] p-1"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
-      <span
-        className={cn(
-          'grid h-9 w-9 place-items-center rounded-xl transition-colors',
-          active ? 'bg-primary text-white' : 'bg-white/8 text-white/60',
-        )}
-      >
-        {icon}
-      </span>
-      <span>
-        <span className="block text-sm font-bold text-white">{title}</span>
-        <span className="mt-0.5 block text-[11px] leading-snug text-white/50">{desc}</span>
-      </span>
-      {active && (
-        <span className="absolute right-2.5 top-2.5 grid h-5 w-5 place-items-center rounded-full bg-primary text-white">
-          <Check className="h-3 w-3" strokeWidth={3} />
-        </span>
-      )}
-    </button>
+      {options.map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onChange(opt.id)}
+          aria-pressed={value === opt.id}
+          className={cn(
+            'rounded-lg px-3 py-2 text-sm font-bold transition-colors',
+            value === opt.id
+              ? 'bg-primary text-white'
+              : 'text-white/55 hover:bg-white/5 hover:text-white',
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -127,10 +111,10 @@ export function CreateTournamentModal({
   const [format, setFormat] = useState<FormatId>(selection.format as FormatId);
   const [bestOf, setBestOf] = useState<BestOf>('BO3');
   const [isPrivate, setIsPrivate] = useState(false);
+  // "Giochi con un amico?": consenti P2P diretto (IP visibili tra i due peer).
+  // Spento = video sempre via relay TURN, IP dell'avversario mai esposto.
+  const [withFriend, setWithFriend] = useState(false);
   const [isTournament, setIsTournament] = useState(false);
-  // Un solo interruttore: la banlist è sempre controllata dal sistema, questo
-  // richiede in più la verifica fisica delle carte con Asso Vision.
-  const [verifyDeck, setVerifyDeck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -157,27 +141,19 @@ export function CreateTournamentModal({
 
   if (!open || !mounted) return null;
 
-  const accent = FORMAT_ACCENT[format] ?? '#FF7300';
   const currentFormatName = getFormat(format)?.name ?? formatName;
 
-  function selectFriendly() {
-    setIsTournament(false);
-  }
-  function selectOfficial() {
-    setIsTournament(true);
-    setVerifyDeck(true);
-  }
-
   function handleSubmit() {
-    // Torneo ufficiale → verifica sempre obbligatoria. Amichevole → dipende dal
-    // toggle. La legalità (banlist) va di pari passo con la verifica fisica.
-    const wantVerify = isTournament || verifyDeck;
+    // Competitiva → verifica sempre obbligatoria (banlist + carte fisiche).
+    // Casual → nessuna verifica fisica.
+    const wantVerify = isTournament;
 
     const formData = new FormData();
     formData.set('format', format);
     formData.set('mode', selection.mode);
     formData.set('bestOf', bestOf);
     if (isPrivate) formData.set('isPrivate', 'true');
+    if (withFriend) formData.set('withFriend', 'true');
     if (isTournament) formData.set('isTournament', 'true');
     if (wantVerify) {
       formData.set('enableScryfallCheck', 'true');
@@ -204,7 +180,7 @@ export function CreateTournamentModal({
   return createPortal(
     <div className="fixed inset-0 z-[1000] flex items-end justify-center sm:items-center sm:p-4">
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         style={{ animation: 'ct-fade 0.2s ease-out' }}
         onClick={onClose}
         aria-hidden
@@ -214,7 +190,7 @@ export function CreateTournamentModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-tournament-title"
-        className="relative flex max-h-[94vh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0F172A] shadow-[0_-16px_50px_rgba(0,0,0,0.6)] sm:max-h-[90vh] sm:rounded-[1.75rem] sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className="relative flex max-h-[94vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/[0.08] bg-[#0F172A] text-white shadow-2xl sm:max-h-[90vh] sm:rounded-3xl"
         style={{ animation: 'ct-in 0.28s cubic-bezier(0.16,1,0.3,1)' }}
       >
         <style>{`
@@ -225,70 +201,34 @@ export function CreateTournamentModal({
           }
         `}</style>
 
-        {/* Barra accento in cima */}
-        <div
-          className="h-1 w-full shrink-0"
-          style={{ background: `linear-gradient(90deg, ${accent}, #FF7300)` }}
-          aria-hidden
-        />
-
         {/* Header */}
-        <header className="relative shrink-0 overflow-hidden px-5 pb-4 pt-5">
-          <div
-            className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full blur-3xl"
-            style={{ backgroundColor: `${accent}33` }}
-            aria-hidden
-          />
-          <div className="relative flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-orange-500 shadow-[0_10px_28px_-6px_rgba(255,115,0,0.6)]">
-                <Trophy className="h-6 w-6 text-white" strokeWidth={2.2} />
-              </div>
-              <div className="min-w-0">
-                <h2
-                  id="create-tournament-title"
-                  className="font-display text-xl font-black uppercase tracking-wide text-white"
-                >
-                  Crea torneo
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-white/80"
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: accent }}
-                      aria-hidden
-                    />
-                    {currentFormatName}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-white/55">
-                    {modeName}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Chiudi"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/15 hover:text-white"
+        <header className="flex shrink-0 items-start justify-between gap-3 px-5 pb-1 pt-5">
+          <div className="min-w-0">
+            <h2
+              id="create-tournament-title"
+              className="font-display text-lg font-black uppercase tracking-wide text-white"
             >
-              <X className="h-4 w-4" />
-            </button>
+              Crea torneo
+            </h2>
+            <p className="mt-0.5 text-xs text-white/45">
+              {modeName} · {currentFormatName}
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Chiudi"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </header>
 
         {/* Corpo scrollabile */}
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pb-5 pt-1">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pb-5 pt-4">
           {/* Formato — pre-compilato dalla home, ma modificabile qui */}
           <section>
-            <p
-              id="create-tournament-format-label"
-              className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40"
-            >
-              Formato
-            </p>
+            <SectionLabel id="create-tournament-format-label">Formato</SectionLabel>
             <FormatPillSelect
               value={format}
               onChange={setFormat}
@@ -298,136 +238,70 @@ export function CreateTournamentModal({
 
           {/* Tipo partita */}
           <section>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
-              Tipo partita
+            <SectionLabel>Tipo partita</SectionLabel>
+            <Segmented
+              options={[
+                { id: 'friendly', label: 'Casual' },
+                { id: 'official', label: 'Competitiva' },
+              ]}
+              value={isTournament ? 'official' : 'friendly'}
+              onChange={(id) => setIsTournament(id === 'official')}
+            />
+            <p className="mt-1.5 text-[11px] text-white/40">
+              {isTournament
+                ? 'Controllo banlist obbligatorio per tutti i mazzi. Carte proxy ammesse.'
+                : 'Partita libera, senza controllo della banlist.'}
             </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <TypeCard
-                active={!isTournament}
-                icon={<Swords className="h-4 w-4" />}
-                title="Amichevole"
-                desc="Verifiche facoltative"
-                onClick={selectFriendly}
-              />
-              <TypeCard
-                active={isTournament}
-                icon={<Trophy className="h-4 w-4" />}
-                title="Ufficiale"
-                desc="Verifiche obbligatorie"
-                onClick={selectOfficial}
-              />
-            </div>
           </section>
 
           {/* Best of */}
           <section>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
-              Formato match
-            </p>
-            <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/20 p-1">
-              {BEST_OF_OPTIONS.map((bo) => (
-                <button
-                  key={bo}
-                  type="button"
-                  onClick={() => setBestOf(bo)}
-                  aria-pressed={bestOf === bo}
-                  className={cn(
-                    'rounded-xl px-3 py-2.5 text-sm font-bold transition-all',
-                    bestOf === bo
-                      ? 'bg-gradient-to-r from-primary to-orange-500 text-white shadow-[0_4px_14px_-2px_rgba(255,115,0,0.5)]'
-                      : 'text-white/60 hover:bg-white/5 hover:text-white',
-                  )}
-                >
-                  {BEST_OF_LABEL[bo]}
-                </button>
-              ))}
-            </div>
+            <SectionLabel>Formato match</SectionLabel>
+            <Segmented
+              options={BEST_OF_OPTIONS.map((bo) => ({ id: bo, label: BEST_OF_LABEL[bo] }))}
+              value={bestOf}
+              onChange={(id) => setBestOf(id as BestOf)}
+            />
           </section>
 
-          {/* Verifica mazzo */}
+          {/* Impostazioni */}
           <section>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
-              Verifica mazzo
-            </p>
-            {isTournament ? (
-              <div className="flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/[0.06] p-3.5">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
-                  <ScanLine className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-white">Verifica obbligatoria</p>
-                  <p className="mt-0.5 text-[12px] leading-snug text-white/60">
-                    Nei tornei ufficiali Asso Vision controlla banlist e carte fisiche di ogni
-                    giocatore. Non disattivabile.
-                  </p>
-                </div>
-              </div>
-            ) : (
+            <SectionLabel>Impostazioni</SectionLabel>
+            <div className="divide-y divide-white/[0.06] rounded-2xl border border-white/[0.08] bg-white/[0.03]">
               <button
                 type="button"
-                onClick={() => setVerifyDeck((v) => !v)}
-                className={cn(
-                  'flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition',
-                  verifyDeck
-                    ? 'border-primary/50 bg-primary/[0.08]'
-                    : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]',
-                )}
+                onClick={() => setIsPrivate((v) => !v)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.04]"
               >
-                <span
-                  className={cn(
-                    'grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-colors',
-                    verifyDeck ? 'bg-primary text-white' : 'bg-white/8 text-white/50',
-                  )}
-                >
-                  <ScanLine className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-white">
-                    Verifica mazzo con Asso Vision
-                  </span>
-                  <span className="mt-0.5 block text-[12px] leading-snug text-white/55">
-                    La banlist è sempre controllata dal sistema. Attivala per richiedere anche la
-                    scansione fisica delle carte: utile per evitare che si usino carte non
-                    consentite.
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-white">Partita privata</span>
+                  <span className="mt-0.5 block text-[11px] text-white/40">
+                    Solo su invito o approvazione
                   </span>
                 </span>
-                <Switch checked={verifyDeck} />
+                <Switch checked={isPrivate} />
               </button>
-            )}
-          </section>
 
-          {/* Visibilità + buy-in */}
-          <section className="space-y-2.5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
-              Impostazioni
-            </p>
-            <button
-              type="button"
-              onClick={() => setIsPrivate((v) => !v)}
-              className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:bg-white/[0.06]"
-            >
-              <span
-                className={cn(
-                  'grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition',
-                  isPrivate
-                    ? 'border-amber-500/50 bg-amber-500/15 text-amber-400'
-                    : 'border-white/15 bg-white/5 text-white/40',
-                )}
+              <button
+                type="button"
+                onClick={() => setWithFriend((v) => !v)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.04]"
               >
-                <Lock className="h-4 w-4" />
-              </span>
-              <span className="flex-1">
-                <span className="block text-sm font-semibold text-white">Partita privata</span>
-                <span className="mt-0.5 block text-xs text-white/50">Solo su invito o approvazione</span>
-              </span>
-              <Switch checked={isPrivate} />
-            </button>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-white">
+                    Giochi con un amico?
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-white/40">
+                    Video diretto, più veloce. Spento = indirizzo di rete mai visibile.
+                  </span>
+                </span>
+                <Switch checked={withFriend} />
+              </button>
 
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="text-sm font-medium text-white/70">Buy-in</span>
-              <span className="rounded-full bg-white/8 px-2.5 py-1 text-xs font-bold text-white">
-                {getBuyInLabel('for_fun')}
-              </span>
+              <div className="flex items-center justify-between gap-3 px-4 py-3">
+                <span className="text-sm font-semibold text-white">Buy-in</span>
+                <span className="text-xs font-bold text-white/60">{getBuyInLabel('for_fun')}</span>
+              </div>
             </div>
           </section>
 
@@ -450,30 +324,30 @@ export function CreateTournamentModal({
         </div>
 
         {/* Footer azione */}
-        <div className="shrink-0 border-t border-white/[0.08] bg-black/25 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="flex gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isPending}
-              className="rounded-full border border-white/12 bg-white/5 px-5 py-3 text-sm font-bold uppercase tracking-wide text-white/80 transition hover:bg-white/10 disabled:opacity-50"
-            >
-              Annulla
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isPending}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary to-orange-500 px-4 py-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_10px_28px_-6px_rgba(255,115,0,0.55)] transition hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
-            >
-              {isPending ? (
+        <div className="flex shrink-0 gap-2.5 border-t border-white/[0.06] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="rounded-xl px-5 py-3 text-sm font-bold uppercase tracking-wide text-white/60 transition hover:bg-white/5 hover:text-white disabled:opacity-50"
+          >
+            Annulla
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isPending}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-primary/90 active:scale-[0.99] disabled:opacity-50"
+          >
+            {isPending ? (
+              <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              ) : (
-                <Trophy className="h-4 w-4" />
-              )}
-              {isPending ? 'Creazione…' : 'Crea torneo'}
-            </button>
-          </div>
+                Creazione…
+              </>
+            ) : (
+              'Crea torneo'
+            )}
+          </button>
         </div>
       </div>
     </div>,

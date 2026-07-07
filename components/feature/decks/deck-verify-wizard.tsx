@@ -68,7 +68,7 @@ export function DeckVerifyWizard({ deck, onClose, onVerified }: DeckVerifyWizard
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-lg rounded-2xl border border-white/15 bg-[#0a0f1a] p-5">
+      <div className="relative w-full max-w-lg rounded-2xl border border-white/15 bg-[#0a0f1a] p-5 text-white">
         <h3 className="font-display text-lg font-black uppercase text-white">
           Verifica mazzo fisico
         </h3>

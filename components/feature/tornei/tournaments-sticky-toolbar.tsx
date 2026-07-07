@@ -9,7 +9,7 @@ import { TournamentFilters, type TournamentFiltersState } from './tournament-fil
 
 const SCROLL_COMPACT_ON = 80;
 const SCROLL_COMPACT_OFF = 28;
-const TOOLBAR_MORPH_EASE = 'duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
+const TOOLBAR_MORPH_EASE = 'duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
 
 interface TournamentsStickyToolbarProps {
   formatId: FormatId;
@@ -75,21 +75,25 @@ export function TournamentsStickyToolbar({
 
   useEffect(() => {
     if (!settleAnim) return;
-    const timer = window.setTimeout(() => setSettleAnim(null), 500);
+    const timer = window.setTimeout(() => setSettleAnim(null), 350);
     return () => window.clearTimeout(timer);
   }, [settleAnim]);
 
   return (
-    <div className="sticky top-[var(--dash-header-h,4.25rem)] z-50 isolate">
+    <div className="sticky top-2 z-50 isolate">
       <div
         data-compact={compact ? 'true' : 'false'}
         className={cn(
-          'tournaments-toolbar-ease mx-auto max-w-content',
+          'tournaments-toolbar-ease mx-auto max-w-content text-white',
           settleAnim === 'compact' && 'animate-toolbar-compact-settle',
           settleAnim === 'expand' && 'animate-toolbar-expand-settle',
+          // Sempre pannello scuro: da espansa era trasparente, ma sul nuovo
+          // sfondo chiaro etichette e filtri bianchi sparivano.
+          // Niente backdrop-blur: a /95+ di opacità non si vede e costa un
+          // re-blur del contenuto sottostante a ogni frame di scroll.
           compact
-            ? 'my-1 rounded-3xl border border-white/15 bg-[#27407a]/90 px-4 py-3.5 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.75)] ring-1 ring-inset ring-white/[0.06] backdrop-blur-xl sm:my-2 sm:px-5'
-            : 'border border-transparent bg-transparent px-0 py-0 shadow-none backdrop-blur-none',
+            ? 'rounded-3xl border border-white/15 bg-[#27407a]/95 px-4 py-3.5 shadow-[0_14px_36px_-14px_rgba(0,0,0,0.6)] ring-1 ring-inset ring-white/[0.06] sm:px-5'
+            : 'rounded-3xl border border-white/[0.08] bg-header-bg/95 px-4 py-4 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)] sm:px-5',
         )}
       >
         {mobile ? (
@@ -173,7 +177,7 @@ export function TournamentsStickyToolbar({
 
             <div
               className={cn(
-                'w-full transition-[border,padding] duration-500',
+                'w-full transition-[border-color,padding]',
                 TOOLBAR_MORPH_EASE,
                 compact && 'border-t border-white/10 pt-3',
               )}

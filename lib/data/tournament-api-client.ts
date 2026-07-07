@@ -152,6 +152,7 @@ export async function postCreateTournament(
       mode: input.mode,
       bestOf: input.bestOf,
       isPrivate: input.isPrivate ?? false,
+      withFriend: input.withFriend ?? false,
     }),
   });
   if (!ok) {

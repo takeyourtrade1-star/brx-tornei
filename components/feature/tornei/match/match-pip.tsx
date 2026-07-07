@@ -20,7 +20,7 @@ export function MatchPip({ tournament, onExpand, onClose }: MatchPipProps) {
   const [playerA, playerB] = matchPlayers(tournament);
 
   return (
-    <div className="fixed bottom-4 right-4 z-[140] w-[360px] animate-auth-enter overflow-hidden rounded-2xl border border-white/15 bg-slate-950/90 shadow-2xl backdrop-blur-md">
+    <div className="fixed bottom-4 right-4 z-[140] w-[360px] animate-auth-enter overflow-hidden rounded-2xl border border-white/15 bg-slate-950/90 text-white shadow-2xl backdrop-blur-md">
       <div className="flex items-center justify-between gap-2 border-b border-white/10 px-2 py-0.5">
         <span className="text-[10px] font-bold uppercase tracking-wide text-white/70">
           Partita live

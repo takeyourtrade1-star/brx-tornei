@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { getCdnImageUrl } from '@/lib/config';
 import {
   HEADER_BRX_LOGO_COLUMN_CLASS,
+  HEADER_BRX_LOGO_DARK_SRC,
   HEADER_BRX_LOGO_IMAGE_CLASS,
   HEADER_BRX_LOGO_INTRINSIC_HEIGHT,
   HEADER_BRX_LOGO_INTRINSIC_WIDTH,
   HEADER_BRX_LOGO_LINK_CLASS,
-  HEADER_BRX_LOGO_PATH,
 } from '@/components/layout/header-brx-column';
 
 interface BrxHeaderLogoProps {
@@ -21,7 +20,7 @@ export function BrxHeaderLogo({ href = '/', ariaLabel = 'Home' }: BrxHeaderLogoP
     <div className={HEADER_BRX_LOGO_COLUMN_CLASS}>
       <Link href={href} className={HEADER_BRX_LOGO_LINK_CLASS} aria-label={ariaLabel}>
         <Image
-          src={getCdnImageUrl(HEADER_BRX_LOGO_PATH)}
+          src={HEADER_BRX_LOGO_DARK_SRC}
           alt="Ebartex"
           width={HEADER_BRX_LOGO_INTRINSIC_WIDTH}
           height={HEADER_BRX_LOGO_INTRINSIC_HEIGHT}

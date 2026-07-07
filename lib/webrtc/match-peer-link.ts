@@ -5,7 +5,7 @@
  * Signaling relay via /api/tournaments/signaling/{sessionId}.
  */
 
-import { fetchIceServers, matchSignalingBase } from './ice-config';
+import { fetchIceConfig, matchSignalingBase } from './ice-config';
 import { SignalingChannel, type SignalMessage } from './signaling';
 
 export type PeerLinkState =
@@ -34,9 +34,15 @@ export interface PeerLinkController {
   stop: () => void;
 }
 
-async function newPc(): Promise<RTCPeerConnection> {
-  const iceServers = await fetchIceServers();
-  return new RTCPeerConnection({ iceServers, bundlePolicy: 'max-bundle' });
+async function newPc(sessionId: string): Promise<RTCPeerConnection> {
+  const { iceServers, forceRelay } = await fetchIceConfig(sessionId);
+  // forceRelay: tutto il traffico passa dal TURN, gli IP dei peer restano
+  // nascosti (torneo non "con un amico"). 'all' = P2P diretto consentito.
+  return new RTCPeerConnection({
+    iceServers,
+    bundlePolicy: 'max-bundle',
+    iceTransportPolicy: forceRelay ? 'relay' : 'all',
+  });
 }
 
 function applyLowLatencyReceiverHints(receiver: RTCRtpReceiver): void {
@@ -184,7 +190,7 @@ export function createMatchPeerLink(
   };
 
   async function setup(): Promise<void> {
-    pc = await newPc();
+    pc = await newPc(sessionId);
     const videoTrack = localStream.getVideoTracks()[0];
     if (!videoTrack) {
       fail('Webcam non disponibile');

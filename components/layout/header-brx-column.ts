@@ -5,6 +5,9 @@
 
 export const HEADER_BRX_LOGO_PATH = 'Logo%20Principale%20EBARTEX.png';
 
+/** Variante lettere navy (generata da quella CDN) — per header su sfondo chiaro. */
+export const HEADER_BRX_LOGO_DARK_SRC = '/logo-ebartex-dark.png';
+
 export const HEADER_BRX_LOGO_INTRINSIC_WIDTH = 700;
 export const HEADER_BRX_LOGO_INTRINSIC_HEIGHT = 263;
 

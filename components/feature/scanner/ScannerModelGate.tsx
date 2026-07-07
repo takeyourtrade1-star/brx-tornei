@@ -43,7 +43,7 @@ export function ScannerModelGate({
 
   return (
     <div
-      className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-[#0a0f1a] px-6"
+      className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-[#0a0f1a] px-6 text-white"
       role="dialog"
       aria-labelledby="scanner-gate-title"
       aria-busy={!failed}

@@ -6,7 +6,19 @@
 
 const DEFAULT_STUN = ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'];
 
+export interface IceConfig {
+  iceServers: RTCIceServer[];
+  /**
+   * true = il backend impone il relay TURN (iceTransportPolicy 'relay'): gli IP
+   * dei peer restano nascosti. false solo per tornei "Giochi con un amico?".
+   * In dubbio (fallback env, errore rete) si resta su 'relay' se un TURN esiste.
+   */
+  forceRelay: boolean;
+}
+
 let cachedServers: RTCIceServer[] | null = null;
+let cachedForceRelay = true;
+let cachedSessionId: string | null = null;
 let cacheExpiresAt = 0;
 
 function splitEnv(value: string | undefined): string[] {
@@ -50,26 +62,36 @@ export function getIceServers(): RTCIceServer[] {
   return cachedServers ?? envIceServers();
 }
 
-/** Carica ICE servers dal proxy API con cache client-side. */
-export async function fetchIceServers(): Promise<RTCIceServer[]> {
-  if (cachedServers && Date.now() < cacheExpiresAt) return cachedServers;
+/**
+ * Carica ICE servers + politica relay dal proxy API con cache client-side.
+ * `sessionId` (webcam_session_id del match/torneo) permette al backend di
+ * risolvere il flag with_friend: senza sessionId il backend impone il relay.
+ */
+export async function fetchIceConfig(sessionId?: string): Promise<IceConfig> {
+  if (cachedServers && cachedSessionId === (sessionId ?? null) && Date.now() < cacheExpiresAt) {
+    return { iceServers: cachedServers, forceRelay: cachedForceRelay };
+  }
 
   try {
-    const res = await fetch('/api/tournaments/ice-servers', { cache: 'no-store' });
+    const url = new URL('/api/tournaments/ice-servers', window.location.origin);
+    if (sessionId) url.searchParams.set('session_id', sessionId);
+    const res = await fetch(url.toString(), { cache: 'no-store' });
     if (res.ok) {
       const json = (await res.json()) as {
-        data?: { ice_servers?: unknown; expires_at?: string };
+        data?: { ice_servers?: unknown; expires_at?: string; force_relay?: boolean };
       };
       const mapped = mapApiIceServers(json.data?.ice_servers);
       if (mapped) {
         cachedServers = mapped;
+        cachedForceRelay = json.data?.force_relay !== false;
+        cachedSessionId = sessionId ?? null;
         if (json.data?.expires_at) {
           const exp = Date.parse(json.data.expires_at);
           cacheExpiresAt = Number.isFinite(exp) ? exp : Date.now() + 3_600_000;
         } else {
           cacheExpiresAt = Date.now() + 3_600_000;
         }
-        return cachedServers;
+        return { iceServers: cachedServers, forceRelay: cachedForceRelay };
       }
     }
   } catch {
@@ -77,8 +99,17 @@ export async function fetchIceServers(): Promise<RTCIceServer[]> {
   }
 
   cachedServers = envIceServers();
+  // Fallback difensivo: se esiste un TURN configurato via env resta su relay,
+  // altrimenti 'relay' bloccherebbe ogni connessione.
+  cachedForceRelay = hasTurn();
+  cachedSessionId = sessionId ?? null;
   cacheExpiresAt = Date.now() + 60_000;
-  return cachedServers;
+  return { iceServers: cachedServers, forceRelay: cachedForceRelay };
+}
+
+/** Compat: solo la lista server (usare fetchIceConfig per la politica relay). */
+export async function fetchIceServers(): Promise<RTCIceServer[]> {
+  return (await fetchIceConfig()).iceServers;
 }
 
 /** true se è configurato un TURN: connessione garantita anche cross-rete. */

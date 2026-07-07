@@ -5,18 +5,23 @@ import { buildLoginRedirectUrl } from '@/lib/auth/redirect';
 /**
  * Protezione route.
  * - Sessione locale presente (access cookie) → avanti.
+ * - Access scaduto ma refresh cookie presente → /auth/bridge (refresh
+ *   silenzioso, poi torna alla pagina richiesta).
  * - Altrimenti → /login.
  *
  * Il login NON viene più propagato automaticamente dal marketplace: sul portale
- * tornei l'utente effettua SEMPRE un nuovo login. Niente SSO trasparente via
- * /auth/bridge dal cookie condiviso `.ebartex.com`.
+ * tornei l'utente effettua SEMPRE un nuovo login. Il bridge serve solo a
+ * rinnovare la sessione locale col refresh token già emesso qui.
  */
 
 const ACCESS_COOKIE = appConfig.auth.accessCookie;
+const REFRESH_COOKIE = appConfig.auth.refreshCookie;
 
 // `/tornei/webcam/[id]` è la pagina aperta dal telefono dopo la scansione del
 // QR: deve essere raggiungibile senza login (il telefono non è autenticato).
-const PUBLIC_PATHS = ['/login', '/registrati', '/tornei/webcam'];
+// `/auth/bridge` è la destinazione del refresh silenzioso: senza eccezione
+// il middleware la rimbalzerebbe a /login prima che possa rinnovare i cookie.
+const PUBLIC_PATHS = ['/login', '/registrati', '/tornei/webcam', '/auth/bridge'];
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -30,6 +35,13 @@ export function middleware(request: NextRequest) {
   }
 
   const url = request.nextUrl.clone();
+
+  if (request.cookies.has(REFRESH_COOKIE)) {
+    url.pathname = '/auth/bridge';
+    url.search = `?next=${encodeURIComponent(`${pathname}${search}`)}`;
+    return NextResponse.redirect(url);
+  }
+
   url.pathname = '/login';
   url.search = buildLoginRedirectUrl(pathname, search);
   return NextResponse.redirect(url);

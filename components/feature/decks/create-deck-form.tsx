@@ -1,9 +1,28 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  Anchor,
+  CloudLightning,
+  Flame,
+  Hammer,
+  Layers,
+  Lock,
+  Puzzle,
+  Recycle,
+  Scale,
+  Shield,
+  Skull,
+  Sprout,
+  Swords,
+  Users,
+  Wind,
+  Zap,
+} from 'lucide-react';
 import { FORMATS, type FormatId } from '@/lib/data/catalog';
 import { DECK_ARCHETYPES } from '@/lib/data/deck-archetypes';
 import { createDeckSchema, type CreateDeckInput } from '@/lib/validations/deck';
+import { FormatPillSelect } from '@/components/feature/tornei/format-pill-select';
 import type { DeckArchetypeId } from '@/types/deck';
 import { StyledSelect } from './styled-select';
 
@@ -13,6 +32,7 @@ interface CreateDeckFormProps {
   isSubmitting?: boolean;
 }
 
+/** Colore accento per formato — usato anche dalle card in deck-list. */
 export const FORMAT_META: Record<FormatId, { color: string; hint: string }> = {
   'old-school': { color: '#a86b32', hint: '1993–1997 · carte originali' },
   premodern: { color: '#7a5a2e', hint: '1995–2003 · no border' },
@@ -24,23 +44,26 @@ export const FORMAT_META: Record<FormatId, { color: string; hint: string }> = {
   commander: { color: '#22c55e', hint: '100 carte · multiplayer' },
 };
 
-const ARCHETYPE_META: Record<DeckArchetypeId, { color: string }> = {
-  aggro: { color: '#d94f46' },
-  control: { color: '#4a7fd6' },
-  combo: { color: '#9a6ad6' },
-  midrange: { color: '#5da24e' },
-  tempo: { color: '#38bdf8' },
-  'aggro-combo': { color: '#e0564d' },
-  'combo-control': { color: '#7c3aed' },
-  ramp: { color: '#f2b94b' },
-  'prison-stax': { color: '#a16207' },
-  dredge: { color: '#7c2d12' },
-  tribal: { color: '#f97316' },
-  reanimator: { color: '#581c87' },
-  storm: { color: '#0ea5e9' },
-  burn: { color: '#ef4444' },
-  mill: { color: '#64748b' },
-  toolbox: { color: '#14b8a6' },
+const ARCHETYPE_ICON_CLASS = 'h-3.5 w-3.5';
+
+/** Icona + strategia in una riga per ogni archetipo (niente pallini colorati). */
+const ARCHETYPE_META: Record<DeckArchetypeId, { icon: React.ReactNode; hint: string }> = {
+  aggro: { icon: <Swords className={ARCHETYPE_ICON_CLASS} />, hint: 'Pressione veloce, vittoria nei primi turni' },
+  control: { icon: <Shield className={ARCHETYPE_ICON_CLASS} />, hint: 'Rispondi a tutto e domina il late game' },
+  combo: { icon: <Puzzle className={ARCHETYPE_ICON_CLASS} />, hint: 'Assembla i pezzi, vinci in un colpo' },
+  midrange: { icon: <Scale className={ARCHETYPE_ICON_CLASS} />, hint: 'Valore carta per carta' },
+  tempo: { icon: <Wind className={ARCHETYPE_ICON_CLASS} />, hint: 'Minacce leggere + disturbo' },
+  'aggro-combo': { icon: <Zap className={ARCHETYPE_ICON_CLASS} />, hint: 'Aggressione con finisher esplosivo' },
+  'combo-control': { icon: <Anchor className={ARCHETYPE_ICON_CLASS} />, hint: 'Proteggi il motore, poi chiudi' },
+  ramp: { icon: <Sprout className={ARCHETYPE_ICON_CLASS} />, hint: 'Mana in anticipo, minacce enormi' },
+  'prison-stax': { icon: <Lock className={ARCHETYPE_ICON_CLASS} />, hint: 'Blocca le risorse avversarie' },
+  dredge: { icon: <Recycle className={ARCHETYPE_ICON_CLASS} />, hint: 'Il cimitero è la tua mano' },
+  tribal: { icon: <Users className={ARCHETYPE_ICON_CLASS} />, hint: 'Sinergie di tipo di creatura' },
+  reanimator: { icon: <Skull className={ARCHETYPE_ICON_CLASS} />, hint: 'Rianima minacce giganti presto' },
+  storm: { icon: <CloudLightning className={ARCHETYPE_ICON_CLASS} />, hint: 'Tante magie in un turno solo' },
+  burn: { icon: <Flame className={ARCHETYPE_ICON_CLASS} />, hint: 'Danno diretto in faccia' },
+  mill: { icon: <Layers className={ARCHETYPE_ICON_CLASS} />, hint: 'Svuota il grimorio avversario' },
+  toolbox: { icon: <Hammer className={ARCHETYPE_ICON_CLASS} />, hint: 'Risposte su misura da cercare' },
 };
 
 export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: CreateDeckFormProps) {
@@ -61,16 +84,11 @@ export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: Cre
     onCreate(parsed.data);
   };
 
-  const formatOptions = FORMATS.map((f) => ({
-    value: f.id,
-    label: f.name,
-    color: FORMAT_META[f.id]?.color,
-    hint: FORMAT_META[f.id]?.hint,
-  }));
   const archetypeOptions = DECK_ARCHETYPES.map((a) => ({
     value: a.id,
     label: a.name,
-    color: ARCHETYPE_META[a.id]?.color,
+    icon: ARCHETYPE_META[a.id]?.icon,
+    hint: ARCHETYPE_META[a.id]?.hint,
   }));
 
   return (
@@ -92,26 +110,27 @@ export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: Cre
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="deck-format" className="text-xs font-bold uppercase tracking-wide text-white/70">
+          <p
+            id="deck-format-label"
+            className="text-xs font-bold uppercase tracking-wide text-white/70"
+          >
             Formato
-          </label>
-          <StyledSelect
+          </p>
+          <FormatPillSelect
             value={formatId}
-            onChange={(v) => setFormatId(v)}
-            options={formatOptions}
-            placeholder="Scegli formato…"
+            onChange={setFormatId}
+            ariaLabelledBy="deck-format-label"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="deck-archetype" className="text-xs font-bold uppercase tracking-wide text-white/70">
-            Tipologia
-          </label>
+          <p className="text-xs font-bold uppercase tracking-wide text-white/70">Tipologia</p>
           <StyledSelect
             value={archetypeId}
             onChange={(v) => setArchetypeId(v)}
             options={archetypeOptions}
             placeholder="Scegli tipologia…"
+            triggerClassName="h-14 rounded-full px-4"
           />
         </div>
       </div>

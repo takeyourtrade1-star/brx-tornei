@@ -7,7 +7,7 @@ import type { ComponentType } from 'react';
 import { Swords, Users } from 'lucide-react';
 
 const MODE_MORPH_EASE =
-  'transition-[height,flex-grow,padding,border-radius,gap,background-color,border-color,box-shadow,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
+  'transition-[height,flex-grow,padding,border-radius,gap,background-color,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
 
 interface ModeSelectorRowProps {
   selectedModeId: ModeId;
@@ -60,7 +60,7 @@ export function ModeSelectorRow({
   return (
     <div
       className={cn(
-        'flex w-full items-center justify-center transition-[gap] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
+        'flex w-full items-center justify-center transition-[gap] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
         compact ? 'flex-wrap gap-1.5' : 'flex-col gap-2 sm:flex-row sm:gap-3',
       )}
     >
@@ -166,19 +166,19 @@ function ModeCard({
     >
         <span
         className={cn(
-          'flex shrink-0 items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+          'flex shrink-0 items-center justify-center transition-[width,height,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
           compact ? 'h-3 w-3' : 'h-6 w-6',
           !compact && selected && available && 'text-primary',
           !compact && !(selected && available) && 'text-white/60',
         )}
       >
-        <Icon className={cn('transition-all duration-500', compact ? 'h-3 w-3' : 'h-5 w-5')} />
+        <Icon className={cn('transition-[width,height] duration-300', compact ? 'h-3 w-3' : 'h-5 w-5')} />
       </span>
       <span className={cn('min-w-0', compact ? 'flex shrink-0 items-center gap-1' : 'flex-1')}>
         <span className={cn('flex items-center', compact ? 'gap-1' : 'gap-2')}>
           <span
             className={cn(
-              'truncate font-bold uppercase tracking-wide transition-all duration-500',
+              'truncate font-bold uppercase tracking-wide transition-[font-size,color] duration-300',
               compact ? 'text-[10px]' : 'font-sans text-sm text-white',
             )}
           >
@@ -187,7 +187,7 @@ function ModeCard({
           {badge && (
             <span
               className={cn(
-                'shrink-0 rounded-full bg-white/[0.06] font-bold uppercase text-marquee transition-all duration-500',
+                'shrink-0 rounded-full bg-white/[0.06] font-bold uppercase text-marquee transition-[font-size,padding] duration-300',
                 compact
                   ? 'px-1.5 py-px text-[8px]'
                   : 'px-2 py-0.5 text-[10px] tracking-wider',
@@ -199,7 +199,7 @@ function ModeCard({
         </span>
         <span
           className={cn(
-            'overflow-hidden transition-[grid-template-rows,opacity,margin,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+            'overflow-hidden transition-[grid-template-rows,opacity,margin,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
             compact
               ? 'grid w-0 grid-rows-[0fr] opacity-0'
               : 'mt-0.5 grid w-full grid-rows-[1fr] opacity-100',

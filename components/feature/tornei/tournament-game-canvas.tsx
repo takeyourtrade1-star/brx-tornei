@@ -51,7 +51,7 @@ export function TournamentGameCanvas({
   const logoUrl = getCdnImageUrl(HEADER_BRX_LOGO_PATH);
 
   return (
-    <div className="fixed inset-0 z-40 h-screen w-screen select-none overflow-hidden bg-[#191b2e] animate-auth-enter">
+    <div className="fixed inset-0 z-40 h-screen w-screen select-none overflow-hidden bg-[#191b2e] text-white animate-auth-enter">
       <div className="relative h-full w-full">
         <IsoRoomGame
           roomName={`Sala Tornei · ${formatName}`}

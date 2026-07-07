@@ -110,7 +110,7 @@ export function StyledSelect<T extends string>({
         id={menuId}
         role="listbox"
         aria-labelledby={triggerId}
-        className="fixed z-[9999] m-0 list-none overflow-y-auto rounded-xl border border-white/15 bg-slate-950/95 p-1.5 shadow-2xl backdrop-blur-md scrollbar-none"
+        className="fixed z-[9999] m-0 list-none overflow-y-auto rounded-xl border border-white/15 bg-slate-950/95 p-1.5 text-white shadow-2xl backdrop-blur-md scrollbar-none"
         style={{
           top: pos.top,
           left: pos.left,

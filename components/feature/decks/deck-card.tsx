@@ -1,5 +1,6 @@
 'use client';
 
+import { getCardImageUrl } from '@/lib/assets';
 import type { DeckCard as DeckCardType } from '@/types/deck';
 
 interface DeckCardProps {
@@ -19,12 +20,13 @@ export function DeckCard({
   onRemove,
   moveLabel,
 }: DeckCardProps) {
+  const imageUrl = getCardImageUrl(card.image);
   return (
     <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-2">
       <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md bg-black/30">
-        {card.image ? (
+        {imageUrl ? (
           <img
-            src={card.image}
+            src={imageUrl}
             alt={card.name}
             className="h-full w-full object-cover"
             loading="lazy"

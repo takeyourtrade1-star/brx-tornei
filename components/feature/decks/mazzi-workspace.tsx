@@ -64,11 +64,11 @@ export function MazziWorkspace({ initialDecks, user }: MazziWorkspaceProps) {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0f1a]">
+    <div className="min-h-screen">
       <DashboardHeader user={user} />
 
       <div className="mx-auto w-full max-w-content px-4 py-6 sm:px-6">
-        <header className="relative mb-5 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-transparent p-3.5 sm:p-6">
+        <header className="relative mb-5 overflow-hidden rounded-2xl border border-white/10 bg-header-bg/95 p-3.5 text-white sm:p-6">
           <div
             className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#FF7300]/15 blur-3xl"
             aria-hidden
@@ -113,7 +113,7 @@ export function MazziWorkspace({ initialDecks, user }: MazziWorkspaceProps) {
           </dl>
         </header>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
+        <div className="rounded-2xl border border-white/10 bg-header-bg/95 p-4 text-white sm:p-6">
           {deckView === 'builder' && editingDeck ? (
             <DeckBuilder
               deck={editingDeck}

@@ -24,6 +24,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+*.tmp.json
+
+# onnxruntime-web: copiati da node_modules dal postinstall (scripts/copy-ort-wasm.mjs)
+/public/ort-wasm/
 
 # vercel / amplify
 .vercel

@@ -1,5 +1,6 @@
 'use client';
 
+import { getCardImageUrl } from '@/lib/assets';
 import type { InventoryItem } from '@/types/inventory';
 
 interface InventoryCardProps {
@@ -23,13 +24,14 @@ export function InventoryCard({
 }: InventoryCardProps) {
   const totalInDecks = mainQty + sideQty;
   const remaining = item.quantity - totalInDecks;
+  const imageUrl = getCardImageUrl(item.card.image);
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-2 transition-colors hover:bg-white/[0.07]">
       <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-black/30">
-        {item.card.image ? (
+        {imageUrl ? (
           <img
-            src={item.card.image}
+            src={imageUrl}
             alt={item.card.name}
             className="h-full w-full object-cover"
             loading="lazy"
