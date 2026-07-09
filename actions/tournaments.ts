@@ -27,6 +27,8 @@ function mapApiError(err: unknown, fallback: string): TournamentActionState {
       MEMBERSHIP_REQUIRED:
         'Tessera Ebartex richiesta per giocare ai tornei. Completa l’iscrizione in Associazione.',
       TOURNAMENT_FULL: 'Il tavolo è già al completo.',
+      ALREADY_SEATED:
+        'Sei già seduto a un altro tavolo (anche in un altro formato): alzati o abbandona quella partita prima.',
       API_NOT_CONFIGURED: 'Servizio tornei non configurato.',
       API_UNAVAILABLE: 'Il servizio tornei non è raggiungibile. Riprova tra poco.',
     };

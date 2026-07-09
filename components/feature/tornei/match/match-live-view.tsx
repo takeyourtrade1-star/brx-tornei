@@ -163,12 +163,16 @@ export function MatchLiveView({
   };
 
   useEffect(() => {
-    if (tournament.status !== 'in_registrazione') return;
+    if (tournament.status === 'terminata') return;
+    // In attesa: polling fitto per accorgersi dell'avversario che si siede.
+    // In partita: polling più lento, serve solo a scoprire un eventuale
+    // abbandono dell'avversario (torneo → terminata).
     // router.refresh() rifà il render RSC dell'intera pagina: a tab nascosta
     // è lavoro (e traffico) buttato, si riprende al ritorno sulla tab.
+    const intervalMs = tournament.status === 'in_registrazione' ? 5000 : 12000;
     const timer = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
-    }, 5000);
+    }, intervalMs);
     return () => clearInterval(timer);
   }, [tournament.status, router]);
 
@@ -207,7 +211,7 @@ export function MatchLiveView({
           {isPlayer && tournament.status === 'iniziata' && (
             <ConnectionBadge state={peerState} error={peerError} />
           )}
-          {isPlayer && (
+          {isPlayer && tournament.status !== 'terminata' && (
             <button
               type="button"
               disabled={leaving}
@@ -224,6 +228,18 @@ export function MatchLiveView({
       {tournament.status === 'in_registrazione' && (
         <p className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           In attesa del secondo giocatore… La partita inizierà quando il torneo sarà completo.
+        </p>
+      )}
+
+      {tournament.status === 'terminata' && (
+        <p className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm text-white/85">
+          <span>La partita è terminata (fine match o abbandono dell’avversario).</span>
+          <Link
+            href="/tornei"
+            className="rounded-full bg-gradient-to-r from-[#FF7300] to-orange-500 px-4 py-1.5 text-xs font-black uppercase tracking-wide text-white transition hover:opacity-90"
+          >
+            Torna ai tavoli
+          </Link>
         </p>
       )}
 
