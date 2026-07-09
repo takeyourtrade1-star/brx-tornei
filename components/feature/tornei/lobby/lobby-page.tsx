@@ -82,7 +82,26 @@ export function LobbyPage({
   const handleSit = useCallback(
     (table: LobbyTable) => {
       setError(null);
+
+      // Sono già seduto altrove: non creo doppioni, riapro il mio tavolo.
+      const mine = findMyTable(tournaments, user.id);
+      if (mine) {
+        setModal({ mode: 'host', tournamentId: mine.id });
+        return;
+      }
+
+      if (table.kind === 'joinable' && table.tournament) {
+        setModal({ mode: 'join', tournamentId: table.tournament.id });
+        return;
+      }
+
       if (table.kind === 'empty') {
+        // Tavolo vuoto già esistente: mi ci siedo (riuso) invece di crearne uno nuovo.
+        if (table.tournament) {
+          setModal({ mode: 'join', tournamentId: table.tournament.id });
+          return;
+        }
+        // Nessun tavolo vuoto disponibile: ne creo uno nuovo.
         startTransition(async () => {
           const res = await createTableAction(selection.format, selection.mode);
           if (res.error || !res.createdId) {
@@ -92,11 +111,9 @@ export function LobbyPage({
           setModal({ mode: 'host', tournamentId: res.createdId });
           router.refresh();
         });
-      } else if (table.kind === 'joinable' && table.tournament) {
-        setModal({ mode: 'join', tournamentId: table.tournament.id });
       }
     },
-    [selection.format, selection.mode, router],
+    [selection.format, selection.mode, router, tournaments, user.id],
   );
 
   const handleConfirmJoin = useCallback(

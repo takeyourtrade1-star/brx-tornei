@@ -31,10 +31,10 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
     <div
       onDoubleClick={handlePrimary}
       className={cn(
-        'flex flex-col gap-3 rounded-2xl border p-4 transition sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-3 rounded-2xl border p-4 text-white shadow-[0_10px_30px_-16px_rgba(0,0,0,0.6)] transition sm:flex-row sm:items-center sm:justify-between',
         isMine
-          ? 'border-primary/60 bg-primary/[0.08] shadow-[inset_0_0_0_1px_rgba(255,115,0,0.25)]'
-          : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]',
+          ? 'border-primary/60 bg-header-bg shadow-[inset_0_0_0_1px_rgba(255,115,0,0.35)]'
+          : 'border-white/10 bg-header-bg/95 hover:border-white/25',
       )}
     >
       <div className="flex items-center gap-3">

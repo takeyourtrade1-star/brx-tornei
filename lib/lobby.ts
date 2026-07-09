@@ -47,57 +47,73 @@ const EMPTY_SEATS: [Seat, Seat] = [{ occupied: false }, { occupied: false }];
 
 /**
  * Costruisce l'elenco di tavoli mostrato in lobby, secondo le regole:
- * - se sono seduto, il mio tavolo è sempre in cima ed evidenziato;
- * - i tavoli altrui con un posto libero sono "siediti";
- * - se non sono seduto da nessuna parte, c'è sempre almeno un tavolo vuoto
- *   a cui partecipare (max {@link MAX_EMPTY_TABLES}).
+ * - se sono seduto, mostro SOLO il mio tavolo (niente vuoti da cui creare
+ *   doppioni finché non mi alzo);
+ * - i tavoli altrui con un giocatore in attesa sono "siediti";
+ * - i tavoli esistenti ma vuoti (0 giocatori, orfani lasciati da qualcuno) NON
+ *   si moltiplicano: valgono come tavoli vuoti riutilizzabili, mostrati al
+ *   massimo in {@link MAX_EMPTY_TABLES};
+ * - se non c'è nessun tavolo vuoto disponibile, ne mostro uno sintetico da creare.
  */
 export function buildLobbyTables(params: {
   tournaments: Tournament[];
   userId: string;
 }): LobbyTable[] {
   const { tournaments, userId } = params;
-  const tables: LobbyTable[] = [];
 
   const myTournament = findMyTable(tournaments, userId);
 
+  // Sono già seduto: un solo tavolo, il mio. Impedisce di creare altri tavoli
+  // mentre sono in attesa (era la causa dei tavoli-fantasma accumulati).
   if (myTournament) {
-    tables.push({
-      key: myTournament.id,
-      kind: 'mine',
-      tournament: myTournament,
-      seats: toSeats(myTournament, userId),
-      started: myTournament.status === 'iniziata',
-    });
+    return [
+      {
+        key: myTournament.id,
+        kind: 'mine',
+        tournament: myTournament,
+        seats: toSeats(myTournament, userId),
+        started: myTournament.status === 'iniziata',
+      },
+    ];
   }
+
+  const joinable: LobbyTable[] = [];
+  const emptyExisting: LobbyTable[] = [];
 
   for (const t of tournaments) {
-    if (myTournament && t.id === myTournament.id) continue;
     if (t.status !== 'in_registrazione') continue;
     if (t.participants.length >= t.maxPlayers) continue;
+    // Un mio eventuale doppione (seduto ma non rilevato come "mine"): lo salto.
     if (t.participants.some((p) => p.id === userId)) continue;
-    tables.push({
-      key: t.id,
-      kind: 'joinable',
-      tournament: t,
-      seats: toSeats(t, userId),
-      started: false,
-    });
-  }
 
-  // Se non sono seduto a nessun tavolo, garantisco sempre un tavolo vuoto.
-  if (!myTournament) {
-    const emptyCount = Math.min(MAX_EMPTY_TABLES, tables.length === 0 ? 1 : 1);
-    for (let i = 0; i < emptyCount; i++) {
-      tables.push({
-        key: `__empty-${i}`,
+    if (t.participants.length === 0) {
+      // Tavolo reale ma vuoto: riutilizzabile, non se ne crea uno nuovo.
+      emptyExisting.push({
+        key: t.id,
         kind: 'empty',
-        tournament: null,
+        tournament: t,
         seats: EMPTY_SEATS,
+        started: false,
+      });
+    } else {
+      joinable.push({
+        key: t.id,
+        kind: 'joinable',
+        tournament: t,
+        seats: toSeats(t, userId),
         started: false,
       });
     }
   }
 
-  return tables;
+  // Tavoli vuoti: riuso quelli esistenti (max MAX_EMPTY_TABLES); se non ce ne
+  // sono, ne offro uno sintetico da creare.
+  let empties = emptyExisting.slice(0, MAX_EMPTY_TABLES);
+  if (empties.length === 0) {
+    empties = [
+      { key: '__empty-0', kind: 'empty', tournament: null, seats: EMPTY_SEATS, started: false },
+    ];
+  }
+
+  return [...joinable, ...empties];
 }
