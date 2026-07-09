@@ -9,7 +9,6 @@ import type { LiveViewRole } from '@/lib/validations/live';
 import { getFormat, getMode } from '@/lib/data/catalog';
 import { usePlayerWebcam } from '@/hooks/use-player-webcam';
 import { useMatchPeerConnection } from '@/hooks/use-match-peer-connection';
-import { BEST_OF_LABEL } from '../tournament-mock-details';
 import { resolveMatchSides } from './match-players';
 import { WebcamTile } from './webcam-tile';
 import { MatchCommentsPanel } from './match-comments-panel';
@@ -121,7 +120,7 @@ export function MatchLiveView({
   const rightPlayer = isObserver ? playerB : remote;
   const modeName = getMode(tournament.mode)?.name ?? tournament.mode;
   const formatName = getFormat(tournament.format)?.name ?? tournament.format;
-  const bestOfLabel = BEST_OF_LABEL[tournament.bestOf] ?? tournament.bestOf;
+  const bestOfLabel = 'Best of 3';
 
   const { stream: localStream, feedLabel, error: webcamError } = usePlayerWebcam(isPlayer);
   const peerSessionId = tournament.matchWebcamSessionId ?? tournament.matchId ?? null;
@@ -228,6 +227,7 @@ export function MatchLiveView({
                 stream={isPlayer ? remoteStream : null}
                 username={remote.username}
                 connecting={isPlayer ? peerConnecting : false}
+                muted={false}
               />
             </div>
             <DeckStrip player={rightPlayer} formatName={formatName} />

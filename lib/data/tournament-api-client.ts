@@ -175,3 +175,14 @@ export async function postJoinTournament(id: string): Promise<JoinTournamentResu
   }
   return mapJoinResult(body);
 }
+
+export async function postLeaveTournament(id: string): Promise<void> {
+  const { ok, status, body } = await tournamentFetch(
+    `/api/v1/tournaments/${encodeURIComponent(id)}/leave`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
+  // 404 = tavolo già rimosso (nessuno rimasto): trattato come uscita riuscita.
+  if (!ok && status !== 404) {
+    throw extractApiError(body, status, 'Impossibile alzarsi dal tavolo');
+  }
+}

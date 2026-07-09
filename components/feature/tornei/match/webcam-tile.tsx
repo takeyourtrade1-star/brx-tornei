@@ -13,6 +13,8 @@ interface WebcamTileProps {
   feedLabel?: string;
   /** Stato connessione P2P (solo tile remoto). */
   connecting?: boolean;
+  /** false per sentire l'audio (solo tile remoto: il locale resta muto per l'eco). */
+  muted?: boolean;
 }
 
 /**
@@ -24,19 +26,25 @@ export function WebcamTile({
   compact = false,
   feedLabel,
   connecting = false,
+  muted = true,
 }: WebcamTileProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+    el.muted = muted; // React non riaggiorna l'attributo muted: si imposta la property
     if (stream) {
       el.srcObject = stream;
-      void el.play().catch(() => {});
+      void el.play().catch(() => {
+        // Autoplay con audio bloccato dal browser: riprova muto, il video resta visibile.
+        el.muted = true;
+        void el.play().catch(() => {});
+      });
     } else {
       el.srcObject = null;
     }
-  }, [stream]);
+  }, [stream, muted]);
 
   const hasVideo = !!stream;
 
@@ -45,7 +53,7 @@ export function WebcamTile({
       <video
         ref={videoRef}
         className={cn('h-full w-full object-cover', !hasVideo && 'opacity-0')}
-        muted
+        muted={muted}
         playsInline
         autoPlay
       />

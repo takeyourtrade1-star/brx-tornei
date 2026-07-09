@@ -96,19 +96,19 @@ function streamFromTrackEvent(
   inbound: MediaStream | null,
 ): MediaStream | null {
   if (e.streams[0]) return e.streams[0];
-  if (!e.track || e.track.kind !== 'video') return null;
+  if (!e.track) return null;
   return mergeTrackIntoStream(e.track, inbound);
 }
 
-function harvestVideoStream(
+function harvestRemoteStream(
   pc: RTCPeerConnection,
   inbound: MediaStream | null,
 ): MediaStream | null {
   let out = inbound;
   for (const receiver of pc.getReceivers()) {
     const track = receiver.track;
-    if (track?.kind === 'video' && track.readyState !== 'ended') {
-      applyLowLatencyReceiverHints(receiver);
+    if (track && track.readyState !== 'ended') {
+      if (track.kind === 'video') applyLowLatencyReceiverHints(receiver);
       out = mergeTrackIntoStream(track, out);
     }
   }
@@ -169,6 +169,8 @@ export function createMatchPeerLink(
   const deliverRemote = (stream: MediaStream | null) => {
     if (!stream || remoteDelivered) return;
     inboundStream = stream;
+    // L'audio può arrivare prima: si consegna solo quando c'è anche il video.
+    if (stream.getVideoTracks().length === 0) return;
     remoteDelivered = true;
     clearStreamWatchdog();
     handlers.onRemoteStream?.(stream);
@@ -176,7 +178,7 @@ export function createMatchPeerLink(
 
   const tryDeliverInbound = () => {
     if (!pc) return;
-    deliverRemote(harvestVideoStream(pc, inboundStream));
+    deliverRemote(harvestRemoteStream(pc, inboundStream));
   };
 
   const armStreamWatchdog = () => {
@@ -199,6 +201,14 @@ export function createMatchPeerLink(
 
     videoTrack.contentHint = 'motion';
     pc.addTrack(videoTrack, localStream);
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      pc.addTrack(audioTrack, localStream);
+    } else if (role === 'host') {
+      // Senza mic locale l'host offre comunque l'm-line audio: l'answer del
+      // guest non può aggiungerla, e il suo audio resterebbe non negoziato.
+      pc.addTransceiver('audio', { direction: 'recvonly' });
+    }
     preferLowLatencyCodecs(pc);
 
     pc.ontrack = (e) => {

@@ -9,7 +9,8 @@ const PC_WEBCAM_CONSTRAINTS: MediaStreamConstraints = {
     height: { ideal: 480 },
     frameRate: { ideal: 24 },
   },
-  audio: false,
+  // Microfono insieme alla camera: i giocatori si parlano durante il match.
+  audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
 };
 
 function mapCameraError(name?: string): string | null {
@@ -58,7 +59,16 @@ export function useLocalWebcam(enabled: boolean) {
         return;
       }
       try {
-        const media = await navigator.mediaDevices.getUserMedia(PC_WEBCAM_CONSTRAINTS);
+        let media: MediaStream;
+        try {
+          media = await navigator.mediaDevices.getUserMedia(PC_WEBCAM_CONSTRAINTS);
+        } catch {
+          // Microfono assente o negato: si prosegue col solo video.
+          media = await navigator.mediaDevices.getUserMedia({
+            ...PC_WEBCAM_CONSTRAINTS,
+            audio: false,
+          });
+        }
         if (cancelled) {
           media.getTracks().forEach((t) => t.stop());
           return;

@@ -30,7 +30,8 @@ export const createTournamentSchema = selectionSchema.extend({
 
 export const joinTournamentSchema = z.object({
   tournamentId: z.string().min(1),
-  deckId: z.string().min(1, 'Seleziona un mazzo'),
+  // Deck facoltativo: stringa vuota = "Ignora deck".
+  deckId: z.string().default(''),
 });
 
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
