@@ -108,7 +108,7 @@ export const config = {
     name: 'Ebartex Tornei',
     /** URL pubblico di questo sito (sottodominio tornei). */
     siteUrl: normalizeURL(
-      process.env.NEXT_PUBLIC_SITE_URL || 'https://tournaments.ebartex.com'
+      process.env.NEXT_PUBLIC_SITE_URL || 'https://tornei.ebartex.com'
     ),
     mainSiteUrl: normalizeURL(
       process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'https://www.ebartex.com'
