@@ -4,7 +4,6 @@ import { useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createTournamentFromGameAction,
-  joinTournamentAction,
 } from '@/actions/tournaments';
 import type { Tournament } from '@/types/tournament';
 
@@ -43,6 +42,20 @@ export function useTournamentLiveFlow(tournaments: Tournament[]) {
     setPending({ kind: 'create-from-game', tournament });
   }, []);
 
+  const completeJoinFlow = useCallback(
+    (t: Tournament, result: { matchId?: string }) => {
+      router.refresh();
+      if (result.matchId) {
+        goLive(t.id);
+      } else if (t.isPrivate) {
+        setRequestSent(t.format.replace('-', ' '));
+      } else {
+        setPending({ kind: 'join', tournamentId: t.id });
+      }
+    },
+    [goLive, router],
+  );
+
   const handleJoinTournament = useCallback(
     (id: string) => {
       const t = tournaments.find((x) => x.id === id);
@@ -57,16 +70,9 @@ export function useTournamentLiveFlow(tournaments: Tournament[]) {
       const t = joinDeckTournament;
       setJoinDeckTournament(null);
       if (!t) return;
-      router.refresh();
-      if (result.matchId) {
-        goLive(t.id);
-      } else if (t.isPrivate) {
-        setRequestSent(t.format.replace('-', ' '));
-      } else {
-        setPending({ kind: 'join', tournamentId: t.id });
-      }
+      completeJoinFlow(t, result);
     },
-    [joinDeckTournament, goLive, router],
+    [joinDeckTournament, completeJoinFlow],
   );
 
   const handleObserveTournament = useCallback(

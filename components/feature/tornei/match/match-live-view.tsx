@@ -20,6 +20,7 @@ interface MatchLiveViewProps {
   role: LiveViewRole;
   me: string;
   userId: string;
+  accessToken: string;
   isHost: boolean;
 }
 
@@ -100,7 +101,14 @@ function MatchInfoBar({
  * Vista partita live: due webcam P2P (con mazzo sotto ognuna), riepilogo
  * modalità/best-of sopra i commenti.
  */
-export function MatchLiveView({ tournament, role, me, userId, isHost }: MatchLiveViewProps) {
+export function MatchLiveView({
+  tournament,
+  role,
+  me,
+  userId,
+  accessToken,
+  isHost,
+}: MatchLiveViewProps) {
   const router = useRouter();
   const isObserver = role === 'observer';
   const isPlayer = !isObserver;
@@ -142,6 +150,10 @@ export function MatchLiveView({ tournament, role, me, userId, isHost }: MatchLiv
     }, 5000);
     return () => clearInterval(timer);
   }, [tournament.status, router]);
+
+  const participantNames = Object.fromEntries(
+    tournament.participants.map((p) => [p.id, p.username]),
+  );
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-content flex-col px-4 py-4 pb-16 sm:px-6">
@@ -225,7 +237,14 @@ export function MatchLiveView({ tournament, role, me, userId, isHost }: MatchLiv
         <div className="flex min-h-0 flex-col gap-3">
           <MatchInfoBar modeName={modeName} bestOfLabel={bestOfLabel} formatName={formatName} />
           <div className="min-h-0 flex-1">
-            <MatchCommentsPanel me={me} />
+            <MatchCommentsPanel
+              me={me}
+              userId={userId}
+              matchId={tournament.matchId}
+              accessToken={accessToken}
+              active={isPlayer && tournament.status === 'iniziata' && !!tournament.matchId}
+              participantNames={participantNames}
+            />
           </div>
         </div>
       </div>
