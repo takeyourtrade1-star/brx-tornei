@@ -60,7 +60,7 @@ export function AuthShell({
 
   if (splitHero) {
     return (
-      <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
+      <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d] text-white">
         <LandingBackgroundVideo splitLeft />
 
         <div
@@ -85,7 +85,7 @@ export function AuthShell({
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d]">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#2d2d2d] text-white">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url("${carouselBg}")` }}

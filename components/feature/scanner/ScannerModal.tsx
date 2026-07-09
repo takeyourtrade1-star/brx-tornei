@@ -718,7 +718,7 @@ export function ScannerModal({
     batchMode && reviewItemId ? Math.max(0, pendingReviewCount - 1) : undefined;
 
   return (
-    <div className="fixed inset-0 z-[9999] overflow-hidden bg-black" aria-modal aria-label="Scanner Magic">
+    <div className="fixed inset-0 z-[9999] overflow-hidden bg-black text-white" aria-modal aria-label="Scanner Magic">
       <TopLoadingBar active={processingCount > 0 && state !== 'matched'} />
 
       {showModelGate && (
