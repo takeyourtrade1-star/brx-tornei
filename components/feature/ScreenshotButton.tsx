@@ -61,8 +61,9 @@ export function ScreenshotButton() {
           return true;
         },
         backgroundColor: '#0b0b0f',
-        // Nitidezza raddoppiata: utile per leggere testo/bug negli screen.
-        scale: Math.min(2, window.devicePixelRatio || 1) * 1.5,
+        // Cap alla densità reale dello schermo: oltre (es. x3 su retina)
+        // la rasterizzazione+encoding PNG impiega secondi invece di essere istantanea.
+        scale: Math.min(2, window.devicePixelRatio || 1),
         width: document.documentElement.clientWidth,
         height: document.documentElement.clientHeight,
       });
@@ -125,19 +126,22 @@ export function ScreenshotButton() {
           role="status"
           style={{
             position: 'fixed',
-            top: 'calc(max(12px, env(safe-area-inset-top)) + 48px)',
-            right: '12px',
+            // Alla sinistra del bottone, sulla stessa riga (12px bordo + 38px bottone + 8px gap).
+            top: 'max(12px, env(safe-area-inset-top))',
+            right: '58px',
             zIndex: 2147483646,
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            maxWidth: '270px',
-            padding: '12px 14px',
-            borderRadius: '14px',
+            gap: '8px',
+            maxWidth: '230px',
+            minHeight: '38px',
+            boxSizing: 'border-box',
+            padding: '6px 10px',
+            borderRadius: '10px',
             border: '1px solid rgba(255,255,255,0.35)',
             background: 'rgba(17, 17, 22, 0.78)',
             color: '#fff',
-            font: '500 13px/1.4 var(--font-sans, system-ui, sans-serif)',
+            font: '500 12px/1.3 var(--font-sans, system-ui, sans-serif)',
             boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
@@ -150,7 +154,7 @@ export function ScreenshotButton() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
+              gap: '8px',
               background: 'none',
               border: 'none',
               color: 'inherit',
@@ -160,7 +164,7 @@ export function ScreenshotButton() {
               cursor: 'pointer',
             }}
           >
-            <Camera size={20} style={{ flexShrink: 0 }} />
+            <Camera size={16} style={{ flexShrink: 0 }} />
             <span>
               Visto un bug? <strong>Fai uno screen</strong> e mandacelo!
             </span>
@@ -179,9 +183,9 @@ export function ScreenshotButton() {
               cursor: 'pointer',
             }}
           >
-            <X size={14} />
+            <X size={12} />
           </button>
-          <style>{`@keyframes brx-tip-in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}`}</style>
+          <style>{`@keyframes brx-tip-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}`}</style>
         </div>
       )}
     <button
