@@ -12,9 +12,33 @@ type Status = 'idle' | 'capturing' | 'done' | 'error';
  * Al click salva un PNG di quello che c'è a schermo nei Download.
  * NON cattura i <video> (webcam 1v1): per privacy salva solo l'interfaccia del sito.
  * Pensato per il collaudo dei tornei: un click -> file da inviarci.
+ *
+ * Include un promemoria periodico ("Visto un bug? Fai uno screen…") che
+ * appare ogni tanto di lato per ricordare ai tester di usare il bottone.
  */
+const TIP_FIRST_DELAY_MS = 45_000; // primo promemoria dopo 45s
+const TIP_INTERVAL_MS = 5 * 60_000; // poi ogni 5 minuti
+const TIP_VISIBLE_MS = 10_000; // resta a schermo 10s
+
 export function ScreenshotButton() {
   const [status, setStatus] = React.useState<Status>('idle');
+  const [showTip, setShowTip] = React.useState(false);
+
+  // Promemoria periodico per i tester.
+  React.useEffect(() => {
+    let hideTimer: number | undefined;
+    const show = () => {
+      setShowTip(true);
+      hideTimer = window.setTimeout(() => setShowTip(false), TIP_VISIBLE_MS);
+    };
+    const firstTimer = window.setTimeout(show, TIP_FIRST_DELAY_MS);
+    const interval = window.setInterval(show, TIP_INTERVAL_MS);
+    return () => {
+      window.clearTimeout(firstTimer);
+      window.clearInterval(interval);
+      if (hideTimer) window.clearTimeout(hideTimer);
+    };
+  }, []);
 
   const resetSoon = React.useCallback((next: Status) => {
     setStatus(next);
@@ -23,6 +47,7 @@ export function ScreenshotButton() {
 
   const handleCapture = React.useCallback(async () => {
     if (status === 'capturing') return;
+    setShowTip(false);
     setStatus('capturing');
 
     try {
@@ -87,12 +112,78 @@ export function ScreenshotButton() {
 
   const bg =
     status === 'done'
-      ? 'rgba(22, 163, 74, 0.55)'
+      ? 'rgba(22, 163, 74, 0.85)'
       : status === 'error'
-        ? 'rgba(220, 38, 38, 0.55)'
-        : 'rgba(255, 255, 255, 0.10)';
+        ? 'rgba(220, 38, 38, 0.85)'
+        : 'rgba(17, 17, 22, 0.60)';
 
   return (
+    <>
+      {showTip && (
+        <div
+          data-screenshot-ignore="true"
+          role="status"
+          style={{
+            position: 'fixed',
+            top: 'calc(max(12px, env(safe-area-inset-top)) + 48px)',
+            right: '12px',
+            zIndex: 2147483646,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            maxWidth: '270px',
+            padding: '12px 14px',
+            borderRadius: '14px',
+            border: '1px solid rgba(255,255,255,0.35)',
+            background: 'rgba(17, 17, 22, 0.78)',
+            color: '#fff',
+            font: '500 13px/1.4 var(--font-sans, system-ui, sans-serif)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            animation: 'brx-tip-in 260ms ease-out',
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleCapture}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              font: 'inherit',
+              textAlign: 'left',
+              padding: 0,
+              cursor: 'pointer',
+            }}
+          >
+            <Camera size={20} style={{ flexShrink: 0 }} />
+            <span>
+              Visto un bug? <strong>Fai uno screen</strong> e mandacelo!
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowTip(false)}
+            aria-label="Chiudi promemoria"
+            style={{
+              flexShrink: 0,
+              display: 'flex',
+              background: 'none',
+              border: 'none',
+              color: 'rgba(255,255,255,0.6)',
+              padding: '2px',
+              cursor: 'pointer',
+            }}
+          >
+            <X size={14} />
+          </button>
+          <style>{`@keyframes brx-tip-in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}`}</style>
+        </div>
+      )}
     <button
       type="button"
       data-screenshot-ignore="true"
@@ -110,22 +201,21 @@ export function ScreenshotButton() {
         width: '38px',
         height: '38px',
         borderRadius: '9999px',
-        border: '1px solid rgba(255,255,255,0.22)',
+        border: '1px solid rgba(255,255,255,0.45)',
         background: bg,
         color: '#fff',
         cursor: status === 'capturing' ? 'progress' : 'pointer',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
-        opacity: status === 'idle' ? 0.55 : 1,
-        transition: 'background 160ms ease, opacity 160ms ease, transform 120ms ease',
+        transition: 'background 160ms ease, transform 120ms ease',
         userSelect: 'none',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.opacity = '1';
+        e.currentTarget.style.transform = 'scale(1.08)';
       }}
       onMouseLeave={(e) => {
-        if (status === 'idle') e.currentTarget.style.opacity = '0.55';
+        e.currentTarget.style.transform = 'scale(1)';
       }}
     >
       <Icon
@@ -134,5 +224,6 @@ export function ScreenshotButton() {
       />
       <style>{`@keyframes brx-shot-spin{to{transform:rotate(360deg)}}`}</style>
     </button>
+    </>
   );
 }
