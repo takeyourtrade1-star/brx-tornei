@@ -8,6 +8,7 @@ import {
   isTournamentsApiEnabled,
   postJoinTournament,
   postLeaveTournament,
+  postReadyTournament,
   postCreateTournament,
   TournamentApiError,
 } from '@/lib/data/tournament-api-client';
@@ -42,6 +43,13 @@ export async function joinTournament(
 
 export async function leaveTournament(id: string): Promise<void> {
   await postLeaveTournament(id);
+}
+
+export async function readyTournament(
+  id: string,
+  ready: boolean,
+): Promise<JoinTournamentResult> {
+  return postReadyTournament(id, ready);
 }
 
 export { TournamentApiError, isTournamentsApiEnabled };

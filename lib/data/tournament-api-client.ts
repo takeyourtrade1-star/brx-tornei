@@ -176,6 +176,20 @@ export async function postJoinTournament(id: string): Promise<JoinTournamentResu
   return mapJoinResult(body);
 }
 
+export async function postReadyTournament(
+  id: string,
+  ready: boolean,
+): Promise<JoinTournamentResult> {
+  const { ok, status, body } = await tournamentFetch(
+    `/api/v1/tournaments/${encodeURIComponent(id)}/ready`,
+    { method: 'POST', body: JSON.stringify({ ready }) },
+  );
+  if (!ok) {
+    throw extractApiError(body, status, 'Impossibile aggiornare lo stato pronto');
+  }
+  return mapJoinResult(body);
+}
+
 export async function postLeaveTournament(id: string): Promise<void> {
   const { ok, status, body } = await tournamentFetch(
     `/api/v1/tournaments/${encodeURIComponent(id)}/leave`,

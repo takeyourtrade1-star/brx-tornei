@@ -1,8 +1,15 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { MessageSquare, Send } from 'lucide-react';
 import { useMatchChat } from '@/hooks/use-match-chat';
+import {
+  MATCH_STICKERS,
+  STICKER_COOLDOWN_MS,
+  stickerFromText,
+  stickerToText,
+  type MatchSticker,
+} from './match-stickers';
 import { cn } from '@/lib/utils';
 
 interface MatchCommentsPanelProps {
@@ -12,6 +19,8 @@ interface MatchCommentsPanelProps {
   accessToken?: string | null;
   active: boolean;
   participantNames: Record<string, string>;
+  /** Notifica di uno sticker appena arrivato (mio o dell'avversario). */
+  onSticker?: (sticker: MatchSticker, fromUserId: string) => void;
 }
 
 export function MatchCommentsPanel({
@@ -21,6 +30,7 @@ export function MatchCommentsPanel({
   accessToken,
   active,
   participantNames,
+  onSticker,
 }: MatchCommentsPanelProps) {
   const formId = useId();
   const [draft, setDraft] = useState('');
@@ -30,6 +40,44 @@ export function MatchCommentsPanel({
     userId,
     active,
   });
+
+  // Cooldown sticker: un taunt ogni STICKER_COOLDOWN_MS, col pulsante che
+  // si "ricarica" (stile abilità nei videogiochi).
+  const [stickerCooldown, setStickerCooldown] = useState(false);
+  const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
+    },
+    [],
+  );
+
+  function sendSticker(id: string) {
+    if (stickerCooldown) return;
+    if (!send(stickerToText(id))) return;
+    setStickerCooldown(true);
+    cooldownTimer.current = setTimeout(() => setStickerCooldown(false), STICKER_COOLDOWN_MS);
+  }
+
+  // Auto-scroll in fondo a ogni messaggio nuovo.
+  const listRef = useRef<HTMLUListElement | null>(null);
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
+
+  // Notifica al padre gli sticker NUOVI (per l'overlay sul video), una volta
+  // sola per messaggio: il cursore ricorda quanti ne abbiamo già processati.
+  const processedCount = useRef(0);
+  useEffect(() => {
+    for (let i = processedCount.current; i < messages.length; i++) {
+      const message = messages[i];
+      if (!message) continue;
+      const sticker = stickerFromText(message.text);
+      if (sticker) onSticker?.(sticker, message.userId);
+    }
+    processedCount.current = messages.length;
+  }, [messages, onSticker]);
 
   function displayName(forUserId: string): string {
     if (forUserId === userId) return me;
@@ -79,22 +127,64 @@ export function MatchCommentsPanel({
         </p>
       )}
 
-      <ul className="scrollbar-none flex-1 space-y-2 overflow-y-auto p-3">
+      <ul ref={listRef} className="scrollbar-none flex-1 space-y-2 overflow-y-auto p-3">
         {messages.length === 0 ? (
           <li className="py-6 text-center text-sm text-white/40">
             Nessun messaggio. Scrivi qualcosa durante la partita.
           </li>
         ) : (
-          messages.map((m) => (
-            <li key={m.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-              <p className="text-[11px] font-bold text-white/70">{displayName(m.userId)}</p>
-              <p className="mt-0.5 text-sm leading-snug text-white/90">{m.text}</p>
-            </li>
-          ))
+          messages.map((m) => {
+            const sticker = stickerFromText(m.text);
+            if (sticker) {
+              return (
+                <li
+                  key={m.id}
+                  className="rounded-xl border border-[#FF7300]/30 bg-[#FF7300]/[0.08] px-3 py-2"
+                >
+                  <p className="text-[11px] font-bold text-white/70">{displayName(m.userId)}</p>
+                  <p className="mt-0.5 flex items-center gap-2">
+                    <span className="sticker-chat-emoji text-3xl leading-none" aria-hidden>
+                      {sticker.emoji}
+                    </span>
+                    <span className="text-xs font-black uppercase tracking-wider text-[#FF9C4A]">
+                      {sticker.label}
+                    </span>
+                  </p>
+                </li>
+              );
+            }
+            return (
+              <li key={m.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                <p className="text-[11px] font-bold text-white/70">{displayName(m.userId)}</p>
+                <p className="mt-0.5 text-sm leading-snug text-white/90">{m.text}</p>
+              </li>
+            );
+          })
         )}
       </ul>
 
-      <form onSubmit={submit} className="border-t border-white/10 p-2">
+      <div className="flex items-center gap-1.5 border-t border-white/10 px-2 pt-2">
+        {MATCH_STICKERS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            title={s.title}
+            aria-label={`Invia sticker ${s.label}`}
+            disabled={stickerCooldown || connectionState !== 'connected'}
+            onClick={() => sendSticker(s.id)}
+            className={cn(
+              'group relative grid h-9 flex-1 place-items-center rounded-xl border border-white/10 bg-white/5 text-xl transition',
+              stickerCooldown || connectionState !== 'connected'
+                ? 'opacity-40'
+                : 'hover:-translate-y-0.5 hover:border-[#FF7300]/50 hover:bg-[#FF7300]/15 active:scale-95',
+            )}
+          >
+            <span className="transition group-hover:scale-125">{s.emoji}</span>
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={submit} className="p-2">
         <div className="flex gap-2">
           <label htmlFor={formId} className="sr-only">
             Scrivi un messaggio

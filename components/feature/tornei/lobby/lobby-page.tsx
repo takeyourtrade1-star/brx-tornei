@@ -54,17 +54,24 @@ export function LobbyPage({
     [router],
   );
 
-  // Se sono seduto al mio tavolo e il match è partito, entro in partita.
-  // Se sono in attesa, faccio polling per accorgermi quando qualcuno si siede.
+  // Se sono seduto al mio tavolo e il match è partito — o il tavolo è pieno e
+  // parte il ready check — entro nella pagina partita. Se sono in attesa,
+  // faccio polling per accorgermi quando qualcuno si siede.
   // Con PIÙ partite attive (stato incoerente: partita vecchia mai abbandonata)
   // NON reindirizzo: resto in lobby, dove ogni tavolo ha il suo "Abbandona".
   useEffect(() => {
     const mine = findMyTables(tournaments, user.id);
     if (mine.length === 0) return;
     const [only] = mine;
-    if (mine.length === 1 && only && only.status === 'iniziata' && only.matchId) {
-      goLiveTo(only.id);
-      return;
+    if (mine.length === 1 && only) {
+      const started = only.status === 'iniziata' && only.matchId;
+      const readyCheck =
+        only.status === 'in_registrazione' &&
+        only.participants.length >= only.maxPlayers;
+      if (started || readyCheck) {
+        goLiveTo(only.id);
+        return;
+      }
     }
     const iv = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
@@ -131,7 +138,8 @@ export function LobbyPage({
           return;
         }
         setModal(null);
-        if (res.matchId) {
+        if (res.matchId || res.tableFull) {
+          // Tavolo pieno: si va in pagina partita per il ready check.
           goLiveTo(tournamentId);
         } else {
           router.refresh();

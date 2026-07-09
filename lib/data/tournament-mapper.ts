@@ -31,7 +31,7 @@ function mapParticipant(raw: unknown): Participant | null {
   const id = pickString(obj, 'id', 'user_id');
   const username = pickString(obj, 'username', 'name');
   if (!id || !username) return null;
-  return { id, username };
+  return { id, username, ready: pickBool(obj, 'ready', 'is_ready') ?? false };
 }
 
 function mapParticipants(raw: unknown): Participant[] {

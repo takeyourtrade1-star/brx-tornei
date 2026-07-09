@@ -6,6 +6,7 @@ import {
   createTournament,
   joinTournament,
   leaveTournament,
+  readyTournament,
   getTournamentById,
 } from '@/lib/data/tournaments';
 import { assertJoinDeckRequirements } from '@/lib/join-deck-gate';
@@ -19,6 +20,8 @@ export interface TournamentActionState {
   webcamSessionId?: string;
   matchId?: string;
   matchWebcamSessionId?: string;
+  /** true quando il tavolo ha raggiunto il numero massimo di giocatori. */
+  tableFull?: boolean;
 }
 
 function mapApiError(err: unknown, fallback: string): TournamentActionState {
@@ -129,9 +132,38 @@ export async function joinTournamentAction(
       createdId: result.tournament.id,
       matchId: result.matchId,
       matchWebcamSessionId: result.matchWebcamSessionId,
+      tableFull:
+        result.tournament.participants.length >= result.tournament.maxPlayers,
     };
   } catch (err) {
     return mapApiError(err, 'Impossibile sederti al tavolo');
+  }
+}
+
+/**
+ * Ready check: segna il giocatore pronto (o annulla). Quando entrambi sono
+ * pronti il backend crea il match e la risposta contiene matchId.
+ */
+export async function readyTournamentAction(
+  tournamentId: string,
+  ready: boolean,
+): Promise<TournamentActionState> {
+  const session = await getSession();
+  if (!session) {
+    return { error: 'Sessione scaduta: effettua di nuovo il login.' };
+  }
+
+  try {
+    const result = await readyTournament(tournamentId, ready);
+    revalidatePath('/tornei');
+    revalidatePath(`/tornei/${tournamentId}/live`);
+    return {
+      createdId: result.tournament.id,
+      matchId: result.matchId,
+      matchWebcamSessionId: result.matchWebcamSessionId,
+    };
+  } catch (err) {
+    return mapApiError(err, 'Impossibile aggiornare lo stato pronto');
   }
 }
 

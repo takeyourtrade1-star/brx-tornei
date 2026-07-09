@@ -18,6 +18,8 @@ export interface ParticipantDeck {
 export interface Participant {
   id: string;
   username: string;
+  /** Ready check: true quando il giocatore ha premuto "Pronto". */
+  ready?: boolean;
   /** Mazzo usato in partita — popolato dal backend quando disponibile. */
   deck?: ParticipantDeck;
 }

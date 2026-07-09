@@ -15,6 +15,9 @@ interface WebcamTileProps {
   connecting?: boolean;
   /** false per sentire l'audio (solo tile remoto: il locale resta muto per l'eco). */
   muted?: boolean;
+  /** true quando il giocatore ha spento la camera (track disabilitata): il
+   *  video manda nero, qui si mostra un overlay esplicito. */
+  videoDisabled?: boolean;
 }
 
 /**
@@ -27,6 +30,7 @@ export function WebcamTile({
   feedLabel,
   connecting = false,
   muted = true,
+  videoDisabled = false,
 }: WebcamTileProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -75,7 +79,16 @@ export function WebcamTile({
         </div>
       )}
 
-      {hasVideo && (
+      {hasVideo && videoDisabled && (
+        <div className="absolute inset-0 grid place-items-center bg-black/85">
+          <div className="flex flex-col items-center gap-2 text-white/50">
+            <VideoOff className={cn(compact ? 'h-5 w-5' : 'h-8 w-8')} />
+            {!compact && <span className="text-xs">Camera spenta</span>}
+          </div>
+        </div>
+      )}
+
+      {hasVideo && !videoDisabled && (
         <div
           className={cn(
             'absolute left-2 top-2 rounded-full bg-emerald-500/90 font-black uppercase text-white',

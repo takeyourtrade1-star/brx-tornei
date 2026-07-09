@@ -282,3 +282,172 @@
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Sticker chat partita: overlay sul video + emoji animata per tipo.  */
+/* L'overlay entra con un pop, resta ~1.4s e sfuma salendo (2.2s tot: */
+/* stesso valore del timeout JS in match-live-view).                  */
+/* ------------------------------------------------------------------ */
+
+@keyframes sticker-overlay-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-14deg);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.25) rotate(6deg);
+  }
+  20% {
+    transform: scale(1) rotate(0deg);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92) translateY(-42px);
+  }
+}
+
+.sticker-overlay {
+  animation: sticker-overlay-pop 2.2s cubic-bezier(0.22, 1.4, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+/* EZ: entra dall'alto e si assesta con un mezzo giro compiaciuto */
+@keyframes sticker-cool {
+  0% {
+    transform: translateY(-18px) rotate(-18deg);
+  }
+  40% {
+    transform: translateY(4px) rotate(8deg);
+  }
+  70% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+.sticker-anim-cool {
+  animation: sticker-cool 1.1s ease-out both;
+}
+
+/* LOL: rimbalza sguaiato */
+@keyframes sticker-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  25% {
+    transform: translateY(-16px) rotate(6deg);
+  }
+  50% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  75% {
+    transform: translateY(-9px) rotate(6deg);
+  }
+}
+.sticker-anim-bounce {
+  animation: sticker-bounce 0.9s ease-in-out infinite;
+}
+
+/* TILT: trema di rabbia */
+@keyframes sticker-shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  15% {
+    transform: translateX(-7px) rotate(-7deg);
+  }
+  30% {
+    transform: translateX(7px) rotate(7deg);
+  }
+  45% {
+    transform: translateX(-6px) rotate(-5deg);
+  }
+  60% {
+    transform: translateX(6px) rotate(5deg);
+  }
+  75% {
+    transform: translateX(-3px) rotate(-2deg);
+  }
+}
+.sticker-anim-shake {
+  animation: sticker-shake 0.55s ease-in-out infinite;
+}
+
+/* GG…: singhiozza ondeggiando */
+@keyframes sticker-cry {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg) scale(1);
+  }
+  35% {
+    transform: translateY(3px) rotate(4deg) scale(0.96);
+  }
+  65% {
+    transform: translateY(-2px) rotate(-2deg) scale(1.03);
+  }
+}
+.sticker-anim-cry {
+  animation: sticker-cry 1.1s ease-in-out infinite;
+}
+
+/* Salty: la saliera condisce l'avversario */
+@keyframes sticker-salt {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(-38deg) translateY(-4px);
+  }
+  45% {
+    transform: rotate(-30deg) translateY(2px);
+  }
+  65% {
+    transform: rotate(-38deg) translateY(-3px);
+  }
+  85% {
+    transform: rotate(-8deg) translateY(0);
+  }
+}
+.sticker-anim-salt {
+  animation: sticker-salt 1s ease-in-out infinite;
+}
+
+/* Versione mini per il messaggio in chat: solo un accenno di vita */
+@keyframes sticker-chat-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.sticker-chat-emoji {
+  display: inline-block;
+  animation: sticker-chat-pop 0.35s cubic-bezier(0.22, 1.4, 0.36, 1) both;
+}
+
+/* Pulsazione del bottone Pronto durante il ready check */
+@keyframes ready-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 115, 0, 0.55);
+  }
+  60% {
+    box-shadow: 0 0 0 14px rgba(255, 115, 0, 0);
+  }
+}
+.ready-pulse {
+  animation: ready-pulse 1.6s ease-out infinite;
+}
+

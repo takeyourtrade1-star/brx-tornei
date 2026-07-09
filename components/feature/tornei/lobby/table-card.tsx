@@ -46,7 +46,11 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
       <div className="flex items-center gap-2">
         {isMine && (
           <span className="mr-1 rounded-full bg-primary/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-primary">
-            {table.started ? 'Partita pronta' : 'Sei seduto qui'}
+            {table.started
+              ? 'Partita pronta'
+              : table.seats[1].occupied
+                ? 'Ready check'
+                : 'Sei seduto qui'}
           </span>
         )}
 
@@ -66,14 +70,21 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
 
         {isMine && !table.started && (
           <>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onOpen(table)}
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white/85 transition hover:bg-white/10 disabled:opacity-50"
-            >
-              Apri
-            </button>
+            {table.seats[1].occupied ? (
+              <PrimaryButton busy={busy} onClick={() => onGoLive(table)}>
+                <Play className="h-4 w-4" />
+                Vai al tavolo
+              </PrimaryButton>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onOpen(table)}
+                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white/85 transition hover:bg-white/10 disabled:opacity-50"
+              >
+                Apri
+              </button>
+            )}
             <button
               type="button"
               disabled={busy}
