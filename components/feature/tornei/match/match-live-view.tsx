@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, Gamepad2, Layers, Wifi, WifiOff } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
+import { ArrowLeft, CheckCircle2, Gamepad2, Layers, LogOut, Wifi, WifiOff } from 'lucide-react';
+import { leaveTournamentAction } from '@/actions/tournaments';
 import type { Participant, Tournament } from '@/types/tournament';
 import type { LiveViewRole } from '@/lib/validations/live';
 import { getFormat, getMode } from '@/lib/data/catalog';
@@ -140,6 +141,27 @@ export function MatchLiveView({
     peerState !== 'failed' &&
     peerState !== 'idle';
 
+  // Abbandono partita: possibile anche a match iniziato (prima era solo
+  // pre-inizio in lobby, e le partite morte restavano appese per sempre).
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [leaving, startLeaving] = useTransition();
+  const handleLeave = () => {
+    const message =
+      tournament.status === 'iniziata'
+        ? 'Vuoi abbandonare la partita? Verrai rimosso dal tavolo.'
+        : 'Vuoi alzarti dal tavolo?';
+    if (!window.confirm(message)) return;
+    startLeaving(async () => {
+      const res = await leaveTournamentAction(tournament.id);
+      if (res.error) {
+        setLeaveError(res.error);
+        return;
+      }
+      router.push('/tornei');
+      router.refresh();
+    });
+  };
+
   useEffect(() => {
     if (tournament.status !== 'in_registrazione') return;
     // router.refresh() rifà il render RSC dell'intera pagina: a tab nascosta
@@ -185,6 +207,17 @@ export function MatchLiveView({
           {isPlayer && tournament.status === 'iniziata' && (
             <ConnectionBadge state={peerState} error={peerError} />
           )}
+          {isPlayer && (
+            <button
+              type="button"
+              disabled={leaving}
+              onClick={handleLeave}
+              className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              {tournament.status === 'iniziata' ? 'Abbandona' : 'Alzati'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -194,12 +227,12 @@ export function MatchLiveView({
         </p>
       )}
 
-      {(webcamError || peerError) && isPlayer && (
+      {(webcamError || peerError || leaveError) && isPlayer && (
         <p
           role="alert"
           className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200"
         >
-          {webcamError ?? peerError}
+          {leaveError ?? webcamError ?? peerError}
         </p>
       )}
 

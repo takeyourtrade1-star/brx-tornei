@@ -25,13 +25,20 @@ function isActive(t: Tournament): boolean {
   return t.status === 'in_registrazione' || t.status === 'iniziata';
 }
 
-/** Torneo a cui l'utente è attualmente seduto (in attesa o in partita). */
-export function findMyTable(tournaments: Tournament[], userId: string): Tournament | null {
-  return (
-    tournaments.find(
-      (t) => isActive(t) && t.participants.some((p) => p.id === userId),
-    ) ?? null
+/**
+ * Tornei a cui l'utente è attualmente seduto (in attesa o in partita).
+ * Possono essere più di uno (es. partite rimaste appese): vanno mostrati
+ * tutti, così l'utente può abbandonare quelli morti.
+ */
+export function findMyTables(tournaments: Tournament[], userId: string): Tournament[] {
+  return tournaments.filter(
+    (t) => isActive(t) && t.participants.some((p) => p.id === userId),
   );
+}
+
+/** Primo torneo a cui l'utente è seduto (compat). */
+export function findMyTable(tournaments: Tournament[], userId: string): Tournament | null {
+  return findMyTables(tournaments, userId)[0] ?? null;
 }
 
 function toSeats(t: Tournament, userId: string): [Seat, Seat] {
@@ -61,20 +68,19 @@ export function buildLobbyTables(params: {
 }): LobbyTable[] {
   const { tournaments, userId } = params;
 
-  const myTournament = findMyTable(tournaments, userId);
+  const myTournaments = findMyTables(tournaments, userId);
 
-  // Sono già seduto: un solo tavolo, il mio. Impedisce di creare altri tavoli
-  // mentre sono in attesa (era la causa dei tavoli-fantasma accumulati).
-  if (myTournament) {
-    return [
-      {
-        key: myTournament.id,
-        kind: 'mine',
-        tournament: myTournament,
-        seats: toSeats(myTournament, userId),
-        started: myTournament.status === 'iniziata',
-      },
-    ];
+  // Sono già seduto: mostro solo i miei tavoli (tutti, se per errore sono
+  // finito in più partite: da ognuno posso alzarmi/abbandonare). Impedisce di
+  // creare altri tavoli mentre sono in attesa (causa dei tavoli-fantasma).
+  if (myTournaments.length > 0) {
+    return myTournaments.map((t) => ({
+      key: t.id,
+      kind: 'mine' as const,
+      tournament: t,
+      seats: toSeats(t, userId),
+      started: t.status === 'iniziata',
+    }));
   }
 
   const joinable: LobbyTable[] = [];

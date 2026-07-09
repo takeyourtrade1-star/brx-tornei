@@ -88,10 +88,22 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
         )}
 
         {isMine && table.started && (
-          <PrimaryButton busy={busy} onClick={() => onGoLive(table)}>
-            <Play className="h-4 w-4" />
-            Vai alla partita
-          </PrimaryButton>
+          <>
+            <PrimaryButton busy={busy} onClick={() => onGoLive(table)}>
+              <Play className="h-4 w-4" />
+              Vai alla partita
+            </PrimaryButton>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onLeave(table)}
+              aria-label="Abbandona la partita"
+              className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold uppercase tracking-wide text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Abbandona
+            </button>
+          </>
         )}
       </div>
     </div>

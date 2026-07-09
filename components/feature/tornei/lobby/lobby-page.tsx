@@ -10,7 +10,7 @@ import {
   joinTournamentAction,
   leaveTournamentAction,
 } from '@/actions/tournaments';
-import { buildLobbyTables, findMyTable, type LobbyTable } from '@/lib/lobby';
+import { buildLobbyTables, findMyTables, type LobbyTable } from '@/lib/lobby';
 import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { Selection } from '@/lib/validations/selection';
 import type { SessionUser } from '@/types/auth';
@@ -56,11 +56,14 @@ export function LobbyPage({
 
   // Se sono seduto al mio tavolo e il match è partito, entro in partita.
   // Se sono in attesa, faccio polling per accorgermi quando qualcuno si siede.
+  // Con PIÙ partite attive (stato incoerente: partita vecchia mai abbandonata)
+  // NON reindirizzo: resto in lobby, dove ogni tavolo ha il suo "Abbandona".
   useEffect(() => {
-    const mine = findMyTable(tournaments, user.id);
-    if (!mine) return;
-    if (mine.status === 'iniziata' && mine.matchId) {
-      goLiveTo(mine.id);
+    const mine = findMyTables(tournaments, user.id);
+    if (mine.length === 0) return;
+    const [only] = mine;
+    if (mine.length === 1 && only && only.status === 'iniziata' && only.matchId) {
+      goLiveTo(only.id);
       return;
     }
     const iv = setInterval(() => {
@@ -84,7 +87,7 @@ export function LobbyPage({
       setError(null);
 
       // Sono già seduto altrove: non creo doppioni, riapro il mio tavolo.
-      const mine = findMyTable(tournaments, user.id);
+      const mine = findMyTables(tournaments, user.id)[0];
       if (mine) {
         setModal({ mode: 'host', tournamentId: mine.id });
         return;
