@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Almendra_SC, EB_Garamond } from 'next/font/google';
 import { config } from '@/lib/config';
+import { ScreenshotButton } from '@/components/feature/ScreenshotButton';
 import './globals.css';
 
 const almendraSC = Almendra_SC({
@@ -31,7 +32,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it" className={`${almendraSC.variable} ${ebGaramond.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        <ScreenshotButton />
+      </body>
     </html>
   );
 }
