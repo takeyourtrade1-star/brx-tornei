@@ -7,15 +7,21 @@ import type { Participant } from '@/types/tournament';
 import { pickStartingPlayer } from '@/lib/match-starting-player';
 import { cn } from '@/lib/utils';
 
-type IntroPhase = 'idle' | 'clash' | 'draw' | 'winner' | 'done';
+type IntroPhase = 'idle' | 'countdown' | 'draw' | 'winner' | 'done';
 
 interface MatchIntroOverlayProps {
   active: boolean;
   matchId?: string;
   players: [Participant, Participant];
+  remainingSeconds: number | null;
 }
 
-export function MatchIntroOverlay({ active, matchId, players }: MatchIntroOverlayProps) {
+export function MatchIntroOverlay({
+  active,
+  matchId,
+  players,
+  remainingSeconds,
+}: MatchIntroOverlayProps) {
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<IntroPhase>('idle');
   const [drawIndex, setDrawIndex] = useState(0);
@@ -30,28 +36,41 @@ export function MatchIntroOverlay({ active, matchId, players }: MatchIntroOverla
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    if (!active || !matchId) return;
+    if (!active || !matchId) {
+      setPhase('idle');
+      return;
+    }
     const storageKey = `match-intro:${matchId}`;
     if (window.sessionStorage.getItem(storageKey)) {
       setPhase('done');
       return;
     }
+    if (remainingSeconds === null) return;
+    if (remainingSeconds > 0) {
+      setPhase('countdown');
+      return;
+    }
+    setPhase((current) =>
+      current === 'idle' || current === 'countdown' ? 'draw' : current,
+    );
+  }, [active, matchId, remainingSeconds]);
 
+  useEffect(() => {
+    if (phase !== 'draw') return;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const times = reducedMotion ? [450, 900, 1650] : [1600, 3400, 5300];
-    setPhase('clash');
-    const drawTimer = window.setTimeout(() => setPhase('draw'), times[0]);
-    const winnerTimer = window.setTimeout(() => setPhase('winner'), times[1]);
-    const closeTimer = window.setTimeout(() => {
-      window.sessionStorage.setItem(storageKey, 'seen');
+    const timer = window.setTimeout(() => setPhase('winner'), reducedMotion ? 450 : 1_100);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'winner' || !matchId) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const timer = window.setTimeout(() => {
+      window.sessionStorage.setItem(`match-intro:${matchId}`, 'seen');
       setPhase('done');
-    }, times[2]);
-    return () => {
-      window.clearTimeout(drawTimer);
-      window.clearTimeout(winnerTimer);
-      window.clearTimeout(closeTimer);
-    };
-  }, [active, matchId]);
+    }, reducedMotion ? 700 : 1_600);
+    return () => window.clearTimeout(timer);
+  }, [matchId, phase]);
 
   useEffect(() => {
     if (phase !== 'draw') return;
@@ -68,14 +87,22 @@ export function MatchIntroOverlay({ active, matchId, players }: MatchIntroOverla
       <div className="match-intro-grid absolute inset-0 opacity-30" aria-hidden />
       <div className="relative z-10 flex max-w-3xl flex-col items-center px-6 text-center" role="status" aria-live="polite">
         <div className="match-intro-emblem grid h-28 w-28 place-items-center rounded-full border border-primary/50 bg-primary/10 shadow-[0_0_80px_rgba(255,115,0,0.35)] sm:h-36 sm:w-36">
-          {phase === 'winner' ? (
+          {phase === 'countdown' ? (
+            <span className="font-display text-6xl font-black tabular-nums text-white sm:text-8xl">
+              {remainingSeconds}
+            </span>
+          ) : phase === 'winner' ? (
             <Sparkles className="h-14 w-14 text-primary sm:h-20 sm:w-20" />
           ) : (
             <Swords className="h-14 w-14 text-primary sm:h-20 sm:w-20" />
           )}
         </div>
         <p className="mt-8 text-xs font-black uppercase tracking-[0.35em] text-primary sm:text-sm">
-          {phase === 'clash' ? 'Preparati alla sfida' : phase === 'draw' ? 'Sorteggio' : 'Prima mossa'}
+          {phase === 'countdown'
+            ? 'Entrambi pronti'
+            : phase === 'draw'
+              ? 'Sorteggio'
+              : 'Prima mossa'}
         </p>
         <h2
           className={cn(
@@ -83,8 +110,8 @@ export function MatchIntroOverlay({ active, matchId, players }: MatchIntroOverla
             phase === 'winner' ? 'match-intro-winner' : 'match-intro-title',
           )}
         >
-          {phase === 'clash'
-            ? 'Che la partita abbia inizio'
+          {phase === 'countdown'
+            ? 'La partita inizia tra'
             : phase === 'draw'
               ? drawingName
               : starter.username}

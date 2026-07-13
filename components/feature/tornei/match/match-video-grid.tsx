@@ -5,6 +5,7 @@ import type { Participant } from '@/types/tournament';
 import type { StickerShot } from '@/hooks/use-match-sticker-shot';
 import { cn } from '@/lib/utils';
 import { DeckStrip } from './match-live-parts';
+import { MatchLifeCounter } from './match-life-counter';
 import { WebcamTile } from './webcam-tile';
 
 interface MatchVideoGridProps {
@@ -23,6 +24,9 @@ interface MatchVideoGridProps {
   peerConnecting: boolean;
   camOn: boolean;
   micOn: boolean;
+  lifeByPlayerId: Record<string, number>;
+  startingLife: number;
+  lifeConnected: boolean;
   stickerShot: StickerShot | null;
   participantNames: Record<string, string>;
   userId: string;
@@ -30,6 +34,8 @@ interface MatchVideoGridProps {
   onToggleMic: () => void;
   onToggleCam: () => void;
   onFullscreen: () => void;
+  onLifeChange: (playerId: string, delta: number) => void;
+  onLifeReset: () => void;
 }
 
 export function MatchVideoGrid({
@@ -48,6 +54,9 @@ export function MatchVideoGrid({
   peerConnecting,
   camOn,
   micOn,
+  lifeByPlayerId,
+  startingLife,
+  lifeConnected,
   stickerShot,
   participantNames,
   userId,
@@ -55,9 +64,11 @@ export function MatchVideoGrid({
   onToggleMic,
   onToggleCam,
   onFullscreen,
+  onLifeChange,
+  onLifeReset,
 }: MatchVideoGridProps) {
   return (
-    <div className="relative grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="relative grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)] xl:items-stretch">
       {stickerShot && (
         <div key={stickerShot.key} className="pointer-events-none absolute inset-0 z-30 grid place-items-center" aria-hidden>
           <div className="sticker-overlay flex flex-col items-center gap-1">
@@ -82,7 +93,7 @@ export function MatchVideoGrid({
       )}
 
       <div className="flex flex-col gap-2">
-        <div className="relative aspect-video sm:aspect-auto sm:min-h-[300px]">
+        <div className="relative aspect-video">
           {isObserver ? (
             <WebcamTile username={playerA.username} />
           ) : (
@@ -113,8 +124,18 @@ export function MatchVideoGrid({
         <DeckStrip player={leftPlayer} formatName={formatName} />
       </div>
 
+      <MatchLifeCounter
+        players={[leftPlayer, rightPlayer]}
+        lifeByPlayerId={lifeByPlayerId}
+        startingLife={startingLife}
+        connected={lifeConnected}
+        interactive={isPlayer && started}
+        onChange={onLifeChange}
+        onReset={onLifeReset}
+      />
+
       <div className="flex flex-col gap-2">
-        <div className="relative aspect-video sm:aspect-auto sm:min-h-[300px]">
+        <div className="relative aspect-video">
           <WebcamTile
             stream={isPlayer ? remoteStream : null}
             username={remote.username}

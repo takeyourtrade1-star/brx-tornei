@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { MessageSquare, Send } from 'lucide-react';
-import { useMatchChat } from '@/hooks/use-match-chat';
+import type {
+  MatchChatConnectionState,
+  MatchChatMessage,
+} from '@/hooks/use-match-chat';
+import { isMatchLifeMessage } from '@/lib/match-life-protocol';
+import { isMatchStartMessage } from '@/lib/match-start-protocol';
 import {
   MATCH_STICKERS,
   STICKER_COOLDOWN_MS,
@@ -15,9 +20,10 @@ import { cn } from '@/lib/utils';
 interface MatchCommentsPanelProps {
   me: string;
   userId: string;
-  matchId?: string | null;
-  accessToken?: string | null;
-  active: boolean;
+  messages: MatchChatMessage[];
+  send: (text: string) => boolean;
+  connectionState: MatchChatConnectionState;
+  error: string | null;
   participantNames: Record<string, string>;
   /** Notifica di uno sticker appena arrivato (mio o dell'avversario). */
   onSticker?: (sticker: MatchSticker, fromUserId: string) => void;
@@ -26,20 +32,23 @@ interface MatchCommentsPanelProps {
 export function MatchCommentsPanel({
   me,
   userId,
-  matchId,
-  accessToken,
-  active,
+  messages,
+  send,
+  connectionState,
+  error,
   participantNames,
   onSticker,
 }: MatchCommentsPanelProps) {
   const formId = useId();
   const [draft, setDraft] = useState('');
-  const { messages, send, connectionState, error } = useMatchChat({
-    matchId,
-    accessToken,
-    userId,
-    active,
-  });
+  const visibleMessages = useMemo(
+    () =>
+      messages.filter(
+        (message) =>
+          !isMatchLifeMessage(message.text) && !isMatchStartMessage(message.text),
+      ),
+    [messages],
+  );
 
   // Cooldown sticker: un taunt ogni STICKER_COOLDOWN_MS, col pulsante che
   // si "ricarica" (stile abilità nei videogiochi).
@@ -64,7 +73,7 @@ export function MatchCommentsPanel({
   useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [visibleMessages.length]);
 
   // Notifica al padre gli sticker NUOVI (per l'overlay sul video), una volta
   // sola per messaggio: il cursore ricorda quanti ne abbiamo già processati.
@@ -128,12 +137,14 @@ export function MatchCommentsPanel({
       )}
 
       <ul ref={listRef} className="scrollbar-none flex-1 space-y-2 overflow-y-auto p-3">
-        {messages.length === 0 ? (
-          <li className="py-6 text-center text-sm text-white/40">
-            Nessun messaggio. Scrivi qualcosa durante la partita.
+        {visibleMessages.length === 0 ? (
+          <li className="grid h-full min-h-32 place-items-center px-5 py-8 text-center">
+            <span className="text-sm leading-relaxed text-white/35">
+              La chat è pronta. Scrivi all&apos;avversario durante la partita.
+            </span>
           </li>
         ) : (
-          messages.map((m) => {
+          visibleMessages.map((m) => {
             const sticker = stickerFromText(m.text);
             if (sticker) {
               return (
@@ -163,7 +174,7 @@ export function MatchCommentsPanel({
         )}
       </ul>
 
-      <div className="flex items-center gap-1.5 border-t border-white/10 px-2 pt-2">
+      <div className="grid grid-cols-5 gap-1.5 border-t border-white/10 px-2 pt-2">
         {MATCH_STICKERS.map((s) => (
           <button
             key={s.id}
@@ -173,7 +184,7 @@ export function MatchCommentsPanel({
             disabled={stickerCooldown || connectionState !== 'connected'}
             onClick={() => sendSticker(s.id)}
             className={cn(
-              'group relative grid h-9 flex-1 place-items-center rounded-xl border border-white/10 bg-white/5 text-xl transition',
+              'group relative grid h-9 place-items-center rounded-xl border border-white/10 bg-white/5 text-xl transition',
               stickerCooldown || connectionState !== 'connected'
                 ? 'opacity-40'
                 : 'hover:-translate-y-0.5 hover:border-[#FF7300]/50 hover:bg-[#FF7300]/15 active:scale-95',

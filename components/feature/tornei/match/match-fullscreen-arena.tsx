@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Mic, MicOff, Minimize2, Palette, Video, VideoOff } from 'lucide-react';
 import { PLAYMATS, getPlaymat, type PlaymatId } from '@/lib/playmats';
 import { cn } from '@/lib/utils';
+import { MatchArenaLifeBadge } from './match-arena-life-badge';
 import { WebcamTile } from './webcam-tile';
 
 interface MatchFullscreenArenaProps {
@@ -13,12 +14,18 @@ interface MatchFullscreenArenaProps {
   remoteStream?: MediaStream | null;
   localUsername: string;
   remoteUsername: string;
+  localPlayerId: string;
+  remotePlayerId: string;
   localFeedLabel?: string;
   connecting?: boolean;
   camOn: boolean;
   micOn: boolean;
+  startingLife: number;
+  lifeByPlayerId: Record<string, number>;
+  lifeConnected: boolean;
   onToggleCam: () => void;
   onToggleMic: () => void;
+  onLifeChange: (playerId: string, delta: number) => void;
   onClose: () => void;
 }
 
@@ -28,12 +35,18 @@ export function MatchFullscreenArena({
   remoteStream,
   localUsername,
   remoteUsername,
+  localPlayerId,
+  remotePlayerId,
   localFeedLabel,
   connecting = false,
   camOn,
   micOn,
+  startingLife,
+  lifeByPlayerId,
+  lifeConnected,
   onToggleCam,
   onToggleMic,
+  onLifeChange,
   onClose,
 }: MatchFullscreenArenaProps) {
   const [mounted, setMounted] = useState(false);
@@ -89,12 +102,20 @@ export function MatchFullscreenArena({
       </div>
 
       <div className="relative z-10 grid h-full place-items-center px-3 pb-24 pt-20 sm:px-10 sm:pb-28 sm:pt-24">
-        <div className="aspect-video w-[min(91vw,138vh)] rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] ring-1 ring-white/25 sm:rounded-[2rem] sm:p-2.5">
+        <div className="relative aspect-video w-[min(91vw,138vh)] rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] ring-1 ring-white/25 sm:rounded-[2rem] sm:p-2.5">
           <WebcamTile
             stream={remoteStream}
             username={remoteUsername}
             connecting={connecting}
             muted={false}
+          />
+          <MatchArenaLifeBadge
+            username={remoteUsername}
+            life={lifeByPlayerId[remotePlayerId] ?? startingLife}
+            playerId={remotePlayerId}
+            connected={lifeConnected}
+            side="remote"
+            onChange={onLifeChange}
           />
         </div>
       </div>
@@ -106,6 +127,14 @@ export function MatchFullscreenArena({
           feedLabel={localFeedLabel}
           compact
           videoDisabled={!camOn}
+        />
+        <MatchArenaLifeBadge
+          username={localUsername}
+          life={lifeByPlayerId[localPlayerId] ?? startingLife}
+          playerId={localPlayerId}
+          connected={lifeConnected}
+          side="local"
+          onChange={onLifeChange}
         />
       </div>
 

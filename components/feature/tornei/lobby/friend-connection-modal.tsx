@@ -83,14 +83,14 @@ export function FriendConnectionModal({
               selected={choice === 'protected'}
               icon={ShieldCheck}
               title="Connessione protetta"
-              description="Il video passa dal relay TURN e il tuo IP resta nascosto."
+              description="Più privacy, ideale per giocare anche con persone nuove."
               onClick={() => setChoice('protected')}
             />
             <ChoiceCard
               selected={direct}
               icon={Users}
               title="Gioca con amici"
-              description="Prova prima il P2P diretto, con fallback TURN automatico."
+              description="Più diretta, perfetta per giocare con chi conosci."
               onClick={() => setChoice('direct')}
             />
           </div>
@@ -101,10 +101,10 @@ export function FriendConnectionModal({
             <div className="flex gap-3">
               <Wifi className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
               <div>
-                <p className="text-sm font-black">Il tuo IP pubblico sarà visibile all’altro giocatore</p>
+                <p className="text-sm font-black">Perfetta per giocare tra amici</p>
                 <p className="mt-1 text-xs leading-relaxed text-amber-100/75">
-                  Usa questa modalità solo con persone fidate. Il flusso diretto non usa banda relay;
-                  se la rete lo impedisce, WebRTC passa automaticamente al TURN.
+                  Collega direttamente voi due e condivide l’indirizzo della tua connessione (IP).
+                  Sceglila con persone che conosci e di cui ti fidi.
                 </p>
               </div>
             </div>
@@ -124,7 +124,7 @@ export function FriendConnectionModal({
                 {acknowledged && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
               </span>
               <span className="text-xs font-bold leading-relaxed">
-                Ho capito e accetto di condividere il mio IP pubblico con l’altro giocatore.
+                Conosco l’altro giocatore e voglio continuare.
               </span>
             </label>
           </div>

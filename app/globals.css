@@ -491,7 +491,7 @@
 .match-intro-emblem { animation: match-intro-emblem 0.8s cubic-bezier(0.22, 1.4, 0.36, 1) both; }
 .match-intro-title { animation: match-intro-title 0.5s ease-out both; }
 .match-intro-winner { animation: match-intro-winner 0.65s cubic-bezier(0.22, 1.4, 0.36, 1) both; }
-.match-intro-progress { animation: match-intro-progress 5.3s linear both; }
+.match-intro-progress { animation: match-intro-progress 5s linear both; }
 
 @media (prefers-reduced-motion: reduce) {
   .match-intro-emblem,

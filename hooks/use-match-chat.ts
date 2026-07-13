@@ -17,11 +17,11 @@ interface UseMatchChatOptions {
   active: boolean;
 }
 
-type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error';
+export type MatchChatConnectionState = 'idle' | 'connecting' | 'connected' | 'error';
 
 export function useMatchChat({ matchId, accessToken, userId, active }: UseMatchChatOptions) {
   const [messages, setMessages] = useState<MatchChatMessage[]>([]);
-  const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
+  const [connectionState, setConnectionState] = useState<MatchChatConnectionState>('idle');
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 

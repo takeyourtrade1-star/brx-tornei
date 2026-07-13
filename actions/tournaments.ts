@@ -88,7 +88,8 @@ export async function createTableAction(
 }
 
 /**
- * Siede l'utente a un tavolo esistente. Se il tavolo si riempie parte il match.
+ * Siede l'utente a un tavolo esistente. A tavolo pieno si apre il ready check:
+ * il match parte solo dopo la conferma esplicita di entrambi i giocatori.
  * `deckId` opzionale: vuoto = "Ignora deck" (nessuna verifica).
  */
 export async function joinTournamentAction(
