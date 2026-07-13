@@ -134,7 +134,7 @@ export function MatchLiveView({
   const visibleError = leave.error ?? webcamError ?? visiblePeerError;
 
   return (
-    <div className="mx-auto flex w-full max-w-content-2xl flex-col px-4 py-4 pb-12 sm:px-6">
+    <div className="mx-auto flex min-h-0 w-full max-w-content-2xl flex-1 flex-col overflow-y-auto px-4 py-3 sm:px-6">
       <MatchLiveHeader
         players={players}
         modeName={modeName}
@@ -180,37 +180,38 @@ export function MatchLiveView({
         <MatchErrorNotice message={visibleError} onRetry={visiblePeerError ? retryPeer : undefined} />
       )}
 
-      <div className="flex min-h-0 flex-col gap-3">
-        <MatchVideoGrid
-          isObserver={isObserver}
-          isPlayer={isPlayer}
-          started={playable}
-          playerA={playerA}
-          local={local}
-          remote={remote}
-          leftPlayer={leftPlayer}
-          rightPlayer={rightPlayer}
-          formatName={formatName}
-          localStream={localStream}
-          remoteStream={remoteStream}
-          feedLabel={feedLabel}
-          peerConnecting={peerConnecting}
-          camOn={camOn}
-          micOn={micOn}
-          lifeByPlayerId={life.lifeByPlayerId}
-          startingLife={life.startingLife}
-          lifeConnected={chat.connectionState === 'connected'}
-          stickerShot={stickerShot}
-          participantNames={participantNames}
-          userId={userId}
-          me={me}
-          onToggleMic={() => setMicOn((value) => !value)}
-          onToggleCam={() => setCamOn((value) => !value)}
-          onFullscreen={() => setFullscreenOpen(true)}
-          onLifeChange={life.changeLife}
-          onLifeReset={life.resetLife}
-        />
-        <div className="h-[180px] min-h-0">
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        {/* Su desktop il grid si restringe se il viewport è basso, così webcam
+            e chat restano sempre dentro la hero senza scroll. */}
+        <div className="mx-auto w-full lg:max-w-[calc((100dvh-340px)*3.5556+0.75rem)]">
+          <MatchVideoGrid
+            isObserver={isObserver}
+            isPlayer={isPlayer}
+            started={playable}
+            leftPlayer={leftPlayer}
+            rightPlayer={rightPlayer}
+            formatName={formatName}
+            localStream={localStream}
+            remoteStream={remoteStream}
+            feedLabel={feedLabel}
+            peerConnecting={peerConnecting}
+            camOn={camOn}
+            micOn={micOn}
+            lifeByPlayerId={life.lifeByPlayerId}
+            startingLife={life.startingLife}
+            lifeConnected={chat.connectionState === 'connected'}
+            stickerShot={stickerShot}
+            participantNames={participantNames}
+            userId={userId}
+            me={me}
+            onToggleMic={() => setMicOn((value) => !value)}
+            onToggleCam={() => setCamOn((value) => !value)}
+            onFullscreen={() => setFullscreenOpen(true)}
+            onLifeChange={life.changeLife}
+            onLifeReset={life.resetLife}
+          />
+        </div>
+        <div className="min-h-[220px] flex-1 lg:min-h-[150px]">
           <MatchCommentsPanel {...chatPanelProps} onSticker={handleSticker} />
         </div>
       </div>
@@ -235,6 +236,7 @@ export function MatchLiveView({
         onToggleCam={() => setCamOn((value) => !value)}
         onToggleMic={() => setMicOn((value) => !value)}
         onLifeChange={life.changeLife}
+        onLifeReset={life.resetLife}
         onClose={() => setFullscreenOpen(false)}
       />
       <MatchIntroOverlay

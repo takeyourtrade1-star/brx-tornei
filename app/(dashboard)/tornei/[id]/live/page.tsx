@@ -38,9 +38,13 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
       : tournament.createdById === session.user.id ||
         tournament.participants[0]?.id === session.user.id;
 
+  // Layout "hero": header + partita occupano esattamente il viewport, la
+  // vista live gestisce internamente gli spazi senza scroll di pagina.
   return (
-    <>
-      <DashboardHeader user={session.user} />
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <div className="shrink-0">
+        <DashboardHeader user={session.user} />
+      </div>
       <MatchLiveView
         tournament={tournament}
         role={role}
@@ -50,6 +54,6 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
         isHost={isHost}
         defaultPlaymatId={defaultPlaymatId}
       />
-    </>
+    </div>
   );
 }

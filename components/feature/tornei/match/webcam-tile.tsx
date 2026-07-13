@@ -18,6 +18,8 @@ interface WebcamTileProps {
   /** true quando il giocatore ha spento la camera (track disabilitata): il
    *  video manda nero, qui si mostra un overlay esplicito. */
   videoDisabled?: boolean;
+  /** Nasconde il nome in basso quando l'identità è già mostrata da un overlay esterno. */
+  hideUsername?: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ export function WebcamTile({
   connecting = false,
   muted = true,
   videoDisabled = false,
+  hideUsername = false,
 }: WebcamTileProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -110,16 +113,18 @@ export function WebcamTile({
         </div>
       )}
 
-      <div
-        className={cn(
-          'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent',
-          compact ? 'px-2 pb-1 pt-4' : 'px-3 pb-2.5 pt-8',
-        )}
-      >
-        <p className={cn('truncate font-bold text-white', compact ? 'text-[10px]' : 'text-sm')}>
-          {username}
-        </p>
-      </div>
+      {!hideUsername && (
+        <div
+          className={cn(
+            'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent',
+            compact ? 'px-2 pb-1 pt-4' : 'px-3 pb-2.5 pt-8',
+          )}
+        >
+          <p className={cn('truncate font-bold text-white', compact ? 'text-[10px]' : 'text-sm')}>
+            {username}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

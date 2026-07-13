@@ -5,8 +5,8 @@ import { createPortal } from 'react-dom';
 import { Mic, MicOff, Minimize2, Video, VideoOff } from 'lucide-react';
 import { getPlaymat, type PlaymatId } from '@/lib/playmats';
 import { cn } from '@/lib/utils';
-import { MatchArenaLifeBadge } from './match-arena-life-badge';
 import { MatchCompactChat, type MatchCompactChatProps } from './match-compact-chat';
+import { MatchLifeBadge } from './match-life-badge';
 import { WebcamTile } from './webcam-tile';
 
 interface MatchFullscreenArenaProps {
@@ -29,6 +29,7 @@ interface MatchFullscreenArenaProps {
   onToggleCam: () => void;
   onToggleMic: () => void;
   onLifeChange: (playerId: string, delta: number) => void;
+  onLifeReset: () => void;
   onClose: () => void;
 }
 
@@ -52,6 +53,7 @@ export function MatchFullscreenArena({
   onToggleCam,
   onToggleMic,
   onLifeChange,
+  onLifeReset,
   onClose,
 }: MatchFullscreenArenaProps) {
   const [mounted, setMounted] = useState(false);
@@ -119,10 +121,22 @@ export function MatchFullscreenArena({
         </div>
       </div>
 
-      <div className="absolute bottom-5 right-4 z-40 w-[min(28vw,320px)] sm:min-w-[240px]">
-        <div className="rounded-2xl border border-white/25 bg-black/75 p-1.5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+      {/* Avversario: punti vita a lato della sua webcam, non sotto. */}
+      <div className="absolute bottom-5 right-4 z-40 flex items-end gap-2">
+        <div className="min-w-0">
+          <MatchLifeBadge
+            username={remoteUsername}
+            life={lifeByPlayerId[remotePlayerId] ?? startingLife}
+            playerId={remotePlayerId}
+            connected={lifeConnected}
+            variant="remote"
+            roleLabel="Avversario"
+            onChange={onLifeChange}
+          />
+        </div>
+        <div className="w-[min(28vw,300px)] rounded-2xl border border-sky-400/30 bg-black/75 p-1.5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:min-w-[240px]">
           <div className="mb-1.5 flex items-center justify-between px-1">
-            <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/55">Avversario</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-300">Avversario</span>
             <span className="truncate pl-2 text-[10px] font-bold text-white">{remoteUsername}</span>
           </div>
           <div className="relative w-full overflow-hidden rounded-xl [aspect-ratio:16/9]">
@@ -133,32 +147,24 @@ export function MatchFullscreenArena({
                 connecting={connecting}
                 muted={false}
                 compact
+                hideUsername
               />
             </div>
-          </div>
-          <div className="mt-1.5 flex">
-            <MatchArenaLifeBadge
-              username={remoteUsername}
-              life={lifeByPlayerId[remotePlayerId] ?? startingLife}
-              playerId={remotePlayerId}
-              connected={lifeConnected}
-              variant="remote"
-              compact
-              onChange={onLifeChange}
-            />
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-5 left-1/2 z-40 flex w-52 -translate-x-1/2">
-        <MatchArenaLifeBadge
+      <div className="absolute bottom-5 left-1/2 z-40 -translate-x-1/2">
+        <MatchLifeBadge
           username={localUsername}
           life={lifeByPlayerId[localPlayerId] ?? startingLife}
           playerId={localPlayerId}
           connected={lifeConnected}
           variant="local"
-          compact
+          roleLabel="Tu"
+          startingLife={startingLife}
           onChange={onLifeChange}
+          onReset={onLifeReset}
         />
       </div>
 
