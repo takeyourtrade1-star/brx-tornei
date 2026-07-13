@@ -68,7 +68,7 @@ export function MatchVideoGrid({
   onLifeReset,
 }: MatchVideoGridProps) {
   return (
-    <div className="relative grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)] xl:items-stretch">
+    <div className="relative grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(11.25rem,13rem)_minmax(0,1fr)] xl:items-stretch">
       {stickerShot && (
         <div key={stickerShot.key} className="pointer-events-none absolute inset-0 z-30 grid place-items-center" aria-hidden>
           <div className="sticker-overlay flex flex-col items-center gap-1">
@@ -92,7 +92,7 @@ export function MatchVideoGrid({
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div className="flex min-w-0 flex-col gap-2">
         <div className="relative aspect-video">
           {isObserver ? (
             <WebcamTile username={playerA.username} />
@@ -134,7 +134,7 @@ export function MatchVideoGrid({
         onReset={onLifeReset}
       />
 
-      <div className="flex flex-col gap-2">
+      <div className="flex min-w-0 flex-col gap-2">
         <div className="relative aspect-video">
           <WebcamTile
             stream={isPlayer ? remoteStream : null}

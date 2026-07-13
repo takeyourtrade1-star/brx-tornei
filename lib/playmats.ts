@@ -8,6 +8,11 @@ export const PLAYMATS = [
 ] as const;
 
 export type PlaymatId = (typeof PLAYMATS)[number]['id'];
+export const DEFAULT_PLAYMAT_ID: PlaymatId = PLAYMATS[0].id;
+
+export function isPlaymatId(value: string): value is PlaymatId {
+  return PLAYMATS.some((playmat) => playmat.id === value);
+}
 
 export function getPlaymat(id: PlaymatId) {
   return PLAYMATS.find((playmat) => playmat.id === id) ?? PLAYMATS[0];

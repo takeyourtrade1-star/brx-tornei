@@ -5,17 +5,20 @@ import { Layers } from 'lucide-react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { DeckBuilder } from '@/components/feature/decks/deck-builder';
 import { DeckList } from '@/components/feature/decks/deck-list';
+import { DeckPlaymatSettings } from '@/components/feature/decks/deck-playmat-settings';
 import { useServerDecks } from '@/components/feature/decks/use-server-decks';
 import type { SessionUser } from '@/types/auth';
 import type { Deck } from '@/types/deck';
 import type { CreateDeckInput } from '@/lib/validations/deck';
+import type { PlaymatId } from '@/lib/playmats';
 
 interface MazziWorkspaceProps {
   initialDecks: Deck[];
   user: SessionUser;
+  defaultPlaymatId: PlaymatId;
 }
 
-export function MazziWorkspace({ initialDecks, user }: MazziWorkspaceProps) {
+export function MazziWorkspace({ initialDecks, user, defaultPlaymatId }: MazziWorkspaceProps) {
   const [deckView, setDeckView] = useState<'list' | 'builder'>('list');
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
 
@@ -112,6 +115,8 @@ export function MazziWorkspace({ initialDecks, user }: MazziWorkspaceProps) {
             </div>
           </dl>
         </header>
+
+        <DeckPlaymatSettings initialPlaymatId={defaultPlaymatId} />
 
         <div className="rounded-2xl border border-white/10 bg-header-bg/95 p-4 text-white sm:p-6">
           {deckView === 'builder' && editingDeck ? (

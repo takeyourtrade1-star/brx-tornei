@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPlaymatId } from '@/lib/playmats';
 import { createDeckSchema } from './deck';
 
 export const deckCardSchema = z.object({
@@ -44,6 +45,10 @@ export const saveVerificationSchema = z.object({
       })
     )
     .optional(),
+});
+
+export const defaultPlaymatSchema = z.object({
+  playmatId: z.string().refine(isPlaymatId, 'Seleziona un tappetino valido.'),
 });
 
 export type UpdateDeckInput = z.infer<typeof updateDeckSchema>;

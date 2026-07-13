@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { getSession } from '@/lib/auth/session';
 import {
   createDeck,
@@ -18,7 +19,9 @@ import {
   saveVerificationSchema,
   updateDeckSchema,
   validateLegalitySchema,
+  defaultPlaymatSchema,
 } from '@/lib/validations/deck-actions';
+import { PLAYMAT_PREFERENCE_COOKIE } from '@/lib/playmat-preference';
 import type { Deck } from '@/types/deck';
 import type { DeckLegalityIssue } from '@/types/card-legality';
 
@@ -152,4 +155,26 @@ export async function saveDeckVerificationAction(
 
   revalidatePath('/mazzi');
   return { deck: updated, clean: status === 'verified' };
+}
+
+export async function saveDefaultPlaymatAction(
+  input: unknown
+): Promise<{ ok: true } | { error: string }> {
+  const session = await getSession();
+  if (!session) return { error: 'Sessione scaduta.' };
+
+  const parsed = defaultPlaymatSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
+  }
+
+  (await cookies()).set(PLAYMAT_PREFERENCE_COOKIE, parsed.data.playmatId, {
+    httpOnly: true,
+    maxAge: 60 * 60 * 24 * 365,
+    path: '/',
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+  revalidatePath('/mazzi');
+  return { ok: true };
 }

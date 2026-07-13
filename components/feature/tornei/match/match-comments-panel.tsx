@@ -17,7 +17,7 @@ import {
 } from './match-stickers';
 import { cn } from '@/lib/utils';
 
-interface MatchCommentsPanelProps {
+export interface MatchCommentsPanelProps {
   me: string;
   userId: string;
   messages: MatchChatMessage[];
@@ -25,6 +25,7 @@ interface MatchCommentsPanelProps {
   connectionState: MatchChatConnectionState;
   error: string | null;
   participantNames: Record<string, string>;
+  compact?: boolean;
   /** Notifica di uno sticker appena arrivato (mio o dell'avversario). */
   onSticker?: (sticker: MatchSticker, fromUserId: string) => void;
 }
@@ -38,6 +39,7 @@ export function MatchCommentsPanel({
   error,
   participantNames,
   onSticker,
+  compact = false,
 }: MatchCommentsPanelProps) {
   const formId = useId();
   const [draft, setDraft] = useState('');
@@ -110,7 +112,7 @@ export function MatchCommentsPanel({
           : null;
 
   return (
-    <div className="flex h-full min-h-[200px] flex-col rounded-2xl border border-white/10 bg-black/20">
+    <div className={cn('flex flex-col rounded-2xl border border-white/10 bg-black/20', compact ? 'h-full min-h-0' : 'h-full min-h-[200px]')}>
       <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
         <MessageSquare className="h-4 w-4 text-white/50" />
         <p className="text-xs font-bold uppercase tracking-wider text-white/55">Chat partita</p>
@@ -136,10 +138,10 @@ export function MatchCommentsPanel({
         </p>
       )}
 
-      <ul ref={listRef} className="scrollbar-none flex-1 space-y-2 overflow-y-auto p-3">
+      <ul ref={listRef} className={cn('scrollbar-none flex-1 space-y-2 overflow-y-auto p-3', compact && 'space-y-1.5 p-2')}>
         {visibleMessages.length === 0 ? (
-          <li className="grid h-full min-h-32 place-items-center px-5 py-8 text-center">
-            <span className="text-sm leading-relaxed text-white/35">
+          <li className={cn('grid h-full place-items-center px-5 text-center', compact ? 'min-h-0 py-3' : 'min-h-32 py-8')}>
+            <span className={cn('leading-relaxed text-white/35', compact ? 'text-xs' : 'text-sm')}>
               La chat è pronta. Scrivi all&apos;avversario durante la partita.
             </span>
           </li>
@@ -165,16 +167,16 @@ export function MatchCommentsPanel({
               );
             }
             return (
-              <li key={m.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+              <li key={m.id} className={cn('rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2', compact && 'px-2 py-1.5')}>
                 <p className="text-[11px] font-bold text-white/70">{displayName(m.userId)}</p>
-                <p className="mt-0.5 text-sm leading-snug text-white/90">{m.text}</p>
+                <p className={cn('mt-0.5 leading-snug text-white/90', compact ? 'text-xs' : 'text-sm')}>{m.text}</p>
               </li>
             );
           })
         )}
       </ul>
 
-      <div className="grid grid-cols-5 gap-1.5 border-t border-white/10 px-2 pt-2">
+      {!compact && <div className="grid grid-cols-5 gap-1.5 border-t border-white/10 px-2 pt-2">
         {MATCH_STICKERS.map((s) => (
           <button
             key={s.id}
@@ -193,9 +195,9 @@ export function MatchCommentsPanel({
             <span className="transition group-hover:scale-125">{s.emoji}</span>
           </button>
         ))}
-      </div>
+      </div>}
 
-      <form onSubmit={submit} className="p-2">
+      <form onSubmit={submit} className={compact ? 'p-1.5' : 'p-2'}>
         <div className="flex gap-2">
           <label htmlFor={formId} className="sr-only">
             Scrivi un messaggio
@@ -207,12 +209,12 @@ export function MatchCommentsPanel({
             placeholder="Scrivi un messaggio…"
             maxLength={500}
             disabled={connectionState !== 'connected'}
-            className="min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35 focus:border-white/30 focus:outline-none disabled:opacity-50"
+            className={cn('min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 py-2 font-sans text-white placeholder:text-white/35 focus:border-white/30 focus:outline-none disabled:opacity-50', compact ? 'text-xs' : 'text-sm')}
           />
           <button
             type="submit"
             disabled={!draft.trim() || connectionState !== 'connected'}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/15 bg-white/10 text-white/80 transition hover:bg-white/15 disabled:opacity-40"
+            className={cn('grid shrink-0 place-items-center rounded-xl border border-white/15 bg-white/10 text-white/80 transition hover:bg-white/15 disabled:opacity-40', compact ? 'h-9 w-9' : 'h-10 w-10')}
             aria-label="Invia messaggio"
           >
             <Send className="h-4 w-4" />

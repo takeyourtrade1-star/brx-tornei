@@ -5,6 +5,7 @@ import { getTournamentById } from '@/lib/data/tournaments';
 import { parseLiveViewSearch } from '@/lib/validations/live';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { MatchLiveView } from '@/components/feature/tornei/match/match-live-view';
+import { getDefaultPlaymatId } from '@/lib/playmat-preference';
 
 export const metadata: Metadata = { title: 'Partita live' };
 
@@ -22,6 +23,7 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   if (!tournament) notFound();
 
   const { role: requestedRole } = parseLiveViewSearch(await searchParams);
+  const defaultPlaymatId = await getDefaultPlaymatId();
   const isParticipant = tournament.participants.some((p) => p.id === session.user.id);
   const role = isParticipant ? 'player' : requestedRole === 'observer' ? 'observer' : 'observer';
 
@@ -46,6 +48,7 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
         userId={session.user.id}
         accessToken={session.accessToken}
         isHost={isHost}
+        defaultPlaymatId={defaultPlaymatId}
       />
     </>
   );

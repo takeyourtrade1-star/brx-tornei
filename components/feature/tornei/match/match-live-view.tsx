@@ -13,6 +13,7 @@ import { useMatchLife } from '@/hooks/use-match-life';
 import { useMatchStartCountdown } from '@/hooks/use-match-start-countdown';
 import { useMatchStickerShot } from '@/hooks/use-match-sticker-shot';
 import { usePlayerWebcam } from '@/hooks/use-player-webcam';
+import type { PlaymatId } from '@/lib/playmats';
 import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchFullscreenArena } from './match-fullscreen-arena';
 import { MatchInfoBar } from './match-live-parts';
@@ -30,6 +31,7 @@ interface MatchLiveViewProps {
   userId: string;
   accessToken: string;
   isHost: boolean;
+  defaultPlaymatId: PlaymatId;
 }
 
 export function MatchLiveView({
@@ -39,6 +41,7 @@ export function MatchLiveView({
   userId,
   accessToken,
   isHost,
+  defaultPlaymatId,
 }: MatchLiveViewProps) {
   const router = useRouter();
   const isObserver = role === 'observer';
@@ -122,6 +125,15 @@ export function MatchLiveView({
   const participantNames = Object.fromEntries(
     tournament.participants.map((participant) => [participant.id, participant.username]),
   );
+  const chatPanelProps = {
+    me,
+    userId,
+    messages: chat.messages,
+    send: chat.send,
+    connectionState: chat.connectionState,
+    error: chat.error,
+    participantNames,
+  };
   const visibleError = leave.error ?? webcamError ?? peerError;
 
   return (
@@ -164,7 +176,7 @@ export function MatchLiveView({
         <MatchErrorNotice message={visibleError} onRetry={peerError ? retryPeer : undefined} />
       )}
 
-      <div className="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="flex min-h-0 flex-col gap-3">
         <MatchVideoGrid
           isObserver={isObserver}
           isPlayer={isPlayer}
@@ -194,20 +206,9 @@ export function MatchLiveView({
           onLifeChange={life.changeLife}
           onLifeReset={life.resetLife}
         />
-        <div className="flex min-h-[360px] min-w-0 flex-col gap-3 xl:min-h-0">
-          <MatchInfoBar modeName={modeName} bestOfLabel={bestOfLabel} formatName={formatName} />
-          <div className="min-h-0 flex-1">
-            <MatchCommentsPanel
-              me={me}
-              userId={userId}
-              messages={chat.messages}
-              send={chat.send}
-              connectionState={chat.connectionState}
-              error={chat.error}
-              participantNames={participantNames}
-              onSticker={handleSticker}
-            />
-          </div>
+        <MatchInfoBar modeName={modeName} bestOfLabel={bestOfLabel} formatName={formatName} />
+        <div className="h-[230px] min-h-0">
+          <MatchCommentsPanel {...chatPanelProps} onSticker={handleSticker} />
         </div>
       </div>
 
@@ -226,6 +227,8 @@ export function MatchLiveView({
         startingLife={life.startingLife}
         lifeByPlayerId={life.lifeByPlayerId}
         lifeConnected={chat.connectionState === 'connected'}
+        playmatId={defaultPlaymatId}
+        chat={chatPanelProps}
         onToggleCam={() => setCamOn((value) => !value)}
         onToggleMic={() => setMicOn((value) => !value)}
         onLifeChange={life.changeLife}

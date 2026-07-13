@@ -266,6 +266,13 @@
     color: #0f172a;
   }
 
+  input,
+  textarea,
+  select,
+  button {
+    font-family: var(--font-sans), serif;
+  }
+
   body::before {
     content: '';
     position: fixed;
