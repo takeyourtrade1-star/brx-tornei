@@ -95,7 +95,11 @@ export function useMatchLife({
       if (command.type === 'setup' && authoritative) {
         setStartingLifeState(command.startingLife);
         setLifeByPlayerId(createLifeMap(playerIds, command.startingLife));
-      } else if (command.type === 'delta' && playerIds.includes(command.targetId)) {
+      } else if (
+        command.type === 'delta' &&
+        command.targetId === command.senderId &&
+        playerIds.includes(command.targetId)
+      ) {
         setLifeByPlayerId((current) => ({
           ...current,
           [command.targetId]: clampLife((current[command.targetId] ?? startingLife) + command.delta),
@@ -149,8 +153,10 @@ export function useMatchLife({
   );
 
   const changeLife = useCallback(
-    (targetId: string, delta: number) =>
-      send(encodeMatchLifeCommand({ type: 'delta', targetId, delta, senderId: userId })),
+    (targetId: string, delta: number) => {
+      if (targetId !== userId) return false;
+      return send(encodeMatchLifeCommand({ type: 'delta', targetId, delta, senderId: userId }));
+    },
     [send, userId],
   );
 

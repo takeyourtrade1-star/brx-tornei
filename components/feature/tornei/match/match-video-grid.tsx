@@ -163,7 +163,7 @@ export function MatchVideoGrid({
                 connected={lifeConnected}
                 variant="remote"
                 roleLabel={isPlayer ? 'Avversario' : null}
-                interactive={isPlayer && started}
+                interactive={false}
                 onChange={onLifeChange}
               />
             </div>

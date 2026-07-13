@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, Play, User, UserPlus } from 'lucide-react';
+import { LogOut, Play, User, UserPlus, Wifi } from 'lucide-react';
 import type { LobbyTable, Seat } from '@/lib/lobby';
 import { cn } from '@/lib/utils';
 
@@ -37,10 +37,20 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
           : 'border-white/10 bg-header-bg/95 hover:border-white/25',
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <SeatChip seat={table.seats[0]} />
         <span className="text-[10px] font-black uppercase tracking-wider text-white/40">vs</span>
         <SeatChip seat={table.seats[1]} />
+        {table.tournament?.withFriend && (
+          <span
+            title="Connessione P2P diretta: l'indirizzo IP può essere visibile all'altro giocatore."
+            aria-label="P2P diretto: l'indirizzo IP può essere visibile all'altro giocatore"
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/30 bg-amber-400/10 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-amber-200"
+          >
+            <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
+            P2P diretto · IP condiviso
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

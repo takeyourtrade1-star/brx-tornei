@@ -109,19 +109,19 @@ export function MatchFullscreenArena({
         <div className="relative w-[min(91vw,138vh)] overflow-hidden rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] ring-1 ring-primary/35 [aspect-ratio:16/9] sm:rounded-[2rem] sm:p-2.5">
           <div className="absolute inset-1.5 sm:inset-2.5">
             <WebcamTile
-              stream={localStream}
-              username={localUsername}
-              feedLabel={localFeedLabel}
-              videoDisabled={!camOn}
+              stream={remoteStream}
+              username={remoteUsername}
+              connecting={connecting}
+              muted={false}
             />
           </div>
-          <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-primary px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
-            La tua webcam
+          <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-sky-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
+            Webcam avversario
           </span>
         </div>
       </div>
 
-      {/* Avversario: punti vita a lato della sua webcam, non sotto. */}
+      {/* La tua preview e i punti vita dell'avversario restano in basso a destra. */}
       <div className="absolute bottom-5 right-4 z-40 flex items-end gap-2">
         <div className="min-w-0">
           <MatchLifeBadge
@@ -131,21 +131,22 @@ export function MatchFullscreenArena({
             connected={lifeConnected}
             variant="remote"
             roleLabel="Avversario"
+            interactive={false}
             onChange={onLifeChange}
           />
         </div>
-        <div className="w-[min(28vw,300px)] rounded-2xl border border-sky-400/30 bg-black/75 p-1.5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:min-w-[240px]">
+        <div className="w-[min(28vw,300px)] rounded-2xl border border-primary/30 bg-black/75 p-1.5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:min-w-[240px]">
           <div className="mb-1.5 flex items-center justify-between px-1">
-            <span className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-300">Avversario</span>
-            <span className="truncate pl-2 text-[10px] font-bold text-white">{remoteUsername}</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.16em] text-primary">La tua webcam</span>
+            <span className="truncate pl-2 text-[10px] font-bold text-white">{localUsername}</span>
           </div>
           <div className="relative w-full overflow-hidden rounded-xl [aspect-ratio:16/9]">
             <div className="absolute inset-0">
               <WebcamTile
-                stream={remoteStream}
-                username={remoteUsername}
-                connecting={connecting}
-                muted={false}
+                stream={localStream}
+                username={localUsername}
+                feedLabel={localFeedLabel}
+                videoDisabled={!camOn}
                 compact
                 hideUsername
               />
