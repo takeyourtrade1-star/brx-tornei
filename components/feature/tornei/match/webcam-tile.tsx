@@ -57,9 +57,12 @@ export function WebcamTile({
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/15 bg-black/70">
+      {/* object-contain: il frame della camera non va MAI ritagliato — ogni
+          centimetro di tavolo inquadrato deve restare visibile (al massimo
+          compaiono bande scure ai lati). */}
       <video
         ref={videoRef}
-        className={cn('h-full w-full object-cover', !hasVideo && 'opacity-0')}
+        className={cn('h-full w-full object-contain', !hasVideo && 'opacity-0')}
         muted={muted}
         playsInline
         autoPlay

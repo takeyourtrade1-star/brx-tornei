@@ -107,9 +107,11 @@ export function WebcamPhonePublisher({ sessionId }: { sessionId: string }) {
       </div>
 
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-white/15 bg-black/60 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]">
+        {/* object-contain: l'anteprima mostra ESATTAMENTE il frame trasmesso,
+            così il tavolo si inquadra senza sorprese di ritaglio. */}
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           muted
           playsInline
           autoPlay

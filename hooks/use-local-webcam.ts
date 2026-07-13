@@ -5,8 +5,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const PC_WEBCAM_CONSTRAINTS: MediaStreamConstraints = {
   video: {
     facingMode: 'user',
-    width: { ideal: 640 },
-    height: { ideal: 480 },
+    // 16:9 come i riquadri della partita: con il 4:3 (640×480) il frame
+    // veniva ritagliato o incorniciato, sprecando spazio utile per il tavolo.
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
     frameRate: { ideal: 24 },
   },
   // Microfono insieme alla camera: i giocatori si parlano durante il match.
