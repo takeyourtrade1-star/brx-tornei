@@ -33,6 +33,7 @@ export function useMatchPeerConnection({
   const [error, setError] = useState<string | null>(null);
   const [transport, setTransport] = useState<PeerTransport>('unknown');
   const [generation, setGeneration] = useState(0);
+  const [everConnected, setEverConnected] = useState(false);
   const ctrlRef = useRef<ReturnType<typeof createMatchPeerLink> | null>(null);
   const automaticRetries = useRef(0);
 
@@ -50,6 +51,10 @@ export function useMatchPeerConnection({
     setGeneration((current) => current + 1);
   }, []);
 
+  const notifyLeave = useCallback(async () => {
+    await ctrlRef.current?.notifyLeave();
+  }, []);
+
   const videoTrackId = localStream?.getVideoTracks()[0]?.id ?? null;
 
   useEffect(() => {
@@ -62,8 +67,12 @@ export function useMatchPeerConnection({
     setState('connecting');
 
     const ctrl = createMatchPeerLink(sessionId, role, localStream, allowDirect, {
-      onState: setState,
+      onState: (nextState) => {
+        if (nextState === 'connected') setEverConnected(true);
+        setState(nextState);
+      },
       onRemoteStream: setRemoteStream,
+      onPeerLeft: () => setRemoteStream(null),
       onError: setError,
       onTransport: setTransport,
     });
@@ -80,9 +89,9 @@ export function useMatchPeerConnection({
   }, [state]);
 
   useEffect(() => {
-    if (!active || state !== 'failed' || automaticRetries.current >= 2) return;
+    if (!active || state !== 'failed') return;
     automaticRetries.current += 1;
-    const delay = automaticRetries.current * 1_500;
+    const delay = Math.min(automaticRetries.current * 1_500, 12_000);
     const timer = window.setTimeout(() => {
       setError(null);
       setGeneration((current) => current + 1);
@@ -90,5 +99,16 @@ export function useMatchPeerConnection({
     return () => window.clearTimeout(timer);
   }, [active, state]);
 
-  return { state, remoteStream, error, transport, retry };
+  useEffect(() => {
+    if (!active) setEverConnected(false);
+  }, [active]);
+
+  const reconnecting =
+    everConnected &&
+    (state === 'reconnecting' ||
+      state === 'failed' ||
+      state === 'connecting' ||
+      state === 'waiting');
+
+  return { state, remoteStream, error, transport, reconnecting, retry, notifyLeave };
 }

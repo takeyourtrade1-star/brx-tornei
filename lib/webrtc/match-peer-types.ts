@@ -3,7 +3,9 @@ export type PeerLinkState =
   | 'connecting'
   | 'waiting'
   | 'connected'
+  | 'reconnecting'
   | 'failed'
+  | 'peer-left'
   | 'closed';
 
 export type PeerRole = 'host' | 'guest';
@@ -14,11 +16,13 @@ export interface PeerLinkHandlers {
   onRemoteStream?: (stream: MediaStream) => void;
   onError?: (message: string) => void;
   onTransport?: (transport: PeerTransport) => void;
+  onPeerLeft?: () => void;
 }
 
 export interface PeerLinkController {
   start: () => void;
   stop: () => void;
+  notifyLeave: () => Promise<void>;
 }
 
 export interface SignalEnvelope {

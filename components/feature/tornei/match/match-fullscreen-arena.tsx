@@ -6,7 +6,7 @@ import { Mic, MicOff, Minimize2, Video, VideoOff } from 'lucide-react';
 import { getPlaymat, type PlaymatId } from '@/lib/playmats';
 import { cn } from '@/lib/utils';
 import { MatchArenaLifeBadge } from './match-arena-life-badge';
-import { MatchCommentsPanel, type MatchCommentsPanelProps } from './match-comments-panel';
+import { MatchCompactChat, type MatchCompactChatProps } from './match-compact-chat';
 import { WebcamTile } from './webcam-tile';
 
 interface MatchFullscreenArenaProps {
@@ -25,7 +25,7 @@ interface MatchFullscreenArenaProps {
   lifeByPlayerId: Record<string, number>;
   lifeConnected: boolean;
   playmatId: PlaymatId;
-  chat: Omit<MatchCommentsPanelProps, 'onSticker'>;
+  chat: MatchCompactChatProps;
   onToggleCam: () => void;
   onToggleMic: () => void;
   onLifeChange: (playerId: string, delta: number) => void;
@@ -82,11 +82,11 @@ export function MatchFullscreenArena({
       className="fixed inset-0 z-[1200] overflow-hidden bg-header-bg text-white"
       style={{ backgroundImage: 'url(' + playmat.src + ')', backgroundPosition: 'center', backgroundSize: 'cover' }}
     >
-      <div className="absolute inset-0 bg-black/25" aria-hidden />
-      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-gradient-to-b from-black/80 to-transparent py-4 pl-4 pr-16 sm:pl-6 sm:pr-20">
+      <div className="absolute inset-0 bg-black/35" aria-hidden />
+      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-gradient-to-b from-black/85 to-transparent py-4 pl-4 pr-16 sm:pl-6 sm:pr-20">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Vista tavolo</p>
-          <h2 className="font-display text-lg font-black uppercase sm:text-2xl">{remoteUsername}</h2>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Il tuo tavolo</p>
+          <h2 className="font-sans text-lg font-black sm:text-xl">{localUsername}</h2>
         </div>
         <div className="flex items-center gap-2">
           <MediaButton on={micOn} label="microfono" onClick={onToggleMic} />
@@ -103,48 +103,67 @@ export function MatchFullscreenArena({
         </div>
       </div>
 
-      <div className="relative z-10 grid h-full place-items-center px-3 pb-32 pt-20 sm:px-10 sm:pt-24">
-        <div className="relative aspect-video w-[min(91vw,138vh)] rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] ring-1 ring-white/25 sm:rounded-[2rem] sm:p-2.5">
-          <WebcamTile
-            stream={remoteStream}
-            username={remoteUsername}
-            connecting={connecting}
-            muted={false}
-          />
+      <div className="relative z-10 grid h-full place-items-center px-3 pb-24 pt-20 sm:px-10 sm:pt-24">
+        <div className="relative w-[min(91vw,138vh)] overflow-hidden rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] ring-1 ring-primary/35 [aspect-ratio:16/9] sm:rounded-[2rem] sm:p-2.5">
+          <div className="absolute inset-1.5 sm:inset-2.5">
+            <WebcamTile
+              stream={localStream}
+              username={localUsername}
+              feedLabel={localFeedLabel}
+              videoDisabled={!camOn}
+            />
+          </div>
+          <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-primary px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
+            La tua webcam
+          </span>
         </div>
       </div>
 
-      <div className="absolute bottom-5 right-3 z-30 aspect-video w-[42vw] max-w-[320px] rounded-2xl bg-black/80 p-1 shadow-2xl ring-1 ring-white/30 sm:right-6 sm:w-[25vw]">
-        <WebcamTile
-          stream={localStream}
-          username={localUsername}
-          feedLabel={localFeedLabel}
-          compact
-          videoDisabled={!camOn}
-        />
+      <div className="absolute bottom-5 right-4 z-40 w-[min(28vw,320px)] sm:min-w-[240px]">
+        <div className="rounded-2xl border border-white/25 bg-black/75 p-1.5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+          <div className="mb-1.5 flex items-center justify-between px-1">
+            <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/55">Avversario</span>
+            <span className="truncate pl-2 text-[10px] font-bold text-white">{remoteUsername}</span>
+          </div>
+          <div className="relative w-full overflow-hidden rounded-xl [aspect-ratio:16/9]">
+            <div className="absolute inset-0">
+              <WebcamTile
+                stream={remoteStream}
+                username={remoteUsername}
+                connecting={connecting}
+                muted={false}
+                compact
+              />
+            </div>
+          </div>
+          <div className="mt-1.5 flex">
+            <MatchArenaLifeBadge
+              username={remoteUsername}
+              life={lifeByPlayerId[remotePlayerId] ?? startingLife}
+              playerId={remotePlayerId}
+              connected={lifeConnected}
+              variant="remote"
+              compact
+              onChange={onLifeChange}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="absolute bottom-5 left-4 z-30 hidden h-52 w-72 lg:block">
-        <MatchCommentsPanel {...chat} compact />
-      </div>
-
-      <div className="absolute bottom-4 left-1/2 z-40 flex w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 gap-2">
+      <div className="absolute bottom-5 left-1/2 z-40 flex w-52 -translate-x-1/2">
         <MatchArenaLifeBadge
           username={localUsername}
           life={lifeByPlayerId[localPlayerId] ?? startingLife}
           playerId={localPlayerId}
           connected={lifeConnected}
           variant="local"
+          compact
           onChange={onLifeChange}
         />
-        <MatchArenaLifeBadge
-          username={remoteUsername}
-          life={lifeByPlayerId[remotePlayerId] ?? startingLife}
-          playerId={remotePlayerId}
-          connected={lifeConnected}
-          variant="remote"
-          onChange={onLifeChange}
-        />
+      </div>
+
+      <div className="absolute bottom-5 left-4 z-40 hidden w-80 md:block">
+        <MatchCompactChat {...chat} />
       </div>
     </section>,
     document.body,

@@ -112,10 +112,15 @@ export function MatchCommentsPanel({
           : null;
 
   return (
-    <div className={cn('flex flex-col rounded-2xl border border-white/10 bg-black/20', compact ? 'h-full min-h-0' : 'h-full min-h-[200px]')}>
-      <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5">
-        <MessageSquare className="h-4 w-4 text-white/50" />
-        <p className="text-xs font-bold uppercase tracking-wider text-white/55">Chat partita</p>
+    <div className={cn('flex flex-col overflow-hidden rounded-2xl border border-white/10 shadow-[0_12px_36px_rgba(15,23,42,0.18)]', compact ? 'h-full min-h-0 bg-black/45' : 'h-full min-h-[150px] bg-header-bg/90')}>
+      <div className="flex items-center gap-2 border-b border-white/10 bg-white/[0.03] px-3 py-2">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary/15 text-primary">
+          <MessageSquare className="h-3.5 w-3.5" />
+        </span>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/75">Chat</p>
+          <p className="text-[9px] text-white/35">Messaggi rapidi durante il match</p>
+        </div>
         {statusLabel && (
           <span
             className={cn(
@@ -140,7 +145,7 @@ export function MatchCommentsPanel({
 
       <ul ref={listRef} className={cn('scrollbar-none flex-1 space-y-2 overflow-y-auto p-3', compact && 'space-y-1.5 p-2')}>
         {visibleMessages.length === 0 ? (
-          <li className={cn('grid h-full place-items-center px-5 text-center', compact ? 'min-h-0 py-3' : 'min-h-32 py-8')}>
+          <li className={cn('grid h-full place-items-center px-5 text-center', compact ? 'min-h-0 py-2' : 'min-h-12 py-3')}>
             <span className={cn('leading-relaxed text-white/35', compact ? 'text-xs' : 'text-sm')}>
               La chat è pronta. Scrivi all&apos;avversario durante la partita.
             </span>
@@ -176,7 +181,7 @@ export function MatchCommentsPanel({
         )}
       </ul>
 
-      {!compact && <div className="grid grid-cols-5 gap-1.5 border-t border-white/10 px-2 pt-2">
+      {!compact && <div className="flex gap-1 border-t border-white/10 px-3 py-1.5">
         {MATCH_STICKERS.map((s) => (
           <button
             key={s.id}
@@ -186,7 +191,7 @@ export function MatchCommentsPanel({
             disabled={stickerCooldown || connectionState !== 'connected'}
             onClick={() => sendSticker(s.id)}
             className={cn(
-              'group relative grid h-9 place-items-center rounded-xl border border-white/10 bg-white/5 text-xl transition',
+              'group relative grid h-7 w-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-base transition',
               stickerCooldown || connectionState !== 'connected'
                 ? 'opacity-40'
                 : 'hover:-translate-y-0.5 hover:border-[#FF7300]/50 hover:bg-[#FF7300]/15 active:scale-95',

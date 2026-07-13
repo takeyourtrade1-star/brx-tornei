@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Tournament } from '@/types/tournament';
 import type { LiveViewRole } from '@/lib/validations/live';
@@ -12,14 +11,14 @@ import { useMatchChat } from '@/hooks/use-match-chat';
 import { useMatchLife } from '@/hooks/use-match-life';
 import { useMatchStartCountdown } from '@/hooks/use-match-start-countdown';
 import { useMatchStickerShot } from '@/hooks/use-match-sticker-shot';
+import { useMatchTournamentRefresh } from '@/hooks/use-match-tournament-refresh';
 import { usePlayerWebcam } from '@/hooks/use-player-webcam';
 import type { PlaymatId } from '@/lib/playmats';
 import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchFullscreenArena } from './match-fullscreen-arena';
-import { MatchInfoBar } from './match-live-parts';
 import { MatchIntroOverlay } from './match-intro-overlay';
 import { MatchLiveHeader } from './match-live-header';
-import { MatchEndedNotice, MatchErrorNotice } from './match-live-notices';
+import { MatchConnectionNotice, MatchEndedNotice, MatchErrorNotice } from './match-live-notices';
 import { MatchReadyPanel } from './match-ready-panel';
 import { resolveMatchSides } from './match-players';
 import { MatchVideoGrid } from './match-video-grid';
@@ -43,7 +42,6 @@ export function MatchLiveView({
   isHost,
   defaultPlaymatId,
 }: MatchLiveViewProps) {
-  const router = useRouter();
   const isObserver = role === 'observer';
   const isPlayer = !isObserver;
   const { local, remote, players } = resolveMatchSides(tournament, me, userId);
@@ -72,7 +70,9 @@ export function MatchLiveView({
     remoteStream,
     error: peerError,
     transport: peerTransport,
+    reconnecting: peerReconnecting,
     retry: retryPeer,
+    notifyLeave,
   } = useMatchPeerConnection({
     sessionId: peerSessionId,
     role: isHost ? 'host' : 'guest',
@@ -84,7 +84,7 @@ export function MatchLiveView({
     isPlayer && started && !remoteStream && peerState !== 'failed' && peerState !== 'idle';
 
   const ready = useMatchReady(tournament, userId);
-  const leave = useLeaveMatch(tournament);
+  const leave = useLeaveMatch(tournament, notifyLeave);
   const { stickerShot, handleSticker } = useMatchStickerShot();
   const chat = useMatchChat({
     matchId: tournament.matchId,
@@ -112,15 +112,11 @@ export function MatchLiveView({
   });
   const playable = started && (!isPlayer || startCountdown.readyToPlay);
 
-  useEffect(() => {
-    if (tournament.status === 'terminata') return;
-    const intervalMs =
-      tournament.status === 'in_registrazione' ? (ready.tableFull ? 1_000 : 5_000) : 12_000;
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') router.refresh();
-    }, intervalMs);
-    return () => window.clearInterval(timer);
-  }, [tournament.status, ready.tableFull, router]);
+  useMatchTournamentRefresh({
+    status: tournament.status,
+    tableFull: ready.tableFull,
+    peerLeft: peerState === 'peer-left',
+  });
 
   const participantNames = Object.fromEntries(
     tournament.participants.map((participant) => [participant.id, participant.username]),
@@ -134,7 +130,8 @@ export function MatchLiveView({
     error: chat.error,
     participantNames,
   };
-  const visibleError = leave.error ?? webcamError ?? peerError;
+  const visiblePeerError = peerReconnecting || peerState === 'peer-left' ? null : peerError;
+  const visibleError = leave.error ?? webcamError ?? visiblePeerError;
 
   return (
     <div className="mx-auto flex w-full max-w-content-2xl flex-col px-4 py-4 pb-12 sm:px-6">
@@ -172,8 +169,15 @@ export function MatchLiveView({
       )}
       {ready.error && isPlayer && <MatchErrorNotice message={ready.error} />}
       {tournament.status === 'terminata' && <MatchEndedNotice />}
+      {isPlayer && started && (
+        <MatchConnectionNotice
+          state={peerState}
+          reconnecting={peerReconnecting}
+          onRetry={retryPeer}
+        />
+      )}
       {visibleError && isPlayer && (
-        <MatchErrorNotice message={visibleError} onRetry={peerError ? retryPeer : undefined} />
+        <MatchErrorNotice message={visibleError} onRetry={visiblePeerError ? retryPeer : undefined} />
       )}
 
       <div className="flex min-h-0 flex-col gap-3">
@@ -206,8 +210,7 @@ export function MatchLiveView({
           onLifeChange={life.changeLife}
           onLifeReset={life.resetLife}
         />
-        <MatchInfoBar modeName={modeName} bestOfLabel={bestOfLabel} formatName={formatName} />
-        <div className="h-[230px] min-h-0">
+        <div className="h-[180px] min-h-0">
           <MatchCommentsPanel {...chatPanelProps} onSticker={handleSticker} />
         </div>
       </div>

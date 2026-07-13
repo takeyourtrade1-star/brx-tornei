@@ -68,7 +68,7 @@ export function MatchVideoGrid({
   onLifeReset,
 }: MatchVideoGridProps) {
   return (
-    <div className="relative grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(11.25rem,13rem)_minmax(0,1fr)] xl:items-stretch">
+    <div className="relative flex min-w-0 flex-col gap-3">
       {stickerShot && (
         <div key={stickerShot.key} className="pointer-events-none absolute inset-0 z-30 grid place-items-center" aria-hidden>
           <div className="sticker-overlay flex flex-col items-center gap-1">
@@ -92,36 +92,70 @@ export function MatchVideoGrid({
         </div>
       )}
 
-      <div className="flex min-w-0 flex-col gap-2">
-        <div className="relative aspect-video">
-          {isObserver ? (
-            <WebcamTile username={playerA.username} />
-          ) : (
-            <WebcamTile
-              stream={localStream}
-              username={local.username}
-              feedLabel={feedLabel}
-              videoDisabled={!camOn}
-            />
-          )}
-          {isPlayer && (
-            <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-black uppercase text-white backdrop-blur-sm">
-              Tu
-            </span>
-          )}
-          {isPlayer && localStream && (
-            <div className="absolute bottom-2 right-2 z-10 flex gap-1.5">
-              <MediaButton on={micOn} kind="mic" onClick={onToggleMic} />
-              <MediaButton on={camOn} kind="cam" onClick={onToggleCam} />
+      <div className="grid min-w-0 grid-cols-1 items-start gap-3 lg:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="relative w-full overflow-hidden [aspect-ratio:16/9]">
+            <div className="absolute inset-0">
+              {isObserver ? (
+                <WebcamTile username={playerA.username} />
+              ) : (
+                <WebcamTile
+                  stream={localStream}
+                  username={local.username}
+                  feedLabel={feedLabel}
+                  videoDisabled={!camOn}
+                />
+              )}
             </div>
-          )}
-          {isPlayer && !micOn && (
-            <span className="pointer-events-none absolute left-2 top-9 z-10 grid h-6 w-6 place-items-center rounded-full bg-red-500/85 text-white">
-              <MicOff className="h-3.5 w-3.5" />
-            </span>
-          )}
+            {isPlayer && (
+              <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-black uppercase text-white backdrop-blur-sm">
+                Tu
+              </span>
+            )}
+            {isPlayer && localStream && (
+              <div className="absolute bottom-2 right-2 z-10 flex gap-1.5">
+                <MediaButton on={micOn} kind="mic" onClick={onToggleMic} />
+                <MediaButton on={camOn} kind="cam" onClick={onToggleCam} />
+              </div>
+            )}
+            {isPlayer && !micOn && (
+              <span className="pointer-events-none absolute left-2 top-9 z-10 grid h-6 w-6 place-items-center rounded-full bg-red-500/85 text-white">
+                <MicOff className="h-3.5 w-3.5" />
+              </span>
+            )}
+          </div>
+          <DeckStrip player={leftPlayer} formatName={formatName} />
         </div>
-        <DeckStrip player={leftPlayer} formatName={formatName} />
+
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="relative w-full overflow-hidden [aspect-ratio:16/9]">
+            <div className="absolute inset-0">
+              <WebcamTile
+                stream={isPlayer ? remoteStream : null}
+                username={isObserver ? rightPlayer.username : remote.username}
+                connecting={isPlayer ? peerConnecting : false}
+                muted={false}
+              />
+            </div>
+            {isPlayer && (
+              <span className="pointer-events-none absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase text-white/85 backdrop-blur-sm">
+                Avversario
+              </span>
+            )}
+            {isPlayer && started && (
+              <button
+                type="button"
+                onClick={onFullscreen}
+                aria-label="Apri la modalita tavolo in fullscreen"
+                className="absolute right-2 top-2 z-20 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-black/60 px-3 text-[10px] font-black uppercase text-white backdrop-blur-sm transition hover:bg-black/80"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                Fullscreen
+              </button>
+            )}
+          </div>
+          <DeckStrip player={rightPlayer} formatName={formatName} />
+        </div>
       </div>
 
       <MatchLifeCounter
@@ -130,32 +164,10 @@ export function MatchVideoGrid({
         startingLife={startingLife}
         connected={lifeConnected}
         interactive={isPlayer && started}
+        orientation="horizontal"
         onChange={onLifeChange}
         onReset={onLifeReset}
       />
-
-      <div className="flex min-w-0 flex-col gap-2">
-        <div className="relative aspect-video">
-          <WebcamTile
-            stream={isPlayer ? remoteStream : null}
-            username={remote.username}
-            connecting={isPlayer ? peerConnecting : false}
-            muted={false}
-          />
-          {isPlayer && started && (
-            <button
-              type="button"
-              onClick={onFullscreen}
-              aria-label="Mostra l'avversario in fullscreen"
-              className="absolute right-2 top-2 z-20 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-black/60 px-3 text-[10px] font-black uppercase text-white backdrop-blur-sm transition hover:bg-black/80"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-              Fullscreen
-            </button>
-          )}
-        </div>
-        <DeckStrip player={rightPlayer} formatName={formatName} />
-      </div>
     </div>
   );
 }
@@ -167,7 +179,7 @@ function MediaButton({ on, kind, onClick }: { on: boolean; kind: 'mic' | 'cam'; 
     <button
       type="button"
       onClick={onClick}
-      aria-label={`${on ? 'Spegni' : 'Accendi'} ${label}`}
+      aria-label={(on ? 'Spegni ' : 'Accendi ') + label}
       aria-pressed={!on}
       className={cn(
         'grid h-9 w-9 place-items-center rounded-full border backdrop-blur-sm transition active:scale-95',

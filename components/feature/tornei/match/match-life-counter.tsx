@@ -104,7 +104,7 @@ function LifeSide({
         </p>
         <div className="mt-1 flex items-center justify-center gap-1 text-primary">
           <Heart className="h-4 w-4 fill-current" />
-          <strong className="font-display text-4xl font-black leading-none text-white sm:text-5xl">
+          <strong className="font-sans text-4xl font-black leading-none text-white sm:text-5xl">
             {life}
           </strong>
         </div>

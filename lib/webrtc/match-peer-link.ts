@@ -13,6 +13,7 @@ import {
   tuneSenders,
 } from './match-peer-media';
 import type { PeerLinkController, PeerLinkHandlers, PeerRole } from './match-peer-types';
+import { createPeerWatchdogs } from './peer-watchdogs';
 export type { PeerLinkState, PeerRole, PeerTransport } from './match-peer-types';
 
 const CONNECT_TIMEOUT_MS = 30_000;
@@ -30,36 +31,13 @@ export function createMatchPeerLink(
   let pending: { attemptId: string; candidate: RTCIceCandidateInit }[] = [];
   let remoteSet = false;
   let activeAttemptId = role === 'host' ? crypto.randomUUID() : null;
-  let connectWatchdog: ReturnType<typeof setTimeout> | null = null;
-  let streamWatchdog: ReturnType<typeof setTimeout> | null = null;
-  let disconnectWatchdog: ReturnType<typeof setTimeout> | null = null;
+  const watchdogs = createPeerWatchdogs<'connect' | 'stream' | 'disconnect'>();
   let inboundStream: MediaStream | null = null;
   let remoteDelivered = false;
 
   const fail = (message: string) => {
     handlers.onError?.(message);
     handlers.onState?.('failed');
-  };
-
-  const clearWatchdog = () => {
-    if (connectWatchdog) {
-      clearTimeout(connectWatchdog);
-      connectWatchdog = null;
-    }
-  };
-
-  const clearStreamWatchdog = () => {
-    if (streamWatchdog) {
-      clearTimeout(streamWatchdog);
-      streamWatchdog = null;
-    }
-  };
-
-  const clearDisconnectWatchdog = () => {
-    if (disconnectWatchdog) {
-      clearTimeout(disconnectWatchdog);
-      disconnectWatchdog = null;
-    }
   };
 
   const sendSignal = (kind: SignalMessage['kind'], payload: unknown) => {
@@ -72,7 +50,7 @@ export function createMatchPeerLink(
     inboundStream = stream;
     if (stream.getVideoTracks().length === 0) return;
     remoteDelivered = true;
-    clearStreamWatchdog();
+    watchdogs.clear('stream');
     handlers.onRemoteStream?.(stream);
   };
 
@@ -82,8 +60,7 @@ export function createMatchPeerLink(
   };
 
   const armStreamWatchdog = () => {
-    clearStreamWatchdog();
-    streamWatchdog = setTimeout(() => {
+    watchdogs.arm('stream', () => {
       if (remoteDelivered) return;
       fail(
         'Connessione aperta ma il video non arriva. Prova la stessa rete Wi‑Fi o configura un server TURN.',
@@ -122,8 +99,8 @@ export function createMatchPeerLink(
     pc.onconnectionstatechange = () => {
       if (!pc) return;
       if (pc.connectionState === 'connected') {
-        clearWatchdog();
-        clearDisconnectWatchdog();
+        watchdogs.clear('connect');
+        watchdogs.clear('disconnect');
         handlers.onState?.('connected');
         sig?.setConnected(true);
         void detectTransport(pc).then((transport) => handlers.onTransport?.(transport));
@@ -131,22 +108,18 @@ export function createMatchPeerLink(
         if (!remoteDelivered) armStreamWatchdog();
       } else if (pc.connectionState === 'disconnected') {
         sig?.setConnected(false);
-        clearDisconnectWatchdog();
-        disconnectWatchdog = setTimeout(() => {
+        handlers.onState?.('reconnecting');
+        watchdogs.arm('disconnect', () => {
           if (pc?.connectionState === 'disconnected') {
             fail('Connessione video interrotta. Nuovo tentativo in corso\u2026');
           }
         }, 8_000);
       } else if (pc.connectionState === 'failed') {
         sig?.setConnected(false);
-        clearWatchdog();
-        clearStreamWatchdog();
-        clearDisconnectWatchdog();
+        watchdogs.clearAll();
         fail('La connessione video non risponde. Nuovo tentativo in corso\u2026');
       } else if (pc.connectionState === 'closed') {
-        clearWatchdog();
-        clearStreamWatchdog();
-        clearDisconnectWatchdog();
+        watchdogs.clearAll();
         handlers.onState?.('closed');
       }
     };
@@ -199,7 +172,10 @@ export function createMatchPeerLink(
           pending.push({ attemptId: envelope.attemptId, candidate });
         }
       } else if (m.kind === 'bye') {
-        if (envelope.attemptId === activeAttemptId) stop();
+        if (envelope.attemptId === activeAttemptId) {
+          handlers.onPeerLeft?.();
+          shutdown('peer-left');
+        }
       }
     }, basePath);
 
@@ -217,7 +193,7 @@ export function createMatchPeerLink(
       }
     }
 
-    connectWatchdog = setTimeout(() => {
+    watchdogs.arm('connect', () => {
       if (pc?.connectionState !== 'connected') {
         fail('Tempo di connessione scaduto. Nuovo tentativo in corso\u2026');
       }
@@ -229,10 +205,8 @@ export function createMatchPeerLink(
     void setup();
   }
 
-  function stop(): void {
-    clearWatchdog();
-    clearStreamWatchdog();
-    clearDisconnectWatchdog();
+  function shutdown(finalState: 'closed' | 'peer-left'): void {
+    watchdogs.clearAll();
     sig?.stop();
     try {
       pc?.close();
@@ -242,8 +216,16 @@ export function createMatchPeerLink(
     inboundStream = null;
     remoteDelivered = false;
     handlers.onTransport?.('unknown');
-    handlers.onState?.('closed');
+    handlers.onState?.(finalState);
   }
 
-  return { start, stop };
+  function stop(): void {
+    shutdown('closed');
+  }
+
+  async function notifyLeave(): Promise<void> {
+    await sendSignal('bye', { reason: 'voluntary' });
+  }
+
+  return { start, stop, notifyLeave };
 }

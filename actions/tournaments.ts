@@ -169,7 +169,7 @@ export async function readyTournamentAction(
   }
 }
 
-/** Alza l'utente dal tavolo (lascia il torneo se ancora in attesa). */
+/** Uscita volontaria: chiude il match iniziato o alza l'utente se ancora in attesa. */
 export async function leaveTournamentAction(
   tournamentId: string,
 ): Promise<TournamentActionState> {
@@ -181,6 +181,7 @@ export async function leaveTournamentAction(
   try {
     await leaveTournament(tournamentId);
     revalidatePath('/tornei');
+    revalidatePath(`/tornei/${tournamentId}/live`);
     return {};
   } catch (err) {
     return mapApiError(err, 'Impossibile alzarsi dal tavolo');
