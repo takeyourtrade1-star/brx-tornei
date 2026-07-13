@@ -451,3 +451,52 @@
   animation: ready-pulse 1.6s ease-out infinite;
 }
 
+/* Ingresso partita + sorteggio sincronizzato del primo giocatore. */
+@keyframes match-intro-emblem {
+  0% { opacity: 0; transform: scale(0.25) rotate(-35deg); }
+  65% { opacity: 1; transform: scale(1.12) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes match-intro-title {
+  from { opacity: 0; transform: translateY(22px) scale(0.96); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes match-intro-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes match-intro-winner {
+  0% { opacity: 0; transform: scale(0.72); }
+  55% { opacity: 1; transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.match-intro-radial {
+  background:
+    radial-gradient(circle at center, rgb(255 115 0 / 0.2), transparent 32%),
+    radial-gradient(circle at center, rgb(255 255 255 / 0.06), transparent 62%);
+}
+
+.match-intro-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(circle at center, black, transparent 72%);
+}
+
+.match-intro-emblem { animation: match-intro-emblem 0.8s cubic-bezier(0.22, 1.4, 0.36, 1) both; }
+.match-intro-title { animation: match-intro-title 0.5s ease-out both; }
+.match-intro-winner { animation: match-intro-winner 0.65s cubic-bezier(0.22, 1.4, 0.36, 1) both; }
+.match-intro-progress { animation: match-intro-progress 5.3s linear both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .match-intro-emblem,
+  .match-intro-title,
+  .match-intro-winner { animation-duration: 0.01ms; }
+  .match-intro-progress { animation-duration: 1.65s; }
+}
+

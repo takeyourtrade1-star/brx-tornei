@@ -2,21 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import { FormatSelectorGrid } from '@/components/feature/tornei/format-selector-grid';
-import { ModeSelectorRow } from '@/components/feature/tornei/mode-selector-row';
 import {
   createTableAction,
   joinTournamentAction,
   leaveTournamentAction,
 } from '@/actions/tournaments';
 import { buildLobbyTables, findMyTables, type LobbyTable } from '@/lib/lobby';
-import type { FormatId, ModeId } from '@/lib/data/catalog';
+import type { FormatId } from '@/lib/data/catalog';
 import type { Selection } from '@/lib/validations/selection';
 import type { SessionUser } from '@/types/auth';
 import type { Tournament } from '@/types/tournament';
-import { TableCard } from './table-card';
 import { TableSeatModal } from './table-seat-modal';
+import { FriendConnectionModal } from './friend-connection-modal';
+import { LobbyTableList } from './lobby-table-list';
 
 interface LobbyPageProps {
   tournaments: Tournament[];
@@ -28,6 +26,10 @@ interface LobbyPageProps {
 }
 
 type ModalState = { mode: 'host' | 'join'; tournamentId: string } | null;
+type ConnectionModalState =
+  | { mode: 'create' }
+  | { mode: 'join'; tournamentId: string }
+  | null;
 
 export function LobbyPage({
   tournaments,
@@ -39,6 +41,7 @@ export function LobbyPage({
 }: LobbyPageProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>(null);
+  const [connectionModal, setConnectionModal] = useState<ConnectionModalState>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
 
@@ -54,9 +57,6 @@ export function LobbyPage({
     [router],
   );
 
-  // Se sono seduto al mio tavolo e il match è partito — o il tavolo è pieno e
-  // parte il ready check — entro nella pagina partita. Se sono in attesa,
-  // faccio polling per accorgermi quando qualcuno si siede.
   // Con PIÙ partite attive (stato incoerente: partita vecchia mai abbandonata)
   // NON reindirizzo: resto in lobby, dove ogni tavolo ha il suo "Abbandona".
   useEffect(() => {
@@ -101,29 +101,52 @@ export function LobbyPage({
       }
 
       if (table.kind === 'joinable' && table.tournament) {
-        setModal({ mode: 'join', tournamentId: table.tournament.id });
+        if (table.tournament.withFriend) {
+          setConnectionModal({ mode: 'join', tournamentId: table.tournament.id });
+        } else {
+          setModal({ mode: 'join', tournamentId: table.tournament.id });
+        }
         return;
       }
 
       if (table.kind === 'empty') {
         // Tavolo vuoto già esistente: mi ci siedo (riuso) invece di crearne uno nuovo.
         if (table.tournament) {
-          setModal({ mode: 'join', tournamentId: table.tournament.id });
+          if (table.tournament.withFriend) {
+            setConnectionModal({ mode: 'join', tournamentId: table.tournament.id });
+          } else {
+            setModal({ mode: 'join', tournamentId: table.tournament.id });
+          }
           return;
         }
-        // Nessun tavolo vuoto disponibile: ne creo uno nuovo.
-        startTransition(async () => {
-          const res = await createTableAction(selection.format, selection.mode);
-          if (res.error || !res.createdId) {
-            setError(res.error ?? 'Impossibile creare il tavolo.');
-            return;
-          }
-          setModal({ mode: 'host', tournamentId: res.createdId });
-          router.refresh();
-        });
+        setConnectionModal({ mode: 'create' });
       }
     },
-    [selection.format, selection.mode, router, tournaments, user.id],
+    [tournaments, user.id],
+  );
+
+  const handleConnectionConfirm = useCallback(
+    (withFriend: boolean) => {
+      if (!connectionModal) return;
+      if (connectionModal.mode === 'join') {
+        const tournamentId = connectionModal.tournamentId;
+        setConnectionModal(null);
+        setModal({ mode: 'join', tournamentId });
+        return;
+      }
+
+      startTransition(async () => {
+        const res = await createTableAction(selection.format, selection.mode, withFriend);
+        if (res.error || !res.createdId) {
+          setError(res.error ?? 'Impossibile creare il tavolo.');
+          return;
+        }
+        setConnectionModal(null);
+        setModal({ mode: 'host', tournamentId: res.createdId });
+        router.refresh();
+      });
+    },
+    [connectionModal, router, selection.format, selection.mode],
   );
 
   const handleConfirmJoin = useCallback(
@@ -181,62 +204,20 @@ export function LobbyPage({
 
   return (
     <>
-      <DashboardHeader user={user} />
-
-      <main className="mx-auto mt-4 flex w-full max-w-content animate-auth-enter flex-col px-4 pb-16 sm:px-6">
-        <div className="sticky top-2 z-40 mb-5 rounded-3xl border border-white/[0.08] bg-header-bg/95 px-4 py-4 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)] sm:px-5">
-          <div className="flex flex-col items-center gap-4">
-            <section className="flex w-full flex-col items-center gap-2">
-              <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-white/50">
-                Formato
-              </h2>
-              <FormatSelectorGrid selectedFormatId={formatId} currentModeId={selection.mode as ModeId} />
-            </section>
-            <section className="flex w-full flex-col items-center gap-2 border-t border-white/10 pt-3">
-              <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-white/50">
-                Modalità
-              </h2>
-              <ModeSelectorRow selectedModeId={selection.mode as ModeId} currentFormatId={formatId} />
-            </section>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-sans text-base font-bold uppercase tracking-widest text-white/70 sm:text-lg">
-            Tavoli <span className="text-white">{formatName}</span>
-            <span className="mx-2 text-white/40" aria-hidden>
-              ·
-            </span>
-            <span className="text-white/60">{modeName}</span>
-          </h1>
-          <span className="text-xs font-semibold uppercase tracking-wide text-white/40">
-            Best of 3
-          </span>
-        </div>
-
-        {error && (
-          <p
-            role="alert"
-            className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-200"
-          >
-            {error}
-          </p>
-        )}
-
-        <div className="mt-4 flex flex-col gap-3">
-          {tables.map((table) => (
-            <TableCard
-              key={table.key}
-              table={table}
-              busy={busy}
-              onSit={handleSit}
-              onOpen={handleOpen}
-              onLeave={handleLeave}
-              onGoLive={handleGoLive}
-            />
-          ))}
-        </div>
-      </main>
+      <LobbyTableList
+        tables={tables}
+        user={user}
+        selection={selection}
+        formatId={formatId}
+        formatName={formatName}
+        modeName={modeName}
+        busy={busy}
+        error={error}
+        onSit={handleSit}
+        onOpen={handleOpen}
+        onLeave={handleLeave}
+        onGoLive={handleGoLive}
+      />
 
       <TableSeatModal
         open={modal !== null}
@@ -256,6 +237,13 @@ export function LobbyPage({
           if (t) handleLeave({ key: t.id, kind: 'mine', tournament: t, seats: [{ occupied: false }, { occupied: false }], started: false });
         }}
         onConfirmJoin={handleConfirmJoin}
+      />
+      <FriendConnectionModal
+        open={connectionModal !== null}
+        mode={connectionModal?.mode ?? 'create'}
+        busy={busy}
+        onClose={() => setConnectionModal(null)}
+        onConfirm={handleConnectionConfirm}
       />
     </>
   );

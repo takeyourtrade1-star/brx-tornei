@@ -97,6 +97,7 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     participants: mapParticipants(obj.participants),
     createdAt,
     isPrivate: pickBool(obj, 'is_private', 'isPrivate'),
+    withFriend: pickBool(obj, 'with_friend', 'withFriend') ?? false,
     webcamSessionId: pickString(obj, 'webcam_session_id', 'webcamSessionId'),
     matchId,
     matchWebcamSessionId,

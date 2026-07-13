@@ -51,6 +51,7 @@ function mapApiError(err: unknown, fallback: string): TournamentActionState {
 export async function createTableAction(
   format: string,
   mode: string,
+  withFriend = false,
 ): Promise<TournamentActionState> {
   const session = await getSession();
   if (!session) {
@@ -62,7 +63,7 @@ export async function createTableAction(
     mode,
     bestOf: 'BO3',
     isPrivate: false,
-    withFriend: false,
+    withFriend,
     isTournament: false,
     enableScryfallCheck: false,
     enablePhysicalVerification: false,

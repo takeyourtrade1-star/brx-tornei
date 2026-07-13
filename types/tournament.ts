@@ -35,6 +35,8 @@ export interface Tournament {
   participants: Participant[];
   createdAt: string;
   isPrivate?: boolean;
+  /** true: P2P diretto consentito; l'IP pubblico pu\u00f2 essere visibile al peer. */
+  withFriend?: boolean;
   /** Torneo strutturato (verifica mazzo obbligatoria). */
   isTournament?: boolean;
   enableScryfallCheck?: boolean;

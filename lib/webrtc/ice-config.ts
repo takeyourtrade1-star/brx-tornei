@@ -19,6 +19,7 @@ export interface IceConfig {
 let cachedServers: RTCIceServer[] | null = null;
 let cachedForceRelay = true;
 let cachedSessionId: string | null = null;
+let cachedAllowDirect = false;
 let cacheExpiresAt = 0;
 
 function splitEnv(value: string | undefined): string[] {
@@ -67,8 +68,16 @@ export function getIceServers(): RTCIceServer[] {
  * `sessionId` (webcam_session_id del match/torneo) permette al backend di
  * risolvere il flag with_friend: senza sessionId il backend impone il relay.
  */
-export async function fetchIceConfig(sessionId?: string): Promise<IceConfig> {
-  if (cachedServers && cachedSessionId === (sessionId ?? null) && Date.now() < cacheExpiresAt) {
+export async function fetchIceConfig(
+  sessionId?: string,
+  allowDirect = false,
+): Promise<IceConfig> {
+  if (
+    cachedServers &&
+    cachedSessionId === (sessionId ?? null) &&
+    cachedAllowDirect === allowDirect &&
+    Date.now() < cacheExpiresAt
+  ) {
     return { iceServers: cachedServers, forceRelay: cachedForceRelay };
   }
 
@@ -83,8 +92,11 @@ export async function fetchIceConfig(sessionId?: string): Promise<IceConfig> {
       const mapped = mapApiIceServers(json.data?.ice_servers);
       if (mapped) {
         cachedServers = mapped;
-        cachedForceRelay = json.data?.force_relay !== false;
+        // Il client applica la scelta privacy anche se il backend degrada per
+        // assenza TURN: senza consenso esplicito il collegamento fallisce chiuso.
+        cachedForceRelay = allowDirect ? json.data?.force_relay !== false : true;
         cachedSessionId = sessionId ?? null;
+        cachedAllowDirect = allowDirect;
         if (json.data?.expires_at) {
           const exp = Date.parse(json.data.expires_at);
           cacheExpiresAt = Number.isFinite(exp) ? exp : Date.now() + 3_600_000;
@@ -99,10 +111,9 @@ export async function fetchIceConfig(sessionId?: string): Promise<IceConfig> {
   }
 
   cachedServers = envIceServers();
-  // Fallback difensivo: se esiste un TURN configurato via env resta su relay,
-  // altrimenti 'relay' bloccherebbe ogni connessione.
-  cachedForceRelay = hasTurn();
+  cachedForceRelay = !allowDirect;
   cachedSessionId = sessionId ?? null;
+  cachedAllowDirect = allowDirect;
   cacheExpiresAt = Date.now() + 60_000;
   return { iceServers: cachedServers, forceRelay: cachedForceRelay };
 }

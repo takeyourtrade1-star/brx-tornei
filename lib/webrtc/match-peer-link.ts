@@ -1,149 +1,38 @@
 'use client';
 
-/**
- * WebRTC P2P bidirezionale tra host e partecipante (volto PC).
- * Signaling relay via /api/tournaments/signaling/{sessionId}.
- */
-
-import { fetchIceConfig, matchSignalingBase } from './ice-config';
+import { matchSignalingBase } from './ice-config';
 import { SignalingChannel, type SignalMessage } from './signaling';
-
-export type PeerLinkState =
-  | 'idle'
-  | 'connecting'
-  | 'waiting'
-  | 'connected'
-  | 'failed'
-  | 'closed';
-
-export type PeerRole = 'host' | 'guest';
+import {
+  applyLowLatencyReceiverHints,
+  detectTransport,
+  harvestRemoteStream,
+  newPeerConnection,
+  parseEnvelope,
+  preferLowLatencyCodecs,
+  streamFromTrackEvent,
+  tuneSenders,
+} from './match-peer-media';
+import type { PeerLinkController, PeerLinkHandlers, PeerRole } from './match-peer-types';
+export type { PeerLinkState, PeerRole, PeerTransport } from './match-peer-types';
 
 const CONNECT_TIMEOUT_MS = 30_000;
 const STREAM_TIMEOUT_MS = 15_000;
-const MAX_VIDEO_BITRATE = 2_500_000;
-const TARGET_FPS = 30;
-
-export interface PeerLinkHandlers {
-  onState?: (s: PeerLinkState) => void;
-  onRemoteStream?: (s: MediaStream) => void;
-  onError?: (message: string) => void;
-}
-
-export interface PeerLinkController {
-  start: () => void;
-  stop: () => void;
-}
-
-async function newPc(sessionId: string): Promise<RTCPeerConnection> {
-  const { iceServers, forceRelay } = await fetchIceConfig(sessionId);
-  // forceRelay: tutto il traffico passa dal TURN, gli IP dei peer restano
-  // nascosti (torneo non "con un amico"). 'all' = P2P diretto consentito.
-  return new RTCPeerConnection({
-    iceServers,
-    bundlePolicy: 'max-bundle',
-    iceTransportPolicy: forceRelay ? 'relay' : 'all',
-  });
-}
-
-function applyLowLatencyReceiverHints(receiver: RTCRtpReceiver): void {
-  try {
-    (receiver as unknown as { jitterBufferTarget?: number }).jitterBufferTarget = 0;
-  } catch {
-    /* non supportato */
-  }
-  try {
-    (receiver as unknown as { playoutDelayHint?: number }).playoutDelayHint = 0;
-  } catch {
-    /* non supportato */
-  }
-}
-
-function preferLowLatencyCodecs(pc: RTCPeerConnection): void {
-  try {
-    const caps = RTCRtpSender.getCapabilities?.('video');
-    if (!caps) return;
-    const order = ['video/H264', 'video/VP8', 'video/VP9', 'video/AV1'];
-    const rank = (m: string) => (order.indexOf(m) === -1 ? 99 : order.indexOf(m));
-    const sorted = [...caps.codecs].sort((a, b) => rank(a.mimeType) - rank(b.mimeType));
-    for (const t of pc.getTransceivers()) {
-      const kind = t.sender?.track?.kind ?? t.receiver?.track?.kind;
-      if (kind === 'video') {
-        try {
-          t.setCodecPreferences?.(sorted);
-        } catch {
-          /* alcuni browser non lo supportano */
-        }
-      }
-    }
-  } catch {
-    /* getCapabilities non disponibile */
-  }
-}
-
-function mergeTrackIntoStream(
-  track: MediaStreamTrack,
-  inbound: MediaStream | null,
-): MediaStream {
-  const base = inbound ?? new MediaStream();
-  if (!base.getTracks().some((t) => t.id === track.id)) {
-    base.addTrack(track);
-  }
-  return base;
-}
-
-function streamFromTrackEvent(
-  e: RTCTrackEvent,
-  inbound: MediaStream | null,
-): MediaStream | null {
-  if (e.streams[0]) return e.streams[0];
-  if (!e.track) return null;
-  return mergeTrackIntoStream(e.track, inbound);
-}
-
-function harvestRemoteStream(
-  pc: RTCPeerConnection,
-  inbound: MediaStream | null,
-): MediaStream | null {
-  let out = inbound;
-  for (const receiver of pc.getReceivers()) {
-    const track = receiver.track;
-    if (track && track.readyState !== 'ended') {
-      if (track.kind === 'video') applyLowLatencyReceiverHints(receiver);
-      out = mergeTrackIntoStream(track, out);
-    }
-  }
-  return out && out.getTracks().length > 0 ? out : null;
-}
-
-async function tuneSenders(pc: RTCPeerConnection): Promise<void> {
-  for (const sender of pc.getSenders()) {
-    if (sender.track?.kind !== 'video') continue;
-    const p = sender.getParameters();
-    if (!p.encodings || p.encodings.length === 0) p.encodings = [{}];
-    p.encodings[0].maxBitrate = MAX_VIDEO_BITRATE;
-    p.encodings[0].maxFramerate = TARGET_FPS;
-    (p as RTCRtpSendParameters & { degradationPreference?: string }).degradationPreference =
-      'maintain-framerate';
-    try {
-      await sender.setParameters(p);
-    } catch {
-      /* alcuni parametri possono non essere applicabili */
-    }
-  }
-}
 
 export function createMatchPeerLink(
   sessionId: string,
   role: PeerRole,
   localStream: MediaStream,
+  allowDirect: boolean,
   handlers: PeerLinkHandlers,
 ): PeerLinkController {
   let pc: RTCPeerConnection | null = null;
   let sig: SignalingChannel | null = null;
-  let pending: RTCIceCandidateInit[] = [];
+  let pending: { attemptId: string; candidate: RTCIceCandidateInit }[] = [];
   let remoteSet = false;
+  let activeAttemptId = role === 'host' ? crypto.randomUUID() : null;
   let connectWatchdog: ReturnType<typeof setTimeout> | null = null;
   let streamWatchdog: ReturnType<typeof setTimeout> | null = null;
+  let disconnectWatchdog: ReturnType<typeof setTimeout> | null = null;
   let inboundStream: MediaStream | null = null;
   let remoteDelivered = false;
 
@@ -166,10 +55,21 @@ export function createMatchPeerLink(
     }
   };
 
+  const clearDisconnectWatchdog = () => {
+    if (disconnectWatchdog) {
+      clearTimeout(disconnectWatchdog);
+      disconnectWatchdog = null;
+    }
+  };
+
+  const sendSignal = (kind: SignalMessage['kind'], payload: unknown) => {
+    if (!sig || !activeAttemptId) return Promise.resolve();
+    return sig.send(kind, { attemptId: activeAttemptId, payload });
+  };
+
   const deliverRemote = (stream: MediaStream | null) => {
     if (!stream || remoteDelivered) return;
     inboundStream = stream;
-    // L'audio può arrivare prima: si consegna solo quando c'è anche il video.
     if (stream.getVideoTracks().length === 0) return;
     remoteDelivered = true;
     clearStreamWatchdog();
@@ -192,7 +92,7 @@ export function createMatchPeerLink(
   };
 
   async function setup(): Promise<void> {
-    pc = await newPc(sessionId);
+    pc = await newPeerConnection(sessionId, allowDirect);
     const videoTrack = localStream.getVideoTracks()[0];
     if (!videoTrack) {
       fail('Webcam non disponibile');
@@ -205,8 +105,6 @@ export function createMatchPeerLink(
     if (audioTrack) {
       pc.addTrack(audioTrack, localStream);
     } else if (role === 'host') {
-      // Senza mic locale l'host offre comunque l'm-line audio: l'answer del
-      // guest non può aggiungerla, e il suo audio resterebbe non negoziato.
       pc.addTransceiver('audio', { direction: 'recvonly' });
     }
     preferLowLatencyCodecs(pc);
@@ -218,23 +116,37 @@ export function createMatchPeerLink(
     };
 
     pc.onicecandidate = (e) => {
-      if (e.candidate && sig) void sig.send('candidate', e.candidate.toJSON());
+      if (e.candidate) void sendSignal('candidate', e.candidate.toJSON());
     };
 
     pc.onconnectionstatechange = () => {
       if (!pc) return;
       if (pc.connectionState === 'connected') {
         clearWatchdog();
+        clearDisconnectWatchdog();
         handlers.onState?.('connected');
+        sig?.setConnected(true);
+        void detectTransport(pc).then((transport) => handlers.onTransport?.(transport));
         tryDeliverInbound();
         if (!remoteDelivered) armStreamWatchdog();
+      } else if (pc.connectionState === 'disconnected') {
+        sig?.setConnected(false);
+        clearDisconnectWatchdog();
+        disconnectWatchdog = setTimeout(() => {
+          if (pc?.connectionState === 'disconnected') {
+            fail('Connessione video interrotta. Nuovo tentativo in corso\u2026');
+          }
+        }, 8_000);
       } else if (pc.connectionState === 'failed') {
+        sig?.setConnected(false);
         clearWatchdog();
         clearStreamWatchdog();
-        handlers.onState?.('failed');
+        clearDisconnectWatchdog();
+        fail('La connessione video non risponde. Nuovo tentativo in corso\u2026');
       } else if (pc.connectionState === 'closed') {
         clearWatchdog();
         clearStreamWatchdog();
+        clearDisconnectWatchdog();
         handlers.onState?.('closed');
       }
     };
@@ -242,13 +154,18 @@ export function createMatchPeerLink(
     const basePath = matchSignalingBase(sessionId);
     sig = new SignalingChannel(sessionId, role, async (m: SignalMessage) => {
       if (!pc) return;
+      const envelope = parseEnvelope(m.data);
+      if (!envelope) return;
 
       if (role === 'host' && m.kind === 'answer') {
+        if (envelope.attemptId !== activeAttemptId) return;
         if (pc.signalingState !== 'have-local-offer') return;
         try {
-          await pc.setRemoteDescription(m.data as RTCSessionDescriptionInit);
+          await pc.setRemoteDescription(envelope.payload as RTCSessionDescriptionInit);
           remoteSet = true;
-          for (const c of pending.splice(0)) await pc.addIceCandidate(c);
+          const candidates = pending.filter((item) => item.attemptId === activeAttemptId);
+          pending = [];
+          for (const item of candidates) await pc.addIceCandidate(item.candidate);
           await tuneSenders(pc);
           tryDeliverInbound();
         } catch {
@@ -257,30 +174,32 @@ export function createMatchPeerLink(
       } else if (role === 'guest' && m.kind === 'offer') {
         if (pc.signalingState !== 'stable') return;
         try {
-          await pc.setRemoteDescription(m.data as RTCSessionDescriptionInit);
+          activeAttemptId = envelope.attemptId;
+          remoteSet = false;
+          await pc.setRemoteDescription(envelope.payload as RTCSessionDescriptionInit);
           remoteSet = true;
-          for (const c of pending.splice(0)) await pc.addIceCandidate(c);
+          const candidates = pending.filter((item) => item.attemptId === activeAttemptId);
+          pending = pending.filter((item) => item.attemptId !== activeAttemptId);
+          for (const item of candidates) await pc.addIceCandidate(item.candidate);
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           preferLowLatencyCodecs(pc);
           await tuneSenders(pc);
-          await sig?.send('answer', answer);
+          await sendSignal('answer', answer);
         } catch {
           fail('Impossibile rispondere all’offerta dell’avversario.');
         }
       } else if (m.kind === 'candidate') {
-        const c = m.data as RTCIceCandidateInit;
-        if (remoteSet) {
+        const candidate = envelope.payload as RTCIceCandidateInit;
+        if (remoteSet && envelope.attemptId === activeAttemptId) {
           try {
-            await pc.addIceCandidate(c);
-          } catch {
-            /* best effort */
-          }
+            await pc.addIceCandidate(candidate);
+          } catch {}
         } else {
-          pending.push(c);
+          pending.push({ attemptId: envelope.attemptId, candidate });
         }
       } else if (m.kind === 'bye') {
-        stop();
+        if (envelope.attemptId === activeAttemptId) stop();
       }
     }, basePath);
 
@@ -291,7 +210,7 @@ export function createMatchPeerLink(
       try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        await sig.send('offer', offer);
+        await sendSignal('offer', offer);
       } catch {
         fail('Impossibile avviare la connessione P2P.');
         return;
@@ -299,7 +218,9 @@ export function createMatchPeerLink(
     }
 
     connectWatchdog = setTimeout(() => {
-      if (pc?.connectionState !== 'connected') handlers.onState?.('failed');
+      if (pc?.connectionState !== 'connected') {
+        fail('Tempo di connessione scaduto. Nuovo tentativo in corso\u2026');
+      }
     }, CONNECT_TIMEOUT_MS);
   }
 
@@ -311,17 +232,16 @@ export function createMatchPeerLink(
   function stop(): void {
     clearWatchdog();
     clearStreamWatchdog();
-    void sig?.send('bye', null);
+    clearDisconnectWatchdog();
     sig?.stop();
     try {
       pc?.close();
-    } catch {
-      /* già chiusa */
-    }
+    } catch {}
     pc = null;
     sig = null;
     inboundStream = null;
     remoteDelivered = false;
+    handlers.onTransport?.('unknown');
     handlers.onState?.('closed');
   }
 
