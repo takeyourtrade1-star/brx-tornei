@@ -110,25 +110,32 @@ export function MatchCommentsPanel({
         : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-header-bg/90 shadow-[0_12px_36px_rgba(15,23,42,0.18)] lg:flex-row">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-header-bg/90 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.55)] lg:flex-row">
       {/* Intestazione: striscia in alto su mobile, colonna a sinistra su desktop. */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-white/[0.03] px-3 py-2 lg:w-44 lg:flex-col lg:items-start lg:justify-center lg:border-b-0 lg:border-r lg:px-4">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
-          <MessageSquare className="h-3.5 w-3.5" />
+      <div className="flex shrink-0 items-center gap-2.5 border-b border-white/10 bg-white/[0.02] px-3 py-2 lg:w-44 lg:flex-col lg:items-start lg:justify-center lg:gap-2 lg:border-b-0 lg:border-r lg:px-4">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-[#e0564d] text-white shadow-[0_6px_16px_-6px_rgba(255,115,0,0.55)]">
+          <MessageSquare className="h-4 w-4" />
         </span>
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/75">Chat</p>
-          <p className="text-[9px] text-white/35">Messaggi rapidi durante il match</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white">Chat</p>
+          <p className="text-[9px] text-white/40">Messaggi rapidi durante il match</p>
         </div>
         {statusLabel && (
           <span
             className={cn(
-              'ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase lg:ml-0',
+              'ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider lg:ml-0',
               connectionState === 'error'
-                ? 'bg-red-500/20 text-red-300'
-                : 'bg-white/10 text-white/50',
+                ? 'border-red-400/30 bg-red-500/10 text-red-300'
+                : 'border-white/10 bg-white/5 text-white/50',
             )}
           >
+            <span
+              aria-hidden
+              className={cn(
+                'h-1 w-1 rounded-full',
+                connectionState === 'error' ? 'bg-red-400' : 'animate-pulse bg-amber-300',
+              )}
+            />
             {statusLabel}
           </span>
         )}
@@ -141,38 +148,48 @@ export function MatchCommentsPanel({
           </p>
         )}
 
-        <ul ref={listRef} className="scrollbar-none flex-1 space-y-2 overflow-y-auto p-3">
+        <ul ref={listRef} className="scrollbar-none flex-1 space-y-1.5 overflow-y-auto p-3">
           {visibleMessages.length === 0 ? (
             <li className="grid h-full min-h-12 place-items-center px-5 py-3 text-center">
-              <span className="text-sm leading-relaxed text-white/35">
-                La chat è pronta. Scrivi all&apos;avversario durante la partita.
+              <span className="flex flex-col items-center gap-1.5 text-white/30">
+                <MessageSquare className="h-5 w-5" aria-hidden />
+                <span className="text-xs leading-relaxed">
+                  La chat è pronta. Scrivi all&apos;avversario durante la partita.
+                </span>
               </span>
             </li>
           ) : (
             visibleMessages.map((m) => {
+              const mine = m.userId === userId;
               const sticker = stickerFromText(m.text);
-              if (sticker) {
-                return (
-                  <li
-                    key={m.id}
-                    className="rounded-xl border border-[#FF7300]/30 bg-[#FF7300]/[0.08] px-3 py-2"
-                  >
-                    <p className="text-[11px] font-bold text-white/70">{displayName(m.userId)}</p>
-                    <p className="mt-0.5 flex items-center gap-2">
-                      <span className="sticker-chat-emoji text-3xl leading-none" aria-hidden>
-                        {sticker.emoji}
-                      </span>
-                      <span className="text-xs font-black uppercase tracking-wider text-[#FF9C4A]">
-                        {sticker.label}
-                      </span>
-                    </p>
-                  </li>
-                );
-              }
               return (
-                <li key={m.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <p className="text-[11px] font-bold text-white/70">{displayName(m.userId)}</p>
-                  <p className="mt-0.5 text-sm leading-snug text-white/90">{m.text}</p>
+                <li key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
+                  <div
+                    className={cn(
+                      'max-w-[78%] rounded-2xl border px-3 py-1.5',
+                      mine
+                        ? 'rounded-br-md border-primary/25 bg-primary/15'
+                        : 'rounded-bl-md border-sky-400/20 bg-sky-400/[0.08]',
+                    )}
+                  >
+                    {!mine && (
+                      <p className="text-[10px] font-black uppercase tracking-wider text-sky-300">
+                        {displayName(m.userId)}
+                      </p>
+                    )}
+                    {sticker ? (
+                      <p className="flex items-center gap-2 py-0.5">
+                        <span className="sticker-chat-emoji text-2xl leading-none" aria-hidden>
+                          {sticker.emoji}
+                        </span>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-[#FF9C4A]">
+                          {sticker.label}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-sm leading-snug text-white/95">{m.text}</p>
+                    )}
+                  </div>
                 </li>
               );
             })
@@ -181,8 +198,8 @@ export function MatchCommentsPanel({
       </div>
 
       {/* Azioni: sticker e invio, colonna a destra su desktop. */}
-      <div className="flex shrink-0 flex-col gap-1.5 border-t border-white/10 p-2 lg:w-72 lg:justify-center lg:border-l lg:border-t-0">
-        <div className="flex gap-1">
+      <div className="flex shrink-0 flex-col gap-2 border-t border-white/10 bg-white/[0.02] p-2.5 lg:w-72 lg:justify-center lg:border-l lg:border-t-0 lg:px-4">
+        <div className="flex gap-1.5">
           {MATCH_STICKERS.map((s) => (
             <button
               key={s.id}
@@ -192,10 +209,10 @@ export function MatchCommentsPanel({
               disabled={stickerCooldown || connectionState !== 'connected'}
               onClick={() => sendSticker(s.id)}
               className={cn(
-                'group relative grid h-7 w-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-base transition',
+                'group relative grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-base transition',
                 stickerCooldown || connectionState !== 'connected'
                   ? 'opacity-40'
-                  : 'hover:-translate-y-0.5 hover:border-[#FF7300]/50 hover:bg-[#FF7300]/15 active:scale-95',
+                  : 'hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/15 active:scale-95',
               )}
             >
               <span className="transition group-hover:scale-125">{s.emoji}</span>
@@ -213,12 +230,12 @@ export function MatchCommentsPanel({
             placeholder="Scrivi un messaggio…"
             maxLength={500}
             disabled={connectionState !== 'connected'}
-            className="min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 py-2 font-sans text-sm text-white placeholder:text-white/35 focus:border-white/30 focus:outline-none disabled:opacity-50"
+            className="h-10 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.06] px-4 font-sans text-sm text-white placeholder:text-white/35 transition focus:border-primary/50 focus:bg-white/[0.08] focus:outline-none disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={!draft.trim() || connectionState !== 'connected'}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/15 bg-white/10 text-white/80 transition hover:bg-white/15 disabled:opacity-40"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-[#e0564d] text-white shadow-[0_6px_16px_-6px_rgba(255,115,0,0.55)] transition hover:brightness-110 active:scale-95 disabled:opacity-30 disabled:shadow-none"
             aria-label="Invia messaggio"
           >
             <Send className="h-4 w-4" />
