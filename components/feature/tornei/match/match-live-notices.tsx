@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { RefreshCw } from 'lucide-react';
-import type { PeerLinkState } from '@/lib/webrtc/match-peer-link';
+import { ArrowLeft, Flag, RefreshCw } from 'lucide-react';
 
 export function MatchErrorNotice({
   message,
@@ -28,36 +27,46 @@ export function MatchErrorNotice({
   );
 }
 
-export function MatchEndedNotice() {
+/**
+ * Schermata di fine partita: sostituisce webcam e chat, impossibile non
+ * accorgersene. `opponentLeft` distingue l'abbandono esplicito dell'avversario.
+ */
+export function MatchEndedPanel({ opponentLeft }: { opponentLeft: boolean }) {
   return (
-    <p className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm text-white/85">
-      <span>La partita è terminata (fine match o abbandono dell&apos;avversario).</span>
-      <Link
-        href="/tornei"
-        className="rounded-full bg-gradient-to-r from-primary to-orange-500 px-4 py-1.5 text-xs font-black uppercase tracking-wide text-white hover:opacity-90"
-      >
-        Torna ai tavoli
-      </Link>
-    </p>
+    <section aria-live="polite" className="grid min-h-0 flex-1 place-items-center py-6">
+      <div className="simple-panel flex w-full max-w-xl flex-col items-center gap-5 px-6 py-10 text-center sm:px-10 sm:py-12">
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-primary to-[#e0564d] shadow-[0_16px_40px_-10px_rgba(255,115,0,0.65)] ring-1 ring-white/20">
+          <Flag className="h-7 w-7 text-white" aria-hidden />
+        </span>
+        <div>
+          <h2 className="font-display text-3xl font-black uppercase tracking-wide text-white sm:text-4xl">
+            Partita terminata
+          </h2>
+          <p className="mt-2 text-sm text-white/60 sm:text-base">
+            {opponentLeft
+              ? 'L’avversario ha abbandonato il tavolo.'
+              : 'Il match si è concluso o l’avversario ha abbandonato.'}
+          </p>
+        </div>
+        <Link
+          href="/tornei"
+          className="inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-b from-primary to-orange-600 px-8 text-sm font-black uppercase tracking-wide text-white shadow-[0_12px_28px_-10px_rgba(255,115,0,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Torna in lobby
+        </Link>
+      </div>
+    </section>
   );
 }
 
 export function MatchConnectionNotice({
-  state,
   reconnecting,
   onRetry,
 }: {
-  state: PeerLinkState;
   reconnecting: boolean;
   onRetry: () => void;
 }) {
-  if (state === 'peer-left') {
-    return (
-      <p role="status" className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-        L&apos;avversario ha abbandonato. Chiusura della partita in corso…
-      </p>
-    );
-  }
   if (!reconnecting) return null;
   return (
     <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">

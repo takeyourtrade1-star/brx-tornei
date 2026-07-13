@@ -169,6 +169,35 @@ export async function readyTournamentAction(
   }
 }
 
+export interface ActiveMatchStatus {
+  /** 'unknown' su errore API: il chiamante non deve scartare il riferimento. */
+  status: 'active' | 'inactive' | 'unknown';
+  opponent?: string | null;
+}
+
+/**
+ * Verifica se l'utente sta ancora partecipando a una partita in corso:
+ * usata dal banner "Torna alla partita" per validare il riferimento salvato.
+ */
+export async function activeMatchStatusAction(
+  tournamentId: string,
+): Promise<ActiveMatchStatus> {
+  const session = await getSession();
+  if (!session) return { status: 'inactive' };
+
+  try {
+    const tournament = await getTournamentById(tournamentId);
+    if (!tournament || tournament.status !== 'iniziata') return { status: 'inactive' };
+    const seated = tournament.participants.some((p) => p.id === session.user.id);
+    if (!seated) return { status: 'inactive' };
+    const opponent =
+      tournament.participants.find((p) => p.id !== session.user.id)?.username ?? null;
+    return { status: 'active', opponent };
+  } catch {
+    return { status: 'unknown' };
+  }
+}
+
 /** Uscita volontaria: chiude il match iniziato o alza l'utente se ancora in attesa. */
 export async function leaveTournamentAction(
   tournamentId: string,
