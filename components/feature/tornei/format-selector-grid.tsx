@@ -130,17 +130,6 @@ export function FormatSelectorGrid({
                 aria-hidden
               />
             )}
-            <span
-              className={cn(
-                'absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-black/80 via-black/35 to-transparent text-center font-sans font-bold uppercase tracking-wide transition-[padding,font-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-                compact
-                  ? 'px-1 pb-0.5 pt-3 text-[7px] leading-tight sm:text-[8px]'
-                  : 'px-2 pb-2 pt-6 text-[10px] sm:text-xs md:text-sm',
-                isSelected ? 'text-white' : 'text-white/70 group-hover:text-white',
-              )}
-            >
-              {format.name}
-            </span>
           </button>
         );
       })}
