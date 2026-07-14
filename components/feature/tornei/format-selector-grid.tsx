@@ -66,13 +66,13 @@ export function FormatSelectorGrid({
     );
   }
 
-  return (
-    <div
-      className={cn(
-        'flex w-full transition-[gap,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
-        compact
-          ? 'justify-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none'
-          : 'flex-wrap gap-2 sm:gap-2.5 lg:flex-nowrap lg:gap-2',
+    return (
+      <div
+        className={cn(
+          'w-full transition-[gap,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
+          compact
+            ? 'flex justify-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none'
+            : 'grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5',
       )}
     >
       {FORMATS_WITH_MEDIA.map((format) => {
@@ -87,11 +87,11 @@ export function FormatSelectorGrid({
             aria-pressed={isSelected}
             aria-label={`Formato ${format.name}`}
             className={cn(
-              'group relative aspect-video shrink-0 overflow-hidden rounded-3xl',
+              'group relative aspect-video w-full overflow-hidden rounded-2xl',
               CARD_MORPH_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
-                : 'w-[calc(50%-0.25rem)] hover:z-10 hover:scale-[1.04] sm:w-[calc(25%-0.5625rem)] lg:w-auto lg:min-w-0 lg:flex-1',
+                : 'hover:z-10 hover:scale-[1.04]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
               !isSelected && 'shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]',
               isSelected &&
@@ -135,7 +135,7 @@ export function FormatSelectorGrid({
                 'absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-black/80 via-black/35 to-transparent text-center font-sans font-bold uppercase tracking-wide transition-[padding,font-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
                 compact
                   ? 'px-1 pb-0.5 pt-3 text-[7px] leading-tight sm:text-[8px]'
-                  : 'px-3 pb-2.5 pt-8 text-[11px] sm:text-sm',
+                  : 'px-3 pb-3 pt-8 text-xs sm:text-sm md:text-base',
                 isSelected ? 'text-white' : 'text-white/70 group-hover:text-white',
               )}
             >
