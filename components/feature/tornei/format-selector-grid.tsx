@@ -87,11 +87,11 @@ export function FormatSelectorGrid({
             aria-pressed={isSelected}
             aria-label={`Formato ${format.name}`}
             className={cn(
-              'group relative aspect-video w-full overflow-hidden rounded-2xl',
+              'group relative aspect-video overflow-hidden rounded-2xl',
               CARD_MORPH_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
-                : 'hover:z-10 hover:scale-[1.04]',
+                : 'w-3/4 justify-self-center hover:z-10 hover:scale-[1.04]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
               !isSelected && 'shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]',
               isSelected &&
@@ -135,7 +135,7 @@ export function FormatSelectorGrid({
                 'absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-black/80 via-black/35 to-transparent text-center font-sans font-bold uppercase tracking-wide transition-[padding,font-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
                 compact
                   ? 'px-1 pb-0.5 pt-3 text-[7px] leading-tight sm:text-[8px]'
-                  : 'px-3 pb-3 pt-8 text-xs sm:text-sm md:text-base',
+                  : 'px-2 pb-2 pt-6 text-[10px] sm:text-xs md:text-sm',
                 isSelected ? 'text-white' : 'text-white/70 group-hover:text-white',
               )}
             >
