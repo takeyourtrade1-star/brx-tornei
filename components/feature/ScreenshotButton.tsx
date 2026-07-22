@@ -126,8 +126,8 @@ export function ScreenshotButton() {
           role="status"
           style={{
             position: 'fixed',
-            // Alla sinistra del bottone, sulla stessa riga (12px bordo + 38px bottone + 8px gap).
-            top: 'max(12px, env(safe-area-inset-top))',
+            // Alla sinistra del bottone, in basso: non invade header e navigazione.
+            bottom: 'max(16px, env(safe-area-inset-bottom))',
             right: '58px',
             zIndex: 2147483646,
             display: 'flex',
@@ -185,7 +185,7 @@ export function ScreenshotButton() {
           >
             <X size={12} />
           </button>
-          <style>{`@keyframes brx-tip-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}`}</style>
+          <style>{`@keyframes brx-tip-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
         </div>
       )}
     <button
@@ -196,7 +196,7 @@ export function ScreenshotButton() {
       aria-label={label}
       style={{
         position: 'fixed',
-        top: 'max(12px, env(safe-area-inset-top))',
+        bottom: 'max(16px, env(safe-area-inset-bottom))',
         right: '12px',
         zIndex: 2147483647,
         display: 'inline-flex',
