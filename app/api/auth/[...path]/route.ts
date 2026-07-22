@@ -7,6 +7,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
+import {
+  buildTrustedDeviceRequestCookie,
+  getTrustedDeviceAuthPolicy,
+  getSetCookieHeaders,
+  MFA_TRUST_COOKIE,
+  parseTrustedDeviceSetCookies,
+  serializeTrustedDeviceCookie,
+} from '@/lib/auth/trusted-device-cookie';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,10 +80,22 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
   request.nextUrl.searchParams.forEach((value, key) => url.searchParams.set(key, value));
 
   const auth = request.headers.get('authorization');
+  const authPath = `/api/auth/${pathSegments.join('/')}`;
+  const trustedDevicePolicy = getTrustedDeviceAuthPolicy(authPath);
+  const trustedDeviceCookie = buildTrustedDeviceRequestCookie(
+    trustedDevicePolicy.forwardCookie
+      ? request.cookies.get(MFA_TRUST_COOKIE)?.value
+      : undefined
+  );
+  const userAgent = trustedDevicePolicy.forwardUserAgent
+    ? request.headers.get('user-agent')
+    : null;
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': request.headers.get('content-type') || 'application/json',
     ...(auth ? { Authorization: auth } : {}),
+    ...(trustedDeviceCookie ? { Cookie: trustedDeviceCookie } : {}),
+    ...(userAgent ? { 'User-Agent': userAgent } : {}),
   };
 
   let body: string | undefined;
@@ -95,6 +115,16 @@ async function proxy(request: NextRequest, pathSegments: string[]) {
 
     const responseHeaders = new Headers();
     responseHeaders.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+
+    const trustedDeviceUpdate = trustedDevicePolicy.acceptSetCookie
+      ? parseTrustedDeviceSetCookies(getSetCookieHeaders(res.headers))
+      : null;
+    if (trustedDeviceUpdate) {
+      responseHeaders.append(
+        'Set-Cookie',
+        serializeTrustedDeviceCookie(trustedDeviceUpdate)
+      );
+    }
 
     const isSecure =
       process.env.NODE_ENV === 'production' ||
