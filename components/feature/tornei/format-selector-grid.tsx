@@ -15,6 +15,8 @@ interface FormatSelectorGridProps {
   selectedFormatId: FormatId;
   currentModeId: ModeId;
   compact?: boolean;
+  /** Card più basse per la barra filtri della lobby, mantenendo nome e hover. */
+  dense?: boolean;
   /** Layout dedicato mobile: pillole orizzontali (immagine + nome). */
   mobile?: boolean;
 }
@@ -23,6 +25,7 @@ export function FormatSelectorGrid({
   selectedFormatId,
   currentModeId,
   compact = false,
+  dense = false,
   mobile = false,
 }: FormatSelectorGridProps) {
   const router = useRouter();
@@ -72,7 +75,9 @@ export function FormatSelectorGrid({
         'w-full transition-[gap,padding] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0',
         compact
           ? 'flex justify-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none'
-          : '-my-8 flex flex-nowrap gap-2 overflow-x-auto py-8 sm:gap-2.5 md:overflow-visible',
+          : dense
+            ? '-my-5 flex flex-nowrap gap-2 overflow-x-auto py-5 sm:gap-2.5 md:overflow-visible'
+            : '-my-8 flex flex-nowrap gap-2 overflow-x-auto py-8 sm:gap-2.5 md:overflow-visible',
       )}
     >
       {FORMATS_WITH_MEDIA.map((format) => {
@@ -91,7 +96,12 @@ export function FormatSelectorGrid({
               CARD_MORPH_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
-                : 'flex-1 basis-0 origin-center first:origin-left last:origin-right hover:z-20 hover:scale-150 motion-reduce:hover:scale-100',
+                : cn(
+                    'origin-center first:origin-left last:origin-right hover:z-20 hover:scale-150 motion-reduce:hover:scale-100',
+                    dense
+                      ? 'w-[7.25rem] shrink-0 sm:w-[8rem] md:flex-1 md:basis-0'
+                      : 'flex-1 basis-0',
+                  ),
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
               !isSelected && 'shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]',
               isSelected &&

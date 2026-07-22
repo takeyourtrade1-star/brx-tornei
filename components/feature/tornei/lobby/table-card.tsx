@@ -19,6 +19,7 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
   const seatedCount = table.seats.filter((seat) => seat.occupied).length;
   const maxPlayers = table.tournament?.maxPlayers ?? 2;
   const price = getBuyInLabel(table.tournament?.buyIn ?? 'for_fun');
+  const gameType = price === 'For Fun' ? 'Partita libera' : 'Solo buy-in';
 
   const handlePrimary = () => {
     if (busy) return;
@@ -30,17 +31,14 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
   return (
     <article
       className={cn(
-        'grid gap-4 rounded-2xl border p-4 text-white shadow-[0_16px_34px_-28px_rgba(0,0,0,0.9)] transition duration-200',
-        'lg:min-h-[6.75rem] lg:grid-cols-[minmax(15rem,2fr)_minmax(6.5rem,0.65fr)_minmax(8rem,0.75fr)_minmax(8rem,0.8fr)_minmax(12.5rem,1fr)] lg:items-center',
+        'grid gap-4 rounded-2xl border p-3.5 text-white shadow-[0_16px_34px_-28px_rgba(0,0,0,0.9)] transition duration-200',
+        'lg:min-h-[5.5rem] lg:grid-cols-[minmax(15rem,2fr)_minmax(6.5rem,0.65fr)_minmax(8rem,0.75fr)_minmax(8rem,0.8fr)_minmax(12.5rem,1fr)] lg:items-center lg:px-4 lg:py-3',
         isMine
           ? 'border-primary/60 bg-header-bg ring-1 ring-primary/30'
           : 'border-white/10 bg-header-bg/95 hover:-translate-y-0.5 hover:border-white/25 hover:bg-header-bg hover:shadow-[0_22px_42px_-26px_rgba(15,23,42,0.95)]',
       )}
     >
       <div className="min-w-0">
-        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
-          {isMine ? 'Il tuo tavolo' : seatedCount > 0 ? 'Sfida aperta' : 'Nuovo tavolo'}
-        </p>
         <div className="flex flex-wrap items-center gap-2.5">
           <SeatChip seat={table.seats[0]} />
           <span className="text-xs font-black uppercase tracking-wider text-white/35">vs</span>
@@ -67,7 +65,7 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
 
       <TableDatum label="Prezzo" value={price} emphasized />
       <TableDatum label="Giocatori seduti" value={`${seatedCount}/${maxPlayers}`} />
-      <TableDatum label="Tipo di gioco" value="Solo buy-in" />
+      <TableDatum label="Tipo di gioco" value={gameType} />
 
       <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
         {(table.kind === 'empty' || table.kind === 'joinable') && (
@@ -119,7 +117,7 @@ function TableDatum({ label, value, emphasized = false }: { label: string; value
 function SeatChip({ seat }: { seat: Seat }) {
   if (!seat.occupied) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full border border-dashed border-white/15 bg-white/[0.02] px-3 py-1.5 text-sm font-medium text-white/40">
+      <span className="inline-flex items-center gap-2 rounded-full border border-dashed border-white/15 bg-white/[0.02] px-2.5 py-1.5 text-xs font-medium text-white/40">
         <UserPlus className="h-4 w-4" aria-hidden="true" />
         Posto libero
       </span>
@@ -127,7 +125,7 @@ function SeatChip({ seat }: { seat: Seat }) {
   }
   return (
     <span className={cn(
-      'inline-flex min-w-0 items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold',
+      'inline-flex min-w-0 items-center gap-2 rounded-full px-2.5 py-1.5 text-xs font-bold',
       seat.isMe ? 'bg-primary/20 text-primary' : 'bg-white/10 text-white',
     )}>
       <User className="h-4 w-4 shrink-0" aria-hidden="true" />

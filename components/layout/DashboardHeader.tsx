@@ -28,16 +28,10 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
   return (
     <header className="w-full border-b border-slate-900/10 bg-white/70 font-sans text-slate-900 shadow-[0_12px_35px_-28px_rgba(15,23,42,0.75)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-3 sm:flex-nowrap sm:gap-3 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-visible py-0.5 sm:flex-none">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-visible py-0.5 sm:flex-none">
           <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" />
-          <span className="h-8 w-px bg-slate-900/10" aria-hidden="true" />
-          <span className="min-w-0 leading-none">
-            <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-              Ebartex
-            </span>
-            <span className="mt-1 block truncate text-sm font-black uppercase tracking-wide text-header-bg sm:text-base">
-              Tornei
-            </span>
+          <span className="font-sans text-base font-bold uppercase tracking-wide text-primary sm:text-lg">
+            Tournaments
           </span>
         </div>
 
@@ -48,14 +42,12 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
           <HeaderPrimaryLink
             href="/mazzi"
             label="I miei mazzi"
-            detail="Deck"
             icon={Layers}
             active={pathname.startsWith('/mazzi')}
           />
           <HeaderPrimaryLink
             href="/partite"
             label="Le mie partite"
-            detail="Tavoli e live"
             icon={Swords}
             active={pathname.startsWith('/partite')}
           />
@@ -80,7 +72,7 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-header-bg text-xs font-black text-white">
               {initial}
             </span>
-            <span className="hidden max-w-[9rem] truncate text-xs font-bold text-slate-700 md:block">
+            <span className="hidden max-w-[7rem] truncate text-xs font-bold text-slate-700 lg:block xl:max-w-[10rem]">
               {displayName}
             </span>
           </div>
@@ -104,13 +96,11 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
 function HeaderPrimaryLink({
   href,
   label,
-  detail,
   icon: Icon,
   active,
 }: {
   href: string;
   label: string;
-  detail: string;
   icon: typeof Layers;
   active: boolean;
 }) {
@@ -119,7 +109,7 @@ function HeaderPrimaryLink({
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group flex min-w-0 items-center gap-2.5 rounded-2xl border px-3 py-2 text-left transition sm:min-w-[9.75rem]',
+        'group flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-left transition sm:min-w-[8.75rem]',
         active
           ? 'border-primary/50 bg-primary text-white shadow-[0_10px_22px_-12px_rgba(255,115,0,0.9)]'
           : 'border-slate-900/10 bg-white/75 text-header-bg hover:border-primary/30 hover:bg-white',
@@ -127,18 +117,13 @@ function HeaderPrimaryLink({
     >
       <span
         className={cn(
-          'grid h-8 w-8 shrink-0 place-items-center rounded-xl transition',
+          'grid h-7 w-7 shrink-0 place-items-center rounded-lg transition',
           active ? 'bg-white/15 text-white' : 'bg-header-bg text-white group-hover:bg-primary',
         )}
       >
-        <Icon className="h-4 w-4" strokeWidth={2.4} />
+        <Icon className="h-3.5 w-3.5" strokeWidth={2.4} />
       </span>
-      <span className="min-w-0 leading-none">
-        <span className="block truncate text-xs font-black uppercase tracking-wide">{label}</span>
-        <span className={cn('mt-1 block truncate text-[10px] font-bold', active ? 'text-white/70' : 'text-slate-500')}>
-          {detail}
-        </span>
-      </span>
+      <span className="min-w-0 truncate text-xs font-black uppercase tracking-wide">{label}</span>
     </Link>
   );
 }
