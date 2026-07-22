@@ -16,7 +16,7 @@ interface TableCardProps {
 
 export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: TableCardProps) {
   const isMine = table.kind === 'mine';
-  const participantCount = table.tournament?.participants.length ?? 0;
+  const seatedCount = table.seats.filter((seat) => seat.occupied).length;
   const maxPlayers = table.tournament?.maxPlayers ?? 2;
   const price = getBuyInLabel(table.tournament?.buyIn ?? 'for_fun');
 
@@ -30,13 +30,17 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
   return (
     <article
       className={cn(
-        'grid gap-4 rounded-2xl border p-4 text-white transition lg:grid-cols-[minmax(17rem,2fr)_minmax(6rem,0.65fr)_minmax(7rem,0.7fr)_minmax(8rem,0.8fr)_auto] lg:items-center',
+        'grid gap-4 rounded-2xl border p-4 text-white shadow-[0_16px_34px_-28px_rgba(0,0,0,0.9)] transition duration-200',
+        'lg:min-h-[6.75rem] lg:grid-cols-[minmax(15rem,2fr)_minmax(6.5rem,0.65fr)_minmax(8rem,0.75fr)_minmax(8rem,0.8fr)_minmax(12.5rem,1fr)] lg:items-center',
         isMine
           ? 'border-primary/60 bg-header-bg ring-1 ring-primary/30'
-          : 'border-white/10 bg-header-bg/95 hover:border-white/25 hover:bg-header-bg',
+          : 'border-white/10 bg-header-bg/95 hover:-translate-y-0.5 hover:border-white/25 hover:bg-header-bg hover:shadow-[0_22px_42px_-26px_rgba(15,23,42,0.95)]',
       )}
     >
       <div className="min-w-0">
+        <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+          {isMine ? 'Il tuo tavolo' : seatedCount > 0 ? 'Sfida aperta' : 'Nuovo tavolo'}
+        </p>
         <div className="flex flex-wrap items-center gap-2.5">
           <SeatChip seat={table.seats[0]} />
           <span className="text-xs font-black uppercase tracking-wider text-white/35">vs</span>
@@ -61,11 +65,11 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
         </div>
       </div>
 
-      <TableDatum label="Prezzi" value={price} emphasized />
-      <TableDatum label="Numero giocatori" value={`${participantCount}/${maxPlayers}`} />
+      <TableDatum label="Prezzo" value={price} emphasized />
+      <TableDatum label="Giocatori seduti" value={`${seatedCount}/${maxPlayers}`} />
       <TableDatum label="Tipo di gioco" value="Solo buy-in" />
 
-      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
         {(table.kind === 'empty' || table.kind === 'joinable') && (
           <PrimaryButton busy={busy} onClick={handlePrimary}>
             <UserPlus className="h-4 w-4" aria-hidden="true" />
@@ -103,9 +107,9 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
 
 function TableDatum({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
-      <span className="block text-xs font-bold text-white/40 lg:sr-only">{label}</span>
-      <span className={cn('mt-0.5 block text-sm font-extrabold lg:mt-0', emphasized ? 'text-primary' : 'text-white')}>
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
+      <span className="block text-[10px] font-black uppercase tracking-wider text-white/40 lg:sr-only">{label}</span>
+      <span className={cn('mt-1 block text-sm font-black lg:mt-0', emphasized ? 'text-primary' : 'text-white')}>
         {value}
       </span>
     </div>
@@ -139,7 +143,7 @@ function PrimaryButton({ children, busy, onClick }: { children: React.ReactNode;
       type="button"
       disabled={busy}
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-orange-500 px-4 py-2.5 text-xs font-black text-white transition hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
+      className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-orange-500 px-4 py-2.5 text-xs font-black text-white shadow-[0_10px_20px_-12px_rgba(255,115,0,0.9)] transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
     >
       {children}
     </button>
@@ -148,7 +152,7 @@ function PrimaryButton({ children, busy, onClick }: { children: React.ReactNode;
 
 function SecondaryButton({ busy, onClick, label }: { busy?: boolean; onClick: () => void; label: string }) {
   return (
-    <button type="button" disabled={busy} onClick={onClick} className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-xs font-bold text-white/85 transition hover:bg-white/10 disabled:opacity-50">
+    <button type="button" disabled={busy} onClick={onClick} className="min-h-10 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-xs font-bold text-white/85 transition hover:bg-white/10 disabled:opacity-50">
       {label}
     </button>
   );
@@ -161,7 +165,7 @@ function LeaveButton({ busy, onClick, label }: { busy?: boolean; onClick: () => 
       disabled={busy}
       onClick={onClick}
       aria-label={label === 'Alzati' ? 'Alzati dal tavolo' : 'Abbandona la partita'}
-      className="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/15 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-destructive/25 disabled:opacity-50"
+      className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/15 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-destructive/25 disabled:opacity-50"
     >
       <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
       {label}

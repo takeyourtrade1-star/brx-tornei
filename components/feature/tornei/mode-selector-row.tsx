@@ -1,20 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { Check, Swords, Users, type LucideIcon } from 'lucide-react';
 import { MODES, type ModeId } from '@/lib/data/catalog';
 import { cn } from '@/lib/utils';
-import type { ComponentType } from 'react';
-import { Swords, Users } from 'lucide-react';
-
-const MODE_MORPH_EASE =
-  'transition-[height,flex-grow,padding,border-radius,gap,background-color,border-color] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0';
 
 interface ModeSelectorRowProps {
   selectedModeId: ModeId;
   currentFormatId: string;
   compact?: boolean;
   lightPanel?: boolean;
-  /** Layout dedicato mobile: due pillole affiancate. */
+  /** Layout mobile: due controlli identici e sempre affiancati. */
   mobile?: boolean;
 }
 
@@ -26,110 +22,56 @@ export function ModeSelectorRow({
   mobile = false,
 }: ModeSelectorRowProps) {
   const router = useRouter();
-
-  const headsUp = MODES.find((m) => m.id === 'heads-up')!;
-  const torneo = MODES.find((m) => m.id === 'multiplayer')!;
+  const dense = compact || mobile;
+  const headsUp = MODES.find((mode) => mode.id === 'heads-up')!;
+  const multiplayer = MODES.find((mode) => mode.id === 'multiplayer')!;
 
   const selectMode = (modeId: ModeId, available: boolean) => {
     if (!available || modeId === selectedModeId) return;
     router.replace(`/tornei?format=${currentFormatId}&mode=${modeId}`, { scroll: false });
   };
 
-  // Mobile: due pillole affiancate a larghezza piena.
-  if (mobile) {
-    return (
-      <div className="flex w-full gap-2">
-        <ModePill
-          title={headsUp.name}
-          icon={Swords}
-          selected={selectedModeId === 'heads-up'}
-          available
-          onSelect={() => selectMode('heads-up', true)}
-        />
-        <ModePill
-          title={torneo.name}
-          icon={Users}
-          selected={selectedModeId === 'multiplayer'}
-          available={torneo.available}
-          onSelect={() => selectMode('multiplayer', torneo.available)}
-        />
-      </div>
-    );
-  }
-
   return (
     <div
       className={cn(
-        'flex w-full items-center justify-center transition-[gap] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0',
-        compact ? 'flex-wrap gap-1.5' : 'flex-col gap-2 sm:flex-row sm:gap-3',
+        'grid w-full grid-cols-2 gap-2 sm:gap-3',
+        !dense && 'max-w-3xl',
       )}
     >
       <ModeCard
         title={headsUp.name}
         description={headsUp.description}
         icon={Swords}
-        selected={selectedModeId === 'heads-up'}
+        selected={selectedModeId === headsUp.id}
         available
-        compact={compact}
+        dense={dense}
         lightPanel={lightPanel}
-        onSelect={() => selectMode('heads-up', true)}
+        onSelect={() => selectMode(headsUp.id, true)}
       />
       <ModeCard
-        title={torneo.name}
-        description={torneo.description}
+        title={multiplayer.name}
+        description={multiplayer.description}
         icon={Users}
-        selected={selectedModeId === 'multiplayer'}
-        available={torneo.available}
-        badge={torneo.badge}
-        compact={compact}
+        selected={selectedModeId === multiplayer.id}
+        available={multiplayer.available}
+        badge={multiplayer.badge}
+        dense={dense}
         lightPanel={lightPanel}
-        onSelect={() => selectMode('multiplayer', torneo.available)}
+        onSelect={() => selectMode(multiplayer.id, multiplayer.available)}
       />
     </div>
-  );
-}
-
-interface ModePillProps {
-  title: string;
-  icon: ComponentType<{ className?: string }>;
-  selected: boolean;
-  available: boolean;
-  onSelect: () => void;
-}
-
-/** Pillola modalità per il layout mobile. */
-function ModePill({ title, icon: Icon, selected, available, onSelect }: ModePillProps) {
-  return (
-    <button
-      type="button"
-      disabled={!available}
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={cn(
-        'simple-pill flex h-9 flex-1 items-center justify-center gap-1.5 px-3',
-        'text-[11px] font-bold uppercase tracking-wide',
-        !available
-          ? 'cursor-not-allowed bg-white/[0.03] text-white/55 ring-1 ring-white/10'
-          : selected
-            ? 'simple-pill-active'
-            : 'simple-pill-inactive',
-      )}
-    >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="truncate">{title}</span>
-    </button>
   );
 }
 
 interface ModeCardProps {
   title: string;
   description: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   selected: boolean;
   available: boolean;
   badge?: string;
-  compact?: boolean;
-  lightPanel?: boolean;
+  dense: boolean;
+  lightPanel: boolean;
   onSelect: () => void;
 }
 
@@ -140,8 +82,8 @@ function ModeCard({
   selected,
   available,
   badge,
-  compact = false,
-  lightPanel = false,
+  dense,
+  lightPanel,
   onSelect,
 }: ModeCardProps) {
   return (
@@ -151,72 +93,54 @@ function ModeCard({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'flex items-center text-left',
-        MODE_MORPH_EASE,
-        compact
-          ? 'h-8 shrink-0 grow-0 basis-0 gap-2 rounded-full border border-transparent px-3 text-[11px] font-bold uppercase tracking-wide'
-          : cn(
-              selected
-                ? 'h-12 min-h-12 w-full gap-2 rounded-2xl border border-primary/30 bg-primary/[0.08] px-3 sm:h-14 sm:min-h-14 sm:basis-0 sm:grow-[0.55]'
-                : 'h-9 min-h-9 w-full gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 sm:h-10 sm:min-h-10 sm:basis-0 sm:grow',
-            ),
-        compact && selected && available && 'simple-pill-active',
-        compact && !selected && available && 'simple-pill-inactive',
-        compact && !available && 'cursor-not-allowed bg-white/[0.03] text-white/35 ring-white/10',
-        !compact && available && 'hover:border-white/[0.12] hover:bg-white/[0.05]',
-        !compact && !available && 'cursor-not-allowed border-white/[0.04] bg-white/[0.02] opacity-50',
+        'group relative flex w-full items-center border text-left transition duration-200',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-header-bg',
+        dense ? 'min-h-11 gap-2 rounded-xl px-2.5 py-2' : 'min-h-[4.75rem] gap-3 rounded-2xl px-4 py-3',
+        selected && available
+          ? 'border-primary/70 bg-gradient-to-r from-primary/25 to-primary/10 text-white shadow-[0_12px_30px_-18px_rgba(255,115,0,0.95)] ring-1 ring-primary/30'
+          : lightPanel
+            ? 'border-slate-900/10 bg-white/70 text-header-bg hover:border-primary/30 hover:bg-white'
+            : 'border-white/10 bg-white/[0.04] text-white hover:border-white/25 hover:bg-white/[0.08]',
+        !available && 'cursor-not-allowed opacity-55',
       )}
     >
-        <span
+      <span
         className={cn(
-          'flex shrink-0 items-center justify-center transition-[width,height,color] duration-300 ease-out motion-reduce:transition-none',
-          compact ? 'h-3 w-3' : selected ? 'h-5 w-5' : 'h-4 w-4',
-          !compact && selected && available && 'text-primary',
-          !compact && !(selected && available) && 'text-white/60',
+          'grid shrink-0 place-items-center rounded-xl transition-colors',
+          dense ? 'h-8 w-8' : 'h-10 w-10',
+          selected && available
+            ? 'bg-primary text-white'
+            : lightPanel
+              ? 'bg-header-bg text-white'
+              : 'bg-white/10 text-white/70',
         )}
       >
-        <Icon className={cn('transition-[width,height] duration-300', compact ? 'h-3 w-3' : selected ? 'h-5 w-5' : 'h-4 w-4')} />
+        <Icon className={dense ? 'h-4 w-4' : 'h-5 w-5'} aria-hidden="true" />
       </span>
-      <span className={cn('min-w-0', compact ? 'flex shrink-0 items-center gap-1' : 'flex-1')}>
-        <span className={cn('flex items-center', compact ? 'gap-1' : 'gap-2')}>
-          <span
-            className={cn(
-              'truncate font-bold uppercase tracking-wide transition-[font-size,color] duration-300',
-              compact
-                ? 'text-[10px]'
-                : selected
-                  ? 'font-sans text-sm text-white'
-                  : 'font-sans text-xs text-white/85',
-            )}
-          >
+
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={cn('truncate font-black uppercase tracking-wide', dense ? 'text-[10px] sm:text-xs' : 'text-sm')}>
             {title}
           </span>
           {badge && (
-            <span
-              className={cn(
-                'shrink-0 rounded-full bg-white/[0.06] font-bold uppercase text-marquee transition-[font-size,padding] duration-300',
-                compact
-                  ? 'px-1.5 py-px text-[8px]'
-                  : selected
-                    ? 'px-2 py-0.5 text-[10px] tracking-wider'
-                    : 'px-1.5 py-0.5 text-[8px] tracking-wide',
-              )}
-            >
+            <span className="hidden shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-marquee sm:inline">
               {badge}
             </span>
           )}
         </span>
-        <span
-          className={cn(
-            'overflow-hidden transition-[grid-template-rows,opacity,margin,width] duration-300 ease-out motion-reduce:transition-none',
-            compact || !selected
-              ? 'grid w-0 grid-rows-[0fr] opacity-0'
-              : 'mt-0.5 grid w-full grid-rows-[1fr] opacity-100',
-          )}
-        >
-          <span className="block truncate text-xs text-white/55">{description}</span>
-        </span>
+        {!dense && (
+          <span className={cn('mt-1 block truncate text-xs font-semibold', lightPanel ? 'text-slate-500' : 'text-white/55')}>
+            {description}
+          </span>
+        )}
       </span>
+
+      {selected && available && (
+        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-white">
+          <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+        </span>
+      )}
     </button>
   );
 }

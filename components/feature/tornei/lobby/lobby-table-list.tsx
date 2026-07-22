@@ -38,23 +38,48 @@ export function LobbyTableList({
   onLeave,
   onGoLive,
 }: LobbyTableListProps) {
+  const openSeats = tables.reduce(
+    (total, table) => total + table.seats.filter((seat) => !seat.occupied).length,
+    0,
+  );
+
   return (
     <>
       <DashboardHeader user={user} />
       <main
         data-lobby-focus-fallback="true"
         tabIndex={-1}
-        className="mx-auto mt-4 flex w-full max-w-content animate-auth-enter flex-col px-4 pb-16 focus:outline-none sm:px-6"
+        className="mx-auto mt-5 flex w-full max-w-content animate-auth-enter flex-col px-4 pb-16 focus:outline-none sm:px-6"
       >
-        <div className="sticky top-2 z-40 mb-5 rounded-3xl border border-white/[0.08] bg-header-bg/95 px-4 py-4 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)] sm:px-5">
-          <div className="flex flex-col items-center gap-4">
-            <section className="flex w-full flex-col items-center gap-2">
-              <h2
-                id="tornei-format-label"
-                className="font-sans text-xs font-bold uppercase tracking-widest text-white/50"
-              >
-                Formato
-              </h2>
+        <div className="sticky top-2 z-40 mb-6 overflow-visible rounded-[1.75rem] border border-white/10 bg-header-bg/95 px-4 py-4 text-white shadow-[0_18px_50px_-22px_rgba(15,23,42,0.72)] sm:px-5 sm:py-5">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Arena Ebartex</p>
+              <h1 className="mt-1 text-lg font-black tracking-tight text-white sm:text-xl">
+                Scegli la tua partita
+              </h1>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wider">
+              <span className="rounded-full bg-primary/15 px-3 py-1.5 text-primary ring-1 ring-primary/30">
+                {formatName}
+              </span>
+              <span className="rounded-full bg-white/[0.06] px-3 py-1.5 text-white/65 ring-1 ring-white/10">
+                {modeName}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:gap-4">
+            <section className="grid w-full gap-2 md:grid-cols-[7rem_minmax(0,1fr)] md:items-center md:gap-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-primary/80">Passaggio 1</p>
+                <h2
+                  id="tornei-format-label"
+                  className="mt-1 font-sans text-xs font-black uppercase tracking-widest text-white"
+                >
+                  Formato
+                </h2>
+              </div>
               <div className="w-full md:hidden">
                 <FormatSelectorGrid
                   selectedFormatId={formatId}
@@ -69,19 +94,36 @@ export function LobbyTableList({
                 />
               </div>
             </section>
-            <section className="flex w-full flex-col items-center gap-2 border-t border-white/10 pt-3">
-              <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-white/50">Modalità</h2>
-              <ModeSelectorRow selectedModeId={selection.mode as ModeId} currentFormatId={formatId} />
+            <section className="grid w-full gap-2 border-t border-white/10 pt-3 md:grid-cols-[7rem_minmax(0,1fr)] md:items-center md:gap-4 sm:pt-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-primary/80">Passaggio 2</p>
+                <h2 className="mt-1 font-sans text-xs font-black uppercase tracking-widest text-white">Modalità</h2>
+              </div>
+              <div className="w-full md:hidden">
+                <ModeSelectorRow
+                  selectedModeId={selection.mode as ModeId}
+                  currentFormatId={formatId}
+                  mobile
+                />
+              </div>
+              <div className="hidden w-full max-w-3xl md:block">
+                <ModeSelectorRow selectedModeId={selection.mode as ModeId} currentFormatId={formatId} />
+              </div>
             </section>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-sans text-base font-bold uppercase tracking-widest text-header-bg/75 sm:text-lg">
-            Tavoli <span className="text-header-bg">{formatName}</span>
-            <span className="mx-2 text-header-bg/40" aria-hidden>·</span>
-            <span className="text-header-bg/65">{modeName}</span>
-          </h1>
-          <span className="text-xs font-bold uppercase tracking-wide text-header-bg/60">Best of 3</span>
+
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Lobby aperta</p>
+            <h2 className="mt-1 font-sans text-xl font-black tracking-tight text-header-bg sm:text-2xl">
+              Partite disponibili
+            </h2>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-header-bg/65">
+            <span className="rounded-full border border-header-bg/10 bg-white/45 px-3 py-1.5">{openSeats} posti liberi</span>
+            <span className="rounded-full border border-header-bg/10 bg-white/45 px-3 py-1.5">Best of 3</span>
+          </div>
         </div>
         {error && (
           <p
@@ -92,16 +134,16 @@ export function LobbyTableList({
           </p>
         )}
         <div
-          className="mt-5 hidden grid-cols-[minmax(17rem,2fr)_minmax(6rem,0.65fr)_minmax(7rem,0.7fr)_minmax(8rem,0.8fr)_auto] gap-4 px-4 text-xs font-extrabold uppercase tracking-[0.12em] text-header-bg/65 lg:grid"
+          className="mt-5 hidden grid-cols-[minmax(15rem,2fr)_minmax(6.5rem,0.65fr)_minmax(8rem,0.75fr)_minmax(8rem,0.8fr)_minmax(12.5rem,1fr)] gap-4 rounded-xl border border-header-bg/10 bg-white/45 px-4 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-header-bg/60 shadow-sm lg:grid"
           aria-hidden="true"
         >
           <span>Tavolo</span>
-          <span>Prezzi</span>
-          <span>Numero giocatori</span>
+          <span>Prezzo</span>
+          <span>Giocatori seduti</span>
           <span>Tipo di gioco</span>
           <span className="text-right">Azioni</span>
         </div>
-        <div className="mt-2 flex flex-col gap-3 lg:mt-3">
+        <div className="mt-3 flex flex-col gap-3">
           {tables.map((table) => (
             <TableCard
               key={table.key}

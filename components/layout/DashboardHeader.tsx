@@ -3,9 +3,11 @@
 import { logoutAction } from '@/actions/auth';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
+import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/types/auth';
 import { Layers, LogOut, Gamepad2, Swords } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface DashboardHeaderProps {
   user: SessionUser;
@@ -14,75 +16,81 @@ interface DashboardHeaderProps {
   onBackToMinigame?: () => void;
 }
 
-/** Chip bianchi frosted: ogni bottone ha il suo sfondo, l'header resta nudo. */
-const GHOST_CHIP =
-  'bg-white/70 text-slate-800 ring-1 ring-slate-900/10 shadow-sm backdrop-blur-sm transition-colors hover:bg-white/95';
-
 /**
- * Header dashboard tornei — logo, utente, Crea mazzo, Le mie partite, Esci.
- * Senza sfondo: scorre via con la pagina, la toolbar sticky resta come ancora.
+ * Header dashboard tornei — Mazzi e Partite sono le azioni primarie; profilo,
+ * ritorno al minigioco e logout restano controlli secondari e più discreti.
  */
 export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: DashboardHeaderProps) {
+  const pathname = usePathname();
   const displayName = user.name ?? user.email;
   const initial = (displayName[0] ?? '?').toUpperCase();
 
   return (
-    <header className="header-gradient w-full pb-3 font-sans text-slate-900 md:pb-4">
-      <div className="mx-auto flex max-w-content flex-wrap items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
-        <div className="flex items-center gap-2 overflow-visible py-1">
+    <header className="w-full border-b border-slate-900/10 bg-white/70 font-sans text-slate-900 shadow-[0_12px_35px_-28px_rgba(15,23,42,0.75)] backdrop-blur-xl">
+      <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-3 sm:flex-nowrap sm:gap-3 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-visible py-0.5 sm:flex-none">
           <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" />
-          <span className="font-sans text-base font-bold uppercase tracking-wide text-primary sm:text-lg">
-            Tournaments
+          <span className="h-8 w-px bg-slate-900/10" aria-hidden="true" />
+          <span className="min-w-0 leading-none">
+            <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+              Ebartex
+            </span>
+            <span className="mt-1 block truncate text-sm font-black uppercase tracking-wide text-header-bg sm:text-base">
+              Tornei
+            </span>
           </span>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+        <nav
+          aria-label="Navigazione principale tornei"
+          className="order-3 grid w-full grid-cols-2 gap-2 sm:order-none sm:ml-auto sm:flex sm:w-auto"
+        >
+          <HeaderPrimaryLink
+            href="/mazzi"
+            label="I miei mazzi"
+            detail="Deck"
+            icon={Layers}
+            active={pathname.startsWith('/mazzi')}
+          />
+          <HeaderPrimaryLink
+            href="/partite"
+            label="Le mie partite"
+            detail="Tavoli e live"
+            icon={Swords}
+            active={pathname.startsWith('/partite')}
+          />
+        </nav>
+
+        <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5 sm:ml-0 sm:gap-2">
           {showMinigameBack && onBackToMinigame && (
             <button
               type="button"
               onClick={onBackToMinigame}
               aria-label="Torna al mini-gioco"
-              className={`rounded-full p-2 ${GHOST_CHIP} hover:bg-primary/15 hover:ring-primary/40`}
+              className="grid h-9 w-9 place-items-center rounded-full border border-slate-900/10 bg-white/65 text-primary transition hover:border-primary/30 hover:bg-primary/10"
             >
-              <Gamepad2 className="h-4 w-4 text-primary" />
+              <Gamepad2 className="h-4 w-4" />
             </button>
           )}
 
           <div
             aria-label="Profilo"
-            className="flex items-center gap-2 rounded-full bg-white/70 py-1 pl-1 pr-3 ring-1 ring-slate-900/10 shadow-sm backdrop-blur-sm"
+            className="flex h-9 items-center gap-2 rounded-full border border-slate-900/10 bg-white/65 p-1 sm:pr-3"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-header-bg text-xs font-black text-white">
               {initial}
             </span>
-            <span className="max-w-[5.5rem] truncate font-sans text-sm font-semibold text-slate-800 sm:max-w-[10rem]">
+            <span className="hidden max-w-[9rem] truncate text-xs font-bold text-slate-700 md:block">
               {displayName}
             </span>
           </div>
-
-          <Link
-            href="/mazzi"
-            aria-label="Crea mazzo"
-            title="Crea mazzo"
-            className="group grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-primary to-[#e0564d] text-white shadow-[0_6px_16px_-6px_rgba(255,115,0,0.55)] ring-1 ring-white/50 transition-transform hover:scale-105 active:scale-95"
-          >
-            <Layers className="h-4 w-4 transition-transform group-hover:-rotate-6" strokeWidth={2.4} />
-          </Link>
-
-          <Link
-            href="/partite"
-            aria-label="Le mie partite"
-            className={`flex items-center gap-2 rounded-full p-2 text-sm font-bold uppercase tracking-wide ${GHOST_CHIP} sm:px-4 sm:py-1.5`}
-          >
-            <Swords className="h-4 w-4 shrink-0" />
-            <span className="hidden sm:inline">Le mie partite</span>
-          </Link>
 
           <form action={logoutAction}>
             <button
               type="submit"
               aria-label="Esci"
-              className={`rounded-full p-2 ${GHOST_CHIP} hover:bg-destructive/10 hover:text-destructive hover:ring-destructive/30`}
+              title="Esci"
+              className="grid h-9 w-9 place-items-center rounded-full border border-slate-900/10 bg-white/65 text-slate-500 transition hover:border-destructive/25 hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -90,5 +98,47 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
         </div>
       </div>
     </header>
+  );
+}
+
+function HeaderPrimaryLink({
+  href,
+  label,
+  detail,
+  icon: Icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  detail: string;
+  icon: typeof Layers;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'group flex min-w-0 items-center gap-2.5 rounded-2xl border px-3 py-2 text-left transition sm:min-w-[9.75rem]',
+        active
+          ? 'border-primary/50 bg-primary text-white shadow-[0_10px_22px_-12px_rgba(255,115,0,0.9)]'
+          : 'border-slate-900/10 bg-white/75 text-header-bg hover:border-primary/30 hover:bg-white',
+      )}
+    >
+      <span
+        className={cn(
+          'grid h-8 w-8 shrink-0 place-items-center rounded-xl transition',
+          active ? 'bg-white/15 text-white' : 'bg-header-bg text-white group-hover:bg-primary',
+        )}
+      >
+        <Icon className="h-4 w-4" strokeWidth={2.4} />
+      </span>
+      <span className="min-w-0 leading-none">
+        <span className="block truncate text-xs font-black uppercase tracking-wide">{label}</span>
+        <span className={cn('mt-1 block truncate text-[10px] font-bold', active ? 'text-white/70' : 'text-slate-500')}>
+          {detail}
+        </span>
+      </span>
+    </Link>
   );
 }

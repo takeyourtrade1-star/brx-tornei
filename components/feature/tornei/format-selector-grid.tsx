@@ -72,7 +72,7 @@ export function FormatSelectorGrid({
         'w-full transition-[gap,padding] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0',
         compact
           ? 'flex justify-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none'
-          : '-my-6 flex flex-nowrap gap-2 overflow-x-auto py-6 sm:gap-2.5 md:overflow-visible',
+          : '-my-8 flex flex-nowrap gap-2 overflow-x-auto py-8 sm:gap-2.5 md:overflow-visible',
       )}
     >
       {FORMATS_WITH_MEDIA.map((format) => {
@@ -91,7 +91,7 @@ export function FormatSelectorGrid({
               CARD_MORPH_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
-                : 'flex-1 basis-0 origin-center first:origin-left last:origin-right hover:z-20 hover:scale-[1.45] motion-reduce:hover:scale-100',
+                : 'flex-1 basis-0 origin-center first:origin-left last:origin-right hover:z-20 hover:scale-150 motion-reduce:hover:scale-100',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
               !isSelected && 'shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]',
               isSelected &&
@@ -129,6 +129,19 @@ export function FormatSelectorGrid({
                 className="pointer-events-none absolute inset-0 z-[1] bg-black/25 transition-colors duration-300 group-hover:bg-black/5"
                 aria-hidden
               />
+            )}
+            {!compact && (
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-black/90 via-black/55 to-transparent px-2 pb-1.5 pt-5 text-center">
+                <span
+                  className={cn(
+                    'block truncate text-[9px] font-black uppercase tracking-[0.08em] text-white transition-transform duration-300 sm:text-[10px]',
+                    'group-hover:scale-105',
+                    isSelected && 'text-primary',
+                  )}
+                >
+                  {format.name}
+                </span>
+              </span>
             )}
           </button>
         );

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Gamepad2, ShieldCheck, Users } from 'lucide-react';
+import { Check, Gamepad2, ShieldCheck, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LobbyModalHeader } from './lobby-modal-header';
 import { useLobbyModal } from './use-lobby-modal';
@@ -85,7 +85,7 @@ export function FriendConnectionModal({
 
         <div className="space-y-4 px-5 py-5 sm:px-6">
           {mode === 'create' && (
-            <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Tipo di partita">
+            <div className="grid auto-rows-fr grid-cols-2 gap-2.5 sm:gap-3" role="group" aria-label="Tipo di partita">
               <ChoiceCard
                 selected={choice === 'normal'}
                 icon={Gamepad2}
@@ -174,22 +174,42 @@ function ChoiceCard({
       aria-pressed={selected}
       data-modal-initial-focus={initialFocus ? 'true' : undefined}
       className={cn(
-        'group min-h-36 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+        'group relative flex h-full min-h-40 flex-col rounded-2xl border p-3.5 text-left transition sm:p-4',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-header-bg',
         selected
-          ? 'border-primary/70 bg-primary/15 ring-1 ring-primary/30'
+          ? 'border-primary/70 bg-gradient-to-b from-primary/20 to-primary/[0.08] shadow-[0_16px_34px_-24px_rgba(255,115,0,0.95)] ring-1 ring-primary/30'
           : 'border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.07]',
       )}
     >
       <span
         className={cn(
-          'grid h-10 w-10 place-items-center rounded-xl transition',
+          'absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full border transition',
+          selected
+            ? 'border-primary bg-primary text-white'
+            : 'border-white/15 bg-white/[0.04] text-transparent',
+        )}
+        aria-hidden="true"
+      >
+        <Check className="h-3 w-3" strokeWidth={3} />
+      </span>
+      <span
+        className={cn(
+          'grid h-10 w-10 place-items-center rounded-xl transition sm:h-11 sm:w-11',
           selected ? 'bg-primary text-white' : 'bg-white/10 text-white/65 group-hover:text-white',
         )}
       >
         <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
-      <p className="mt-4 text-base font-black text-white">{title}</p>
-      <p className="mt-1 text-sm font-medium leading-relaxed text-white/55">{description}</p>
+      <p className="mt-4 text-sm font-black leading-tight text-white sm:text-base">{title}</p>
+      <p className="mt-1.5 text-xs font-semibold leading-relaxed text-white/55 sm:text-sm">{description}</p>
+      <span
+        className={cn(
+          'mt-auto pt-3 text-[10px] font-black uppercase tracking-[0.14em]',
+          selected ? 'text-primary' : 'text-white/35',
+        )}
+      >
+        {selected ? 'Selezionata' : 'Seleziona'}
+      </span>
     </button>
   );
 }
