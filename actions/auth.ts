@@ -12,6 +12,10 @@ import {
   getPreAuthCookie,
   setPreAuthCookie,
 } from '@/lib/auth/pre-auth-cookie';
+import {
+  applyTrustedDeviceResponse,
+  getTrustedDeviceForwardHeaders,
+} from '@/lib/auth/trusted-device';
 import { sanitizeRedirect } from '@/lib/auth/redirect';
 import {
   buildLoginPayload,
@@ -46,13 +50,20 @@ async function authFetch(
   }
 
   try {
+    const trustedDeviceHeaders = await getTrustedDeviceForwardHeaders(path);
     const res = await fetch(`${config.api.baseURL}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...trustedDeviceHeaders,
+      },
       body: JSON.stringify(body),
       cache: 'no-store',
       signal: AbortSignal.timeout(config.api.timeout),
     });
+    // Login e verifica MFA possono emettere, ruotare o revocare il cookie.
+    await applyTrustedDeviceResponse(path, res.headers);
     const parsed = unwrap(await res.json().catch(() => ({})));
     return { ok: res.ok, body: parsed };
   } catch {
