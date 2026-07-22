@@ -1,6 +1,4 @@
 'use client';
-
-import { useEffect, useState } from 'react';
 import type { Tournament } from '@/types/tournament';
 import type { LiveViewRole } from '@/lib/validations/live';
 import { getFormat, getMode } from '@/lib/data/catalog';
@@ -12,9 +10,11 @@ import { useMatchLife } from '@/hooks/use-match-life';
 import { useMatchStartCountdown } from '@/hooks/use-match-start-countdown';
 import { useMatchStickerShot } from '@/hooks/use-match-sticker-shot';
 import { useMatchTournamentRefresh } from '@/hooks/use-match-tournament-refresh';
+import { useMatchMediaState } from '@/hooks/use-match-media-state';
+import { useActiveMatchReference } from '@/hooks/use-active-match-reference';
 import { usePlayerWebcam } from '@/hooks/use-player-webcam';
 import type { PlaymatId } from '@/lib/playmats';
-import { clearActiveMatch, saveActiveMatch } from '@/lib/active-match-storage';
+import { clearActiveMatch } from '@/lib/active-match-storage';
 import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchFullscreenArena } from './match-fullscreen-arena';
 import { MatchIntroOverlay } from './match-intro-overlay';
@@ -23,7 +23,6 @@ import { MatchConnectionNotice, MatchEndedPanel, MatchErrorNotice } from './matc
 import { MatchReadyPanel } from './match-ready-panel';
 import { resolveMatchSides } from './match-players';
 import { MatchVideoGrid } from './match-video-grid';
-
 interface MatchLiveViewProps {
   tournament: Tournament;
   role: LiveViewRole;
@@ -34,15 +33,7 @@ interface MatchLiveViewProps {
   defaultPlaymatId: PlaymatId;
 }
 
-export function MatchLiveView({
-  tournament,
-  role,
-  me,
-  userId,
-  accessToken,
-  isHost,
-  defaultPlaymatId,
-}: MatchLiveViewProps) {
+export function MatchLiveView({ tournament, role, me, userId, accessToken, isHost, defaultPlaymatId }: MatchLiveViewProps) {
   const isObserver = role === 'observer';
   const isPlayer = !isObserver;
   const { local, remote, players } = resolveMatchSides(tournament, me, userId);
@@ -51,23 +42,13 @@ export function MatchLiveView({
   const rightPlayer = isObserver ? playerB : remote;
   const modeName = getMode(tournament.mode)?.name ?? tournament.mode;
   const formatName = getFormat(tournament.format)?.name ?? tournament.format;
-  const bestOfLabel = 'Best of 3';
   const started = tournament.status === 'iniziata';
   const authorityPlayerId = isHost ? local.id : remote.id;
-
-  // A partita terminata la webcam si rilascia subito (LED spento, niente tile).
   const { stream: localStream, feedLabel, error: webcamError } = usePlayerWebcam(
     isPlayer && tournament.status !== 'terminata',
   );
-  const [camOn, setCamOn] = useState(true);
-  const [micOn, setMicOn] = useState(true);
-  const [fullscreenOpen, setFullscreenOpen] = useState(false);
-  useEffect(() => {
-    if (!localStream) return;
-    for (const track of localStream.getVideoTracks()) track.enabled = camOn;
-    for (const track of localStream.getAudioTracks()) track.enabled = micOn;
-  }, [localStream, camOn, micOn]);
-
+  const { camOn, setCamOn, micOn, setMicOn, fullscreenOpen, setFullscreenOpen } =
+    useMatchMediaState(localStream);
   const peerSessionId = tournament.matchWebcamSessionId ?? tournament.matchId ?? null;
   const {
     state: peerState,
@@ -87,11 +68,8 @@ export function MatchLiveView({
   const peerConnecting =
     isPlayer && started && !remoteStream && peerState !== 'failed' && peerState !== 'idle';
 
-  // Fine partita vera (chiusura o abbandono), non un problema di connessione:
-  // si chiude tutto e si mostra la schermata dedicata.
   const matchEnded =
     tournament.status === 'terminata' || (isPlayer && peerState === 'peer-left');
-
   const ready = useMatchReady(tournament, userId);
   const leave = useLeaveMatch(tournament, async () => {
     clearActiveMatch(tournament.id);
@@ -130,17 +108,13 @@ export function MatchLiveView({
     peerLeft: peerState === 'peer-left',
   });
 
-  // Riferimento "partita in corso" per il banner Torna alla partita: salvato
-  // finché si gioca, pulito a fine match o abbandono.
-  useEffect(() => {
-    if (!isPlayer) return;
-    if (matchEnded) {
-      clearActiveMatch(tournament.id);
-    } else if (started) {
-      saveActiveMatch({ tournamentId: tournament.id, opponent: remote.username });
-    }
-  }, [isPlayer, matchEnded, started, tournament.id, remote.username]);
-
+  useActiveMatchReference({
+    isPlayer,
+    matchEnded,
+    started,
+    tournamentId: tournament.id,
+    opponent: remote.username,
+  });
   const participantNames = Object.fromEntries(
     tournament.participants.map((participant) => [participant.id, participant.username]),
   );
@@ -151,6 +125,7 @@ export function MatchLiveView({
     send: chat.send,
     connectionState: chat.connectionState,
     error: chat.error,
+    onRetry: chat.retry,
     participantNames,
   };
   const visiblePeerError = peerReconnecting || peerState === 'peer-left' ? null : peerError;
@@ -161,7 +136,7 @@ export function MatchLiveView({
       <MatchLiveHeader
         players={players}
         modeName={modeName}
-        bestOfLabel={bestOfLabel}
+        bestOfLabel="Best of 3"
         status={tournament.status}
         isPlayer={isPlayer}
         leaving={leave.leaving}
@@ -184,13 +159,18 @@ export function MatchLiveView({
           opponentReady={ready.opponentReady}
           pending={ready.pending}
           startingLife={life.startingLife}
-          lifeConnected={chat.connectionState === 'connected'}
+          lifeConnected={chat.connectionState === 'connected' && life.synced}
           canSetStartingLife={isHost}
           onStartingLifeChange={life.setStartingLife}
           onReady={ready.toggleReady}
         />
       )}
       {ready.error && isPlayer && <MatchErrorNotice message={ready.error} />}
+      {isObserver && (
+        <p className="mb-4 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/65">
+          La visione video per gli osservatori non è ancora disponibile.
+        </p>
+      )}
       {!matchEnded && isPlayer && started && (
         <MatchConnectionNotice reconnecting={peerReconnecting} onRetry={retryPeer} />
       )}
@@ -202,8 +182,6 @@ export function MatchLiveView({
         <MatchEndedPanel opponentLeft={isPlayer && peerState === 'peer-left'} />
       ) : (
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        {/* Su desktop il grid si restringe se il viewport è basso, così webcam
-            e chat restano sempre dentro la hero senza scroll. */}
         <div className="mx-auto w-full lg:max-w-[calc((100dvh-340px)*3.5556+0.75rem)]">
           <MatchVideoGrid
             isObserver={isObserver}
@@ -220,7 +198,7 @@ export function MatchLiveView({
             micOn={micOn}
             lifeByPlayerId={life.lifeByPlayerId}
             startingLife={life.startingLife}
-            lifeConnected={chat.connectionState === 'connected'}
+            lifeConnected={chat.connectionState === 'connected' && life.synced}
             stickerShot={stickerShot}
             participantNames={participantNames}
             userId={userId}
@@ -252,7 +230,7 @@ export function MatchLiveView({
         micOn={micOn}
         startingLife={life.startingLife}
         lifeByPlayerId={life.lifeByPlayerId}
-        lifeConnected={chat.connectionState === 'connected'}
+        lifeConnected={chat.connectionState === 'connected' && life.synced}
         playmatId={defaultPlaymatId}
         chat={chatPanelProps}
         onToggleCam={() => setCamOn((value) => !value)}

@@ -206,7 +206,7 @@ export function createWebcamReceiver(sessionId: string, h: ReceiverHandlers): Li
     streamWatchdog = setTimeout(() => {
       if (streamDelivered) return;
       fail(
-        'Connessione aperta ma il video non arriva. Tieni telefono e PC sulla stessa Wi‑Fi oppure configura un server TURN per reti diverse.',
+        'Connessione aperta ma il video non arriva. Verifica la rete e riprova tra poco.',
       );
     }, STREAM_TIMEOUT_MS);
   };

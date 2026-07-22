@@ -96,6 +96,7 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     maxPlayers: typeof obj.max_players === 'number' ? obj.max_players : (obj.maxPlayers as number) ?? 2,
     participants: mapParticipants(obj.participants),
     createdAt,
+    updatedAt: pickString(obj, 'updated_at', 'updatedAt') ?? createdAt,
     isPrivate: pickBool(obj, 'is_private', 'isPrivate'),
     withFriend: pickBool(obj, 'with_friend', 'withFriend') ?? false,
     webcamSessionId: pickString(obj, 'webcam_session_id', 'webcamSessionId'),

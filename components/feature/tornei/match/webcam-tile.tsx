@@ -20,6 +20,8 @@ interface WebcamTileProps {
   videoDisabled?: boolean;
   /** Nasconde il nome in basso quando l'identità è già mostrata da un overlay esterno. */
   hideUsername?: boolean;
+  /** Messaggio esplicito quando il ruolo non riceve uno stream video. */
+  emptyLabel?: string;
 }
 
 /**
@@ -34,6 +36,7 @@ export function WebcamTile({
   muted = true,
   videoDisabled = false,
   hideUsername = false,
+  emptyLabel,
 }: WebcamTileProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -78,7 +81,7 @@ export function WebcamTile({
             )}
             {!compact && (
               <span className="text-xs">
-                {connecting ? 'Connessione video…' : 'In attesa del video'}
+                {emptyLabel ?? (connecting ? 'Connessione video…' : 'In attesa del video')}
               </span>
             )}
           </div>

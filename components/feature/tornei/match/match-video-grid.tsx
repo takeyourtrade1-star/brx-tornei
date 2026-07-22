@@ -32,7 +32,7 @@ interface MatchVideoGridProps {
   onToggleCam: () => void;
   onFullscreen: () => void;
   onLifeChange: (playerId: string, delta: number) => void;
-  onLifeReset: () => void;
+  onLifeReset?: () => void;
 }
 
 export function MatchVideoGrid({
@@ -91,7 +91,7 @@ export function MatchVideoGrid({
         <div className="relative w-full overflow-hidden rounded-2xl shadow-[0_24px_60px_-24px_rgba(0,0,0,0.7)] ring-1 ring-white/10 [aspect-ratio:16/9]">
           <div className="absolute inset-0">
             {isObserver ? (
-              <WebcamTile username={leftPlayer.username} hideUsername />
+              <WebcamTile username={leftPlayer.username} hideUsername emptyLabel="Video non disponibile agli osservatori" />
             ) : (
               <WebcamTile
                 stream={localStream}
@@ -138,6 +138,7 @@ export function MatchVideoGrid({
               connecting={isPlayer ? peerConnecting : false}
               muted={false}
               hideUsername
+              emptyLabel={isObserver ? 'Video non disponibile agli osservatori' : undefined}
             />
           </div>
           <div className="absolute left-2 top-9 z-20">

@@ -15,7 +15,7 @@ interface MatchLifeBadgeProps {
   /** Valore di partenza, usato solo nel tooltip del reset. */
   startingLife?: number;
   onChange: (playerId: string, delta: number) => void;
-  /** Ripristino condiviso di entrambi i giocatori (solo capsula locale). */
+  /** Ripristino dei punti vita del giocatore locale. */
   onReset?: () => void;
 }
 
@@ -140,9 +140,9 @@ export function MatchLifeBadge({
                 type="button"
                 onClick={onReset}
                 disabled={!connected}
-                title={startingLife ? `Ripristina entrambi a ${startingLife}` : 'Ripristina i punti vita'}
+                title={startingLife ? `Ripristina i tuoi punti vita a ${startingLife}` : 'Ripristina i punti vita'}
                 aria-label={
-                  startingLife ? `Ripristina i punti vita a ${startingLife}` : 'Ripristina i punti vita'
+                  startingLife ? `Ripristina i tuoi punti vita a ${startingLife}` : 'Ripristina i punti vita'
                 }
                 className="ml-1 grid h-7 w-7 place-items-center rounded-full text-white/40 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
               >

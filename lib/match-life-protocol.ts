@@ -4,15 +4,18 @@ export const STARTING_LIFE_OPTIONS = [20, 30, 40] as const;
 const LIFE_PREFIX = '[[BRX_LIFE_V1]]';
 
 export type MatchLifeCommand =
-  | { type: 'setup'; startingLife: number; senderId: string }
-  | { type: 'delta'; targetId: string; delta: number; senderId: string }
+  | { type: 'setup'; startingLife: number; senderId: string; revision?: number; commandId?: string }
+  | { type: 'delta'; targetId: string; delta: number; senderId: string; revision?: number; commandId?: string }
+  | { type: 'reset'; targetId: string; senderId: string; revision?: number; commandId?: string }
   | {
       type: 'snapshot';
       startingLife: number;
       lifeByPlayerId: Record<string, number>;
       senderId: string;
+      revision?: number;
+      commandId?: string;
     }
-  | { type: 'sync-request'; senderId: string };
+  | { type: 'sync-request'; senderId: string; revision?: number; commandId?: string };
 
 export function encodeMatchLifeCommand(command: MatchLifeCommand): string {
   return `${LIFE_PREFIX}${JSON.stringify(command)}`;
@@ -27,8 +30,13 @@ export function parseMatchLifeCommand(text: string): MatchLifeCommand | null {
       return null;
     }
 
+    const commandId = isCommandId(value.commandId) ? value.commandId : undefined;
+    if (value.commandId !== undefined && !commandId) return null;
+    const revision = isRevision(value.revision) ? value.revision : undefined;
+    if (value.revision !== undefined && revision === undefined) return null;
+
     if (value.type === 'setup' && isLife(value.startingLife)) {
-      return { type: 'setup', startingLife: value.startingLife, senderId: value.senderId };
+      return { type: 'setup', startingLife: value.startingLife, senderId: value.senderId, ...withRevision(revision), ...withCommandId(commandId) };
     }
     if (
       value.type === 'delta' &&
@@ -42,7 +50,12 @@ export function parseMatchLifeCommand(text: string): MatchLifeCommand | null {
         targetId: value.targetId,
         delta: value.delta,
         senderId: value.senderId,
+        ...withRevision(revision),
+        ...withCommandId(commandId),
       };
+    }
+    if (value.type === 'reset' && typeof value.targetId === 'string') {
+      return { type: 'reset', targetId: value.targetId, senderId: value.senderId, ...withRevision(revision), ...withCommandId(commandId) };
     }
     if (
       value.type === 'snapshot' &&
@@ -54,9 +67,13 @@ export function parseMatchLifeCommand(text: string): MatchLifeCommand | null {
         startingLife: value.startingLife,
         lifeByPlayerId: value.lifeByPlayerId,
         senderId: value.senderId,
+        ...withRevision(revision),
+        ...withCommandId(commandId),
       };
     }
-    if (value.type === 'sync-request') return { type: 'sync-request', senderId: value.senderId };
+    if (value.type === 'sync-request') {
+      return { type: 'sync-request', senderId: value.senderId, ...withRevision(revision), ...withCommandId(commandId) };
+    }
   } catch {
     return null;
   }
@@ -82,6 +99,22 @@ function isLifeMap(value: unknown): value is Record<string, number> {
 
 function isLifeValue(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 999;
+}
+
+function isCommandId(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= 120;
+}
+
+function isRevision(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+}
+
+function withCommandId(commandId: string | undefined): { commandId?: string } {
+  return commandId ? { commandId } : {};
+}
+
+function withRevision(revision: number | undefined): { revision?: number } {
+  return revision === undefined ? {} : { revision };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

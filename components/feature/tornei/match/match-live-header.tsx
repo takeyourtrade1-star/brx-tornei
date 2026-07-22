@@ -36,7 +36,8 @@ export function MatchLiveHeader({
         <Link
           href="/tornei"
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:border-white/25 hover:bg-white/15 hover:text-white"
-          aria-label="Torna ai tornei"
+          aria-label="Torna alla lobby: la partita resta attiva"
+          title="Torna alla lobby: la partita resta attiva"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>

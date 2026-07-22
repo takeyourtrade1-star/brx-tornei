@@ -34,6 +34,8 @@ export interface Tournament {
   maxPlayers: number;
   participants: Participant[];
   createdAt: string;
+  /** Ultima attività autorevole registrata dal Tournament Service. */
+  updatedAt: string;
   isPrivate?: boolean;
   /** true: P2P diretto consentito; l'IP pubblico pu\u00f2 essere visibile al peer. */
   withFriend?: boolean;

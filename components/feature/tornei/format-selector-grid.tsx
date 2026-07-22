@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { FormatPillSelect } from '@/components/feature/tornei/format-pill-select';
 
 const CARD_MORPH_EASE =
-  'transition-[width,flex-basis,transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
+  'transform-gpu transition-[transform,box-shadow] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0';
 
 interface FormatSelectorGridProps {
   selectedFormatId: FormatId;
@@ -66,13 +66,13 @@ export function FormatSelectorGrid({
     );
   }
 
-    return (
-      <div
-        className={cn(
-          'w-full transition-[gap,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
-          compact
-            ? 'flex justify-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none'
-            : 'flex flex-nowrap gap-2 overflow-x-auto sm:gap-2.5',
+  return (
+    <div
+      className={cn(
+        'w-full transition-[gap,padding] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0',
+        compact
+          ? 'flex justify-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none'
+          : '-my-6 flex flex-nowrap gap-2 overflow-x-auto py-6 sm:gap-2.5 md:overflow-visible',
       )}
     >
       {FORMATS_WITH_MEDIA.map((format) => {
@@ -91,7 +91,7 @@ export function FormatSelectorGrid({
               CARD_MORPH_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
-                : 'flex-1 basis-0 hover:z-10 hover:scale-[1.04]',
+                : 'flex-1 basis-0 origin-center first:origin-left last:origin-right hover:z-20 hover:scale-[1.45] motion-reduce:hover:scale-100',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
               !isSelected && 'shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]',
               isSelected &&
@@ -104,7 +104,7 @@ export function FormatSelectorGrid({
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 12vw"
               className={cn(
-                'object-cover transition-[filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                'object-cover transition-[filter] duration-300 ease-out motion-reduce:transition-none',
                 !isSelected && 'brightness-90 saturate-[0.85] group-hover:brightness-105 group-hover:saturate-100',
               )}
               draggable={false}
@@ -120,7 +120,7 @@ export function FormatSelectorGrid({
               playsInline
               preload="none"
               className={cn(
-                'pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-[opacity,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-100 max-md:hidden motion-reduce:transition-none',
+                'pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-[opacity,filter] duration-300 ease-out group-hover:opacity-100 max-md:hidden motion-reduce:transition-none',
                 !isSelected && 'brightness-90 saturate-[0.85] group-hover:brightness-105 group-hover:saturate-100',
               )}
             />

@@ -14,9 +14,9 @@ export function ConnectionBadge({
   const failed = state === 'failed';
   const liveLabel =
     transport === 'direct'
-      ? 'P2P diretto'
+      ? 'Partita tra amici'
       : transport === 'relay'
-        ? 'Relay TURN'
+        ? 'Video protetto'
         : 'Video connesso';
   return (
     <span

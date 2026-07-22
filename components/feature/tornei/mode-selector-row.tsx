@@ -7,7 +7,7 @@ import type { ComponentType } from 'react';
 import { Swords, Users } from 'lucide-react';
 
 const MODE_MORPH_EASE =
-  'transition-[height,flex-grow,padding,border-radius,gap,background-color,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
+  'transition-[height,flex-grow,padding,border-radius,gap,background-color,border-color] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0';
 
 interface ModeSelectorRowProps {
   selectedModeId: ModeId;
@@ -60,7 +60,7 @@ export function ModeSelectorRow({
   return (
     <div
       className={cn(
-        'flex w-full items-center justify-center transition-[gap] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0',
+        'flex w-full items-center justify-center transition-[gap] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0',
         compact ? 'flex-wrap gap-1.5' : 'flex-col gap-2 sm:flex-row sm:gap-3',
       )}
     >
@@ -169,7 +169,7 @@ function ModeCard({
     >
         <span
         className={cn(
-          'flex shrink-0 items-center justify-center transition-[width,height,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+          'flex shrink-0 items-center justify-center transition-[width,height,color] duration-300 ease-out motion-reduce:transition-none',
           compact ? 'h-3 w-3' : selected ? 'h-5 w-5' : 'h-4 w-4',
           !compact && selected && available && 'text-primary',
           !compact && !(selected && available) && 'text-white/60',
@@ -208,7 +208,7 @@ function ModeCard({
         </span>
         <span
           className={cn(
-            'overflow-hidden transition-[grid-template-rows,opacity,margin,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+            'overflow-hidden transition-[grid-template-rows,opacity,margin,width] duration-300 ease-out motion-reduce:transition-none',
             compact || !selected
               ? 'grid w-0 grid-rows-[0fr] opacity-0'
               : 'mt-0.5 grid w-full grid-rows-[1fr] opacity-100',

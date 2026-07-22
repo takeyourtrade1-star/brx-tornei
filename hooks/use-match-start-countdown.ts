@@ -30,8 +30,18 @@ export function useMatchStartCountdown({
   const [startsAt, setStartsAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const processedMessages = useRef(new Set<string>());
+  const skipStaleMessages = useRef(true);
   const announcedForMatch = useRef<string | null>(null);
   const requestedForMatch = useRef<string | null>(null);
+
+  useEffect(() => {
+    setStartsAt(null);
+    setNow(Date.now());
+    processedMessages.current.clear();
+    skipStaleMessages.current = true;
+    announcedForMatch.current = null;
+    requestedForMatch.current = null;
+  }, [active, matchId]);
 
   useEffect(() => {
     if (!active || !matchId || startsAt !== null) return;
@@ -58,6 +68,10 @@ export function useMatchStartCountdown({
   }, [active, startsAt]);
 
   useEffect(() => {
+    if (skipStaleMessages.current) {
+      skipStaleMessages.current = false;
+      return;
+    }
     for (const message of messages) {
       if (processedMessages.current.has(message.id)) continue;
       processedMessages.current.add(message.id);

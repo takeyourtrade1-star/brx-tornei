@@ -44,9 +44,7 @@ export function LobbyPage({
   const [connectionModal, setConnectionModal] = useState<ConnectionModalState>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
-
   const myUsername = user.name ?? user.email;
-
   const tables = useMemo(
     () => buildLobbyTables({ tournaments, userId: user.id }),
     [tournaments, user.id],
@@ -64,6 +62,10 @@ export function LobbyPage({
     if (mine.length === 0) return;
     const [only] = mine;
     if (mine.length === 1 && only) {
+      if (only.format !== selection.format || only.mode !== selection.mode) {
+        router.replace(`/tornei?format=${only.format}&mode=${only.mode}`, { scroll: false });
+        return;
+      }
       const started = only.status === 'iniziata' && only.matchId;
       const readyCheck =
         only.status === 'in_registrazione' &&
@@ -77,7 +79,7 @@ export function LobbyPage({
       if (document.visibilityState === 'visible') router.refresh();
     }, 4000);
     return () => clearInterval(iv);
-  }, [tournaments, user.id, router, goLiveTo]);
+  }, [tournaments, user.id, router, goLiveTo, selection.format, selection.mode]);
 
   const opponentFor = useCallback(
     (tournamentId: string): string | null => {
@@ -128,6 +130,7 @@ export function LobbyPage({
   const handleConnectionConfirm = useCallback(
     (withFriend: boolean) => {
       if (!connectionModal) return;
+      setError(null);
       if (connectionModal.mode === 'join') {
         const tournamentId = connectionModal.tournamentId;
         setConnectionModal(null);
@@ -242,6 +245,7 @@ export function LobbyPage({
         open={connectionModal !== null}
         mode={connectionModal?.mode ?? 'create'}
         busy={busy}
+        error={error}
         onClose={() => setConnectionModal(null)}
         onConfirm={handleConnectionConfirm}
       />

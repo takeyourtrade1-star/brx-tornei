@@ -159,7 +159,7 @@ export function WebcamPhonePublisher({ sessionId }: { sessionId: string }) {
       </p>
 
       <div className="mt-auto pt-8 text-center text-[10px] text-white/30">
-        Tieni lo schermo acceso · connessione diretta P2P
+        Tieni lo schermo acceso · collegato al tuo tavolo
       </div>
     </main>
   );

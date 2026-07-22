@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ShieldCheck, Users, Wifi, X } from 'lucide-react';
+import { Gamepad2, ShieldCheck, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LobbyModalHeader } from './lobby-modal-header';
+import { useLobbyModal } from './use-lobby-modal';
+import modalFont from '../tournament-modal-font.module.css';
 
-type ConnectionChoice = 'protected' | 'direct';
+type GameChoice = 'normal' | 'friends';
 
 interface FriendConnectionModalProps {
   open: boolean;
   mode: 'create' | 'join';
   busy?: boolean;
+  error?: string | null;
   onClose: () => void;
   onConfirm: (withFriend: boolean) => void;
 }
@@ -19,135 +23,129 @@ export function FriendConnectionModal({
   open,
   mode,
   busy = false,
+  error,
   onClose,
   onConfirm,
 }: FriendConnectionModalProps) {
   const [mounted, setMounted] = useState(false);
-  const [choice, setChoice] = useState<ConnectionChoice>('protected');
-  const [acknowledged, setAcknowledged] = useState(false);
+  const [choice, setChoice] = useState<GameChoice>('normal');
+  const dialogRef = useRef<HTMLElement>(null);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!open) return;
-    setChoice(mode === 'join' ? 'direct' : 'protected');
-    setAcknowledged(false);
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [open, mode, onClose]);
+    setChoice(mode === 'join' ? 'friends' : 'normal');
+  }, [open, mode]);
+
+  useLobbyModal(open && mounted, dialogRef, onClose, busy);
 
   if (!open || !mounted) return null;
 
-  const direct = choice === 'direct';
-  const canConfirm = !busy && (!direct || acknowledged);
-  const title = mode === 'join' ? 'Connessione diretta' : 'Come vuoi giocare?';
+  const withFriend = mode === 'join' || choice === 'friends';
+  const title = mode === 'join' ? 'Entra nel tavolo di un amico' : 'Come vuoi giocare?';
+  const description = mode === 'join'
+    ? 'Questo tavolo è pensato per persone che si conoscono.'
+    : 'Scegli il tipo di partita. Potrai sederti subito dopo.';
 
   return createPortal(
-    <div className="fixed inset-0 z-[1100] flex items-end justify-center sm:items-center sm:p-4">
+    <div
+      data-lobby-modal-root="true"
+      className="fixed inset-0 z-[1100] flex items-end justify-center sm:items-center sm:p-4"
+    >
       <button
         type="button"
+        tabIndex={-1}
+        aria-hidden="true"
+        disabled={busy}
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
-        aria-label="Chiudi"
       />
       <section
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="friend-connection-title"
-        className="simple-panel-solid relative w-full max-w-lg rounded-b-none p-5 sm:rounded-3xl sm:p-6"
-      >
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-              Video partita
-            </p>
-            <h2 id="friend-connection-title" className="mt-1 font-display text-xl font-black uppercase">
-              {title}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Chiudi"
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </header>
-
-        {mode === 'create' && (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <ChoiceCard
-              selected={choice === 'protected'}
-              icon={ShieldCheck}
-              title="Connessione protetta"
-              description="Più privacy, ideale per giocare anche con persone nuove."
-              onClick={() => setChoice('protected')}
-            />
-            <ChoiceCard
-              selected={direct}
-              icon={Users}
-              title="Gioca con amici"
-              description="Più diretta, perfetta per giocare con chi conosci."
-              onClick={() => setChoice('direct')}
-            />
-          </div>
+        aria-describedby="friend-connection-description"
+        className={cn(
+          modalFont.uiSans,
+          'simple-panel-solid relative w-full max-w-xl overflow-hidden rounded-b-none sm:rounded-3xl',
         )}
+      >
+        <div className="h-1 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
+        <LobbyModalHeader
+          eyebrow="Nuovo tavolo"
+          titleId="friend-connection-title"
+          descriptionId="friend-connection-description"
+          title={title}
+          description={description}
+          onClose={onClose}
+          closeDisabled={busy}
+        />
 
-        {direct && (
-          <div className="mt-4 rounded-2xl border border-amber-400/35 bg-amber-400/10 p-4 text-amber-50">
-            <div className="flex gap-3">
-              <Wifi className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+        <div className="space-y-4 px-5 py-5 sm:px-6">
+          {mode === 'create' && (
+            <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Tipo di partita">
+              <ChoiceCard
+                selected={choice === 'normal'}
+                icon={Gamepad2}
+                title="Partita normale"
+                description="Entra nella lobby e gioca con la community."
+                onClick={() => setChoice('normal')}
+                initialFocus
+              />
+              <ChoiceCard
+                selected={withFriend}
+                icon={Users}
+                title="Gioca con amici"
+                description="Crea un tavolo dedicato a chi conosci."
+                onClick={() => setChoice('friends')}
+              />
+            </div>
+          )}
+
+          {withFriend && (
+            <div className="flex items-start gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/20 text-primary">
+                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+              </span>
               <div>
-                <p className="text-sm font-black">Perfetta per giocare tra amici</p>
-                <p className="mt-1 text-xs leading-relaxed text-amber-100/75">
-                  Collega direttamente voi due e condivide l’indirizzo della tua connessione (IP).
-                  Sceglila con persone che conosci e di cui ti fidi.
+                <p className="text-sm font-extrabold text-white">Un consiglio per giocare sereni</p>
+                <p className="mt-1 text-sm font-medium leading-relaxed text-white/65">
+                  Gioca solo con persone che conosci davvero.
                 </p>
               </div>
             </div>
-            <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-xl bg-black/20 p-3">
-              <input
-                type="checkbox"
-                checked={acknowledged}
-                onChange={(event) => setAcknowledged(event.target.checked)}
-                className="sr-only"
-              />
-              <span
-                className={cn(
-                  'mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border',
-                  acknowledged ? 'border-primary bg-primary text-white' : 'border-white/30',
-                )}
-              >
-                {acknowledged && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
-              </span>
-              <span className="text-xs font-bold leading-relaxed">
-                Conosco l’altro giocatore e voglio continuare.
-              </span>
-            </label>
-          </div>
-        )}
+          )}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-2xl border border-destructive/40 bg-destructive/15 px-4 py-3 text-sm font-semibold text-white"
+            >
+              {error}
+            </p>
+          )}
+        </div>
 
-        <div className="mt-5 flex gap-2.5">
+        <footer className="flex gap-3 border-t border-white/10 bg-black/20 px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold uppercase tracking-wide text-white/80"
+            className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-white/80 transition hover:bg-white/10 disabled:opacity-50"
           >
             Annulla
           </button>
           <button
             type="button"
-            disabled={!canConfirm}
-            onClick={() => onConfirm(direct)}
-            className="flex flex-1 items-center justify-center rounded-full bg-gradient-to-r from-primary to-orange-500 px-4 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={busy}
+            onClick={() => onConfirm(withFriend)}
+            data-modal-initial-focus={mode === 'join' ? 'true' : undefined}
+            className="flex flex-1 items-center justify-center rounded-full bg-gradient-to-r from-primary to-orange-500 px-5 py-3 text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {busy ? 'Attendi\u2026' : mode === 'join' ? 'Continua' : 'Crea tavolo'}
+            {busy ? 'Attendi…' : mode === 'join' ? 'Continua' : 'Siediti'}
           </button>
-        </div>
+        </footer>
       </section>
     </div>,
     document.body,
@@ -160,28 +158,38 @@ function ChoiceCard({
   title,
   description,
   onClick,
+  initialFocus = false,
 }: {
   selected: boolean;
-  icon: typeof ShieldCheck;
+  icon: typeof Gamepad2;
   title: string;
   description: string;
   onClick: () => void;
+  initialFocus?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={selected}
+      data-modal-initial-focus={initialFocus ? 'true' : undefined}
       className={cn(
-        'rounded-2xl border p-4 text-left transition',
+        'group min-h-36 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         selected
-          ? 'border-primary/60 bg-primary/10 ring-1 ring-primary/30'
-          : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]',
+          ? 'border-primary/70 bg-primary/15 ring-1 ring-primary/30'
+          : 'border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.07]',
       )}
     >
-      <Icon className={cn('h-6 w-6', selected ? 'text-primary' : 'text-white/55')} />
-      <p className="mt-3 text-sm font-black text-white">{title}</p>
-      <p className="mt-1 text-xs leading-relaxed text-white/50">{description}</p>
+      <span
+        className={cn(
+          'grid h-10 w-10 place-items-center rounded-xl transition',
+          selected ? 'bg-primary text-white' : 'bg-white/10 text-white/65 group-hover:text-white',
+        )}
+      >
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <p className="mt-4 text-base font-black text-white">{title}</p>
+      <p className="mt-1 text-sm font-medium leading-relaxed text-white/55">{description}</p>
     </button>
   );
 }

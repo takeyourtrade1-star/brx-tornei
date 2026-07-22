@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Mic, MicOff, Minimize2, Video, VideoOff } from 'lucide-react';
+import { MessageSquare, Minimize2 } from 'lucide-react';
 import { getPlaymat, type PlaymatId } from '@/lib/playmats';
-import { cn } from '@/lib/utils';
 import { MatchCompactChat, type MatchCompactChatProps } from './match-compact-chat';
 import { MatchLifeBadge } from './match-life-badge';
+import { MatchMediaButton } from './match-media-button';
 import { WebcamTile } from './webcam-tile';
 
 interface MatchFullscreenArenaProps {
@@ -29,7 +29,7 @@ interface MatchFullscreenArenaProps {
   onToggleCam: () => void;
   onToggleMic: () => void;
   onLifeChange: (playerId: string, delta: number) => void;
-  onLifeReset: () => void;
+  onLifeReset?: () => void;
   onClose: () => void;
 }
 
@@ -57,13 +57,47 @@ export function MatchFullscreenArena({
   onClose,
 }: MatchFullscreenArenaProps) {
   const [mounted, setMounted] = useState(false);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const dialogRef = useRef<HTMLElement | null>(null);
   const playmat = getPlaymat(playmatId);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!open) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    const background = Array.from(document.body.children)
+      .filter((element) => element !== dialog)
+      .map((element) => ({
+        element,
+        ariaHidden: element.getAttribute('aria-hidden'),
+        inert: element.hasAttribute('inert'),
+      }));
+    background.forEach(({ element }) => {
+      element.setAttribute('aria-hidden', 'true');
+      element.setAttribute('inert', '');
+    });
+    const focusable = () => Array.from(
+      dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])') ?? [],
+    );
+    focusable()[0]?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0]!;
+      const last = items.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -71,6 +105,12 @@ export function MatchFullscreenArena({
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', onKeyDown);
+      background.forEach(({ element, ariaHidden, inert }) => {
+        if (ariaHidden === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', ariaHidden);
+        if (!inert) element.removeAttribute('inert');
+      });
+      previousFocus?.focus();
     };
   }, [open, onClose]);
 
@@ -78,6 +118,7 @@ export function MatchFullscreenArena({
 
   return createPortal(
     <section
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="Partita in fullscreen"
@@ -91,8 +132,18 @@ export function MatchFullscreenArena({
           <h2 className="font-sans text-lg font-black sm:text-xl">{localUsername}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <MediaButton on={micOn} label="microfono" onClick={onToggleMic} />
-          <MediaButton on={camOn} label="camera" onClick={onToggleCam} />
+          <button
+            type="button"
+            onClick={() => setMobileChatOpen((current) => !current)}
+            aria-expanded={mobileChatOpen}
+            aria-controls="match-fullscreen-mobile-chat"
+            className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 backdrop-blur-md md:hidden"
+            aria-label={mobileChatOpen ? 'Nascondi chat' : 'Mostra chat'}
+          >
+            <MessageSquare className="h-4 w-4" />
+          </button>
+          <MatchMediaButton on={micOn} label="microfono" onClick={onToggleMic} />
+          <MatchMediaButton on={camOn} label="camera" onClick={onToggleCam} />
           <button
             type="button"
             onClick={onClose}
@@ -105,21 +156,35 @@ export function MatchFullscreenArena({
         </div>
       </div>
 
-      <div className="relative z-10 grid h-full place-items-center px-3 pb-24 pt-20 sm:px-10 sm:pt-24">
-        <div className="relative w-[min(91vw,138vh)] overflow-hidden rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] ring-1 ring-primary/35 [aspect-ratio:16/9] sm:rounded-[2rem] sm:p-2.5">
-          <div className="absolute inset-1.5 sm:inset-2.5">
-            <WebcamTile
-              stream={remoteStream}
-              username={remoteUsername}
-              connecting={connecting}
-              muted={false}
-            />
+      <div className="relative z-10 grid h-full min-h-0 grid-cols-1 gap-3 px-3 pb-24 pt-20 sm:px-6 sm:pt-24 md:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] md:gap-5">
+        {/* Fuori dall'overlay della webcam: sul desktop la chat occupa una vera
+            colonna laterale, allineata verticalmente all'area video. */}
+        <aside className="hidden h-full min-h-0 md:block" aria-label="Chat della partita">
+          <MatchCompactChat {...chat} fullHeight />
+        </aside>
+
+        <div className="grid min-h-0 place-items-center">
+          <div className="relative w-[min(91vw,138vh)] max-w-full overflow-hidden rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] ring-1 ring-primary/35 [aspect-ratio:16/9] sm:rounded-[2rem] sm:p-2.5 md:w-[min(100%,calc((100dvh-12rem)*16/9))]">
+            <div className="absolute inset-1.5 sm:inset-2.5">
+              <WebcamTile
+                stream={remoteStream}
+                username={remoteUsername}
+                connecting={connecting}
+                muted={false}
+              />
+            </div>
+            <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-sky-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
+              Webcam avversario
+            </span>
           </div>
-          <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-sky-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
-            Webcam avversario
-          </span>
         </div>
       </div>
+
+      {mobileChatOpen && (
+        <aside id="match-fullscreen-mobile-chat" className="absolute inset-x-3 bottom-24 z-50 md:hidden" aria-label="Chat della partita">
+          <MatchCompactChat {...chat} />
+        </aside>
+      )}
 
       {/* La tua preview e i punti vita dell'avversario restano in basso a destra. */}
       <div className="absolute bottom-5 right-4 z-40 flex items-end gap-2">
@@ -168,28 +233,7 @@ export function MatchFullscreenArena({
           onReset={onLifeReset}
         />
       </div>
-
-      <div className="absolute bottom-5 left-4 z-40 hidden w-80 md:block">
-        <MatchCompactChat {...chat} />
-      </div>
     </section>,
     document.body,
-  );
-}
-
-function MediaButton({ on, label, onClick }: { on: boolean; label: 'camera' | 'microfono'; onClick: () => void }) {
-  const Icon = label === 'camera' ? (on ? Video : VideoOff) : on ? Mic : MicOff;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={(on ? 'Spegni ' : 'Accendi ') + label}
-      className={cn(
-        'grid h-10 w-10 place-items-center rounded-full border backdrop-blur-md transition',
-        on ? 'border-white/20 bg-black/50 hover:bg-black/70' : 'border-red-400/50 bg-red-500/80',
-      )}
-    >
-      <Icon className="h-4 w-4" />
-    </button>
   );
 }

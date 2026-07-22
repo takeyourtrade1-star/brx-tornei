@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Layers, ScanLine, ShieldCheck, X } from 'lucide-react';
+import { Layers, X } from 'lucide-react';
 import { joinTournamentAction } from '@/actions/tournaments';
 import { listDecksAction } from '@/actions/decks';
 import { getFormat } from '@/lib/data/catalog';
@@ -13,7 +13,8 @@ import {
   normalizeVerificationFlags,
   resolveMatchContextFromInput,
 } from '@/types/match-verification';
-import { cn } from '@/lib/utils';
+import { JoinTournamentDeckContent } from './join-tournament-deck-content';
+import modalFont from './tournament-modal-font.module.css';
 
 interface JoinTournamentDeckModalProps {
   open: boolean;
@@ -21,22 +22,6 @@ interface JoinTournamentDeckModalProps {
   onClose: () => void;
   onJoined: (result: { matchId?: string }) => void;
 }
-
-const VERIFICATION_LABEL: Record<Deck['verificationStatus'], string> = {
-  verified: 'Verificato',
-  mismatch: 'Discrepanza',
-  scanned: 'Scansionato',
-  declared: 'Dichiarato',
-  none: 'Non verificato',
-};
-
-const VERIFICATION_CLASS: Record<Deck['verificationStatus'], string> = {
-  verified: 'bg-emerald-500/20 text-emerald-300',
-  mismatch: 'bg-red-500/20 text-red-300',
-  scanned: 'bg-amber-500/20 text-amber-300',
-  declared: 'bg-amber-500/20 text-amber-300',
-  none: 'bg-white/10 text-white/50',
-};
 
 export function JoinTournamentDeckModal({
   open,
@@ -127,7 +112,7 @@ export function JoinTournamentDeckModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="join-deck-title"
-        className="relative flex max-h-[94vh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0F172A] text-white shadow-[0_-16px_50px_rgba(0,0,0,0.6)] sm:max-h-[90vh] sm:rounded-[1.75rem] sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0F172A] text-white shadow-[0_-16px_50px_rgba(0,0,0,0.6)] sm:max-h-[90vh] sm:rounded-[1.75rem] sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]`}
         style={{ animation: 'jt-in 0.28s cubic-bezier(0.16,1,0.3,1)' }}
       >
         <style>{`
@@ -154,9 +139,9 @@ export function JoinTournamentDeckModal({
               <div>
                 <h2
                   id="join-deck-title"
-                  className="font-display text-xl font-black uppercase tracking-wide text-white"
+                  className="font-sans text-2xl font-black leading-tight tracking-tight text-white"
                 >
-                  Scegli mazzo
+                  Scegli il mazzo
                 </h2>
                 <p className="mt-0.5 text-xs font-medium text-white/55">
                   {formatName}
@@ -175,97 +160,15 @@ export function JoinTournamentDeckModal({
           </div>
         </header>
 
-        {/* Corpo scrollabile */}
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-5 pt-1">
-          {(scryfallRequired || scanRequired) && (
-            <div className="space-y-2 rounded-2xl border border-amber-500/25 bg-amber-500/[0.08] p-3.5">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-amber-300/90">
-                Requisiti di questo torneo
-              </p>
-              {scryfallRequired && (
-                <div className="flex items-center gap-2.5 text-sm text-amber-100/90">
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-amber-300" />
-                  Controllo legalità Asso Vision
-                </div>
-              )}
-              {scanRequired && (
-                <div className="flex items-center gap-2.5 text-sm text-amber-100/90">
-                  <ScanLine className="h-4 w-4 shrink-0 text-amber-300" />
-                  Verifica fisica Asso Vision (ultime 24h)
-                </div>
-              )}
-            </div>
-          )}
-
-          {decks.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
-              <p className="text-sm text-white/70">Nessun mazzo per questo formato.</p>
-              <a
-                href="/mazzi"
-                className="mt-3 inline-block rounded-full bg-gradient-to-r from-primary to-orange-500 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white"
-              >
-                Crea un mazzo
-              </a>
-            </div>
-          ) : (
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
-                I tuoi mazzi {formatName}
-              </legend>
-              {decks.map((deck) => {
-                const selected = selectedDeckId === deck.id;
-                return (
-                  <label
-                    key={deck.id}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition',
-                      selected
-                        ? 'border-primary/60 bg-primary/[0.12] shadow-[inset_0_0_0_1px_rgba(255,115,0,0.3)]'
-                        : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]',
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="deck"
-                      value={deck.id}
-                      checked={selected}
-                      onChange={() => setSelectedDeckId(deck.id)}
-                      className="sr-only"
-                    />
-                    <span
-                      className={cn(
-                        'grid h-5 w-5 shrink-0 place-items-center rounded-full border transition',
-                        selected ? 'border-primary bg-primary text-white' : 'border-white/25',
-                      )}
-                    >
-                      {selected && <Check className="h-3 w-3" strokeWidth={3} />}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
-                      {deck.name}
-                    </span>
-                    <span
-                      className={cn(
-                        'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-                        VERIFICATION_CLASS[deck.verificationStatus],
-                      )}
-                    >
-                      {VERIFICATION_LABEL[deck.verificationStatus]}
-                    </span>
-                  </label>
-                );
-              })}
-            </fieldset>
-          )}
-
-          {error && (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-200"
-            >
-              {error}
-            </p>
-          )}
-        </div>
+        <JoinTournamentDeckContent
+          decks={decks}
+          formatName={formatName}
+          selectedDeckId={selectedDeckId}
+          scryfallRequired={scryfallRequired}
+          scanRequired={scanRequired}
+          error={error}
+          onSelect={setSelectedDeckId}
+        />
 
         {/* Footer */}
         <div className="shrink-0 border-t border-white/[0.08] bg-black/25 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">

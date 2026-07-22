@@ -9,7 +9,7 @@ import { TournamentFilters, type TournamentFiltersState } from './tournament-fil
 
 const SCROLL_COMPACT_ON = 80;
 const SCROLL_COMPACT_OFF = 28;
-const TOOLBAR_MORPH_EASE = 'duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none motion-reduce:duration-0';
+const TOOLBAR_MORPH_EASE = 'duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0';
 
 interface TournamentsStickyToolbarProps {
   formatId: FormatId;

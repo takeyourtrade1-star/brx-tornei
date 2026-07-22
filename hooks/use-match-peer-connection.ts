@@ -18,6 +18,8 @@ interface UseMatchPeerConnectionOptions {
   allowDirect?: boolean;
 }
 
+const MAX_AUTOMATIC_RETRIES = 3;
+
 /**
  * Connessione P2P volto↔volto tra host e partecipante durante il match.
  */
@@ -37,13 +39,17 @@ export function useMatchPeerConnection({
   const ctrlRef = useRef<ReturnType<typeof createMatchPeerLink> | null>(null);
   const automaticRetries = useRef(0);
 
-  const stop = useCallback(() => {
-    ctrlRef.current?.stop();
-    ctrlRef.current = null;
+  const clearConnectionState = useCallback(() => {
     setRemoteStream(null);
     setTransport('unknown');
     setState('idle');
   }, []);
+
+  const stop = useCallback(() => {
+    ctrlRef.current?.stop();
+    ctrlRef.current = null;
+    clearConnectionState();
+  }, [clearConnectionState]);
 
   const retry = useCallback(() => {
     automaticRetries.current = 0;
@@ -80,9 +86,13 @@ export function useMatchPeerConnection({
     ctrl.start();
 
     return () => {
-      stop();
+      ctrl.stop();
+      if (ctrlRef.current === ctrl) {
+        ctrlRef.current = null;
+        clearConnectionState();
+      }
     };
-  }, [active, sessionId, role, localStream, videoTrackId, allowDirect, stop, generation]);
+  }, [active, sessionId, role, localStream, videoTrackId, allowDirect, clearConnectionState, stop, generation]);
 
   useEffect(() => {
     if (state === 'connected') automaticRetries.current = 0;
@@ -91,6 +101,7 @@ export function useMatchPeerConnection({
   useEffect(() => {
     if (!active || state !== 'failed') return;
     automaticRetries.current += 1;
+    if (automaticRetries.current > MAX_AUTOMATIC_RETRIES) return;
     const delay = Math.min(automaticRetries.current * 1_500, 12_000);
     const timer = window.setTimeout(() => {
       setError(null);
@@ -100,8 +111,9 @@ export function useMatchPeerConnection({
   }, [active, state]);
 
   useEffect(() => {
-    if (!active) setEverConnected(false);
-  }, [active]);
+    setEverConnected(false);
+    automaticRetries.current = 0;
+  }, [active, sessionId]);
 
   const reconnecting =
     everConnected &&

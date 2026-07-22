@@ -1,0 +1,25 @@
+.uiSans.uiSans,
+.uiSans.uiSans :where(*) {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+/* I controlli hanno un font globale esplicito: lo sovrascriviamo localmente. */
+.uiSans.uiSans :where(button, input, select, textarea) {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}

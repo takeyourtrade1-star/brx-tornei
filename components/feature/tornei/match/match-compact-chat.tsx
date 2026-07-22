@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useMemo, useState } from 'react';
-import { MessageSquare, Send } from 'lucide-react';
+import { MessageSquare, RefreshCw, Send } from 'lucide-react';
 import type { MatchChatConnectionState, MatchChatMessage } from '@/hooks/use-match-chat';
 import { isMatchLifeMessage } from '@/lib/match-life-protocol';
 import { isMatchStartMessage } from '@/lib/match-start-protocol';
@@ -14,7 +14,9 @@ export interface MatchCompactChatProps {
   send: (text: string) => boolean;
   connectionState: MatchChatConnectionState;
   error: string | null;
+  onRetry?: () => void;
   participantNames: Record<string, string>;
+  fullHeight?: boolean;
 }
 
 export function MatchCompactChat({
@@ -24,17 +26,17 @@ export function MatchCompactChat({
   send,
   connectionState,
   error,
+  onRetry,
   participantNames,
+  fullHeight = false,
 }: MatchCompactChatProps) {
   const inputId = useId();
   const [draft, setDraft] = useState('');
-  const lastMessage = useMemo(
-    () =>
-      messages
-        .filter((message) => !isMatchLifeMessage(message.text) && !isMatchStartMessage(message.text))
-        .at(-1),
+  const visibleMessages = useMemo(
+    () => messages.filter((message) => !isMatchLifeMessage(message.text) && !isMatchStartMessage(message.text)),
     [messages],
   );
+  const lastMessage = visibleMessages.at(-1);
   const connected = connectionState === 'connected';
   const sender = lastMessage
     ? lastMessage.userId === userId
@@ -51,15 +53,28 @@ export function MatchCompactChat({
   }
 
   return (
-    <section className="rounded-2xl border border-white/15 bg-header-bg/80 p-2 text-white shadow-[0_18px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+    <section className={'rounded-2xl border border-white/15 bg-header-bg/80 p-2 text-white shadow-[0_18px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl' + (fullHeight ? ' flex h-full min-h-0 flex-col' : '')}>
       <div className="mb-1.5 flex items-center gap-2 px-1">
         <MessageSquare className="h-3.5 w-3.5 text-primary" />
         <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/65">Chat</span>
         <span className={connected ? 'ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400' : 'ml-auto h-1.5 w-1.5 rounded-full bg-red-400'} />
+        {!connected && onRetry && (
+          <button type="button" onClick={onRetry} className="grid h-6 w-6 place-items-center rounded-md hover:bg-white/10" aria-label="Riconnetti la chat">
+            <RefreshCw className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
-      <div className="mb-1.5 min-w-0 rounded-lg bg-white/[0.05] px-2 py-1.5">
-        {lastMessage ? (
+      <div className={'mb-1.5 min-w-0 rounded-lg bg-white/[0.05] px-2 py-1.5' + (fullHeight ? ' min-h-0 flex-1 overflow-y-auto' : '')}>
+        {fullHeight ? (
+          <ul className="space-y-1.5 text-[10px] text-white/70">
+            {visibleMessages.length ? visibleMessages.map((message) => {
+              const name = message.userId === userId ? me : (participantNames[message.userId] ?? 'Avversario');
+              const messageSticker = stickerFromText(message.text);
+              return <li key={message.id} className="break-words"><strong className="text-white">{name}:</strong> {messageSticker ? messageSticker.emoji + ' ' + messageSticker.label : message.text}</li>;
+            }) : <li className="grid h-full min-h-12 place-items-center text-white/35">{error ?? 'Nessun messaggio'}</li>}
+          </ul>
+        ) : lastMessage ? (
           <p className="truncate text-[10px] text-white/70">
             <strong className="text-white">{sender}:</strong>{' '}
             {sticker ? sticker.emoji + ' ' + sticker.label : lastMessage.text}
