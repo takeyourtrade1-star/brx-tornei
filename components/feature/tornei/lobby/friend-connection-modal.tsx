@@ -69,7 +69,7 @@ export function FriendConnectionModal({
         aria-describedby="friend-connection-description"
         className={cn(
           modalFont.uiSans,
-          'simple-panel-solid relative w-full max-w-xl overflow-hidden rounded-b-none sm:rounded-3xl',
+          'relative w-full max-w-xl overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-stone-900 via-stone-950 to-zinc-950 text-white shadow-2xl shadow-black/50 sm:rounded-[2rem]',
         )}
       >
         <div className="h-1 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
@@ -85,7 +85,11 @@ export function FriendConnectionModal({
 
         <div className="space-y-4 px-5 py-5 sm:px-6">
           {mode === 'create' && (
-            <div className="grid auto-rows-fr grid-cols-2 gap-2.5 sm:gap-3" role="group" aria-label="Tipo di partita">
+            <div
+              className="grid auto-rows-fr grid-cols-2 gap-1.5 rounded-[2rem] border border-white/10 bg-black/30 p-1.5 shadow-inner shadow-black/40 backdrop-blur-xl"
+              role="group"
+              aria-label="Tipo di partita"
+            >
               <ChoiceCard
                 selected={choice === 'normal'}
                 icon={Gamepad2}
@@ -105,8 +109,8 @@ export function FriendConnectionModal({
           )}
 
           {withFriend && (
-            <div className="flex items-start gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/20 text-primary">
+            <div className="flex items-start gap-3 rounded-2xl border border-marquee/20 bg-marquee/[0.06] p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-marquee/10 text-marquee">
                 <ShieldCheck className="h-5 w-5" aria-hidden="true" />
               </span>
               <div>
@@ -174,18 +178,21 @@ function ChoiceCard({
       aria-pressed={selected}
       data-modal-initial-focus={initialFocus ? 'true' : undefined}
       className={cn(
-        'group relative flex h-full min-h-40 flex-col rounded-2xl border p-3.5 text-left transition sm:p-4',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-header-bg',
+        'group relative isolate flex h-full min-h-40 flex-col overflow-hidden rounded-[1.6rem] border p-3.5 text-left transition duration-200 sm:p-4',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950',
         selected
-          ? 'border-primary/70 bg-gradient-to-b from-primary/20 to-primary/[0.08] shadow-[0_16px_34px_-24px_rgba(255,115,0,0.95)] ring-1 ring-primary/30'
-          : 'border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.07]',
+          ? 'border-white/25 bg-gradient-to-br from-white/20 via-white/10 to-white/[0.04] shadow-xl shadow-black/20 ring-1 ring-inset ring-white/10'
+          : 'border-transparent bg-transparent hover:border-white/10 hover:bg-white/[0.05]',
       )}
     >
+      {selected && (
+        <span className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" aria-hidden="true" />
+      )}
       <span
         className={cn(
           'absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full border transition',
           selected
-            ? 'border-primary bg-primary text-white'
+            ? 'border-white/20 bg-white/15 text-primary'
             : 'border-white/15 bg-white/[0.04] text-transparent',
         )}
         aria-hidden="true"
@@ -195,7 +202,9 @@ function ChoiceCard({
       <span
         className={cn(
           'grid h-10 w-10 place-items-center rounded-xl transition sm:h-11 sm:w-11',
-          selected ? 'bg-primary text-white' : 'bg-white/10 text-white/65 group-hover:text-white',
+          selected
+            ? 'bg-white/10 text-primary ring-1 ring-white/15'
+            : 'bg-white/[0.07] text-white/55 group-hover:text-white',
         )}
       >
         <Icon className="h-5 w-5" aria-hidden="true" />

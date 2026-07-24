@@ -87,13 +87,9 @@ export function TournamentsStickyToolbar({
           'tournaments-toolbar-ease mx-auto max-w-content text-white',
           settleAnim === 'compact' && 'animate-toolbar-compact-settle',
           settleAnim === 'expand' && 'animate-toolbar-expand-settle',
-          // Sempre pannello scuro: da espansa era trasparente, ma sul nuovo
-          // sfondo chiaro etichette e filtri bianchi sparivano.
-          // Niente backdrop-blur: a /95+ di opacità non si vede e costa un
-          // re-blur del contenuto sottostante a ogni frame di scroll.
           compact
-            ? 'rounded-3xl border border-white/15 bg-[#27407a]/95 px-4 py-3.5 shadow-[0_14px_36px_-14px_rgba(0,0,0,0.6)] ring-1 ring-inset ring-white/[0.06] sm:px-5'
-            : 'rounded-3xl border border-white/[0.08] bg-header-bg/95 px-4 py-4 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)] sm:px-5',
+            ? 'rounded-3xl border border-white/15 bg-stone-950/95 px-4 py-3.5 shadow-xl shadow-black/30 ring-1 ring-inset ring-white/[0.06] sm:px-5'
+            : 'rounded-3xl border border-white/[0.08] bg-gradient-to-br from-stone-900 via-stone-950 to-zinc-950 px-4 py-4 shadow-xl shadow-black/20 sm:px-5',
         )}
       >
         {mobile ? (

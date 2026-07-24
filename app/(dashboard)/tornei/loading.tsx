@@ -8,7 +8,7 @@ export default function TorneiLoading() {
           <div className="h-10 w-64 animate-pulse rounded-lg bg-slate-900/10" />
           <div className="h-11 w-44 animate-pulse rounded-full bg-slate-900/10" />
         </div>
-        <div className="simple-panel h-72 animate-pulse" />
+        <div className="h-72 animate-pulse rounded-3xl border border-white/10 bg-stone-950/90 shadow-xl shadow-black/20" />
       </div>
     </div>
   );

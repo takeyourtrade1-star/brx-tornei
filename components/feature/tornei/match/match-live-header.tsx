@@ -31,7 +31,7 @@ export function MatchLiveHeader({
 }: MatchLiveHeaderProps) {
   const [playerA, playerB] = players;
   return (
-    <header className="simple-panel mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+    <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-3xl border border-white/10 bg-stone-950/90 px-4 py-3 text-white shadow-xl shadow-black/20">
       <div className="flex min-w-0 items-center gap-3">
         <Link
           href="/tornei"

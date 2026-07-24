@@ -48,7 +48,7 @@ export function TournamentRequestSentModal({
         aria-modal="true"
         aria-labelledby="request-sent-title"
         aria-describedby="request-sent-description"
-        className={`${modalFont.uiSans} simple-panel-solid relative w-full max-w-md overflow-hidden rounded-b-none text-center sm:rounded-3xl`}
+        className={`${modalFont.uiSans} relative w-full max-w-md overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-stone-900 via-stone-950 to-zinc-950 text-center text-white shadow-2xl shadow-black/50 sm:rounded-[2rem]`}
       >
         <div className="h-1 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
         <button
@@ -78,7 +78,7 @@ export function TournamentRequestSentModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-full bg-gradient-to-r from-primary to-orange-500 px-6 py-3 text-sm font-black text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-header-bg"
+            className="w-full rounded-full bg-gradient-to-r from-primary to-orange-500 px-6 py-3 text-sm font-black text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
           >
             Ho capito
           </button>

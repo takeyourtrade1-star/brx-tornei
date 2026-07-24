@@ -40,7 +40,7 @@ export function MatchLifeBadge({
     <div
       aria-label={local ? 'Punti vita tuoi' : 'Punti vita avversario'}
       className={cn(
-        'relative flex min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl border bg-header-bg/85 px-3.5 py-2 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl',
+        'relative flex min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl border bg-stone-950/85 px-3.5 py-2 shadow-xl shadow-black/40 backdrop-blur-xl',
         local ? 'border-primary/40' : 'border-sky-400/35',
       )}
     >

@@ -34,7 +34,10 @@ export function ModeSelectorRow({
   return (
     <div
       className={cn(
-        'grid w-full grid-cols-2 gap-2 sm:gap-3',
+        'grid w-full grid-cols-2 gap-1.5 rounded-[1.4rem] border p-1.5',
+        lightPanel
+          ? 'border-stone-950/10 bg-stone-950/[0.04]'
+          : 'border-white/10 bg-black/25 shadow-inner shadow-black/30',
         !dense && 'max-w-3xl',
       )}
     >
@@ -93,25 +96,28 @@ function ModeCard({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'group relative flex w-full items-center border text-left transition duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-header-bg',
-        dense ? 'min-h-11 gap-2 rounded-xl px-2.5 py-2' : 'min-h-[4.75rem] gap-3 rounded-2xl px-4 py-3',
+        'group relative isolate flex w-full items-center overflow-hidden border text-left transition duration-200',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950',
+        dense ? 'min-h-11 gap-2 rounded-[1.05rem] px-2.5 py-2' : 'min-h-[4.75rem] gap-3 rounded-[1.15rem] px-4 py-3',
         selected && available
-          ? 'border-primary/70 bg-gradient-to-r from-primary/25 to-primary/10 text-white shadow-[0_12px_30px_-18px_rgba(255,115,0,0.95)] ring-1 ring-primary/30'
+          ? 'border-white/25 bg-gradient-to-br from-white/20 via-white/10 to-white/[0.04] text-white shadow-lg shadow-black/20 ring-1 ring-inset ring-white/10'
           : lightPanel
             ? 'border-slate-900/10 bg-white/70 text-header-bg hover:border-primary/30 hover:bg-white'
-            : 'border-white/10 bg-white/[0.04] text-white hover:border-white/25 hover:bg-white/[0.08]',
+            : 'border-transparent bg-transparent text-white hover:border-white/10 hover:bg-white/[0.06]',
         !available && 'cursor-not-allowed opacity-55',
       )}
     >
+      {selected && available && (
+        <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" aria-hidden="true" />
+      )}
       <span
         className={cn(
           'grid shrink-0 place-items-center rounded-xl transition-colors',
           dense ? 'h-8 w-8' : 'h-10 w-10',
           selected && available
-            ? 'bg-primary text-white'
+            ? 'bg-white/10 text-primary ring-1 ring-white/15'
             : lightPanel
-              ? 'bg-header-bg text-white'
+              ? 'bg-stone-950 text-white'
               : 'bg-white/10 text-white/70',
         )}
       >
@@ -137,7 +143,7 @@ function ModeCard({
       </span>
 
       {selected && available && (
-        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-white">
+        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-white shadow-sm">
           <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
         </span>
       )}

@@ -122,7 +122,7 @@ export function MatchFullscreenArena({
       role="dialog"
       aria-modal="true"
       aria-label="Partita in fullscreen"
-      className="fixed inset-0 z-[1200] overflow-hidden bg-header-bg text-white"
+      className="fixed inset-0 z-[1200] overflow-hidden bg-stone-950 text-white"
       style={{ backgroundImage: 'url(' + playmat.src + ')', backgroundPosition: 'center', backgroundSize: 'cover' }}
     >
       <div className="absolute inset-0 bg-black/35" aria-hidden />

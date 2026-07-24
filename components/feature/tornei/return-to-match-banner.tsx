@@ -58,7 +58,7 @@ export function ReturnToMatchBanner() {
 
   return (
     <div className="fixed bottom-4 left-1/2 z-[900] w-max max-w-[calc(100vw-2rem)] -translate-x-1/2">
-      <div className="flex items-center gap-3 rounded-full border border-primary/40 bg-header-bg/95 py-2 pl-4 pr-2 text-white shadow-[0_18px_50px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+      <div className="flex items-center gap-3 rounded-full border border-primary/40 bg-stone-950/95 py-2 pl-4 pr-2 text-white shadow-2xl shadow-black/40 backdrop-blur-xl">
         <span
           aria-hidden
           className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]"

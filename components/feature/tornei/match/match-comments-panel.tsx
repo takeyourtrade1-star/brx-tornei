@@ -112,7 +112,7 @@ export function MatchCommentsPanel({
         : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-header-bg/90 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.55)] lg:flex-row">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-stone-950/90 shadow-xl shadow-black/30 lg:flex-row">
       {/* Intestazione: striscia in alto su mobile, colonna a sinistra su desktop. */}
       <div className="flex shrink-0 items-center gap-2.5 border-b border-white/10 bg-white/[0.02] px-3 py-2 lg:w-44 lg:flex-col lg:items-start lg:justify-center lg:gap-2 lg:border-b-0 lg:border-r lg:px-4">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-[#e0564d] text-white shadow-[0_6px_16px_-6px_rgba(255,115,0,0.55)]">
