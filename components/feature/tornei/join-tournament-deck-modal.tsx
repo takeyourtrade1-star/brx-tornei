@@ -112,7 +112,7 @@ export function JoinTournamentDeckModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="join-deck-title"
-        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#0F172A] text-white shadow-[0_-16px_50px_rgba(0,0,0,0.6)] sm:max-h-[90vh] sm:rounded-[1.75rem] sm:shadow-[0_30px_80px_rgba(0,0,0,0.6)]`}
+        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-md flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-gradient-to-br from-stone-900 via-stone-950 to-zinc-950 text-white shadow-2xl shadow-black/60 sm:max-h-[90vh] sm:rounded-[1.75rem]`}
         style={{ animation: 'jt-in 0.28s cubic-bezier(0.16,1,0.3,1)' }}
       >
         <style>{`
@@ -123,7 +123,7 @@ export function JoinTournamentDeckModal({
           }
         `}</style>
 
-        <div className="h-1 w-full shrink-0 bg-gradient-to-r from-[#FF7300] to-orange-500" aria-hidden />
+        <div className="h-1 w-full shrink-0 bg-gradient-to-r from-primary to-orange-500" aria-hidden />
 
         {/* Header */}
         <header className="relative shrink-0 overflow-hidden px-5 pb-4 pt-5">

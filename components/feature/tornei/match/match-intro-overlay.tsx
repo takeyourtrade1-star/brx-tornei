@@ -82,7 +82,7 @@ export function MatchIntroOverlay({
 
   const drawingName = stablePlayers[drawIndex]?.username ?? starter.username;
   return createPortal(
-    <div className="fixed inset-0 z-[1300] grid place-items-center overflow-hidden bg-header-bg text-white">
+    <div className="fixed inset-0 z-[1300] grid place-items-center overflow-hidden bg-stone-950 text-white">
       <div className="match-intro-radial absolute inset-0" aria-hidden />
       <div className="match-intro-grid absolute inset-0 opacity-30" aria-hidden />
       <div className="relative z-10 flex max-w-3xl flex-col items-center px-6 text-center" role="status" aria-live="polite">

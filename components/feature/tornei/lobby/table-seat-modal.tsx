@@ -106,7 +106,7 @@ export function TableSeatModal({
         aria-modal="true"
         aria-labelledby="table-seat-title"
         aria-describedby="table-seat-description"
-        className={`${modalFont.uiSans} simple-panel-solid relative flex max-h-[94vh] w-full max-w-xl animate-slide-up flex-col overflow-hidden rounded-b-none sm:max-h-[90vh] sm:rounded-3xl`}
+        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-xl animate-slide-up flex-col overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-stone-900 via-stone-950 to-zinc-950 text-white shadow-2xl shadow-black/50 sm:max-h-[90vh] sm:rounded-[2rem]`}
       >
         <div className="h-1 shrink-0 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
         <LobbyModalHeader

@@ -41,7 +41,7 @@ export function MatchDeckChip({ player, formatName }: MatchDeckChipProps) {
           'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[10px] font-black uppercase tracking-wider backdrop-blur-md transition',
           open
             ? 'border-primary/60 bg-primary/25 text-white'
-            : 'border-white/15 bg-header-bg/70 text-white/80 hover:border-white/30 hover:bg-header-bg hover:text-white',
+            : 'border-white/15 bg-stone-950/70 text-white/80 hover:border-white/30 hover:bg-stone-900 hover:text-white',
         )}
       >
         <Layers className="h-3.5 w-3.5 text-primary" />
@@ -50,7 +50,7 @@ export function MatchDeckChip({ player, formatName }: MatchDeckChipProps) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1.5 w-56 rounded-2xl border border-white/10 bg-header-bg/95 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <div className="absolute left-0 top-full z-30 mt-1.5 w-56 rounded-2xl border border-white/10 bg-stone-950/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
           <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/45">
             Mazzo di {player.username}
           </p>

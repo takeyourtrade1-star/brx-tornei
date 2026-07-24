@@ -53,7 +53,7 @@ export function MatchCompactChat({
   }
 
   return (
-    <section className={'rounded-2xl border border-white/15 bg-header-bg/80 p-2 text-white shadow-[0_18px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl' + (fullHeight ? ' flex h-full min-h-0 flex-col' : '')}>
+    <section className={'rounded-2xl border border-white/15 bg-stone-950/80 p-2 text-white shadow-2xl shadow-black/30 backdrop-blur-xl' + (fullHeight ? ' flex h-full min-h-0 flex-col' : '')}>
       <div className="mb-1.5 flex items-center gap-2 px-1">
         <MessageSquare className="h-3.5 w-3.5 text-primary" />
         <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/65">Chat</span>
