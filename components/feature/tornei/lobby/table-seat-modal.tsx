@@ -106,7 +106,7 @@ export function TableSeatModal({
         aria-modal="true"
         aria-labelledby="table-seat-title"
         aria-describedby="table-seat-description"
-        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-xl animate-slide-up flex-col overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-stone-900 via-stone-950 to-zinc-950 text-white shadow-2xl shadow-black/50 sm:max-h-[90vh] sm:rounded-[2rem]`}
+        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-xl animate-slide-up flex-col overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end text-white shadow-2xl shadow-card2-end/50 sm:max-h-[90vh] sm:rounded-[2rem]`}
       >
         <div className="h-1 shrink-0 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
         <LobbyModalHeader
@@ -114,7 +114,10 @@ export function TableSeatModal({
           titleId="table-seat-title"
           descriptionId="table-seat-description"
           title={isHost ? 'Il tuo posto è pronto' : 'Siediti al tavolo'}
-          description={`${formatName} · Best of 3 · 2 giocatori`}
+          description={isHost
+            ? 'Controlla il tavolo e resta qui mentre aspetti il tuo avversario.'
+            : 'Scegli il mazzo e controlla i posti prima di entrare.'}
+          meta={[formatName, 'Best of 3', '2 giocatori']}
           onClose={onClose}
           closeDisabled={busy}
         />
@@ -147,7 +150,7 @@ export function TableSeatModal({
           )}
         </div>
 
-        <footer className="shrink-0 border-t border-white/10 bg-black/20 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <footer className="shrink-0 border-t border-white/10 bg-card2-end/40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {isHost ? (
             <div className="flex gap-3">
               <button
@@ -162,7 +165,7 @@ export function TableSeatModal({
               <PrimaryAction
                 busy={busy}
                 onClick={onClose}
-                label="Siediti"
+                label="Torna alla lobby"
                 busyLabel="Attendi…"
                 initialFocus
               />

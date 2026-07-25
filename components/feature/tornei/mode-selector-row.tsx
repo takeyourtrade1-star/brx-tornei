@@ -36,7 +36,7 @@ export function ModeSelectorRow({
       className={cn(
         'grid w-full grid-cols-2 gap-1.5 rounded-[1.4rem] border p-1.5',
         lightPanel
-          ? 'border-stone-950/10 bg-stone-950/[0.04]'
+          ? 'border-card2-end/10 bg-card2-end/[0.04]'
           : 'border-white/10 bg-black/25 shadow-inner shadow-black/30',
         !dense && 'max-w-3xl',
       )}
@@ -97,7 +97,7 @@ function ModeCard({
       aria-pressed={selected}
       className={cn(
         'group relative isolate flex w-full items-center overflow-hidden border text-left transition duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card2-end',
         dense ? 'min-h-11 gap-2 rounded-[1.05rem] px-2.5 py-2' : 'min-h-[4.75rem] gap-3 rounded-[1.15rem] px-4 py-3',
         selected && available
           ? 'border-white/25 bg-gradient-to-br from-white/20 via-white/10 to-white/[0.04] text-white shadow-lg shadow-black/20 ring-1 ring-inset ring-white/10'
@@ -117,7 +117,7 @@ function ModeCard({
           selected && available
             ? 'bg-white/10 text-primary ring-1 ring-white/15'
             : lightPanel
-              ? 'bg-stone-950 text-white'
+              ? 'bg-card2-end text-white'
               : 'bg-white/10 text-white/70',
         )}
       >

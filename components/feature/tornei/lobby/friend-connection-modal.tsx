@@ -69,7 +69,7 @@ export function FriendConnectionModal({
         aria-describedby="friend-connection-description"
         className={cn(
           modalFont.uiSans,
-          'relative w-full max-w-xl overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-stone-900 via-stone-950 to-zinc-950 text-white shadow-2xl shadow-black/50 sm:rounded-[2rem]',
+          'relative w-full max-w-xl overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end text-white shadow-2xl shadow-card2-end/50 sm:rounded-[2rem]',
         )}
       >
         <div className="h-1 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
@@ -179,7 +179,7 @@ function ChoiceCard({
       data-modal-initial-focus={initialFocus ? 'true' : undefined}
       className={cn(
         'group relative isolate flex h-full min-h-40 flex-col overflow-hidden rounded-[1.6rem] border p-3.5 text-left transition duration-200 sm:p-4',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card2-end',
         selected
           ? 'border-white/25 bg-gradient-to-br from-white/20 via-white/10 to-white/[0.04] shadow-xl shadow-black/20 ring-1 ring-inset ring-white/10'
           : 'border-transparent bg-transparent hover:border-white/10 hover:bg-white/[0.05]',

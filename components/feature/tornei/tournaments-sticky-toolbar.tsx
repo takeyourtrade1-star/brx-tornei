@@ -88,8 +88,8 @@ export function TournamentsStickyToolbar({
           settleAnim === 'compact' && 'animate-toolbar-compact-settle',
           settleAnim === 'expand' && 'animate-toolbar-expand-settle',
           compact
-            ? 'rounded-3xl border border-white/15 bg-stone-950/95 px-4 py-3.5 shadow-xl shadow-black/30 ring-1 ring-inset ring-white/[0.06] sm:px-5'
-            : 'rounded-3xl border border-white/[0.08] bg-gradient-to-br from-stone-900 via-stone-950 to-zinc-950 px-4 py-4 shadow-xl shadow-black/20 sm:px-5',
+            ? 'rounded-3xl border border-white/15 bg-card2-end/95 px-4 py-3.5 shadow-xl shadow-card2-end/30 ring-1 ring-inset ring-white/[0.06] sm:px-5'
+            : 'rounded-3xl border border-white/[0.08] bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-4 py-4 shadow-xl shadow-card2-end/20 sm:px-5',
         )}
       >
         {mobile ? (

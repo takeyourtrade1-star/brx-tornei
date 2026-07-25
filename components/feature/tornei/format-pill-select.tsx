@@ -17,7 +17,7 @@ export function FormatPillSelect({ value, onChange, ariaLabelledBy }: FormatPill
   const current = FORMATS_WITH_MEDIA.find((f) => f.id === value);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-full bg-stone-950/80 text-white ring-1 ring-white/[0.12]">
+    <div className="relative w-full overflow-hidden rounded-full bg-card2-end/90 text-white ring-1 ring-white/[0.12]">
       {current && (
         <span className="pointer-events-none absolute inset-0" aria-hidden>
           <Image
@@ -28,7 +28,7 @@ export function FormatPillSelect({ value, onChange, ariaLabelledBy }: FormatPill
             className="object-cover object-center brightness-90"
             draggable={false}
           />
-          <span className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-950/65 to-stone-950/10" />
+          <span className="absolute inset-0 bg-gradient-to-r from-card2-end via-card2-end/65 to-card2-end/10" />
         </span>
       )}
       <StyledSelect

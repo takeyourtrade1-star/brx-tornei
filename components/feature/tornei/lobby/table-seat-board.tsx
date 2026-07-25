@@ -1,5 +1,5 @@
-import { User, UserPlus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Clock3 } from 'lucide-react';
+import { LobbySeat, VersusBadge } from './lobby-seat';
 
 interface TableSeatBoardProps {
   myUsername: string;
@@ -14,64 +14,45 @@ export function TableSeatBoard({
 }: TableSeatBoardProps) {
   return (
     <section aria-labelledby="seat-table-heading">
-      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>
-      <h3 id="seat-table-heading" className="mt-1 text-base font-black text-white">
-        Controlla il tavolo
-      </h3>
-      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 rounded-2xl border border-white/10 bg-black/20 p-3">
-        <TableSide occupied username={myUsername} label="Tu" highlight />
-        <div className="flex items-center justify-center">
-          <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-black uppercase tracking-wider text-white/65">
-            vs
-          </span>
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">
+            {eyebrow}
+          </p>
+          <h3 id="seat-table-heading" className="mt-1 text-lg font-black text-white">
+            Controlla i posti
+          </h3>
         </div>
-        {opponentUsername ? (
-          <TableSide occupied username={opponentUsername} label="Avversario" />
-        ) : (
-          <TableSide occupied={false} username="" label="Posto libero" />
+        <span className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-white/55">
+          Heads-up
+        </span>
+      </div>
+
+      <div className="mt-3 rounded-[1.75rem] border border-white/15 bg-white/[0.06] p-3 shadow-inner shadow-card2-end/30 sm:p-4">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+          <LobbySeat
+            occupied
+            username={myUsername}
+            label="Tu"
+            isMe
+            compact
+          />
+          <VersusBadge />
+          <LobbySeat
+            occupied={Boolean(opponentUsername)}
+            username={opponentUsername}
+            label="Rivale"
+            compact
+          />
+        </div>
+
+        {!opponentUsername && (
+          <div className="mt-3 flex items-center justify-center gap-2 border-t border-white/10 pt-3 text-center text-xs font-semibold text-white/55">
+            <Clock3 className="h-4 w-4 text-primary" aria-hidden="true" />
+            Il tavolo resta aperto mentre aspetti un avversario.
+          </div>
         )}
       </div>
-      {!opponentUsername && (
-        <p className="mt-2 text-center text-sm font-medium text-white/50">
-          Il tavolo resterà visibile mentre aspetti un avversario.
-        </p>
-      )}
     </section>
-  );
-}
-
-function TableSide({
-  occupied,
-  username,
-  label,
-  highlight = false,
-}: {
-  occupied: boolean;
-  username: string;
-  label: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'flex min-w-0 flex-col items-center gap-2 rounded-xl border p-3 text-center',
-        occupied
-          ? highlight
-            ? 'border-primary/50 bg-primary/10'
-            : 'border-white/15 bg-white/[0.05]'
-          : 'border-dashed border-white/15 bg-white/[0.02]',
-      )}
-    >
-      <span className={cn(
-        'grid h-10 w-10 place-items-center rounded-full',
-        occupied ? 'bg-white/10 text-white' : 'bg-white/5 text-white/30',
-      )}>
-        {occupied ? <User className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
-      </span>
-      <span className="max-w-full truncate text-sm font-bold text-white">
-        {occupied ? username : '—'}
-      </span>
-      <span className="text-xs font-bold text-white/40">{label}</span>
-    </div>
   );
 }

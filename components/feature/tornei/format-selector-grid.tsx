@@ -92,12 +92,13 @@ export function FormatSelectorGrid({
             aria-pressed={isSelected}
             aria-label={`Formato ${format.name}`}
             className={cn(
-              'group relative aspect-video min-w-0 overflow-hidden rounded-2xl',
+              'group relative min-w-0 overflow-hidden rounded-2xl',
+              dense && !compact ? 'aspect-[6/5]' : 'aspect-video',
               CARD_MORPH_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
                 : cn(
-                    'origin-center first:origin-left last:origin-right hover:z-20 hover:scale-150 motion-reduce:hover:scale-100',
+                    'origin-center first:origin-left last:origin-right hover:z-20 hover:scale-125 motion-reduce:hover:scale-100',
                     dense
                       ? 'w-[7.25rem] shrink-0 sm:w-[8rem] md:flex-1 md:basis-0'
                       : 'flex-1 basis-0',

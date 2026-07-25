@@ -6,6 +6,7 @@ interface LobbyModalHeaderProps {
   descriptionId: string;
   title: string;
   description: string;
+  meta?: string[];
   onClose: () => void;
   closeDisabled?: boolean;
 }
@@ -17,6 +18,7 @@ export function LobbyModalHeader({
   descriptionId,
   title,
   description,
+  meta,
   onClose,
   closeDisabled = false,
 }: LobbyModalHeaderProps) {
@@ -38,6 +40,18 @@ export function LobbyModalHeader({
         >
           {description}
         </p>
+        {meta && meta.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2" aria-label="Dettagli del tavolo">
+            {meta.map((item) => (
+              <span
+                key={item}
+                className="rounded-full border border-white/10 bg-white/[0.08] px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/70 sm:px-3 sm:text-[9px]"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <button
         type="button"
