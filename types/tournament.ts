@@ -46,6 +46,8 @@ export interface Tournament {
   webcamSessionId?: string;
   matchId?: string;
   matchWebcamSessionId?: string;
+  /** Ruolo signaling assegnato dal backend per il match corrente. */
+  signalingRole?: 'host' | 'guest';
   createdById?: string;
 }
 

@@ -15,7 +15,13 @@ export interface SigMsg {
 
 const SESSION_TTL_SEC = 600;
 const MAX_MESSAGES = 300;
+const MAX_ACTIVE_MEMORY_SESSIONS = 200;
+const MAX_REQUESTS_PER_MINUTE = 240;
 const KEY_PREFIX = 'webcam:sig:';
+
+export class SignalingStoreUnavailableError extends Error {}
+export class SignalingRateLimitError extends Error {}
+export class SignalingSessionLimitError extends Error {}
 
 interface MemorySession {
   seq: number;
@@ -23,16 +29,40 @@ interface MemorySession {
   createdAt: number;
 }
 
+interface MemoryRate {
+  count: number;
+  resetAt: number;
+}
+
 const memoryStore: Map<string, MemorySession> =
   (globalThis as unknown as { __webcamSig?: Map<string, MemorySession> }).__webcamSig ??
   new Map<string, MemorySession>();
 (globalThis as unknown as { __webcamSig?: Map<string, MemorySession> }).__webcamSig =
   memoryStore;
+const memoryRates = new Map<string, MemoryRate>();
 
 function memoryGc(): void {
   const now = Date.now();
   for (const [id, s] of memoryStore) {
     if (now - s.createdAt > SESSION_TTL_SEC * 1000) memoryStore.delete(id);
+  }
+  for (const [key, rate] of memoryRates) {
+    if (rate.resetAt <= now) memoryRates.delete(key);
+  }
+}
+
+function checkMemoryRate(sessionId: string, role: 'host' | 'guest'): void {
+  memoryGc();
+  const key = `${sessionId}:${role}`;
+  const now = Date.now();
+  const current = memoryRates.get(key);
+  if (!current || current.resetAt <= now) {
+    memoryRates.set(key, { count: 1, resetAt: now + 60_000 });
+    return;
+  }
+  current.count += 1;
+  if (current.count > MAX_REQUESTS_PER_MINUTE) {
+    throw new SignalingRateLimitError();
   }
 }
 
@@ -42,21 +72,27 @@ function memoryAppend(
   kind: string,
   data: unknown,
 ): { seq: number } {
-  memoryGc();
+  checkMemoryRate(sessionId, from);
   let s = memoryStore.get(sessionId);
   if (!s) {
+    if (memoryStore.size >= MAX_ACTIVE_MEMORY_SESSIONS) {
+      throw new SignalingStoreUnavailableError('Troppe sessioni webcam attive');
+    }
     s = { seq: 0, messages: [], createdAt: Date.now() };
     memoryStore.set(sessionId, s);
   }
+  if (s.seq >= MAX_MESSAGES) throw new SignalingSessionLimitError();
   s.seq += 1;
   s.messages.push({ seq: s.seq, from, kind, data });
-  if (s.messages.length > MAX_MESSAGES) {
-    s.messages.splice(0, s.messages.length - MAX_MESSAGES);
-  }
   return { seq: s.seq };
 }
 
-function memoryList(sessionId: string, since: number): { exists: boolean; messages: SigMsg[] } {
+function memoryList(
+  sessionId: string,
+  role: 'host' | 'guest',
+  since: number,
+): { exists: boolean; messages: SigMsg[] } {
+  checkMemoryRate(sessionId, role);
   const s = memoryStore.get(sessionId);
   if (!s) return { exists: false, messages: [] };
   return { exists: true, messages: s.messages.filter((m) => m.seq > since) };
@@ -65,6 +101,11 @@ function memoryList(sessionId: string, since: number): { exists: boolean; messag
 function redisKeys(sessionId: string): { seq: string; msgs: string } {
   const safe = encodeURIComponent(sessionId);
   return { seq: `${KEY_PREFIX}${safe}:seq`, msgs: `${KEY_PREFIX}${safe}:msgs` };
+}
+
+function rateKey(sessionId: string, role: 'host' | 'guest'): string {
+  const minute = Math.floor(Date.now() / 60_000);
+  return `${KEY_PREFIX}${encodeURIComponent(sessionId)}:rate:${role}:${minute}`;
 }
 
 function upstashConfigured(): boolean {
@@ -114,6 +155,7 @@ async function redisAppend(
   if (!Number.isFinite(seq) || seq < 1) {
     throw new Error('Upstash INCR non valido');
   }
+  if (seq > MAX_MESSAGES) throw new SignalingSessionLimitError();
   const payload = JSON.stringify({ seq, from, kind, data: data ?? null });
   await upstashPipeline([
     ['RPUSH', msgsKey, payload],
@@ -121,6 +163,25 @@ async function redisAppend(
     ['LTRIM', msgsKey, -MAX_MESSAGES, -1],
   ]);
   return { seq };
+}
+
+async function checkRedisRate(
+  sessionId: string,
+  role: 'host' | 'guest',
+): Promise<void> {
+  const [countRaw] = await upstashPipeline([
+    ['INCR', rateKey(sessionId, role)],
+    ['EXPIRE', rateKey(sessionId, role), 70],
+  ]);
+  if (Number(countRaw) > MAX_REQUESTS_PER_MINUTE) {
+    throw new SignalingRateLimitError();
+  }
+}
+
+function requireProductionStore(): void {
+  if (process.env.NODE_ENV === 'production' && !upstashConfigured()) {
+    throw new SignalingStoreUnavailableError('Upstash non configurato');
+  }
 }
 
 async function redisList(
@@ -156,13 +217,20 @@ export async function appendSignalingMessage(
   kind: string,
   data: unknown,
 ): Promise<{ seq: number }> {
+  requireProductionStore();
   if (upstashConfigured()) {
     try {
+      await checkRedisRate(sessionId, from);
       return await redisAppend(sessionId, from, kind, data);
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[signaling-store] Upstash fallito, fallback in-memory:', err);
+      if (
+        err instanceof SignalingRateLimitError ||
+        err instanceof SignalingSessionLimitError
+      ) throw err;
+      if (process.env.NODE_ENV !== 'development') {
+        throw new SignalingStoreUnavailableError('Upstash non disponibile');
       }
+      console.warn('[signaling-store] Upstash fallito, fallback in-memory:', err);
     }
   }
   return memoryAppend(sessionId, from, kind, data);
@@ -171,16 +239,21 @@ export async function appendSignalingMessage(
 /** Elenca i messaggi con seq > since. */
 export async function listSignalingMessages(
   sessionId: string,
+  role: 'host' | 'guest',
   since: number,
 ): Promise<{ exists: boolean; messages: SigMsg[] }> {
+  requireProductionStore();
   if (upstashConfigured()) {
     try {
+      await checkRedisRate(sessionId, role);
       return await redisList(sessionId, since);
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[signaling-store] Upstash fallito, fallback in-memory:', err);
+      if (err instanceof SignalingRateLimitError) throw err;
+      if (process.env.NODE_ENV !== 'development') {
+        throw new SignalingStoreUnavailableError('Upstash non disponibile');
       }
+      console.warn('[signaling-store] Upstash fallito, fallback in-memory:', err);
     }
   }
-  return memoryList(sessionId, since);
+  return memoryList(sessionId, role, since);
 }

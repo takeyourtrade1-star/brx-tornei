@@ -161,6 +161,55 @@
     animation: toolbar-expand-settle 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  @keyframes tournament-table-aurora-spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @keyframes tournament-table-glow-a {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(45%, 28%, 0) scale(1.2);
+    }
+  }
+
+  @keyframes tournament-table-glow-b {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1.05);
+    }
+    50% {
+      transform: translate3d(-38%, -24%, 0) scale(0.9);
+    }
+  }
+
+  .tournament-table-aurora {
+    background: conic-gradient(
+      from 0deg,
+      theme('colors.card3-start'),
+      theme('colors.global-bg-start'),
+      theme('colors.marquee'),
+      theme('colors.card3-start'),
+      theme('colors.global-bg-start')
+    );
+    animation: tournament-table-aurora-spin 8s linear infinite;
+    will-change: transform;
+  }
+
+  .tournament-table-glow-a {
+    animation: tournament-table-glow-a 9s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .tournament-table-glow-b {
+    animation: tournament-table-glow-b 11s ease-in-out infinite;
+    will-change: transform;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .tournaments-toolbar-ease,
     .tournaments-toolbar-section-collapse {
@@ -168,6 +217,11 @@
     }
     .animate-toolbar-compact-settle,
     .animate-toolbar-expand-settle {
+      animation: none;
+    }
+    .tournament-table-aurora,
+    .tournament-table-glow-a,
+    .tournament-table-glow-b {
       animation: none;
     }
   }
@@ -506,4 +560,3 @@
   .match-intro-winner { animation-duration: 0.01ms; }
   .match-intro-progress { animation-duration: 1.65s; }
 }
-

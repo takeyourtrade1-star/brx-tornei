@@ -34,7 +34,13 @@ interface WakeLockSentinelLike {
 }
 
 /** Telefono: cattura la fotocamera e la invia al PC come webcam del match. */
-export function WebcamPhonePublisher({ sessionId }: { sessionId: string }) {
+export function WebcamPhonePublisher({
+  sessionId,
+  relayToken,
+}: {
+  sessionId: string;
+  relayToken: string;
+}) {
   const [state, setState] = useState<LinkState>('connecting');
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -69,10 +75,15 @@ export function WebcamPhonePublisher({ sessionId }: { sessionId: string }) {
         } catch {
           /* wake lock opzionale */
         }
-        const ctrl = createWebcamSender(sessionId, stream, {
-          onState: setState,
-          onError: setError,
-        });
+        const ctrl = createWebcamSender(
+          sessionId,
+          stream,
+          {
+            onState: setState,
+            onError: setError,
+          },
+          relayToken,
+        );
         ctrlRef.current = ctrl;
         ctrl.start();
       } catch (err) {
@@ -93,7 +104,7 @@ export function WebcamPhonePublisher({ sessionId }: { sessionId: string }) {
       void wakeRef.current?.release().catch(() => {});
       wakeRef.current = null;
     };
-  }, [sessionId, attempt]);
+  }, [sessionId, relayToken, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 

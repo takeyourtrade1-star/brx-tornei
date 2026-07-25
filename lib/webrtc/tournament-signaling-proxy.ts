@@ -39,7 +39,12 @@ export async function handleTournamentSignalingGet(
     }
   }
 
-  const { exists, messages } = await listSignalingMessages(sessionId, since);
+  const safeRole = role === 'guest' ? 'guest' : 'host';
+  const { exists, messages } = await listSignalingMessages(
+    sessionId,
+    safeRole,
+    since,
+  );
   if (!exists) return NextResponse.json({ exists: false, messages: [] });
   return NextResponse.json({ exists: true, messages });
 }

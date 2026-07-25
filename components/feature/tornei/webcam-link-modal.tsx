@@ -60,12 +60,44 @@ export function WebcamLinkModal({
 
   useEffect(() => {
     if (!open || source !== 'phone') return;
-    setUrl(`${window.location.origin}/tornei/webcam/${sessionId}`);
+    let cancelled = false;
     const host = window.location.hostname;
     const isLocal = host === 'localhost' || host === '127.0.0.1';
     setInsecure(window.location.protocol !== 'https:' || isLocal);
-    start();
-    return () => stop();
+    setUrl('');
+
+    async function authorizeRelay() {
+      try {
+        const res = await fetch(
+          `/api/tornei/webcam/${encodeURIComponent(sessionId)}/authorize`,
+          { method: 'POST', cache: 'no-store' },
+        );
+        if (!res.ok) throw new Error('relay authorization failed');
+        const data = (await res.json()) as {
+          hostToken?: string;
+          guestToken?: string;
+        };
+        if (!data.hostToken || !data.guestToken) {
+          throw new Error('relay capability missing');
+        }
+        if (cancelled) return;
+        const phoneUrl = new URL(
+          `/tornei/webcam/${encodeURIComponent(sessionId)}`,
+          window.location.origin,
+        );
+        phoneUrl.searchParams.set('token', data.guestToken);
+        setUrl(phoneUrl.toString());
+        start(data.hostToken);
+      } catch {
+        if (!cancelled) setUrl('');
+      }
+    }
+
+    void authorizeRelay();
+    return () => {
+      cancelled = true;
+      stop();
+    };
   }, [open, source, sessionId, start, stop]);
 
   // Esc + scroll-lock (solo mentre la modale è aperta e non è occupata).

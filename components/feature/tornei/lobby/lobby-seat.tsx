@@ -27,7 +27,7 @@ export function LobbySeat({
         occupied
           ? 'border-white/15 bg-white/[0.09] shadow-sm'
           : 'border-dashed border-white/20 bg-black/10',
-        isMe && 'border-primary/35 bg-primary/10',
+        isMe && 'border-card3-start/40 bg-card3-start/10',
       )}
     >
       <span
@@ -36,7 +36,7 @@ export function LobbySeat({
           compact ? 'hidden h-9 w-9 sm:grid' : 'grid h-9 w-9 sm:h-11 sm:w-11',
           occupied
             ? isMe
-              ? 'border-primary/30 bg-primary/15 text-primary'
+              ? 'border-card3-start/35 bg-card3-start/15 text-card3-start'
               : 'border-white/15 bg-white/10 text-white'
             : 'border-white/10 bg-white/[0.05] text-white/35',
         )}
@@ -64,7 +64,7 @@ export function LobbySeat({
       </span>
 
       {isMe && !compact && (
-        <span className="hidden shrink-0 rounded-full bg-primary/15 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-primary sm:inline-flex">
+        <span className="hidden shrink-0 rounded-full bg-card3-start/15 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-card3-start sm:inline-flex">
           Tu
         </span>
       )}

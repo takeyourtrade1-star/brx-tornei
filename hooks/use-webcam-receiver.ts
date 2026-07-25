@@ -28,7 +28,7 @@ export function useWebcamReceiver(externalSessionId?: string | null) {
   const [lastError, setLastError] = useState<string | null>(null);
   const ctrlRef = useRef<LinkController | null>(null);
 
-  const start = useCallback(() => {
+  const start = useCallback((relayToken: string) => {
     if (ctrlRef.current) return;
     setLastError(null);
     ctrlRef.current = createWebcamReceiver(sessionId, {
@@ -36,7 +36,7 @@ export function useWebcamReceiver(externalSessionId?: string | null) {
       onState: setState,
       onRtt: setRtt,
       onError: setLastError,
-    });
+    }, relayToken);
     ctrlRef.current.start();
   }, [sessionId]);
 

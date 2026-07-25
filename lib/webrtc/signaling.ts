@@ -78,7 +78,10 @@ export class SignalingChannel {
   private async poll(): Promise<void> {
     if (this.stopped || this.connected) return;
     try {
-      const res = await fetch(`${this.base}?role=${this.role}&since=${this.since}`, {
+      const pollUrl = new URL(this.base, window.location.origin);
+      pollUrl.searchParams.set('role', this.role);
+      pollUrl.searchParams.set('since', String(this.since));
+      const res = await fetch(pollUrl.toString(), {
         cache: 'no-store',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });

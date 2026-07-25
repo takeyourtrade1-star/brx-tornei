@@ -9,9 +9,13 @@ export const metadata: Metadata = { title: 'Webcam · Ebartex Tornei' };
  */
 export default async function WebcamPhonePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sessionId: string }>;
+  searchParams: Promise<{ token?: string | string[] }>;
 }) {
   const { sessionId } = await params;
-  return <WebcamPhonePublisher sessionId={sessionId} />;
+  const query = await searchParams;
+  const relayToken = typeof query.token === 'string' ? query.token : '';
+  return <WebcamPhonePublisher sessionId={sessionId} relayToken={relayToken} />;
 }

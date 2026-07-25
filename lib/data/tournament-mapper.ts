@@ -85,6 +85,11 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
   const matchWebcamSessionId =
     pickString(obj, 'match_webcam_session_id', 'matchWebcamSessionId') ??
     pickString(match ?? {}, 'webcam_session_id', 'webcamSessionId');
+  const signalingRoleRaw = pickString(obj, 'signaling_role', 'signalingRole');
+  const signalingRole =
+    signalingRoleRaw === 'host' || signalingRoleRaw === 'guest'
+      ? signalingRoleRaw
+      : undefined;
 
   return {
     id,
@@ -102,6 +107,7 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     webcamSessionId: pickString(obj, 'webcam_session_id', 'webcamSessionId'),
     matchId,
     matchWebcamSessionId,
+    signalingRole,
     createdById: pickString(obj, 'created_by', 'createdBy', 'created_by_id', 'createdById'),
   };
 }

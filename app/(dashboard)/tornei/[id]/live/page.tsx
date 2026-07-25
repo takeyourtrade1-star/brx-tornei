@@ -32,8 +32,9 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   // Con due giocatori l'host è sempre quello con id minore: regola identica
   // su entrambi i client, qualunque cosa ritorni il backend.
   const playerIds = tournament.participants.map((p) => p.id).sort();
-  const isHost =
-    playerIds.length >= 2
+  const isHost = tournament.signalingRole
+    ? tournament.signalingRole === 'host'
+    : playerIds.length >= 2
       ? playerIds[0] === session.user.id
       : tournament.createdById === session.user.id ||
         tournament.participants[0]?.id === session.user.id;
