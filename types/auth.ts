@@ -8,7 +8,6 @@ export interface SessionUser {
 
 export interface Session {
   user: SessionUser;
-  accessToken: string;
 }
 
 /** Risposta token del backend auth (login / refresh / verify-mfa). */

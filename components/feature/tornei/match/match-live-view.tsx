@@ -28,12 +28,11 @@ interface MatchLiveViewProps {
   role: LiveViewRole;
   me: string;
   userId: string;
-  accessToken: string;
   isHost: boolean;
   defaultPlaymatId: PlaymatId;
 }
 
-export function MatchLiveView({ tournament, role, me, userId, accessToken, isHost, defaultPlaymatId }: MatchLiveViewProps) {
+export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPlaymatId }: MatchLiveViewProps) {
   const isObserver = role === 'observer';
   const isPlayer = !isObserver;
   const { local, remote, players } = resolveMatchSides(tournament, me, userId);
@@ -78,7 +77,6 @@ export function MatchLiveView({ tournament, role, me, userId, accessToken, isHos
   const { stickerShot, handleSticker } = useMatchStickerShot();
   const chat = useMatchChat({
     matchId: tournament.matchId,
-    accessToken,
     userId,
     active: isPlayer && !!tournament.matchId && tournament.status !== 'terminata',
   });

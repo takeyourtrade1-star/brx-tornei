@@ -6,6 +6,7 @@ import { getMyInventory } from '@/lib/data/inventory';
 import { resolveScanAndAddToInventory } from '@/lib/data/resolve-scan';
 import { resolveScanSchema } from '@/lib/validations/scan';
 import type { ResolveScanResult } from '@/types/resolve-scan';
+import { config } from '@/lib/config';
 
 export async function addScannedCardAction(
   input: unknown
@@ -13,6 +14,9 @@ export async function addScannedCardAction(
   const session = await getSession();
   if (!session) {
     return { error: 'Sessione scaduta. Accedi di nuovo.' };
+  }
+  if (!config.features.ephemeralInventoryMutations) {
+    return { error: 'Salvataggio inventario non disponibile: lo scan non è stato registrato.' };
   }
 
   const parsed = resolveScanSchema.safeParse(input);

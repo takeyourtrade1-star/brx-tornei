@@ -7,10 +7,15 @@ import {
   SignalingStoreUnavailableError,
 } from '@/lib/webrtc/signaling-store';
 import {
+  decodeWebcamRelayCapability,
   isValidWebcamSessionId,
-  verifyWebcamRelayCapability,
+  webcamRelayCookieName,
   type WebcamRelayRole,
 } from '@/lib/webrtc/webcam-relay-auth';
+import { config } from '@/lib/config';
+import { isSameOriginMutation } from '@/lib/security/request-origin';
+import { readBoundedJson } from '@/lib/security/bounded-json';
+import { privateJson } from '@/lib/security/private-json';
 
 /**
  * Relay di signaling per il link webcam telefono↔PC (offer/answer + ICE).
@@ -26,60 +31,71 @@ export const dynamic = 'force-dynamic';
 const MAX_BODY_BYTES = 65 * 1024;
 const SIGNAL_KINDS = new Set(['offer', 'answer', 'candidate', 'bye']);
 
+function cookieCapability(req: NextRequest): string | null {
+  const token = req.cookies.get(webcamRelayCookieName())?.value ?? null;
+  return token && token.length <= 2048 && !token.includes(' ') ? token : null;
+}
+
 function storeError(err: unknown): NextResponse {
   if (err instanceof SignalingRateLimitError) {
-    return NextResponse.json(
+    return privateJson(
       { error: 'rate limit' },
       { status: 429, headers: { 'Retry-After': '60' } },
     );
   }
   if (err instanceof SignalingSessionLimitError) {
-    return NextResponse.json({ error: 'session limit' }, { status: 409 });
+    return privateJson({ error: 'session limit' }, { status: 409 });
   }
   if (err instanceof SignalingStoreUnavailableError) {
-    return NextResponse.json({ error: 'relay unavailable' }, { status: 503 });
+    return privateJson({ error: 'relay unavailable' }, { status: 503 });
   }
-  return NextResponse.json({ error: 'relay unavailable' }, { status: 503 });
+  return privateJson({ error: 'relay unavailable' }, { status: 503 });
 }
 
 export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ sessionId: string }> },
 ): Promise<NextResponse> {
+  if (!isSameOriginMutation(req, config.app.siteUrl)) {
+    return privateJson({ error: 'cross-site request rejected' }, { status: 403 });
+  }
   const { sessionId } = await ctx.params;
   if (!isValidWebcamSessionId(sessionId)) {
-    return NextResponse.json({ error: 'invalid session' }, { status: 400 });
+    return privateJson({ error: 'invalid session' }, { status: 400 });
   }
-  const contentLength = Number(req.headers.get('content-length') ?? '0');
-  if (contentLength > MAX_BODY_BYTES) {
-    return NextResponse.json({ error: 'payload too large' }, { status: 413 });
-  }
-  const raw = await req.text();
-  if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {
-    return NextResponse.json({ error: 'payload too large' }, { status: 413 });
+  const decoded = await readBoundedJson(req, MAX_BODY_BYTES);
+  if (!decoded.ok) {
+    return privateJson(
+      { error: decoded.status === 413 ? 'payload too large' : 'bad json' },
+      { status: decoded.status },
+    );
   }
   let body: { from?: 'host' | 'guest'; kind?: string; data?: unknown };
-  try {
-    body = JSON.parse(raw) as typeof body;
-  } catch {
-    return NextResponse.json({ error: 'bad json' }, { status: 400 });
+  if (!decoded.value || typeof decoded.value !== 'object' || Array.isArray(decoded.value)) {
+    return privateJson({ error: 'bad json' }, { status: 400 });
   }
-  if (!body.from || !body.kind || !SIGNAL_KINDS.has(body.kind)) {
-    return NextResponse.json({ error: 'missing from/kind' }, { status: 400 });
+  body = decoded.value as typeof body;
+  if (
+    (body.from !== 'host' && body.from !== 'guest') ||
+    !body.kind ||
+    !SIGNAL_KINDS.has(body.kind)
+  ) {
+    return privateJson({ error: 'missing from/kind' }, { status: 400 });
   }
-  const token = req.nextUrl.searchParams.get('token');
-  if (!verifyWebcamRelayCapability(token, sessionId, body.from)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const token = cookieCapability(req);
+  const capability = decodeWebcamRelayCapability(token, sessionId, body.from);
+  if (!capability) {
+    return privateJson({ error: 'unauthorized' }, { status: 401 });
   }
 
   try {
     const { seq } = await appendSignalingMessage(
-      sessionId,
+      `${sessionId}:${capability.relayId}`,
       body.from,
       body.kind,
       body.data ?? null,
     );
-    return NextResponse.json({ ok: true, seq });
+    return privateJson({ ok: true, seq });
   } catch (err) {
     return storeError(err);
   }
@@ -91,32 +107,31 @@ export async function GET(
 ): Promise<NextResponse> {
   const { sessionId } = await ctx.params;
   if (!isValidWebcamSessionId(sessionId)) {
-    return NextResponse.json({ error: 'invalid session' }, { status: 400 });
+    return privateJson({ error: 'invalid session' }, { status: 400 });
   }
   const roleParam = req.nextUrl.searchParams.get('role');
   if (roleParam !== 'host' && roleParam !== 'guest') {
-    return NextResponse.json({ error: 'invalid role' }, { status: 400 });
+    return privateJson({ error: 'invalid role' }, { status: 400 });
   }
   const role: WebcamRelayRole = roleParam;
-  if (
-    !verifyWebcamRelayCapability(
-      req.nextUrl.searchParams.get('token'),
-      sessionId,
-      role,
-    )
-  ) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const capability = decodeWebcamRelayCapability(
+    cookieCapability(req),
+    sessionId,
+    role,
+  );
+  if (!capability) {
+    return privateJson({ error: 'unauthorized' }, { status: 401 });
   }
   const sinceRaw = Number(req.nextUrl.searchParams.get('since') ?? '0');
   const since = Number.isSafeInteger(sinceRaw) && sinceRaw >= 0 ? sinceRaw : 0;
   try {
     const { exists, messages } = await listSignalingMessages(
-      sessionId,
+      `${sessionId}:${capability.relayId}`,
       role,
       since,
     );
-    if (!exists) return NextResponse.json({ exists: false, messages: [] });
-    return NextResponse.json({ exists: true, messages });
+    if (!exists) return privateJson({ exists: false, messages: [] });
+    return privateJson({ exists: true, messages });
   } catch (err) {
     return storeError(err);
   }

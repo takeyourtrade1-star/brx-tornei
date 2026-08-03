@@ -2,18 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Comodo Regular: font display (copiare i file da new_frontend_brx/public/fonts) */
-@font-face {
-  font-family: 'Comodo Regular';
-  src: url('/fonts/Comodo Regular Free.otf') format('opentype'),
-       url('/fonts/Comodo Regular Free.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: optional;
-}
-
 @layer base {
   :root {
+    /* Nessuna dipendenza da font remoti o da asset locali mancanti. */
+    --font-comodo: Georgia, 'Times New Roman', serif;
+    --font-sans: Georgia, 'Times New Roman', serif;
+
     /* Palette principale Ebartex (gradiente e blocchi) */
     --color-brand: #3D65C6;
     --color-brand-dark: #1D3160;

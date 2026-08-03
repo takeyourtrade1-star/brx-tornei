@@ -65,9 +65,12 @@ export class SignalingChannel {
     try {
       await fetch(this.base, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ from: this.role, kind, data }),
         keepalive: kind === 'bye',
+        redirect: 'error',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
     } catch {
@@ -83,6 +86,7 @@ export class SignalingChannel {
       pollUrl.searchParams.set('since', String(this.since));
       const res = await fetch(pollUrl.toString(), {
         cache: 'no-store',
+        redirect: 'error',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
       if (res.ok) {

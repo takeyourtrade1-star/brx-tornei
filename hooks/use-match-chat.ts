@@ -12,73 +12,63 @@ export interface MatchChatMessage {
 
 interface UseMatchChatOptions {
   matchId: string | null | undefined;
-  accessToken: string | null | undefined;
   userId: string;
   active: boolean;
 }
 
 export type MatchChatConnectionState = 'idle' | 'connecting' | 'connected' | 'error';
-
 const MAX_RECONNECT_ATTEMPTS = 4;
 
-export function useMatchChat({ matchId, accessToken, userId, active }: UseMatchChatOptions) {
+export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
   const [messages, setMessages] = useState<MatchChatMessage[]>([]);
   const [connectionState, setConnectionState] = useState<MatchChatConnectionState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [generation, setGeneration] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
-  const messageSequence = useRef(0);
+  const sequence = useRef(0);
 
-  const nextMessageId = useCallback((prefix: string) => {
-    messageSequence.current += 1;
-    return `${prefix}:${Date.now()}:${messageSequence.current}`;
+  const nextId = useCallback((prefix: string) => {
+    sequence.current += 1;
+    return `${prefix}:${Date.now()}:${sequence.current}`;
   }, []);
-
   const retry = useCallback(() => {
     reconnectAttempts.current = 0;
     setError(null);
-    setGeneration((current) => current + 1);
+    setGeneration((value) => value + 1);
   }, []);
-
-  const send = useCallback(
-    (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed) return false;
-      const ws = wsRef.current;
-      if (!ws || ws.readyState !== WebSocket.OPEN) return false;
-      try {
-        ws.send(JSON.stringify({ text: trimmed }));
-      } catch {
-        return false;
-      }
-      const sentAt = Date.now();
-      setMessages((previous) => [
-        ...previous,
-        { id: nextMessageId(`${userId}:local`), userId, text: trimmed, sentAt },
+  const send = useCallback((text: string) => {
+    const value = text.trim().slice(0, 500);
+    const ws = wsRef.current;
+    if (!value || !ws || ws.readyState !== WebSocket.OPEN) return false;
+    try {
+      ws.send(JSON.stringify({ text: value }));
+      setMessages((old) => [
+        ...old,
+        { id: nextId(`${userId}:local`), userId, text: value, sentAt: Date.now() },
       ]);
       return true;
-    },
-    [nextMessageId, userId],
-  );
+    } catch {
+      return false;
+    }
+  }, [nextId, userId]);
 
   useEffect(() => {
     reconnectAttempts.current = 0;
-    messageSequence.current = 0;
+    sequence.current = 0;
     setMessages([]);
     setError(null);
   }, [active, matchId, userId]);
 
   useEffect(() => {
-    if (!active || !matchId || !accessToken) {
+    if (!active || !matchId) {
       setConnectionState('idle');
       wsRef.current?.close();
       wsRef.current = null;
       return;
     }
-
-    const url = getMatchChatWsUrl(matchId);
-    if (!url) {
+    const wsUrl = getMatchChatWsUrl(matchId);
+    if (!wsUrl) {
       setConnectionState('error');
       setError('Chat non configurata.');
       return;
@@ -86,70 +76,69 @@ export function useMatchChat({ matchId, accessToken, userId, active }: UseMatchC
 
     let cancelled = false;
     let reconnectTimer: number | null = null;
-    setConnectionState('connecting');
-    setError(null);
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
-
-    const scheduleReconnect = () => {
+    let ws: WebSocket | null = null;
+    const reconnect = () => {
       if (cancelled || reconnectTimer || reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) return;
       reconnectAttempts.current += 1;
       const delay = Math.min(1_000 * 2 ** (reconnectAttempts.current - 1), 8_000);
-      reconnectTimer = window.setTimeout(() => setGeneration((current) => current + 1), delay);
+      reconnectTimer = window.setTimeout(() => setGeneration((value) => value + 1), delay);
     };
 
-    ws.onopen = () => {
-      if (cancelled) return;
+    async function connect() {
+      setConnectionState('connecting');
+      setError(null);
       try {
-        ws.send(JSON.stringify({ token: accessToken }));
-        reconnectAttempts.current = 0;
-        setConnectionState('connected');
-      } catch {
-        ws.close();
-      }
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(String(event.data)) as {
-          event?: string;
-          text?: string;
-          user_id?: string;
-          sent_at?: number;
+        const response = await fetch(
+          `/api/tournaments/match/${encodeURIComponent(matchId!)}/chat-ticket`,
+          { method: 'POST', cache: 'no-store' },
+        );
+        const capability = (await response.json().catch(() => ({}))) as { ticket?: string };
+        if (!response.ok || !capability.ticket) throw new Error('ticket unavailable');
+        if (cancelled) return;
+        ws = new WebSocket(wsUrl!);
+        wsRef.current = ws;
+        ws.onopen = () => {
+          if (cancelled || !ws) return;
+          ws.send(JSON.stringify({ ticket: capability.ticket }));
+          reconnectAttempts.current = 0;
+          setConnectionState('connected');
         };
-        if (data.event !== 'chat' || typeof data.text !== 'string') return;
-        const text = data.text;
-        const senderId = typeof data.user_id === 'string' ? data.user_id : 'unknown';
-        const sentAt = typeof data.sent_at === 'number' ? data.sent_at : Date.now();
-        setMessages((previous) => [
-          ...previous,
-          { id: nextMessageId(`${senderId}:remote`), userId: senderId, text, sentAt },
-        ]);
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(String(event.data)) as Record<string, unknown>;
+            if (data.event !== 'chat' || typeof data.text !== 'string') return;
+            const sender = typeof data.user_id === 'string' ? data.user_id : 'unknown';
+            const sentAt = typeof data.sent_at === 'number' ? data.sent_at : Date.now();
+            setMessages((old) => [...old, {
+              id: nextId(`${sender}:remote`), userId: sender, text: data.text as string, sentAt,
+            }]);
+          } catch { /* Ignore malformed frames. */ }
+        };
+        ws.onerror = () => {
+          if (!cancelled) setError('Connessione chat interrotta.');
+        };
+        ws.onclose = () => {
+          if (cancelled) return;
+          setConnectionState('error');
+          setError('Chat disconnessa. Riconnessione in corso…');
+          reconnect();
+        };
       } catch {
-        /* Frame non valido: non interrompe la connessione. */
+        if (!cancelled) {
+          setConnectionState('error');
+          setError('Chat non disponibile.');
+          reconnect();
+        }
       }
-    };
-
-    ws.onerror = () => {
-      if (cancelled) return;
-      setConnectionState('error');
-      setError('Connessione chat interrotta. Riconnessione in corso…');
-    };
-
-    ws.onclose = () => {
-      if (cancelled) return;
-      setConnectionState('error');
-      setError('Chat disconnessa.');
-      scheduleReconnect();
-    };
-
+    }
+    void connect();
     return () => {
       cancelled = true;
       if (reconnectTimer) window.clearTimeout(reconnectTimer);
-      ws.close();
+      ws?.close();
       if (wsRef.current === ws) wsRef.current = null;
     };
-  }, [accessToken, active, generation, matchId, nextMessageId]);
+  }, [active, generation, matchId, nextId]);
 
   return { messages, send, connectionState, error, retry };
 }

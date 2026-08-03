@@ -32,8 +32,9 @@ describe('server rate limit', () => {
   });
 
   it('maps an exceeded authenticated-user quota to 429', async () => {
-    vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://redis.example.test');
-    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'secret');
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://redis-test.upstash.io');
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 's'.repeat(48));
+    vi.stubEnv('UPSTASH_REDIS_ALLOWED_HOSTNAME', 'redis-test.upstash.io');
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -49,5 +50,30 @@ describe('server rate limit', () => {
     }).catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(ServerRateLimitExceeded);
     expect(statusForServerRateLimitError(error)).toBe(429);
+  });
+
+  it('increments and repairs a missing expiry atomically in one Redis script', async () => {
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://redis-test.upstash.io');
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 's'.repeat(48));
+    vi.stubEnv('UPSTASH_REDIS_ALLOWED_HOSTNAME', 'redis-test.upstash.io');
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([{ result: 1 }]), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await enforceServerRateLimit({
+      scope: 'catalog',
+      subject: 'user-1',
+      limit: 10,
+    });
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const commands = JSON.parse(String(init.body)) as unknown[][];
+    expect(commands).toHaveLength(1);
+    expect(commands[0]?.[0]).toBe('EVAL');
+    const script = String(commands[0]?.[1]);
+    expect(script).toContain("redis.call('TTL', KEYS[1])");
+    expect(script).toContain('count == 1 or ttl < 0');
+    expect(script).toContain("redis.call('EXPIRE', KEYS[1], ARGV[1])");
   });
 });

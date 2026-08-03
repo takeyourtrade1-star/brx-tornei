@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { getCdnImageUrl } from '@/lib/config';
+import { getCdnImageUrl } from '@/lib/public-config';
 import {
   HEADER_BRX_LOGO_INTRINSIC_HEIGHT,
   HEADER_BRX_LOGO_INTRINSIC_WIDTH,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { getCdnVideoUrl } from '@/lib/config';
+import { getCdnVideoUrl } from '@/lib/public-config';
 
 const LANDING_BG_VIDEO = 'videos/sfondo_carte.webm';
 const PLAYBACK_RATE = 1.12;

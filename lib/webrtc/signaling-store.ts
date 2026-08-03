@@ -1,5 +1,10 @@
 import 'server-only';
 
+import {
+  executeUpstashPipeline,
+  isUpstashRedisConfigured,
+} from '@/lib/security/upstash-rest';
+
 /**
  * Store condiviso per il relay di signaling webcam (offer/answer + ICE).
  * In dev usa memoria locale; in prod con Upstash Redis tutte le istanze
@@ -15,6 +20,8 @@ export interface SigMsg {
 
 const SESSION_TTL_SEC = 600;
 const MAX_MESSAGES = 300;
+export const MAX_SIGNALING_RESPONSE_MESSAGES = 50;
+export const MAX_SIGNALING_RESPONSE_BYTES = 512 * 1024;
 const MAX_ACTIVE_MEMORY_SESSIONS = 200;
 const MAX_REQUESTS_PER_MINUTE = 240;
 const KEY_PREFIX = 'webcam:sig:';
@@ -95,7 +102,17 @@ function memoryList(
   checkMemoryRate(sessionId, role);
   const s = memoryStore.get(sessionId);
   if (!s) return { exists: false, messages: [] };
-  return { exists: true, messages: s.messages.filter((m) => m.seq > since) };
+  const messages: SigMsg[] = [];
+  let responseBytes = 0;
+  for (const message of s.messages) {
+    if (message.seq <= since) continue;
+    const size = Buffer.byteLength(JSON.stringify(message), 'utf8');
+    if (responseBytes + size > MAX_SIGNALING_RESPONSE_BYTES) break;
+    messages.push(message);
+    responseBytes += size;
+    if (messages.length >= MAX_SIGNALING_RESPONSE_MESSAGES) break;
+  }
+  return { exists: true, messages };
 }
 
 function redisKeys(sessionId: string): { seq: string; msgs: string } {
@@ -108,24 +125,8 @@ function rateKey(sessionId: string, role: 'host' | 'guest'): string {
   return `${KEY_PREFIX}${encodeURIComponent(sessionId)}:rate:${role}:${minute}`;
 }
 
-function upstashConfigured(): boolean {
-  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
-}
-
 async function upstashPipeline(commands: (string | number)[][]): Promise<unknown[]> {
-  const url = process.env.UPSTASH_REDIS_REST_URL!;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN!;
-  const res = await fetch(`${url}/pipeline`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify(commands),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(5000),
-  });
-  if (!res.ok) {
-    throw new Error(`Upstash pipeline ${res.status}`);
-  }
-  const json = (await res.json()) as unknown;
+  const json = await executeUpstashPipeline(commands);
   if (Array.isArray(json)) {
     return json.map((row) => (row as { result: unknown }).result);
   }
@@ -179,7 +180,7 @@ async function checkRedisRate(
 }
 
 function requireProductionStore(): void {
-  if (process.env.NODE_ENV === 'production' && !upstashConfigured()) {
+  if (process.env.NODE_ENV === 'production' && !isUpstashRedisConfigured()) {
     throw new SignalingStoreUnavailableError('Upstash non configurato');
   }
 }
@@ -191,18 +192,24 @@ async function redisList(
   const { seq: seqKey, msgs: msgsKey } = redisKeys(sessionId);
   const [existsRaw, raw] = await upstashPipeline([
     ['EXISTS', seqKey],
-    ['LRANGE', msgsKey, 0, -1],
+    ['LRANGE', msgsKey, since, since + MAX_SIGNALING_RESPONSE_MESSAGES - 1],
   ]);
   const exists = Number(existsRaw) > 0;
   if (!exists || !Array.isArray(raw) || raw.length === 0) {
     return { exists, messages: [] };
   }
   const messages: SigMsg[] = [];
+  let responseBytes = 0;
   for (const item of raw) {
     if (typeof item !== 'string') continue;
+    const size = Buffer.byteLength(item, 'utf8');
+    if (responseBytes + size > MAX_SIGNALING_RESPONSE_BYTES) break;
     try {
       const parsed = JSON.parse(item) as SigMsg;
-      if (parsed.seq > since) messages.push(parsed);
+      if (parsed.seq > since) {
+        messages.push(parsed);
+        responseBytes += size;
+      }
     } catch {
       /* messaggio corrotto: si ignora */
     }
@@ -218,7 +225,7 @@ export async function appendSignalingMessage(
   data: unknown,
 ): Promise<{ seq: number }> {
   requireProductionStore();
-  if (upstashConfigured()) {
+  if (isUpstashRedisConfigured()) {
     try {
       await checkRedisRate(sessionId, from);
       return await redisAppend(sessionId, from, kind, data);
@@ -243,7 +250,7 @@ export async function listSignalingMessages(
   since: number,
 ): Promise<{ exists: boolean; messages: SigMsg[] }> {
   requireProductionStore();
-  if (upstashConfigured()) {
+  if (isUpstashRedisConfigured()) {
     try {
       await checkRedisRate(sessionId, role);
       return await redisList(sessionId, since);

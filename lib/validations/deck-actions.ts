@@ -3,22 +3,22 @@ import { isPlaymatId } from '@/lib/playmats';
 import { createDeckSchema } from './deck';
 
 export const deckCardSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  quantity: z.number().int().min(1),
-  image: z.string().nullable().optional(),
-  setName: z.string().optional(),
-  setCode: z.string().nullable().optional(),
-  rarity: z.string().optional(),
-  collectorNumber: z.string().optional(),
-  oracleId: z.string().optional(),
-  scryfallId: z.string().optional(),
+  id: z.string().min(1).max(128),
+  name: z.string().min(1).max(256),
+  quantity: z.number().int().min(1).max(100),
+  image: z.string().max(2048).nullable().optional(),
+  setName: z.string().max(256).optional(),
+  setCode: z.string().max(32).nullable().optional(),
+  rarity: z.string().max(64).optional(),
+  collectorNumber: z.string().max(64).optional(),
+  oracleId: z.string().max(128).optional(),
+  scryfallId: z.string().max(128).optional(),
 });
 
 export const updateDeckSchema = z.object({
   deckId: z.string().min(1),
-  main: z.array(deckCardSchema).optional(),
-  side: z.array(deckCardSchema).optional(),
+  main: z.array(deckCardSchema).max(250).optional(),
+  side: z.array(deckCardSchema).max(100).optional(),
 });
 
 export const validateLegalitySchema = z.object({
@@ -27,15 +27,14 @@ export const validateLegalitySchema = z.object({
   deckSnapshot: z
     .object({
       formatId: z.string(),
-      main: z.array(deckCardSchema),
-      side: z.array(deckCardSchema),
+      main: z.array(deckCardSchema).max(250),
+      side: z.array(deckCardSchema).max(100),
     })
     .optional(),
 });
 
 export const saveVerificationSchema = z.object({
   deckId: z.string().min(1),
-  status: z.enum(['verified', 'mismatch', 'scanned']),
   scannedEntries: z
     .array(
       z.object({
@@ -44,7 +43,8 @@ export const saveVerificationSchema = z.object({
         quantity: z.number().int().min(1),
       })
     )
-    .optional(),
+    .min(1)
+    .max(250),
 });
 
 export const defaultPlaymatSchema = z.object({

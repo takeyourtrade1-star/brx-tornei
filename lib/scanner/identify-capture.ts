@@ -7,6 +7,10 @@ import {
 } from '@/lib/scanner/preprocess';
 
 import type { ScanResult } from '@/hooks/scanner/scanner-types';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+
+const MAX_SCAN_RESPONSE_BYTES = 512 * 1024;
+const MAX_VERIFY_RESPONSE_BYTES = 64 * 1024;
 
 async function blobToBase64Strip(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -131,25 +135,28 @@ async function identifyOnnx(params: IdentifyCaptureParams): Promise<IdentifyCapt
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), captureNetTimeout(params));
 
-  let searchResp: Response;
+  let searchData: { candidates?: VectorCandidate[] };
   try {
-    searchResp = await fetch(`${params.apiBaseUrl}/search-vector`, {
+    const searchResp = await fetch(`${params.apiBaseUrl}/search-vector`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: vectorSearchJson(vector, BALANCED.searchTopK),
+      redirect: 'error',
       signal: controller.signal,
     });
+    if (!searchResp.ok) {
+      return { ok: false, error: `Identificazione fallita (HTTP ${searchResp.status}).` };
+    }
+    searchData = (await readBoundedResponseJson(
+      searchResp,
+      MAX_SCAN_RESPONSE_BYTES,
+      controller.signal,
+    )) as { candidates?: VectorCandidate[] };
   } catch (err) {
-    clearTimeout(timeoutId);
     return { ok: false, error: fetchFailureMessage(controller, err) };
+  } finally {
+    clearTimeout(timeoutId);
   }
-  clearTimeout(timeoutId);
-
-  if (!searchResp.ok) {
-    return { ok: false, error: `Identificazione fallita (HTTP ${searchResp.status}).` };
-  }
-
-  const searchData = (await searchResp.json()) as { candidates?: VectorCandidate[] };
   const candidates = searchData.candidates ?? [];
   if (!candidates.length || !candidates[0].card_name) {
     return { ok: false, error: 'Nessuna carta riconosciuta nella foto.' };
@@ -170,10 +177,15 @@ async function identifyOnnx(params: IdentifyCaptureParams): Promise<IdentifyCapt
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ meta_idx: top1.meta_idx, image_b64: b64 }),
+        redirect: 'error',
         signal: verifyController.signal,
       });
       if (verifyResp.ok) {
-        const vd = (await verifyResp.json()) as { verified?: boolean; confidence?: number };
+        const vd = (await readBoundedResponseJson(
+          verifyResp,
+          MAX_VERIFY_RESPONSE_BYTES,
+          verifyController.signal,
+        )) as { verified?: boolean; confidence?: number };
         if (vd.verified) {
           finalConfidence = Math.max(finalConfidence, vd.confidence ?? finalConfidence);
           method = 'v3+vec+orb';
@@ -203,15 +215,23 @@ async function identifyLegacy(params: IdentifyCaptureParams): Promise<IdentifyCa
   try {
     const resp = await fetch(
       `${params.apiBaseUrl}/scan?mode=${encodeURIComponent(params.scanMode)}`,
-      { method: 'POST', body: formData, signal: controller.signal },
+      {
+        method: 'POST',
+        body: formData,
+        redirect: 'error',
+        signal: controller.signal,
+      },
     );
-    clearTimeout(timeoutId);
 
     if (!resp.ok) {
       return { ok: false, error: `Identificazione fallita (HTTP ${resp.status}).` };
     }
 
-    const data = (await resp.json()) as {
+    const data = (await readBoundedResponseJson(
+      resp,
+      MAX_SCAN_RESPONSE_BYTES,
+      controller.signal,
+    )) as {
       card_name?: string;
       set_name?: string;
       set_code?: string;
@@ -245,8 +265,9 @@ async function identifyLegacy(params: IdentifyCaptureParams): Promise<IdentifyCa
       },
     };
   } catch (err) {
-    clearTimeout(timeoutId);
     return { ok: false, error: fetchFailureMessage(controller, err) };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

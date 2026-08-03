@@ -1,4 +1,4 @@
-import { config } from '@/lib/config';
+import { publicConfig } from '@/lib/public-config';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 
 /**
@@ -17,7 +17,7 @@ export function SiteHeader() {
         </div>
 
         <a
-          href={config.app.mainSiteUrl}
+          href={publicConfig.app.mainSiteUrl}
           className="ml-auto rounded-full bg-white/70 px-4 py-1.5 text-sm font-bold uppercase tracking-wide text-slate-800 ring-1 ring-slate-900/10 shadow-sm backdrop-blur-sm transition-colors hover:bg-white/95"
         >
           ← Torna su Ebartex

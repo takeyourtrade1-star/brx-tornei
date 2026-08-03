@@ -7,6 +7,15 @@ import {
   mergeInventoryItems,
 } from './scanned-inventory-mock';
 import type { InventoryItem } from '@/types/inventory';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+
+const MAX_INVENTORY_PAGE_BYTES = 2 * 1024 * 1024;
+const INVENTORY_PAGE_SIZE = 100;
+const MAX_INVENTORY_ITEMS = 5_000;
+const MAX_INVENTORY_PAGES = Math.ceil(MAX_INVENTORY_ITEMS / INVENTORY_PAGE_SIZE);
+const MAX_INVENTORY_ELAPSED_MS = 12_000;
+
+export class InventoryBoundaryError extends Error {}
 
 export interface SyncInventoryItem {
   id: number;
@@ -36,20 +45,29 @@ export async function getUserInventory(
   userId: string
 ): Promise<SyncInventoryItem[]> {
   if (!config.api.syncBaseURL) {
-    console.warn('[Inventory] NEXT_PUBLIC_SYNC_API_URL non configurato');
+    console.warn('[Inventory] SYNC_API_URL non configurato');
     return [];
   }
 
   const accessToken = await getAccessToken();
   if (!accessToken) return [];
 
-  const limit = 100;
+  const limit = INVENTORY_PAGE_SIZE;
   const items: SyncInventoryItem[] = [];
+  const seenItemIds = new Set<number>();
+  const seenPages = new Set<string>();
+  const startedAt = Date.now();
   let offset = 0;
+  let pageCount = 0;
 
   while (true) {
+    const remainingMs = MAX_INVENTORY_ELAPSED_MS - (Date.now() - startedAt);
+    if (remainingMs <= 0 || pageCount >= MAX_INVENTORY_PAGES) {
+      throw new InventoryBoundaryError('Inventory pagination budget exceeded');
+    }
+    pageCount += 1;
     const url = new URL(
-      `/api/v1/sync/inventory/${userId}`,
+      `/api/v1/sync/inventory/${encodeURIComponent(userId)}`,
       config.api.syncBaseURL
     );
     url.searchParams.set('limit', String(limit));
@@ -61,27 +79,70 @@ export async function getUserInventory(
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${accessToken}`,
+          'Accept-Encoding': 'identity',
         },
         cache: 'no-store',
-        signal: AbortSignal.timeout(config.api.timeout),
+        redirect: 'error',
+        signal: AbortSignal.timeout(Math.min(config.api.timeout, remainingMs)),
       });
 
       if (!res.ok) {
-        console.error(
-          `[Inventory] Sync API errore ${res.status}: ${await res.text().catch(() => '')}`
-        );
+        console.error(`[Inventory] Sync API errore ${res.status}`);
         return items;
       }
 
-      const data = (await res.json().catch(() => null)) as InventoryResponse | null;
+      const data = (await readBoundedResponseJson(
+        res,
+        MAX_INVENTORY_PAGE_BYTES,
+      ).catch(() => null)) as InventoryResponse | null;
       const page = Array.isArray(data?.items) ? data.items : [];
-      items.push(...page);
+      const total = data?.total ?? page.length;
+      if (
+        !Number.isSafeInteger(total)
+        || total < 0
+        || total > MAX_INVENTORY_ITEMS
+        || page.length > limit
+      ) {
+        throw new InventoryBoundaryError('Invalid inventory pagination metadata');
+      }
+      if (page.length === 0) break;
 
-      const total = typeof data?.total === 'number' ? data.total : page.length;
+      const pageIds: number[] = [];
+      for (const item of page) {
+        if (
+          !item
+          || !Number.isSafeInteger(item.id)
+          || item.id <= 0
+          || !Number.isSafeInteger(item.blueprint_id)
+          || item.blueprint_id <= 0
+          || !Number.isSafeInteger(item.quantity)
+          || item.quantity < 0
+        ) {
+          throw new InventoryBoundaryError('Invalid inventory item identity');
+        }
+        pageIds.push(item.id);
+      }
+      const fingerprint = pageIds.join(',');
+      if (seenPages.has(fingerprint)) {
+        throw new InventoryBoundaryError('Repeated inventory page');
+      }
+      seenPages.add(fingerprint);
+      for (const item of page) {
+        if (seenItemIds.has(item.id)) {
+          throw new InventoryBoundaryError('Duplicate inventory item');
+        }
+        seenItemIds.add(item.id);
+        items.push(item);
+      }
+      if (items.length > MAX_INVENTORY_ITEMS) {
+        throw new InventoryBoundaryError('Inventory item budget exceeded');
+      }
+
       offset += page.length;
-      if (offset >= total || page.length === 0) break;
-    } catch (err) {
-      console.error('[Inventory] Errore fetch inventario:', err);
+      if (offset >= total) break;
+    } catch (error) {
+      if (error instanceof InventoryBoundaryError) throw error;
+      console.error('[Inventory] Errore fetch inventario');
       return items;
     }
   }

@@ -6,6 +6,7 @@ import { countCards, getSideboardMaxSize } from '@/lib/data/deck-utils';
 import type { CardCatalogHit } from '@/types/card';
 import type { Deck, DeckCard } from '@/types/deck';
 import type { CreateDeckInput } from '@/lib/validations/deck';
+import { createSecureSessionId } from '@/lib/security/random-session-id';
 
 const STORAGE_KEY = 'ebartex-tournaments-decks';
 
@@ -34,7 +35,7 @@ function saveDecks(decks: Deck[]): void {
 }
 
 function generateDeckId(): string {
-  return `deck-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `deck-${createSecureSessionId()}`;
 }
 
 function findCardIndex(cards: DeckCard[], blueprintId: number): number {

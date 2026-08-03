@@ -22,7 +22,7 @@ export default function TournamentLiveError({
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-white/65">
         {error.message.includes('Tournament Service') || error.message.includes('API')
-          ? 'Il Tournament Service non è raggiungibile. Verifica NEXT_PUBLIC_TOURNAMENTS_API_URL o rimuovilo per usare il mock in locale.'
+          ? 'Il Tournament Service non è raggiungibile. Verifica TOURNAMENTS_API_URL o rimuovilo per usare il mock in locale.'
           : 'Si è verificato un errore imprevisto. Riprova o torna alla lista tornei.'}
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">

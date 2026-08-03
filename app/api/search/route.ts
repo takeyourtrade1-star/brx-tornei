@@ -8,7 +8,7 @@ import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 import {
   MeiliFetchError,
   escapeMeiliFilterValue,
-  fetchMeiliWithTimeout,
+  fetchMeiliJsonWithTimeout,
   normalizeCategoryId,
   normalizeCategoryIds,
   normalizeGameSlug,
@@ -20,6 +20,8 @@ import {
   publicStatusForMeiliStatus,
 } from '@/lib/search/search-request-utils';
 import type { SearchApiResponse, SearchHit } from '@/types/search';
+
+const MAX_SEARCH_RESPONSE_BYTES = 4 * 1024 * 1024;
 
 const SEARCH_ATTRIBUTES_TO_RETRIEVE = [
   'id',
@@ -86,9 +88,9 @@ function buildSort(sortBy: string): string[] {
 export async function GET(request: NextRequest) {
   const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
 
-  if (!MEILI_URL || !MEILI_KEY) {
+  if (!MEILI_URL || !MEILI_KEY || !INDEX) {
     return NextResponse.json(
-      { error: 'Meilisearch non configurato (MEILISEARCH_URL / MEILISEARCH_API_KEY)' },
+      { error: 'Ricerca non disponibile' },
       { status: 503 }
     );
   }
@@ -123,22 +125,26 @@ export async function GET(request: NextRequest) {
     };
     if (filter) body.filter = filter;
     if (includeSort && sort.length > 0) body.sort = sort;
-    return fetchMeiliWithTimeout(searchUrl, { method: 'POST', headers, body: JSON.stringify(body) });
+    return fetchMeiliJsonWithTimeout(
+      searchUrl,
+      { method: 'POST', headers, body: JSON.stringify(body) },
+      MAX_SEARCH_RESPONSE_BYTES,
+    );
   };
 
   try {
-    let res = await doSearch(true);
-    if (res.status === 400) {
-      res = await doSearch(false);
+    let result = await doSearch(true);
+    if (result.status === 400) {
+      result = await doSearch(false);
     }
-    if (!res.ok) {
+    if (!result.ok) {
       return NextResponse.json(
-        { error: `Meilisearch error: ${res.status}` },
-        { status: publicStatusForMeiliStatus(res.status) }
+        { error: 'Ricerca temporaneamente non disponibile' },
+        { status: publicStatusForMeiliStatus(result.status) }
       );
     }
 
-    const data = (await res.json()) as {
+    const data = result.data as {
       hits: SearchHit[];
       estimatedTotalHits?: number;
     };
@@ -163,11 +169,13 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     if (err instanceof MeiliFetchError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return NextResponse.json(
+        { error: 'Ricerca temporaneamente non disponibile' },
+        { status: err.status },
+      );
     }
-    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: 'Ricerca non disponibile', detail: message },
+      { error: 'Ricerca non disponibile' },
       { status: 502 }
     );
   }

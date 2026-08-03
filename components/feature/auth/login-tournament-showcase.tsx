@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { getCdnImageUrl } from '@/lib/config';
+import { getCdnImageUrl } from '@/lib/public-config';
 import { FORMATS } from '@/lib/data/catalog';
 import { cn } from '@/lib/utils';
 

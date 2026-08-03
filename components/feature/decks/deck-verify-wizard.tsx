@@ -53,7 +53,6 @@ export function DeckVerifyWizard({ deck, onClose, onVerified }: DeckVerifyWizard
     startTransition(async () => {
       const res = await saveDeckVerificationAction({
         deckId: deck.id,
-        status: diff.length === 0 ? 'verified' : 'mismatch',
         scannedEntries: scanned,
       });
       if ('error' in res) {

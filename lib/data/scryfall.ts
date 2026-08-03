@@ -5,6 +5,7 @@ import type { DeckCard } from '@/types/deck';
 import type { ScryfallLegalityStatus, TournamentLegalities } from '@/types/card-legality';
 import { FORMAT_TO_SCRYFALL } from '@/types/card-legality';
 import { isLegalInFormatStatus } from '@/lib/card-legality-label';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 
 const SCRYFALL_BASE = 'https://api.scryfall.com';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -59,6 +60,7 @@ async function fetchScryfallRequest<T>(path: string, init?: RequestInit): Promis
       ...init,
       headers: {
         Accept: 'application/json',
+        'Accept-Encoding': 'identity',
         // Scryfall rifiuta (HTTP 400) le richieste senza User-Agent, e il fetch
         // server-side di Node non ne manda uno di default.
         'User-Agent': 'EbartexTornei/1.0 (backsoftware.crm@gmail.com)',
@@ -66,10 +68,11 @@ async function fetchScryfallRequest<T>(path: string, init?: RequestInit): Promis
         ...init?.headers,
       },
       cache: 'no-store',
+      redirect: 'error',
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return null;
-    return (await res.json()) as T;
+    return (await readBoundedResponseJson(res, 2 * 1024 * 1024)) as T;
   } catch {
     return null;
   }

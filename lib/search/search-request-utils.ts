@@ -3,6 +3,8 @@
  * Allineato a new_frontend_brx/lib/search/search-request-utils.ts
  */
 
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+
 export const MAX_QUERY_LENGTH = 200;
 export const MAX_LIMIT = 60;
 export const DEFAULT_LIMIT = 20;
@@ -118,22 +120,47 @@ export class MeiliFetchError extends Error {
   }
 }
 
-export async function fetchMeiliWithTimeout(
+export interface MeiliJsonFetchResult {
+  ok: boolean;
+  status: number;
+  data: unknown;
+}
+
+/** Keep one deadline active through headers and the entire streamed body. */
+export async function fetchMeiliJsonWithTimeout(
   url: string,
   init: RequestInit,
+  maxResponseBytes: number,
   timeoutMs: number = MEILI_FETCH_TIMEOUT_MS
-): Promise<Response> {
+): Promise<MeiliJsonFetchResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const headers = new Headers(init.headers);
+    headers.set('Accept-Encoding', 'identity');
+    const response = await fetch(url, {
+      ...init,
+      headers,
+      redirect: 'error',
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return { ok: false, status: response.status, data: null };
+    }
+    const data = await readBoundedResponseJson(
+      response,
+      maxResponseBytes,
+      controller.signal,
+    );
+    return { ok: true, status: response.status, data };
   } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new MeiliFetchError('Meilisearch timeout', 504);
+    if (controller.signal.aborted) {
+      throw new MeiliFetchError('Search upstream timeout', 504);
     }
     throw err;
   } finally {
     clearTimeout(timeout);
+    controller.abort();
   }
 }
 

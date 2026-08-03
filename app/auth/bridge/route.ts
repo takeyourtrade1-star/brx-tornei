@@ -3,19 +3,19 @@ import { config } from '@/lib/config';
 import { clearSessionCookies, getRefreshToken, setSessionCookies } from '@/lib/auth/session';
 import { buildLoginRedirectUrl, sanitizeRedirect } from '@/lib/auth/redirect';
 import type { TokenResponse } from '@/types/auth';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * SSO Bridge (vedi ARCHITECTURE.md §2.2).
- * L'utente arriva qui dal middleware quando ha il cookie ebartex_refresh_token
- * (impostato dal sito principale con Domain=.ebartex.com) ma nessuna sessione locale.
- * Tenta il refresh → se ok imposta i cookie di sessione e prosegue: login invisibile.
+ * Refresh bridge locale (vedi ARCHITECTURE.md §2.2).
+ * Il middleware arriva qui quando questo host ha il refresh cookie `__Host-`
+ * ma non un access token valido. Nessun cookie è condiviso tra sottodomini.
  */
 
 export async function GET(request: NextRequest) {
   const next = sanitizeRedirect(request.nextUrl.searchParams.get('next'));
-  const loginUrl = new URL('/login', request.url);
+  const loginUrl = new URL('/login', config.app.siteUrl);
   loginUrl.search = buildLoginRedirectUrl(next, '');
 
   const refreshToken = await getRefreshToken();
@@ -27,13 +27,20 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(`${config.api.baseURL}/api/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Accept-Encoding': 'identity',
+      },
       body: JSON.stringify({ refresh_token: refreshToken }),
       cache: 'no-store',
+      redirect: 'error',
       signal: AbortSignal.timeout(config.api.timeout),
     });
 
-    const raw = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const raw = (await readBoundedResponseJson(res, 256 * 1024).catch(
+      () => ({}),
+    )) as Record<string, unknown>;
     const body = (raw.data && typeof raw.data === 'object' ? raw.data : raw) as Record<
       string,
       unknown
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
     }
 
     await setSessionCookies(body as unknown as TokenResponse);
-    return NextResponse.redirect(new URL(next, request.url));
+    return NextResponse.redirect(new URL(next, config.app.siteUrl));
   } catch {
     return NextResponse.redirect(loginUrl);
   }

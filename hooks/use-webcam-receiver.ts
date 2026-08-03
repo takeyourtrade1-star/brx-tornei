@@ -6,14 +6,7 @@ import {
   type LinkController,
   type LinkState,
 } from '@/lib/webrtc/webcam-link';
-
-function makeSessionId(): string {
-  try {
-    return crypto.randomUUID();
-  } catch {
-    return Math.random().toString(36).slice(2) + Date.now().toString(36);
-  }
-}
+import { createSecureSessionId } from '@/lib/security/random-session-id';
 
 /**
  * Lato PC: genera una sessione, avvia il ricevitore WebRTC e segue stato,
@@ -21,14 +14,16 @@ function makeSessionId(): string {
  * passare lo stream attivo al match dopo la conferma).
  */
 export function useWebcamReceiver(externalSessionId?: string | null) {
-  const [sessionId, setSessionId] = useState(() => externalSessionId ?? makeSessionId());
+  const [sessionId, setSessionId] = useState(
+    () => externalSessionId ?? createSecureSessionId(),
+  );
   const [state, setState] = useState<LinkState>('idle');
   const [rtt, setRtt] = useState<number | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const ctrlRef = useRef<LinkController | null>(null);
 
-  const start = useCallback((relayToken: string) => {
+  const start = useCallback(() => {
     if (ctrlRef.current) return;
     setLastError(null);
     ctrlRef.current = createWebcamReceiver(sessionId, {
@@ -36,7 +31,7 @@ export function useWebcamReceiver(externalSessionId?: string | null) {
       onState: setState,
       onRtt: setRtt,
       onError: setLastError,
-    }, relayToken);
+    });
     ctrlRef.current.start();
   }, [sessionId]);
 
@@ -58,7 +53,7 @@ export function useWebcamReceiver(externalSessionId?: string | null) {
     setState('idle');
     setRtt(null);
     setLastError(null);
-    setSessionId(makeSessionId());
+    setSessionId(createSecureSessionId());
   }, []);
 
   /** Restituisce il controller e smette di gestirlo (niente stop alla pulizia). */

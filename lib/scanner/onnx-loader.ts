@@ -4,24 +4,55 @@
  * Flow:
  *   1. Check IndexedDB for a cached copy of the model bytes.
  *   2. Cache hit  → return ArrayBuffer from IDB (< 100 ms).
- *   3. Cache miss → fetch from URL list (fallbacks), store in IDB, return ArrayBuffer.
- *
- * Fallback URLs (in order) are built by `buildOnnxModelUrls()` in useBrxScanner.
- * Primary: `${apiBase}/static/dinov2_small.onnx` (requires backend V3 deploy).
- * S3 direct may work only if bucket CORS allows the site origin.
+ *   3. Cache miss → fetch from the authenticated same-origin proxy, store in
+ *      IDB, return ArrayBuffer.
  *
  * Uses only the raw IDB API — no external libraries required.
  *
- * IDB store: "brx-onnx-cache" / key "dinov2_small_v2"
- * Bump MODEL_KEY to force a re-download after a model update.
+ * IDB store: "brx-onnx-cache" / digest-versioned model key.
  */
 
 const IDB_DB_NAME = 'brx-onnx-cache';
 const IDB_STORE_NAME = 'models';
-const MODEL_KEY = 'dinov2_small_v2'; // bump to invalidate cached model
+const LEGACY_MODEL_KEYS = ['dinov2_small_v2'];
 
-/** Typical dinov2_small.onnx size when Content-Length is missing (proxy/CDN). */
-export const ESTIMATED_ONNX_BYTES = 25_000_000;
+/** Current dinov2_small.onnx size, used only for progress when length is absent. */
+export const ESTIMATED_ONNX_BYTES = 87_654_321;
+/** Hard browser-memory ceiling for the signed model artifact. */
+export const MAX_ONNX_MODEL_BYTES = 96 * 1024 * 1024;
+
+export interface OnnxModelIntegrity {
+  size: number;
+  sha256: string;
+}
+
+function validateIntegrity(integrity: OnnxModelIntegrity): void {
+  if (
+    !Number.isSafeInteger(integrity.size) ||
+    integrity.size <= 100_000 ||
+    integrity.size > MAX_ONNX_MODEL_BYTES ||
+    !/^[0-9a-f]{64}$/.test(integrity.sha256)
+  ) {
+    throw new Error('Metadati integrità modello ONNX non validi');
+  }
+}
+
+function modelCacheKey(integrity: OnnxModelIntegrity): string {
+  return `dinov2_small_sha256_${integrity.sha256}`;
+}
+
+export async function verifyOnnxModelIntegrity(
+  data: ArrayBuffer,
+  integrity: OnnxModelIntegrity,
+): Promise<boolean> {
+  validateIntegrity(integrity);
+  if (data.byteLength !== integrity.size || !globalThis.crypto?.subtle) return false;
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', data);
+  const actual = [...new Uint8Array(digest)]
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('');
+  return actual === integrity.sha256;
+}
 
 // ---------------------------------------------------------------------------
 // Progress type
@@ -70,27 +101,32 @@ function openIdb(): Promise<IDBDatabase> {
  * Try to load the cached ONNX model bytes from IndexedDB.
  * Returns null on any error or cache miss.
  */
-export async function loadModelFromIDB(): Promise<ArrayBuffer | null> {
+export async function loadModelFromIDB(
+  integrity: OnnxModelIntegrity,
+): Promise<ArrayBuffer | null> {
+  validateIntegrity(integrity);
   try {
     const db = await openIdb();
-    return await new Promise<ArrayBuffer | null>((resolve, reject) => {
+    const result = await new Promise<unknown>((resolve, reject) => {
       const tx = db.transaction(IDB_STORE_NAME, 'readonly');
       const store = tx.objectStore(IDB_STORE_NAME);
-      const req = store.get(MODEL_KEY);
+      const req = store.get(modelCacheKey(integrity));
       req.onsuccess = () => {
         db.close();
-        const result = req.result;
-        if (result instanceof ArrayBuffer && result.byteLength > 100_000) {
-          resolve(result);
-        } else {
-          resolve(null);
-        }
+        resolve(req.result);
       };
       req.onerror = () => {
         db.close();
         reject(req.error);
       };
     });
+    if (
+      result instanceof ArrayBuffer &&
+      await verifyOnnxModelIntegrity(result, integrity)
+    ) {
+      return result;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -100,13 +136,18 @@ export async function loadModelFromIDB(): Promise<ArrayBuffer | null> {
  * Persist ONNX model bytes to IndexedDB.
  * Silently swallows any storage errors (quota exceeded, private browsing, etc.).
  */
-export async function storeModelToIDB(data: ArrayBuffer): Promise<void> {
+export async function storeModelToIDB(
+  data: ArrayBuffer,
+  integrity: OnnxModelIntegrity,
+): Promise<void> {
+  if (!(await verifyOnnxModelIntegrity(data, integrity))) return;
   try {
     const db = await openIdb();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(IDB_STORE_NAME, 'readwrite');
       const store = tx.objectStore(IDB_STORE_NAME);
-      const req = store.put(data, MODEL_KEY);
+      for (const legacyKey of LEGACY_MODEL_KEYS) store.delete(legacyKey);
+      const req = store.put(data, modelCacheKey(integrity));
       req.onsuccess = () => {
         db.close();
         resolve();
@@ -151,21 +192,33 @@ function displayTotal(contentLength: number, loaded: number): number {
 
 async function readResponseWithProgress(
   response: Response,
+  integrity: OnnxModelIntegrity,
   onProgress?: (progress: OnnxLoadProgress) => void,
 ): Promise<ArrayBuffer> {
-  const contentLength = Number(response.headers.get('content-length')) || 0;
+  validateIntegrity(integrity);
+  const contentEncoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+  if (contentEncoding && contentEncoding !== 'identity') {
+    await response.body?.cancel('compressed model response rejected').catch(() => undefined);
+    throw new Error('Content-Encoding modello ONNX non consentito');
+  }
+  const declaredLength = response.headers.get('content-length');
+  if (declaredLength && !/^\d+$/.test(declaredLength)) {
+    await response.body?.cancel('invalid model content length').catch(() => undefined);
+    throw new Error('Content-Length modello ONNX non valido');
+  }
+  const contentLength = declaredLength ? Number(declaredLength) : 0;
+  if (
+    !Number.isSafeInteger(contentLength) ||
+    contentLength > MAX_ONNX_MODEL_BYTES ||
+    (contentLength !== 0 && contentLength !== integrity.size)
+  ) {
+    await response.body?.cancel('model exceeds declared safety limit').catch(() => undefined);
+    throw new Error('Modello ONNX oltre il limite di sicurezza');
+  }
   const body = response.body;
 
   if (!body) {
-    const data = await response.arrayBuffer();
-    const total = contentLength || data.byteLength;
-    onProgress?.({
-      loaded: data.byteLength,
-      total,
-      percent: 100,
-      phase: 'downloading',
-    });
-    return data;
+    throw new Error('Risposta modello ONNX priva di stream bounded');
   }
 
   const reader = body.getReader();
@@ -187,11 +240,18 @@ async function readResponseWithProgress(
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    chunks.push(value);
     loaded += value.byteLength;
+    if (loaded > integrity.size) {
+      await reader.cancel('model exceeds safety limit').catch(() => undefined);
+      throw new Error('Modello ONNX oltre il limite di sicurezza');
+    }
+    chunks.push(value);
     emitDownload();
   }
 
+  if (loaded !== integrity.size) {
+    throw new Error('Dimensione modello ONNX diversa dal manifest');
+  }
   return concatChunks(chunks, loaded);
 }
 
@@ -206,6 +266,7 @@ function shortFetchLabel(url: string): string {
 
 async function fetchOnnxFromUrl(
   url: string,
+  integrity: OnnxModelIntegrity,
   onProgress?: (progress: OnnxLoadProgress) => void,
 ): Promise<ArrayBuffer> {
   const emit = (progress: OnnxLoadProgress) => onProgress?.(progress);
@@ -215,7 +276,22 @@ async function fetchOnnxFromUrl(
 
   let resp: Response;
   try {
-    resp = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
+    const resolved = new URL(
+      url,
+      typeof window !== 'undefined' ? window.location.origin : 'https://local.invalid',
+    );
+    if (
+      typeof window !== 'undefined' &&
+      resolved.origin !== window.location.origin
+    ) {
+      throw new Error('ONNX model URL must be same-origin');
+    }
+    resp = await fetch(resolved.toString(), {
+      mode: 'same-origin',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      redirect: 'error',
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[useOnnxLoader] fetch network error:', label, msg);
@@ -230,13 +306,14 @@ async function fetchOnnxFromUrl(
   }
 
   if (!resp.ok) {
+    await resp.body?.cancel('non-success model response').catch(() => undefined);
     const reason = `HTTP ${resp.status} da ${url}`;
     console.error('[useOnnxLoader]', reason);
     emit({ loaded: 0, total: 0, percent: 0, phase: 'failed', reason });
     throw new Error(`Failed to fetch ONNX model: ${reason}`);
   }
 
-  const data = await readResponseWithProgress(resp, onProgress);
+  const data = await readResponseWithProgress(resp, integrity, onProgress);
 
   if (data.byteLength < 100_000) {
     const reason = `File troppo piccolo (${data.byteLength} B) — probabile errore HTML/JSON`;
@@ -250,6 +327,9 @@ async function fetchOnnxFromUrl(
     throw new Error(reason);
   }
 
+  if (!(await verifyOnnxModelIntegrity(data, integrity))) {
+    throw new Error('SHA-256 modello ONNX non corrisponde al manifest');
+  }
   return data;
 }
 
@@ -267,8 +347,10 @@ async function fetchOnnxFromUrl(
  */
 export async function fetchAndCacheOnnxModel(
   urls: string | string[],
+  integrity: OnnxModelIntegrity,
   onProgress?: (progress: OnnxLoadProgress) => void,
 ): Promise<ArrayBuffer> {
+  validateIntegrity(integrity);
   const urlList = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
   const emit = (progress: OnnxLoadProgress) => onProgress?.(progress);
 
@@ -279,7 +361,7 @@ export async function fetchAndCacheOnnxModel(
   }
 
   // 1. IDB fast path
-  const cached = await loadModelFromIDB();
+  const cached = await loadModelFromIDB(integrity);
   if (cached !== null) {
     emit({
       loaded: cached.byteLength,
@@ -309,7 +391,7 @@ export async function fetchAndCacheOnnxModel(
         });
       }
 
-      const data = await fetchOnnxFromUrl(url, onProgress);
+      const data = await fetchOnnxFromUrl(url, integrity, onProgress);
 
       emit({
         loaded: data.byteLength,
@@ -317,7 +399,7 @@ export async function fetchAndCacheOnnxModel(
         percent: 100,
         phase: 'caching',
       });
-      await storeModelToIDB(data);
+      await storeModelToIDB(data, integrity);
 
       emit({
         loaded: data.byteLength,
@@ -335,7 +417,7 @@ export async function fetchAndCacheOnnxModel(
 
   const reason =
     lastError?.message ??
-    'Download modello fallito — verificare deploy backend V3 o CORS S3';
+    'Download modello fallito — verificare il proxy scanner';
   console.error('[useOnnxLoader] All URLs failed:', urlList, reason);
   emit({ loaded: 0, total: 0, percent: 0, phase: 'failed', reason });
   throw lastError ?? new Error(reason);

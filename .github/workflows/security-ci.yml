@@ -1,0 +1,70 @@
+name: Security CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout immutable revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use exact supported Node runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install locked dependencies without lifecycle scripts
+        run: |
+          npm ci --ignore-scripts
+          node scripts/copy-ort-wasm.mjs
+
+      - name: Test
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Audit complete dependency graph
+        run: npm audit --audit-level=high
+
+      - name: Production build
+        env:
+          TRUSTED_HTTPS_HOSTNAMES: auth.example.test,sync.example.test,tournaments.example.test,app.example.test,www.example.test,redis-ci.upstash.io,match.example.test
+          TRUSTED_UPSTREAM_HOSTS: auth.example.test,sync.example.test,tournaments.example.test
+          AUTH_API_URL: https://auth.example.test
+          SYNC_API_URL: https://sync.example.test
+          TOURNAMENTS_API_URL: https://tournaments.example.test
+          NEXT_PUBLIC_TOURNAMENTS_WS_ORIGIN: wss://tournaments.example.test
+          NEXT_PUBLIC_SITE_URL: https://app.example.test
+          NEXT_PUBLIC_MAIN_SITE_URL: https://www.example.test
+          UPSTASH_REDIS_REST_URL: https://redis-ci.upstash.io
+          UPSTASH_REDIS_ALLOWED_HOSTNAME: redis-ci.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: ci-only-upstash-token-000000000000000000000000
+          WEBCAM_RELAY_SECRET: ci-only-webcam-secret-000000000000000000000000
+          BRX_MATCH_API_URL: https://match.example.test
+          BRX_MATCH_ALLOWED_ORIGIN: https://match.example.test
+          BRX_MATCH_INTERNAL_TOKEN: ci-only-match-token-00000000000000000000000000
+          BRX_MATCH_INTERNAL_CALLER: brx-tornei
+          BRX_MATCH_EDGE_MODEL_SHA256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        run: |
+          npm run build
+          node scripts/assert-client-bundle.mjs

@@ -74,10 +74,9 @@ export function WebcamLinkModal({
         );
         if (!res.ok) throw new Error('relay authorization failed');
         const data = (await res.json()) as {
-          hostToken?: string;
-          guestToken?: string;
+          guestClaim?: string;
         };
-        if (!data.hostToken || !data.guestToken) {
+        if (!data.guestClaim) {
           throw new Error('relay capability missing');
         }
         if (cancelled) return;
@@ -85,9 +84,11 @@ export function WebcamLinkModal({
           `/tornei/webcam/${encodeURIComponent(sessionId)}`,
           window.location.origin,
         );
-        phoneUrl.searchParams.set('token', data.guestToken);
+        // The one-use claim stays in the URL fragment: it is never sent in an
+        // HTTP request, proxy log, Referer or server-rendered prop.
+        phoneUrl.hash = new URLSearchParams({ claim: data.guestClaim }).toString();
         setUrl(phoneUrl.toString());
-        start(data.hostToken);
+        start();
       } catch {
         if (!cancelled) setUrl('');
       }

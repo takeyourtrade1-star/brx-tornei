@@ -3,7 +3,7 @@
  * Allineato a new_frontend_brx/lib/assets.ts
  */
 
-import { ASSETS } from '@/lib/config';
+import { ASSETS } from '@/lib/public-config';
 
 function stripImgPrefix(path: string): string {
   const raw = path.trim();

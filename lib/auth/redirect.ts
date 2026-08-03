@@ -9,13 +9,23 @@ export const DEFAULT_POST_LOGIN_PATH = DEFAULT_TOURNAMENTS_PATH;
 export function sanitizeRedirect(redirect: string | null | undefined): string {
   if (
     !redirect ||
+    redirect.length > 2048 ||
     !redirect.startsWith('/') ||
     redirect.startsWith('//') ||
-    redirect.includes('://')
+    redirect.includes('\\') ||
+    /%(?:2f|5c)/i.test(redirect) ||
+    /[\u0000-\u001f\u007f]/.test(redirect)
   ) {
     return DEFAULT_POST_LOGIN_PATH;
   }
-  return redirect;
+  try {
+    const sentinel = 'https://redirect.invalid';
+    const parsed = new URL(redirect, sentinel);
+    if (parsed.origin !== sentinel) return DEFAULT_POST_LOGIN_PATH;
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return DEFAULT_POST_LOGIN_PATH;
+  }
 }
 
 /** Query string per redirect al login (middleware / bridge). */

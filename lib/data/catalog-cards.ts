@@ -1,6 +1,12 @@
 import 'server-only';
 import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
 import type { CardCatalogHit } from '@/types/card';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+
+const MAX_CATALOG_RESPONSE_BYTES = 2 * 1024 * 1024;
+const MAX_BLUEPRINT_IDS_PER_BATCH = 200;
+const MAX_BLUEPRINT_IDS_PER_CALL = 5_000;
+const MAX_CATALOG_ELAPSED_MS = 12_000;
 
 const ATTRIBUTES_TO_RETRIEVE = [
   'id',
@@ -56,12 +62,13 @@ function normalizeHit(hit: MeiliSearchHit): CardCatalogHit | null {
 
 async function meiliSearch(body: Record<string, unknown>): Promise<MeiliSearchHit[]> {
   const { url, apiKey, index } = getMeilisearchServerConfig();
-  if (!url) return [];
+  if (!url || !apiKey || !index) return [];
 
   const searchUrl = `${url}/indexes/${index}/search`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    'Accept-Encoding': 'identity',
   };
   if (apiKey) {
     headers.Authorization = `Bearer ${apiKey}`;
@@ -73,10 +80,14 @@ async function meiliSearch(body: Record<string, unknown>): Promise<MeiliSearchHi
       headers,
       body: JSON.stringify(body),
       cache: 'no-store',
+      redirect: 'error',
       signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) return [];
-    const data = (await res.json().catch(() => null)) as { hits?: MeiliSearchHit[] } | null;
+    const data = (await readBoundedResponseJson(
+      res,
+      MAX_CATALOG_RESPONSE_BYTES,
+    ).catch(() => null)) as { hits?: MeiliSearchHit[] } | null;
     return Array.isArray(data?.hits) ? data.hits : [];
   } catch {
     return [];
@@ -91,60 +102,79 @@ export async function getCardsByBlueprintIds(
   blueprintIds: number[]
 ): Promise<BlueprintToCardMap> {
   const { url, apiKey, index } = getMeilisearchServerConfig();
-  if (!url) {
+  if (!url || !apiKey || !index) {
     console.warn('[CatalogCards] MEILISEARCH_URL non configurato');
     return {};
   }
 
-  const uniqueIds = [...new Set(blueprintIds)].filter((n) => Number.isInteger(n) && n > 0);
+  const uniqueIds = [...new Set(blueprintIds)].filter(
+    (n) => Number.isSafeInteger(n) && n > 0,
+  );
   if (uniqueIds.length === 0) return {};
+  if (uniqueIds.length > MAX_BLUEPRINT_IDS_PER_CALL) {
+    console.error('[CatalogCards] Limite ID catalogo superato');
+    return {};
+  }
 
   const searchUrl = `${url}/indexes/${index}/search`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    'Accept-Encoding': 'identity',
   };
   if (apiKey) {
     headers.Authorization = `Bearer ${apiKey}`;
   }
 
-  try {
-    const res = await fetch(searchUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        filter: `cardtrader_id IN [${uniqueIds.join(', ')}]`,
-        limit: uniqueIds.length,
-        attributesToRetrieve: ATTRIBUTES_TO_RETRIEVE,
-      }),
-      cache: 'no-store',
-      signal: AbortSignal.timeout(30_000),
-    });
-
-    if (!res.ok) {
-      console.error(
-        `[CatalogCards] Meilisearch errore ${res.status}: ${await res.text().catch(() => '')}`
-      );
+  const map: BlueprintToCardMap = {};
+  const startedAt = Date.now();
+  for (let offset = 0; offset < uniqueIds.length; offset += MAX_BLUEPRINT_IDS_PER_BATCH) {
+    const batch = uniqueIds.slice(offset, offset + MAX_BLUEPRINT_IDS_PER_BATCH);
+    const remainingMs = MAX_CATALOG_ELAPSED_MS - (Date.now() - startedAt);
+    if (remainingMs <= 0) {
+      console.error('[CatalogCards] Budget temporale catalogo superato');
       return {};
     }
+    try {
+      const res = await fetch(searchUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          filter: `cardtrader_id IN [${batch.join(', ')}]`,
+          limit: batch.length,
+          attributesToRetrieve: ATTRIBUTES_TO_RETRIEVE,
+        }),
+        cache: 'no-store',
+        redirect: 'error',
+        signal: AbortSignal.timeout(Math.min(30_000, remainingMs)),
+      });
 
-    const data = (await res.json().catch(() => null)) as { hits?: MeiliSearchHit[] } | null;
-    const hits = Array.isArray(data?.hits) ? data.hits : [];
-
-    const map: BlueprintToCardMap = {};
-    for (const hit of hits) {
-      const card = normalizeHit(hit);
-      if (!card) continue;
-      const blueprintId = Number(card.id);
-      if (!Number.isNaN(blueprintId)) {
-        map[blueprintId] = card;
+      if (!res.ok) {
+        console.error(`[CatalogCards] Meilisearch errore ${res.status}`);
+        return {};
       }
+
+      const data = (await readBoundedResponseJson(
+        res,
+        MAX_CATALOG_RESPONSE_BYTES,
+      ).catch(() => null)) as { hits?: MeiliSearchHit[] } | null;
+      const hits = Array.isArray(data?.hits) ? data.hits : [];
+      for (const hit of hits) {
+        const card = normalizeHit(hit);
+        if (!card) continue;
+        const blueprintId = hit.cardtrader_id
+          ?? (typeof hit.id === 'number' ? hit.id : null)
+          ?? (typeof hit.id === 'string' && /^\d+$/.test(hit.id) ? Number(hit.id) : null);
+        if (blueprintId !== null && batch.includes(blueprintId)) {
+          map[blueprintId] = card;
+        }
+      }
+    } catch {
+      console.error('[CatalogCards] Errore fetch catalogo');
+      return {};
     }
-    return map;
-  } catch (err) {
-    console.error('[CatalogCards] Errore fetch catalogo:', err);
-    return {};
   }
+  return map;
 }
 
 /**

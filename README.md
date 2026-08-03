@@ -3,15 +3,23 @@
 Mini-sito verticale per i Tornei TCG dell'ecosistema Ebartex.
 Dominio target: `tournaments.ebartex.com`.
 
-**Leggi prima [ARCHITECTURE.md](./ARCHITECTURE.md)** — contiene la strategia SSO, le regole sul design system condiviso, l'architettura delle cartelle e la roadmap.
+**Leggi prima [ARCHITECTURE.md](./ARCHITECTURE.md)** — contiene la strategia di sessione host-only, le regole sul design system condiviso, l'architettura delle cartelle e la roadmap.
 
 ## Setup
 
 ```bash
-npm install
+npm ci --ignore-scripts       # lockfile esatto; nessun lifecycle script di terze parti
 cp .env.example .env.local   # compila NEXT_PUBLIC_AUTH_API_URL (stesso valore del sito principale)
-npm run dev                  # porta 3001 (il sito principale gira su 3000)
+npm run dev                   # porta 3001 (il sito principale gira su 3000)
 ```
+
+In produzione la build è fail-fast: tutti gli endpoint configurati devono essere
+origin canonici HTTPS/WSS (senza credenziali, path, query, fragment o porte TLS
+non standard) e i rispettivi hostname devono comparire esplicitamente in
+`TRUSTED_HTTPS_HOSTNAMES`. I soli backend server-side autorizzati vanno anche
+elencati esattamente in `TRUSTED_UPSTREAM_HOSTS`; il controllo viene ripetuto a
+runtime e accetta solo origin HTTPS canonici. `NEXT_PUBLIC_TOURNAMENTS_WS_ORIGIN` deve essere lo
+stesso origin del Tournament Service con il solo protocollo cambiato in `wss://`.
 
 Asset da copiare da `new_frontend_brx/public/` (binari, non versionati qui):
 `brx_bg.png`, `fonts/Comodo Regular Free.{otf,ttf}`.

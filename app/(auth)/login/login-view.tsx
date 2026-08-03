@@ -8,7 +8,7 @@ import {
   AUTH_SPLIT_SECTION_CLASS,
 } from '@/components/layout/auth-split-styles';
 import { cn } from '@/lib/utils';
-import { config } from '@/lib/config';
+import { publicConfig } from '@/lib/public-config';
 
 interface LoginViewProps {
   redirect: string;
@@ -33,7 +33,7 @@ export function LoginView({ redirect, recoverUrl }: LoginViewProps) {
       <div className={cn(AUTH_SPLIT_SECTION_CLASS, 'mt-auto shrink-0')}>
         <p>
           <a
-            href={config.app.mainSiteUrl}
+            href={publicConfig.app.mainSiteUrl}
             className={`font-semibold ${AUTH_LINK_CLASS} transition-colors hover:underline`}
           >
             Esplora il sito Ebartex

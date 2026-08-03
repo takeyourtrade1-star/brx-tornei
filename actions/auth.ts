@@ -25,6 +25,7 @@ import {
   verifyMfaFormSchema,
 } from '@/lib/validations/auth';
 import type { AuthActionState, TokenResponse } from '@/types/auth';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 
 /** Estrae il body utile: il backend a volte annida la risposta in { data: ... }. */
 function unwrap(payload: unknown): Record<string, unknown> {
@@ -46,7 +47,7 @@ async function authFetch(
   body: Record<string, unknown>
 ): Promise<{ ok: boolean; body: Record<string, unknown> }> {
   if (!config.api.baseURL) {
-    return { ok: false, body: { message: 'Auth API non configurata (NEXT_PUBLIC_AUTH_API_URL)' } };
+    return { ok: false, body: { message: 'Servizio di autenticazione non configurato' } };
   }
 
   try {
@@ -56,15 +57,17 @@ async function authFetch(
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        'Accept-Encoding': 'identity',
         ...trustedDeviceHeaders,
       },
       body: JSON.stringify(body),
       cache: 'no-store',
+      redirect: 'error',
       signal: AbortSignal.timeout(config.api.timeout),
     });
     // Login e verifica MFA possono emettere, ruotare o revocare il cookie.
     await applyTrustedDeviceResponse(path, res.headers);
-    const parsed = unwrap(await res.json().catch(() => ({})));
+    const parsed = unwrap(await readBoundedResponseJson(res, 512 * 1024).catch(() => ({})));
     return { ok: res.ok, body: parsed };
   } catch {
     return { ok: false, body: { message: 'Impossibile contattare il servizio di autenticazione' } };
@@ -223,9 +226,14 @@ export async function logoutAction(): Promise<void> {
     try {
       await fetch(`${config.api.baseURL}/api/auth/logout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Accept-Encoding': 'identity',
+        },
         body: JSON.stringify({ refresh_token: refreshToken }),
         cache: 'no-store',
+        redirect: 'error',
         signal: AbortSignal.timeout(config.api.timeout),
       });
     } catch {

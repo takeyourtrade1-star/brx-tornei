@@ -11,7 +11,7 @@ import {
 } from '@/lib/scanner/onnx-loader';
 import { createTensorBuffer, isIosDevice } from '@/lib/scanner/preprocess';
 
-import { resolveOnnxDownloadUrls } from '../resolveOnnxUrls';
+import { resolveOnnxModel } from '../resolveOnnxUrls';
 
 /** ONNX model load status for the edge pipeline. */
 export type ModelStatus = 'loading' | 'ready' | 'failed';
@@ -122,8 +122,8 @@ export function useOnnxSession({ apiBaseUrl }: UseOnnxSessionOptions): UseOnnxSe
       setModelProgress({ loaded: 0, total: 0, percent: -1, phase: 'downloading' });
 
       try {
-        const modelUrls = await resolveOnnxDownloadUrls(apiBaseUrl);
-        const modelData = await fetchAndCacheOnnxModel(modelUrls, (progress) => {
+        const model = await resolveOnnxModel(apiBaseUrl);
+        const modelData = await fetchAndCacheOnnxModel(model.urls, model.integrity, (progress) => {
           if (!cancelled) setModelProgress(progress);
         });
         if (cancelled) return;

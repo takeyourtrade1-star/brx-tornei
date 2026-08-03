@@ -3,21 +3,40 @@ import { getSession } from '@/lib/auth/session';
 import { getMyInventory } from '@/lib/data/inventory';
 import { resolveScanAndAddToInventory } from '@/lib/data/resolve-scan';
 import { resolveScanSchema } from '@/lib/validations/scan';
+import { config } from '@/lib/config';
+import { isJsonContentType, readBoundedJson } from '@/lib/security/bounded-json';
+import { isSameOriginMutation } from '@/lib/security/request-origin';
 
 export async function POST(request: Request) {
+  if (!isSameOriginMutation(request, config.app.siteUrl)) {
+    return NextResponse.json(
+      { error: 'Richiesta cross-site rifiutata' },
+      { status: 403, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+  if (!isJsonContentType(request.headers.get('content-type'))) {
+    return NextResponse.json(
+      { error: 'Content-Type non supportato' },
+      { status: 415, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
   }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Body JSON non valido' }, { status: 400 });
+  if (!config.features.ephemeralInventoryMutations) {
+    return NextResponse.json({ error: 'Inventory writes unavailable' }, { status: 503 });
   }
 
-  const parsed = resolveScanSchema.safeParse(body);
+  const decoded = await readBoundedJson(request, 32 * 1024);
+  if (!decoded.ok) {
+    return NextResponse.json(
+      { error: decoded.status === 413 ? 'Payload troppo grande' : 'Body JSON non valido' },
+      { status: decoded.status },
+    );
+  }
+
+  const parsed = resolveScanSchema.safeParse(decoded.value);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.errors[0]?.message ?? 'Dati non validi' },

@@ -190,30 +190,20 @@ Permissions-Policy: camera=(self), microphone=(self), geolocation=()
 ### 3.1 WebSocket Authentication
 
 ```python
-@router.websocket("/ws/{room_id}")
-async def websocket_endpoint(
-    websocket: WebSocket,
-    room_id: str,
-    token: str = Query(...),  # JWT passed as query param (unavoidable for WS)
-) -> None:
-    # Validate token immediately on connection
-    try:
-        claims = validate_jwt(token)
-    except JWTError:
-        await websocket.close(code=4001, reason="Unauthorized")
-        return
-    
-    # Accept only after auth
-    await websocket.accept()
-    ...
+# 1. An authenticated HTTPS endpoint authorizes the exact room and returns a
+#    short-lived, one-use, room-scoped WebSocket ticket.
+# 2. The browser opens a URL with no JWT/ticket in its query string.
+# 3. After Origin admission it sends the ticket in the first size-capped frame;
+#    Redis atomically consumes it and membership is revalidated.
+# Never put platform JWTs or capabilities in URLs, access logs or referrers.
 ```
 
 ### 3.2 WebSocket Security Controls
 
 | Control | Requirement |
 |---|---|
-| Authentication | JWT validated on every WS connection; invalid → close code 4001 |
-| Token expiry in session | Check JWT `exp` on each received message; expired → close code 4002 |
+| Authentication | HTTPS-authenticated, scoped, one-use WS ticket; invalid/replayed → policy close |
+| Session authorization | Revalidate membership/state periodically; revoke the live socket when access ends |
 | Room isolation | Users can only receive messages for rooms they have access to |
 | Stream key isolation | Stream key ONLY sent to the match host's WS connection; verified by `match.player_a_id` check |
 | Message rate limit | Max 60 messages/minute per connection; excess → close 4008 |

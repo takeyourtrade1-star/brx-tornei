@@ -36,14 +36,13 @@ interface WakeLockSentinelLike {
 /** Telefono: cattura la fotocamera e la invia al PC come webcam del match. */
 export function WebcamPhonePublisher({
   sessionId,
-  relayToken,
 }: {
   sessionId: string;
-  relayToken: string;
 }) {
   const [state, setState] = useState<LinkState>('connecting');
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [relayReady, setRelayReady] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -51,6 +50,41 @@ export function WebcamPhonePublisher({
   const wakeRef = useRef<WakeLockSentinelLike | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    async function exchangeClaim() {
+      const claim = new URLSearchParams(window.location.hash.slice(1)).get('claim');
+      window.history.replaceState(null, '', window.location.pathname);
+      if (!claim) {
+        setError('Codice collegamento mancante. Scansiona di nuovo il QR dal PC.');
+        setState('failed');
+        return;
+      }
+      try {
+        const response = await fetch(
+          `/api/tornei/webcam/${encodeURIComponent(sessionId)}/claim`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ claim }),
+            cache: 'no-store',
+          },
+        );
+        const body = (await response.json().catch(() => ({}))) as { ok?: boolean };
+        if (!response.ok || body.ok !== true) throw new Error('claim rejected');
+        if (!cancelled) setRelayReady(true);
+      } catch {
+        if (!cancelled) {
+          setError('Codice già usato o scaduto. Genera un nuovo QR dal PC.');
+          setState('failed');
+        }
+      }
+    }
+    void exchangeClaim();
+    return () => { cancelled = true; };
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!relayReady) return;
     let cancelled = false;
 
     async function boot() {
@@ -82,7 +116,6 @@ export function WebcamPhonePublisher({
             onState: setState,
             onError: setError,
           },
-          relayToken,
         );
         ctrlRef.current = ctrl;
         ctrl.start();
@@ -104,7 +137,7 @@ export function WebcamPhonePublisher({
       void wakeRef.current?.release().catch(() => {});
       wakeRef.current = null;
     };
-  }, [sessionId, relayToken, attempt]);
+  }, [sessionId, relayReady, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 

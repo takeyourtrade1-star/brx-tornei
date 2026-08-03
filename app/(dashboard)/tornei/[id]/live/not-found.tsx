@@ -9,7 +9,7 @@ export default function TournamentLiveNotFound() {
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-white/65">
           Il torneo non esiste o non è più disponibile. In locale, senza{' '}
-          <code className="rounded bg-white/10 px-1 py-0.5 text-xs">NEXT_PUBLIC_TOURNAMENTS_API_URL</code>
+          <code className="rounded bg-white/10 px-1 py-0.5 text-xs">TOURNAMENTS_API_URL</code>
           , i dati vivono solo in memoria: un riavvio del dev server può azzerarli.
         </p>
         <Link

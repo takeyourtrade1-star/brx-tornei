@@ -7,6 +7,11 @@ import {
   appendSignalingMessage,
   listSignalingMessages,
 } from '@/lib/webrtc/signaling-store';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+import { readBoundedJson } from '@/lib/security/bounded-json';
+import { privateJson } from '@/lib/security/private-json';
+
+const MAX_SIGNAL_BODY_BYTES = 65 * 1024;
 
 /** Inoltra signaling al Tournament Service o usa store locale in dev. */
 export async function handleTournamentSignalingGet(
@@ -18,7 +23,7 @@ export async function handleTournamentSignalingGet(
   if (base) {
     const token = await getAccessToken();
     if (!token) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+      return privateJson({ error: 'unauthorized' }, { status: 401 });
     }
     try {
       const url = new URL(
@@ -28,25 +33,33 @@ export async function handleTournamentSignalingGet(
       url.searchParams.set('role', role);
       url.searchParams.set('since', String(since));
       const res = await fetch(url.toString(), {
-        headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+          'Accept-Encoding': 'identity',
+        },
         cache: 'no-store',
+        redirect: 'error',
         signal: AbortSignal.timeout(config.api.timeout),
       });
-      const body = await res.json().catch(() => ({}));
-      return NextResponse.json(body, { status: res.status });
+      const body = await readBoundedResponseJson(res, 1024 * 1024).catch(() => ({}));
+      return privateJson(body, { status: res.status });
     } catch {
-      return NextResponse.json({ error: 'upstream unavailable' }, { status: 502 });
+      return privateJson({ error: 'upstream unavailable' }, { status: 502 });
     }
   }
 
+  if (process.env.NODE_ENV !== 'development') {
+    return privateJson({ error: 'signaling service unavailable' }, { status: 503 });
+  }
   const safeRole = role === 'guest' ? 'guest' : 'host';
   const { exists, messages } = await listSignalingMessages(
     sessionId,
     safeRole,
     since,
   );
-  if (!exists) return NextResponse.json({ exists: false, messages: [] });
-  return NextResponse.json({ exists: true, messages });
+  if (!exists) return privateJson({ exists: false, messages: [] });
+  return privateJson({ exists: true, messages });
 }
 
 export async function handleTournamentSignalingPost(
@@ -54,14 +67,14 @@ export async function handleTournamentSignalingPost(
   body: { from?: 'host' | 'guest'; kind?: string; data?: unknown },
 ): Promise<NextResponse> {
   if (!body.from || !body.kind) {
-    return NextResponse.json({ error: 'missing from/kind' }, { status: 400 });
+    return privateJson({ error: 'missing from/kind' }, { status: 400 });
   }
 
   const base = config.api.tournamentsBaseURL;
   if (base) {
     const token = await getAccessToken();
     if (!token) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+      return privateJson({ error: 'unauthorized' }, { status: 401 });
     }
     try {
       const res = await fetch(
@@ -72,34 +85,40 @@ export async function handleTournamentSignalingPost(
             Accept: 'application/json',
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
+            'Accept-Encoding': 'identity',
           },
           body: JSON.stringify(body),
           cache: 'no-store',
+          redirect: 'error',
           signal: AbortSignal.timeout(config.api.timeout),
         },
       );
-      const payload = await res.json().catch(() => ({}));
-      return NextResponse.json(payload, { status: res.status });
+      const payload = await readBoundedResponseJson(res, 256 * 1024).catch(() => ({}));
+      return privateJson(payload, { status: res.status });
     } catch {
-      return NextResponse.json({ error: 'upstream unavailable' }, { status: 502 });
+      return privateJson({ error: 'upstream unavailable' }, { status: 502 });
     }
   }
 
+  if (process.env.NODE_ENV !== 'development') {
+    return privateJson({ error: 'signaling service unavailable' }, { status: 503 });
+  }
   const { seq } = await appendSignalingMessage(
     sessionId,
     body.from,
     body.kind,
     body.data ?? null,
   );
-  return NextResponse.json({ ok: true, seq });
+  return privateJson({ ok: true, seq });
 }
 
 export async function parseSignalingPostBody(
   req: NextRequest,
-): Promise<{ from?: 'host' | 'guest'; kind?: string; data?: unknown }> {
-  try {
-    return await req.json();
-  } catch {
+): Promise<{ from?: 'host' | 'guest'; kind?: string; data?: unknown; tooLarge?: boolean }> {
+  const decoded = await readBoundedJson(req, MAX_SIGNAL_BODY_BYTES);
+  if (!decoded.ok) return decoded.status === 413 ? { tooLarge: true } : {};
+  if (!decoded.value || typeof decoded.value !== 'object' || Array.isArray(decoded.value)) {
     return {};
   }
+  return decoded.value as { from?: 'host' | 'guest'; kind?: string; data?: unknown };
 }

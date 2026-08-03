@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { config } from '@/lib/config';
 import type { Session, SessionUser, TokenResponse } from '@/types/auth';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 
 /**
  * Sessione cookie-first (server-only).
@@ -24,11 +25,10 @@ export async function getRefreshToken(): Promise<string | null> {
 function cookieOptions(maxAge: number) {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax' as const,
     path: '/',
     maxAge,
-    ...(config.auth.cookieDomain ? { domain: config.auth.cookieDomain } : {}),
   };
 }
 
@@ -82,14 +82,18 @@ export const getSession = cache(async (): Promise<Session | null> => {
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${accessToken}`,
+        'Accept-Encoding': 'identity',
       },
       cache: 'no-store',
+      redirect: 'error',
       signal: AbortSignal.timeout(config.api.timeout),
     });
     if (!res.ok) return null;
 
-    const user = normalizeUser(await res.json().catch(() => null));
-    return user ? { user, accessToken } : null;
+    const user = normalizeUser(
+      await readBoundedResponseJson(res, 256 * 1024).catch(() => null),
+    );
+    return user ? { user } : null;
   } catch {
     return null;
   }

@@ -51,7 +51,6 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
         role={role}
         me={session.user.name ?? session.user.email}
         userId={session.user.id}
-        accessToken={session.accessToken}
         isHost={isHost}
         defaultPlaymatId={defaultPlaymatId}
       />

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
-import { getCdnImageUrl } from '@/lib/config';
+import { getCdnImageUrl } from '@/lib/public-config';
 import { LandingBackgroundVideo } from '@/components/feature/landing/LandingBackgroundVideo';
 import { cn } from '@/lib/utils';
 

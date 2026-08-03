@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * ICE servers: preferisce il Tournament Service (TURN ephemeral), fallback env.
+ * ICE servers: TURN credentials come only from the authenticated Tournament
+ * Service. Public build-time credentials are intentionally unsupported.
  */
 
 const DEFAULT_STUN = ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'];
@@ -31,14 +32,7 @@ function splitEnv(value: string | undefined): string[] {
 
 function envIceServers(): RTCIceServer[] {
   const stun = splitEnv(process.env.NEXT_PUBLIC_WEBRTC_STUN_URLS);
-  const servers: RTCIceServer[] = [{ urls: stun.length ? stun : DEFAULT_STUN }];
-  const turnUrls = splitEnv(process.env.NEXT_PUBLIC_WEBRTC_TURN_URLS);
-  const turnUser = process.env.NEXT_PUBLIC_WEBRTC_TURN_USERNAME;
-  const turnCred = process.env.NEXT_PUBLIC_WEBRTC_TURN_CREDENTIAL;
-  if (turnUrls.length && turnUser && turnCred) {
-    servers.push({ urls: turnUrls, username: turnUser, credential: turnCred });
-  }
-  return servers;
+  return [{ urls: stun.length ? stun : DEFAULT_STUN }];
 }
 
 function mapApiIceServers(raw: unknown): RTCIceServer[] | null {

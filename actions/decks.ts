@@ -24,10 +24,19 @@ import {
 import { PLAYMAT_PREFERENCE_COOKIE } from '@/lib/playmat-preference';
 import type { Deck } from '@/types/deck';
 import type { DeckLegalityIssue } from '@/types/card-legality';
+import { config } from '@/lib/config';
+
+const PERSISTENCE_ERROR = 'Salvataggio mazzi non ancora disponibile: nessuna modifica è stata registrata.';
+
+function deckWritesDisabled(): { error: string } | null {
+  return config.features.ephemeralDeckMutations ? null : { error: PERSISTENCE_ERROR };
+}
 
 export async function listDecksAction(): Promise<{ decks: Deck[] } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
+  const disabled = deckWritesDisabled();
+  if (disabled) return disabled;
   const decks = await listDecks(session.user.id);
   return { decks };
 }
@@ -37,6 +46,8 @@ export async function createDeckAction(
 ): Promise<{ deck: Deck } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
+  const disabled = deckWritesDisabled();
+  if (disabled) return disabled;
 
   const parsed = createDeckSchema.safeParse(input);
   if (!parsed.success) {
@@ -53,6 +64,8 @@ export async function updateDeckAction(
 ): Promise<{ deck: Deck } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
+  const disabled = deckWritesDisabled();
+  if (disabled) return disabled;
 
   const parsed = updateDeckSchema.safeParse(input);
   if (!parsed.success) {
@@ -74,6 +87,8 @@ export async function updateDeckAction(
 export async function deleteDeckAction(deckId: string): Promise<{ ok: true } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
+  const disabled = deckWritesDisabled();
+  if (disabled) return disabled;
 
   const removed = await deleteDeck(session.user.id, deckId);
   if (!removed) return { error: 'Mazzo non trovato.' };
@@ -89,6 +104,8 @@ export async function validateDeckLegalityAction(
 > {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
+  const disabled = deckWritesDisabled();
+  if (disabled) return disabled;
 
   const parsed = validateLegalitySchema.safeParse(input);
   if (!parsed.success) {
@@ -135,6 +152,8 @@ export async function saveDeckVerificationAction(
 ): Promise<{ deck: Deck; clean: boolean } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
+  const disabled = deckWritesDisabled();
+  if (disabled) return disabled;
 
   const parsed = saveVerificationSchema.safeParse(input);
   if (!parsed.success) {
@@ -144,11 +163,8 @@ export async function saveDeckVerificationAction(
   const deck = await getDeckById(session.user.id, parsed.data.deckId);
   if (!deck) return { error: 'Mazzo non trovato.' };
 
-  let status = parsed.data.status;
-  if (parsed.data.scannedEntries) {
-    const issues = diffDeckVsScanned(deck.main, deck.side, parsed.data.scannedEntries);
-    status = deckDiffIsClean(issues) ? 'verified' : 'mismatch';
-  }
+  const issues = diffDeckVsScanned(deck.main, deck.side, parsed.data.scannedEntries);
+  const status = deckDiffIsClean(issues) ? 'verified' : 'mismatch';
 
   const updated = await saveDeckVerification(session.user.id, parsed.data.deckId, status);
   if (!updated) return { error: 'Impossibile salvare la verifica.' };

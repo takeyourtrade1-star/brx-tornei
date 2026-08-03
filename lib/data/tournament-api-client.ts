@@ -10,6 +10,9 @@ import {
 import type { Tournament, JoinTournamentResult } from '@/types/tournament';
 import type { Selection } from '@/lib/validations/selection';
 import type { CreateTournamentInput } from '@/lib/validations/tournament';
+import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+
+const MAX_TOURNAMENT_RESPONSE_BYTES = 512 * 1024;
 
 export class TournamentApiError extends Error {
   readonly code?: string;
@@ -64,21 +67,29 @@ async function tournamentFetch(
     throw new TournamentApiError('Sessione non valida', 401, 'UNAUTHORIZED');
   }
 
-  const url = path.startsWith('http') ? path : new URL(path, base).toString();
+  if (!path.startsWith('/api/v1/')) {
+    throw new TournamentApiError('Percorso Tournament API non valido', 500, 'INVALID_PATH');
+  }
+  const url = new URL(path, base).toString();
   try {
     const res = await fetch(url, {
       ...init,
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${accessToken}`,
+        'Accept-Encoding': 'identity',
         ...(init.body ? { 'Content-Type': 'application/json' } : {}),
         ...init.headers,
       },
       cache: 'no-store',
+      redirect: 'error',
       signal: init.signal ?? AbortSignal.timeout(config.api.timeout),
     });
 
-    const body = await res.json().catch(() => ({}));
+    const body = await readBoundedResponseJson(
+      res,
+      MAX_TOURNAMENT_RESPONSE_BYTES,
+    ).catch(() => ({}));
     return { ok: res.ok, status: res.status, body };
   } catch (err) {
     const message =

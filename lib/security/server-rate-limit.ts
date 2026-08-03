@@ -1,6 +1,10 @@
 import 'server-only';
 
 import { createHash } from 'node:crypto';
+import {
+  executeUpstashPipeline,
+  getUpstashRedisConfig,
+} from '@/lib/security/upstash-rest';
 
 export class ServerRateLimitExceeded extends Error {}
 export class ServerRateLimitUnavailable extends Error {}
@@ -18,12 +22,12 @@ interface MemoryCounter {
 }
 
 const memoryCounters = new Map<string, MemoryCounter>();
-
-function redisConfig(): { url: string; token: string } | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
-  return url && token ? { url: url.replace(/\/+$/, ''), token } : null;
-}
+const RATE_LIMIT_SCRIPT = [
+  "local count = redis.call('INCR', KEYS[1])",
+  "local ttl = redis.call('TTL', KEYS[1])",
+  "if count == 1 or ttl < 0 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end",
+  'return count',
+].join('\n');
 
 function rateKey(scope: string, subject: string, windowSeconds: number): string {
   const bucket = Math.floor(Date.now() / (windowSeconds * 1000));
@@ -56,8 +60,15 @@ export async function enforceServerRateLimit({
   windowSeconds = 60,
 }: RateLimitOptions): Promise<void> {
   const key = rateKey(scope, subject, windowSeconds);
-  const redis = redisConfig();
-  if (!redis) {
+  let redisConfigured = false;
+  try {
+    redisConfigured = getUpstashRedisConfig() !== null;
+  } catch {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ServerRateLimitUnavailable('Upstash non configurato correttamente');
+    }
+  }
+  if (!redisConfigured) {
     if (process.env.NODE_ENV === 'production') {
       throw new ServerRateLimitUnavailable('Upstash non configurato');
     }
@@ -66,21 +77,12 @@ export async function enforceServerRateLimit({
   }
 
   try {
-    const response = await fetch(`${redis.url}/pipeline`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${redis.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify([
-        ['INCR', key],
-        ['EXPIRE', key, windowSeconds + 10],
-      ]),
-      cache: 'no-store',
-      signal: AbortSignal.timeout(3_000),
-    });
-    if (!response.ok) throw new Error(`Upstash ${response.status}`);
-    const payload = (await response.json()) as unknown;
+    const payload = await executeUpstashPipeline(
+      [
+        ['EVAL', RATE_LIMIT_SCRIPT, '1', key, String(windowSeconds + 10)],
+      ],
+      3_000,
+    );
     if (!Array.isArray(payload)) throw new Error('Risposta Upstash non valida');
     const first = payload[0] as { result?: unknown } | undefined;
     const count = Number(first?.result);

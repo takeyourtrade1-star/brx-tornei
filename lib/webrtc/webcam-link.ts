@@ -161,18 +161,14 @@ export interface LinkController {
 
 function relayBasePath(
   sessionId: string,
-  role: 'host' | 'guest',
-  token: string,
 ): string {
-  const query = new URLSearchParams({ token, role });
-  return `/api/tornei/webcam/${encodeURIComponent(sessionId)}?${query.toString()}`;
+  return `/api/tornei/webcam/${encodeURIComponent(sessionId)}`;
 }
 
 /** PC: riceve il flusso del telefono e lo espone come "webcam". */
 export function createWebcamReceiver(
   sessionId: string,
   h: ReceiverHandlers,
-  relayToken: string,
 ): LinkController {
   const pc = newPc();
   const pending: RTCIceCandidateInit[] = [];
@@ -285,7 +281,7 @@ export function createWebcamReceiver(
         pending.push(c);
       }
     }
-  }, relayBasePath(sessionId, 'host', relayToken));
+  }, relayBasePath(sessionId));
 
   async function start(): Promise<void> {
     h.onState?.('connecting');
@@ -334,7 +330,6 @@ export function createWebcamSender(
   sessionId: string,
   stream: MediaStream,
   h: SenderHandlers,
-  relayToken: string,
 ): LinkController {
   const pc = newPc();
   const pending: RTCIceCandidateInit[] = [];
@@ -415,7 +410,7 @@ export function createWebcamSender(
     } else if (m.kind === 'bye') {
       stop();
     }
-  }, relayBasePath(sessionId, 'guest', relayToken));
+  }, relayBasePath(sessionId));
 
   function start(): void {
     h.onState?.('connecting');

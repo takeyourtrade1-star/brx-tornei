@@ -10,7 +10,7 @@ import {
   AUTH_SPLIT_MUTED_CLASS,
   AUTH_SPLIT_VIEW_FOOTER_CLASS,
 } from '@/components/layout/auth-split-styles';
-import { config } from '@/lib/config';
+import { publicConfig } from '@/lib/public-config';
 import { cn } from '@/lib/utils';
 
 /**
@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
  * Layout split allineato a new_frontend_brx (video sinistra, pannello destro).
  */
 export function RegistratiView() {
-  const registerUrl = `${config.app.mainSiteUrl}/registrati`;
+  const registerUrl = `${publicConfig.app.mainSiteUrl}/registrati`;
 
   return (
     <AuthSplitViewShell>
