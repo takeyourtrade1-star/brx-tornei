@@ -2,6 +2,8 @@
 import type { Tournament } from '@/types/tournament';
 import type { LiveViewRole } from '@/lib/validations/live';
 import { getFormat, getMode } from '@/lib/data/catalog';
+import { useDeclareResult } from '@/hooks/use-declare-result';
+import { useGraceCountdown } from '@/hooks/use-grace-countdown';
 import { useLeaveMatch } from '@/hooks/use-leave-match';
 import { useMatchPeerConnection } from '@/hooks/use-match-peer-connection';
 import { useMatchReady } from '@/hooks/use-match-ready';
@@ -19,7 +21,13 @@ import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchFullscreenArena } from './match-fullscreen-arena';
 import { MatchIntroOverlay } from './match-intro-overlay';
 import { MatchLiveHeader } from './match-live-header';
-import { MatchConnectionNotice, MatchEndedPanel, MatchErrorNotice } from './match-live-notices';
+import {
+  MatchConnectionNotice,
+  MatchDeclareResultBar,
+  MatchEndedPanel,
+  MatchErrorNotice,
+  MatchResultPendingPanel,
+} from './match-live-notices';
 import { MatchReadyPanel } from './match-ready-panel';
 import { resolveMatchSides } from './match-players';
 import { MatchVideoGrid } from './match-video-grid';
@@ -67,13 +75,27 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
   const peerConnecting =
     isPlayer && started && !remoteStream && peerState !== 'failed' && peerState !== 'idle';
 
+  // Requisito 2: il match è già 'finished' lato backend (close_match già
+  // eseguito alla prima dichiarazione) ma il torneo resta 'active' per tutta
+  // la finestra di reclamo — non è ancora l'esito finale, quindi non deve
+  // far scattare né il session-ended del signaling né matchEnded.
+  const resultClaimPending = tournament.matchStatus === 'finished' && tournament.resultStatus === 'claimed';
   const matchEnded =
-    tournament.status === 'terminata' || (isPlayer && peerState === 'peer-left');
+    tournament.status === 'terminata' ||
+    (!resultClaimPending && isPlayer && (peerState === 'peer-left' || peerState === 'session-ended'));
+  // Esito autorevole (Requisiti 3+4): undefined finché il backend non l'ha
+  // ancora risolto, o per gli osservatori (per cui non ha senso).
+  const didIWin =
+    isPlayer && tournament.winnerUserId ? tournament.winnerUserId === userId : undefined;
+  const disconnectedIsMe = isPlayer && tournament.disconnectedUserId === userId;
+  const iClaimedResult = resultClaimPending && tournament.resultClaimedBy === userId;
+  const resultCountdown = useGraceCountdown(tournament.resultClaimDeadline);
   const ready = useMatchReady(tournament, userId);
   const leave = useLeaveMatch(tournament, async () => {
     clearActiveMatch(tournament.id);
     await notifyLeave();
   });
+  const declareResult = useDeclareResult(tournament, userId, remote.id);
   const { stickerShot, handleSticker } = useMatchStickerShot();
   const chat = useMatchChat({
     matchId: tournament.matchId,
@@ -103,7 +125,10 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
   useMatchTournamentRefresh({
     status: tournament.status,
     tableFull: ready.tableFull,
-    peerLeft: peerState === 'peer-left',
+    // Anche 'session-ended' (il backend ha già chiuso il match) deve
+    // aggiornare subito, non solo il bye esplicito dell'avversario.
+    peerLeft: peerState === 'peer-left' || peerState === 'session-ended',
+    graceCountdownActive: Boolean(tournament.graceDeadline) || Boolean(tournament.resultClaimDeadline),
   });
 
   useActiveMatchReference({
@@ -127,7 +152,8 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     participantNames,
   };
   const visiblePeerError = peerReconnecting || peerState === 'peer-left' ? null : peerError;
-  const visibleError = leave.error ?? webcamError ?? visiblePeerError;
+  const visibleError = leave.error ?? webcamError ?? visiblePeerError ?? declareResult.error;
+  const showLiveNotices = !matchEnded && !resultClaimPending;
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-content-2xl flex-1 flex-col overflow-y-auto px-4 py-3 sm:px-6">
@@ -169,15 +195,34 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
           La visione video per gli osservatori non è ancora disponibile.
         </p>
       )}
-      {!matchEnded && isPlayer && started && (
-        <MatchConnectionNotice reconnecting={peerReconnecting} onRetry={retryPeer} />
+      {showLiveNotices && isPlayer && started && (
+        <MatchConnectionNotice
+          reconnecting={peerReconnecting}
+          onRetry={retryPeer}
+          graceDeadline={tournament.graceDeadline}
+          disconnectedIsMe={disconnectedIsMe}
+        />
       )}
-      {!matchEnded && visibleError && isPlayer && (
+      {showLiveNotices && isPlayer && tournament.matchStatus === 'ongoing' && (
+        <MatchDeclareResultBar busy={declareResult.declaring} onDeclare={declareResult.declare} />
+      )}
+      {showLiveNotices && visibleError && isPlayer && (
         <MatchErrorNotice message={visibleError} onRetry={visiblePeerError ? retryPeer : undefined} />
       )}
 
       {matchEnded ? (
-        <MatchEndedPanel opponentLeft={isPlayer && peerState === 'peer-left'} />
+        <MatchEndedPanel
+          opponentLeft={isPlayer && peerState === 'peer-left'}
+          didIWin={didIWin}
+          endReason={tournament.endReason}
+        />
+      ) : resultClaimPending ? (
+        <MatchResultPendingPanel
+          awaitingMe={!iClaimedResult}
+          remaining={resultCountdown}
+          busy={declareResult.declaring}
+          onDeclare={declareResult.declare}
+        />
       ) : (
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="mx-auto w-full lg:max-w-[calc((100dvh-340px)*3.5556+0.75rem)]">
@@ -215,7 +260,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
       )}
 
       <MatchFullscreenArena
-        open={fullscreenOpen && !matchEnded}
+        open={fullscreenOpen && !matchEnded && !resultClaimPending}
         localStream={localStream}
         remoteStream={remoteStream}
         localUsername={local.username}

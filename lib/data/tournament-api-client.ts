@@ -30,7 +30,7 @@ function tournamentsApiConfigured(): boolean {
   return Boolean(config.api.tournamentsBaseURL);
 }
 
-function extractApiError(body: unknown, status: number, fallback: string): TournamentApiError {
+export function extractApiError(body: unknown, status: number, fallback: string): TournamentApiError {
   const top = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
   const detail = top.detail;
   if (detail && typeof detail === 'object') {
@@ -53,7 +53,7 @@ function extractApiError(body: unknown, status: number, fallback: string): Tourn
   return new TournamentApiError(message, status, code);
 }
 
-async function tournamentFetch(
+export async function tournamentFetch(
   path: string,
   init: RequestInit = {},
 ): Promise<{ ok: boolean; status: number; body: unknown }> {
@@ -209,5 +209,40 @@ export async function postLeaveTournament(id: string): Promise<void> {
   // 404 = tavolo già rimosso (nessuno rimasto): trattato come uscita riuscita.
   if (!ok && status !== 404) {
     throw extractApiError(body, status, 'Impossibile alzarsi dal tavolo');
+  }
+}
+
+/** Segnali di presenza P2P per il countdown di abbandono (90s, Requisiti 3+4):
+ * identificati dalla webcam_session_id del match, non dal suo id. */
+export async function postReportPeerLost(webcamSessionId: string): Promise<void> {
+  const { ok, status, body } = await tournamentFetch(
+    `/api/v1/matches/${encodeURIComponent(webcamSessionId)}/report-peer-lost`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
+  if (!ok) {
+    throw extractApiError(body, status, 'Impossibile segnalare la disconnessione');
+  }
+}
+
+export async function postReportPeerAlive(webcamSessionId: string): Promise<void> {
+  const { ok, status, body } = await tournamentFetch(
+    `/api/v1/matches/${encodeURIComponent(webcamSessionId)}/report-peer-alive`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
+  if (!ok) {
+    throw extractApiError(body, status, 'Impossibile segnalare la riconnessione');
+  }
+}
+
+/** "Chi ha vinto?" (Requisito 2): dichiarazione simmetrica, prima richiesta o
+ * risposta a quella dell'avversario. Identificato dal match id, non dalla
+ * webcam_session_id: qui il chiamante ha già il match id nel contratto. */
+export async function postDeclareResult(matchId: string, winnerUserId: string): Promise<void> {
+  const { ok, status, body } = await tournamentFetch(
+    `/api/v1/matches/${encodeURIComponent(matchId)}/result`,
+    { method: 'POST', body: JSON.stringify({ winner_user_id: winnerUserId }) },
+  );
+  if (!ok) {
+    throw extractApiError(body, status, 'Impossibile dichiarare il risultato');
   }
 }

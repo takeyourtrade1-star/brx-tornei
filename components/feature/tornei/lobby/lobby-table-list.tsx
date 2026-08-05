@@ -7,6 +7,8 @@ import type { SessionUser } from '@/types/auth';
 import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { Selection } from '@/lib/validations/selection';
 import type { LobbyTable } from '@/lib/lobby';
+import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
+import { ReputationSummary } from './reputation-summary';
 import { TableCard } from './table-card';
 
 interface LobbyTableListProps {
@@ -18,6 +20,7 @@ interface LobbyTableListProps {
   modeName: string;
   busy: boolean;
   error: string | null;
+  reputation: ReputationSummaryData | null;
   onSit: (table: LobbyTable) => void;
   onOpen: (table: LobbyTable) => void;
   onLeave: (table: LobbyTable) => void;
@@ -33,6 +36,7 @@ export function LobbyTableList({
   modeName,
   busy,
   error,
+  reputation,
   onSit,
   onOpen,
   onLeave,
@@ -62,6 +66,8 @@ export function LobbyTableList({
             <span className="rounded-full border border-header-bg/10 bg-white/55 px-3 py-1.5">Best of 3</span>
           </div>
         </div>
+
+        <ReputationSummary reputation={reputation} />
 
         <div className="relative z-30 my-6 flex flex-col gap-4">
           <section>

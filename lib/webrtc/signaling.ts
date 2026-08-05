@@ -31,17 +31,20 @@ export class SignalingChannel {
   private connected = false;
   private stopped = false;
   private onMessage: (m: SignalMessage) => void;
+  private onClosed?: () => void;
 
   constructor(
     sessionId: string,
     role: SignalRole,
     onMessage: (m: SignalMessage) => void,
     basePath?: string,
+    onClosed?: () => void,
   ) {
     this.base =
       basePath ?? `/api/tornei/webcam/${encodeURIComponent(sessionId)}`;
     this.role = role;
     this.onMessage = onMessage;
+    this.onClosed = onClosed;
   }
 
   start(): void {
@@ -95,6 +98,13 @@ export class SignalingChannel {
           this.since = Math.max(this.since, m.seq);
           if (m.from !== this.role) this.onMessage(m);
         }
+      } else if (res.status === 404) {
+        // Sessione non più autorizzata lato server (match chiuso): a
+        // differenza di un 5xx/errore di rete non è transitorio, riprovare
+        // non ha senso e terrebbe vivo il polling all'infinito.
+        this.stop();
+        this.onClosed?.();
+        return;
       }
     } catch {
       /* errore di rete: si riprova al prossimo tick */

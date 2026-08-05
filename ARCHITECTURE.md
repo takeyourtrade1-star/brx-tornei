@@ -13,7 +13,7 @@
 | Auth backend | Microservizio FastAPI su AWS, JWT RS256 (access + refresh), MFA con pre-auth token, login passwordless via codice email, honeypot `website_url` | Stesso backend, zero modifiche richieste |
 | Auth client | Token in `localStorage` (`ebartex_access_token`, `ebartex_refresh_token`, `ebartex_user`) + store Zustand persistito (`ebartex-auth`) | localStorage NON è condiviso tra domini → non utilizzabile per SSO |
 | Proxy auth | `app/api/auth/[...path]/route.ts`: il browser chiama same-origin `/api/auth/*`, il route handler inoltra ad `AUTH_API_URL`. Imposta cookie `__Host-` **HttpOnly, Secure, SameSite=Lax, host-only** | I token sono redatti dal JSON e restano invisibili a client e sottodomini |
-| Design system | shadcn/ui style: `cva` + `@radix-ui/react-slot` + `cn()` (clsx + tailwind-merge). Token in `tailwind.config.ts` + CSS vars in `globals.css`. Font: Nunito (next/font) + Comodo Regular (display) | Token e atomi estratti in un preset Tailwind condivisibile |
+| Design system | shadcn/ui style: `cva` + `@radix-ui/react-slot` + `cn()` (clsx + tailwind-merge). Token in `tailwind.config.ts` + CSS vars in `globals.css`. Font: stack sans di sistema (allineato al sito principale) + display rounded di sistema; nessun font scaricato né asset `/fonts/` (vincolo del test `build-environment.test.ts`) | Token e atomi estratti in un preset Tailwind condivisibile |
 | Palette | Gradiente globale `#3D65C6 → #1D3160` + pattern `brx_bg.png`, primary `#FF7300` (text AA `#CC5C00`), header `#0F172A`, gradienti card (`#BB82FF→#4A02A4`, ecc.), marquee `#F3C76A`, radius `0.5rem` | Replicata 1:1 nel preset |
 | Forms | react-hook-form + zod + floating-label input | Nel nuovo sito: zod lato server action; RHF solo se serve UX client |
 
@@ -158,7 +158,7 @@ Decisioni notevoli:
 ### M0 — Fondamenta (questo scaffold)
 1. `git init` + scaffold (fatto: vedi repo).
 2. `npm install` e verifica `npm run dev` + `npm run build`.
-3. Copiare in `public/`: `brx_bg.png`, logo, font Comodo dal repo principale (asset binari non inclusi nello scaffold).
+3. Asset grafici già versionati in `public/`; nessun font da copiare (sans/display usano lo stack di sistema: il test di build vieta riferimenti a `/fonts/` e a Google Fonts).
 4. Configurare `.env.local` da `.env.example` (`NEXT_PUBLIC_AUTH_API_URL` identico al sito principale).
 
 ### M1 — Design system operativo

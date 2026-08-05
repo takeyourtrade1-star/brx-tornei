@@ -44,7 +44,7 @@ export function OtpSixBoxes({
               aria-label={`${ariaLabelPrefix} ${idx + 1}`}
               disabled={disabled}
               className={cn(
-                'h-12 w-12 rounded-2xl border text-center text-2xl font-semibold text-[#1d1d1f] transition-all focus:border-[#0066cc] focus:outline-none focus:ring-2 focus:ring-[#0066cc]/20 disabled:opacity-50 sm:h-14 sm:w-14',
+                'h-12 w-12 rounded-2xl border text-center text-2xl font-semibold text-[#1d1d1f] transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 sm:h-14 sm:w-14',
                 error ? 'border-red-400 bg-red-50/50' : 'border-black/10 bg-black/5'
               )}
               onChange={(e) => {

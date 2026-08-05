@@ -1,5 +1,6 @@
 'use client';
 
+import { TriangleAlert, Zap } from 'lucide-react';
 import type { ModelStatus, OnnxLoadProgress } from '@/hooks/useBrxScanner';
 
 function formatMb(bytes: number): string {
@@ -49,10 +50,12 @@ export function ScannerModelGate({
       aria-busy={!failed}
     >
       <div className="w-full max-w-sm text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FF7300]/15 ring-1 ring-[#FF7300]/30">
-          <span className="text-3xl" aria-hidden>
-            {failed ? '⚠️' : '⚡'}
-          </span>
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 ring-1 ring-primary/30">
+          {failed ? (
+            <TriangleAlert className="h-8 w-8 text-primary" aria-hidden />
+          ) : (
+            <Zap className="h-8 w-8 text-primary" aria-hidden />
+          )}
         </div>
 
         <h2 id="scanner-gate-title" className="text-lg font-semibold text-white">
@@ -71,11 +74,11 @@ export function ScannerModelGate({
             <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
               {hasPercent && !isCaching && !isInitializing ? (
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#FF7300] to-amber-400 transition-[width] duration-300"
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-amber-400 transition-[width] duration-300"
                   style={{ width: `${pct}%` }}
                 />
               ) : (
-                <div className="h-full w-1/3 animate-pulse rounded-full bg-gradient-to-r from-[#FF7300] to-amber-400" />
+                <div className="h-full w-1/3 animate-pulse rounded-full bg-gradient-to-r from-primary to-amber-400" />
               )}
             </div>
             {modelProgress.loaded > 0 && (
@@ -99,7 +102,7 @@ export function ScannerModelGate({
               <button
                 type="button"
                 onClick={onRetry}
-                className="w-full rounded-xl bg-[#FF7300] py-3 text-sm font-semibold text-white transition hover:bg-[#e66800] active:scale-[0.98]"
+                className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition hover:bg-primary/90 active:scale-[0.98]"
               >
                 Riprova download
               </button>

@@ -6,10 +6,12 @@ import { usePathname } from 'next/navigation';
 import { Swords } from 'lucide-react';
 import { activeMatchStatusAction } from '@/actions/tournaments';
 import { clearActiveMatch, readActiveMatch } from '@/lib/active-match-storage';
+import { useGraceCountdown } from '@/hooks/use-grace-countdown';
 
 interface ActiveMatchBannerState {
   tournamentId: string;
   opponent: string | null;
+  graceDeadline: string | null;
 }
 
 /**
@@ -41,6 +43,7 @@ export function ReturnToMatchBanner() {
         setMatch({
           tournamentId: stored.tournamentId,
           opponent: result.opponent ?? stored.opponent ?? null,
+          graceDeadline: result.graceDeadline ?? null,
         });
         return;
       }
@@ -54,6 +57,8 @@ export function ReturnToMatchBanner() {
     };
   }, [pathname, onLivePage]);
 
+  const remaining = useGraceCountdown(match?.graceDeadline);
+
   if (!match) return null;
 
   return (
@@ -61,11 +66,13 @@ export function ReturnToMatchBanner() {
       <div className="flex items-center gap-3 rounded-full border border-primary/40 bg-card2-end/95 py-2 pl-4 pr-2 text-white shadow-2xl shadow-card2-end/40 backdrop-blur-xl">
         <span
           aria-hidden
-          className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]"
+          className={`h-2 w-2 shrink-0 animate-pulse rounded-full shadow-[0_0_10px_rgba(52,211,153,0.9)] ${
+            remaining !== null ? 'bg-amber-400' : 'bg-emerald-400'
+          }`}
         />
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-[0.18em] text-primary">
-            Partita in corso
+            {remaining !== null ? `Rientra entro ${remaining}s!` : 'Partita in corso'}
           </p>
           <p className="truncate text-xs font-bold text-white/85">
             {match.opponent ? `vs ${match.opponent}` : 'Il tuo tavolo ti aspetta'}

@@ -21,8 +21,10 @@ elencati esattamente in `TRUSTED_UPSTREAM_HOSTS`; il controllo viene ripetuto a
 runtime e accetta solo origin HTTPS canonici. `NEXT_PUBLIC_TOURNAMENTS_WS_ORIGIN` deve essere lo
 stesso origin del Tournament Service con il solo protocollo cambiato in `wss://`.
 
-Asset da copiare da `new_frontend_brx/public/` (binari, non versionati qui):
-`brx_bg.png`, `fonts/Comodo Regular Free.{otf,ttf}`.
+Font: nessun asset da copiare né download remoto — il test di build
+(`lib/__tests__/build-environment.test.ts`) vieta riferimenti a `/fonts/` e a
+`next/font/google`. Sans e display usano lo stack di sistema arrotondato,
+allineato al sito principale (vedi `app/globals.css`).
 
 ## Script
 

@@ -8,6 +8,8 @@ interface MatchTournamentRefreshOptions {
   status: TournamentStatus;
   tableFull: boolean;
   peerLeft: boolean;
+  /** Un countdown di abbandono (grace_deadline) è attivo: stringe il poll. */
+  graceCountdownActive?: boolean;
 }
 
 /** Aggiorna lo stato autorevole del match senza interpretare un crash come uscita. */
@@ -15,17 +17,19 @@ export function useMatchTournamentRefresh({
   status,
   tableFull,
   peerLeft,
+  graceCountdownActive = false,
 }: MatchTournamentRefreshOptions) {
   const router = useRouter();
 
   useEffect(() => {
     if (status === 'terminata') return;
-    const intervalMs = status === 'in_registrazione' ? (tableFull ? 1_000 : 5_000) : 12_000;
+    const intervalMs =
+      status === 'in_registrazione' ? (tableFull ? 1_000 : 5_000) : graceCountdownActive ? 3_000 : 12_000;
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
     }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [status, tableFull, router]);
+  }, [status, tableFull, graceCountdownActive, router]);
 
   useEffect(() => {
     if (!peerLeft) return;

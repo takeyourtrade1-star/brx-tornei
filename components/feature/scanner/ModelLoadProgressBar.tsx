@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Zap } from 'lucide-react';
 import type { ModelStatus, OnnxLoadProgress } from '@/hooks/useBrxScanner';
 
 function formatMb(bytes: number): string {
@@ -51,8 +52,9 @@ export function ModelLoadProgressBar({
   if (showReadyToast && modelStatus === 'ready') {
     return (
       <div className={overlayClass} style={{ top: OVERLAY_TOP }}>
-        <span className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/35 bg-black/60 px-4 py-2 text-[11px] font-semibold text-emerald-200 backdrop-blur-md">
-          ⚡ Modalità turbo attiva
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/35 bg-black/60 px-4 py-2 text-[11px] font-semibold text-emerald-200 backdrop-blur-md">
+          <Zap className="h-3.5 w-3.5" aria-hidden />
+          Modalità turbo attiva
         </span>
       </div>
     );
@@ -139,11 +141,11 @@ export function ModelLoadProgressBar({
         >
           {hasPercent && !isCaching && !isInitializing ? (
             <div
-              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-[width] duration-300 ease-out"
+              className="h-full rounded-full bg-gradient-to-r from-primary to-amber-400 transition-[width] duration-300 ease-out"
               style={{ width: `${pct}%` }}
             />
           ) : (
-            <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 animate-[onnx-indeterminate_1.4s_ease-in-out_infinite]" />
+            <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-primary to-amber-400 animate-[onnx-indeterminate_1.4s_ease-in-out_infinite]" />
           )}
         </div>
 

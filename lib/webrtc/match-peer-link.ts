@@ -99,6 +99,7 @@ export function createMatchPeerLink(
         watchdogs.clear('connect');
         watchdogs.clear('disconnect');
         handlers.onState?.('connected');
+        handlers.onPeerAlive?.();
         sig?.setConnected(true);
         void detectTransport(nextPeer).then((transport) => {
           if (isCurrent(nextPeer)) handlers.onTransport?.(transport);
@@ -108,6 +109,7 @@ export function createMatchPeerLink(
       } else if (nextPeer.connectionState === 'disconnected') {
         sig?.setConnected(false);
         handlers.onState?.('reconnecting');
+        handlers.onPeerLost?.();
         watchdogs.arm('disconnect', () => {
           if (isCurrent(nextPeer) && nextPeer.connectionState === 'disconnected') {
             fail('Connessione video interrotta. Nuovo tentativo in corso\u2026');
@@ -116,6 +118,7 @@ export function createMatchPeerLink(
       } else if (nextPeer.connectionState === 'failed') {
         sig?.setConnected(false);
         watchdogs.clearAll();
+        handlers.onPeerLost?.();
         fail('La connessione video non risponde. Nuovo tentativo in corso\u2026');
       } else if (nextPeer.connectionState === 'closed') {
         watchdogs.clearAll();
@@ -188,7 +191,11 @@ export function createMatchPeerLink(
           shutdown('peer-left');
         }
       }
-    }, basePath);
+    }, basePath, () => {
+      if (stopped) return;
+      handlers.onSessionEnded?.();
+      shutdown('session-ended');
+    });
     sig.start();
     handlers.onState?.(role === 'host' ? 'waiting' : 'connecting');
 
@@ -215,7 +222,7 @@ export function createMatchPeerLink(
     handlers.onState?.('connecting');
     void setup().catch(() => fail('Impossibile avviare la connessione video.'));
   }
-  function shutdown(finalState: 'closed' | 'peer-left'): void {
+  function shutdown(finalState: 'closed' | 'peer-left' | 'session-ended'): void {
     stopped = true;
     watchdogs.clearAll();
     sig?.stop();

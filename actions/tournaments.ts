@@ -32,6 +32,7 @@ function mapApiError(err: unknown, fallback: string): TournamentActionState {
       TOURNAMENT_FULL: 'Il tavolo è già al completo.',
       ALREADY_SEATED:
         'Sei già seduto a un altro tavolo (anche in un altro formato): alzati o abbandona quella partita prima.',
+      GAMERTAG_REQUIRED: 'Imposta un gamertag prima di giocare, dalla pagina del tuo profilo tornei.',
       API_NOT_CONFIGURED: 'Servizio tornei non configurato.',
       API_UNAVAILABLE: 'Il servizio tornei non è raggiungibile. Riprova tra poco.',
     };
@@ -173,6 +174,8 @@ export interface ActiveMatchStatus {
   /** 'unknown' su errore API: il chiamante non deve scartare il riferimento. */
   status: 'active' | 'inactive' | 'unknown';
   opponent?: string | null;
+  /** ISO: presente solo se IO sono il giocatore segnalato come disconnesso. */
+  graceDeadline?: string | null;
 }
 
 /**
@@ -192,7 +195,9 @@ export async function activeMatchStatusAction(
     if (!seated) return { status: 'inactive' };
     const opponent =
       tournament.participants.find((p) => p.id !== session.user.id)?.username ?? null;
-    return { status: 'active', opponent };
+    const graceDeadline =
+      tournament.disconnectedUserId === session.user.id ? tournament.graceDeadline ?? null : null;
+    return { status: 'active', opponent, graceDeadline };
   } catch {
     return { status: 'unknown' };
   }

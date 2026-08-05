@@ -4,6 +4,9 @@ import type { FormatId, ModeId } from '@/lib/data/catalog';
 const VALID_STATUS: TournamentStatus[] = ['in_registrazione', 'iniziata', 'terminata'];
 const VALID_BEST_OF: BestOf[] = ['BO1', 'BO3', 'BO5'];
 const VALID_BUY_IN: BuyIn[] = ['for_fun', 'micro', 'low', 'mid', 'high'];
+const VALID_MATCH_STATUS = ['ongoing', 'finished'] as const;
+const VALID_END_REASON = ['leave', 'timeout', 'reported', 'disputed'] as const;
+const VALID_RESULT_STATUS = ['claimed', 'settled'] as const;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
@@ -23,6 +26,15 @@ function pickBool(obj: Record<string, unknown>, ...keys: string[]): boolean | un
     if (typeof v === 'boolean') return v;
   }
   return undefined;
+}
+
+function pickEnum<T extends string>(
+  obj: Record<string, unknown>,
+  valid: readonly T[],
+  ...keys: string[]
+): T | undefined {
+  const raw = pickString(obj, ...keys);
+  return raw && (valid as readonly string[]).includes(raw) ? (raw as T) : undefined;
 }
 
 function mapParticipant(raw: unknown): Participant | null {
@@ -109,6 +121,15 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     matchWebcamSessionId,
     signalingRole,
     createdById: pickString(obj, 'created_by', 'createdBy', 'created_by_id', 'createdById'),
+    matchStatus: pickEnum(obj, VALID_MATCH_STATUS, 'match_status', 'matchStatus'),
+    endReason: pickEnum(obj, VALID_END_REASON, 'end_reason', 'endReason'),
+    winnerUserId: pickString(obj, 'winner_user_id', 'winnerUserId'),
+    disconnectedUserId: pickString(obj, 'disconnected_user_id', 'disconnectedUserId'),
+    graceDeadline: pickString(obj, 'grace_deadline', 'graceDeadline'),
+    resultStatus: pickEnum(obj, VALID_RESULT_STATUS, 'result_status', 'resultStatus'),
+    resultClaimDeadline: pickString(obj, 'result_claim_deadline', 'resultClaimDeadline'),
+    resultClaimedBy: pickString(obj, 'result_claimed_by', 'resultClaimedBy'),
+    resultClaimedWinner: pickString(obj, 'result_claimed_winner', 'resultClaimedWinner'),
   };
 }
 

@@ -49,6 +49,21 @@ export interface Tournament {
   /** Ruolo signaling assegnato dal backend per il match corrente. */
   signalingRole?: 'host' | 'guest';
   createdById?: string;
+  /** Stato del match corrente lato backend. */
+  matchStatus?: 'ongoing' | 'finished';
+  /** Causa di chiusura: forfeit volontario, timeout abbandono (90s), dichiarazione. */
+  endReason?: 'leave' | 'timeout' | 'reported' | 'disputed';
+  winnerUserId?: string;
+  /** Il giocatore segnalato come disconnesso dal link P2P (report-peer-lost). */
+  disconnectedUserId?: string;
+  /** ISO: istante oltre il quale l'abbandono diventa forfeit automatico. */
+  graceDeadline?: string;
+  resultStatus?: 'claimed' | 'settled';
+  resultClaimDeadline?: string;
+  /** Chi ha dichiarato per primo un risultato ("Chi ha vinto?", Requisito 2). */
+  resultClaimedBy?: string;
+  /** Chi la prima dichiarazione indica come vincitore. */
+  resultClaimedWinner?: string;
 }
 
 /** Risultato join torneo (può avviare un match). */

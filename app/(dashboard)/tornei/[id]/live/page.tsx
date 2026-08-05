@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
+import { requireGamertag } from '@/lib/auth/require-gamertag';
 import { getTournamentById } from '@/lib/data/tournaments';
 import { parseLiveViewSearch } from '@/lib/validations/live';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
@@ -18,6 +19,7 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   const { id } = await params;
   const session = await getSession();
   if (!session) redirect('/login');
+  await requireGamertag(`/tornei/${id}/live`);
 
   const tournament = await getTournamentById(id);
   if (!tournament) notFound();

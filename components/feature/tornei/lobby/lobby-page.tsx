@@ -9,6 +9,7 @@ import {
 } from '@/actions/tournaments';
 import { buildLobbyTables, findMyTables, type LobbyTable } from '@/lib/lobby';
 import type { FormatId } from '@/lib/data/catalog';
+import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { Selection } from '@/lib/validations/selection';
 import type { SessionUser } from '@/types/auth';
 import type { Tournament } from '@/types/tournament';
@@ -23,6 +24,7 @@ interface LobbyPageProps {
   formatId: FormatId;
   formatName: string;
   modeName: string;
+  reputation: ReputationSummary | null;
 }
 
 type ModalState = { mode: 'host' | 'join'; tournamentId: string } | null;
@@ -38,6 +40,7 @@ export function LobbyPage({
   formatId,
   formatName,
   modeName,
+  reputation,
 }: LobbyPageProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>(null);
@@ -216,6 +219,7 @@ export function LobbyPage({
         modeName={modeName}
         busy={busy}
         error={error}
+        reputation={reputation}
         onSit={handleSit}
         onOpen={handleOpen}
         onLeave={handleLeave}

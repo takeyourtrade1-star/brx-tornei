@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { reportPeerAliveAction, reportPeerLostAction } from '@/actions/matches';
 import {
   createMatchPeerLink,
   type PeerLinkState,
@@ -79,8 +80,15 @@ export function useMatchPeerConnection({
       },
       onRemoteStream: setRemoteStream,
       onPeerLeft: () => setRemoteStream(null),
+      onSessionEnded: () => setRemoteStream(null),
       onError: setError,
       onTransport: setTransport,
+      onPeerLost: () => {
+        void reportPeerLostAction(sessionId);
+      },
+      onPeerAlive: () => {
+        void reportPeerAliveAction(sessionId);
+      },
     });
     ctrlRef.current = ctrl;
     ctrl.start();

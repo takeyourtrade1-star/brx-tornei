@@ -4,22 +4,22 @@
 
 @layer base {
   :root {
-    /* Nessuna dipendenza da font remoti o da asset locali mancanti. */
-    --font-comodo: Georgia, 'Times New Roman', serif;
-    --font-sans: Georgia, 'Times New Roman', serif;
+    /* Stack locale identico al sito principale: nessun download di font in
+       build o runtime (il test build-environment vieta riferimenti a
+       /fonts/, asset Comodo non versionato qui). Il display ripiega sul
+       rounded di sistema, il più vicino a Comodo Regular senza asset. */
+    --font-sans: ui-rounded, 'Avenir Next', Avenir, 'Segoe UI', system-ui,
+      -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-comodo: ui-rounded, 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
 
-    /* Palette principale Ebartex (gradiente e blocchi) */
-    --color-brand: #3D65C6;
-    --color-brand-dark: #1D3160;
-
+    /* Variabili HSL referenziate dal preset (hsl(var(--…))): vive, non
+       scaffold. primary è esclusa: il preset la definisce in hex (#FF7300). */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
@@ -32,28 +32,6 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -155,55 +133,6 @@
     animation: toolbar-expand-settle 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  @keyframes tournament-table-aurora-spin {
-    to {
-      transform: rotate(1turn);
-    }
-  }
-
-  @keyframes tournament-table-glow-a {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(45%, 28%, 0) scale(1.2);
-    }
-  }
-
-  @keyframes tournament-table-glow-b {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1.05);
-    }
-    50% {
-      transform: translate3d(-38%, -24%, 0) scale(0.9);
-    }
-  }
-
-  .tournament-table-aurora {
-    background: conic-gradient(
-      from 0deg,
-      theme('colors.card3-start'),
-      theme('colors.global-bg-start'),
-      theme('colors.marquee'),
-      theme('colors.card3-start'),
-      theme('colors.global-bg-start')
-    );
-    animation: tournament-table-aurora-spin 8s linear infinite;
-    will-change: transform;
-  }
-
-  .tournament-table-glow-a {
-    animation: tournament-table-glow-a 9s ease-in-out infinite;
-    will-change: transform;
-  }
-
-  .tournament-table-glow-b {
-    animation: tournament-table-glow-b 11s ease-in-out infinite;
-    will-change: transform;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .tournaments-toolbar-ease,
     .tournaments-toolbar-section-collapse {
@@ -211,11 +140,6 @@
     }
     .animate-toolbar-compact-settle,
     .animate-toolbar-expand-settle {
-      animation: none;
-    }
-    .tournament-table-aurora,
-    .tournament-table-glow-a,
-    .tournament-table-glow-b {
       animation: none;
     }
   }
@@ -309,7 +233,7 @@
      così il testo senza classe colore è leggibile ovunque per default. */
   body {
     @apply min-h-screen font-medium;
-    font-family: var(--font-sans), serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
     background-color: #c9e1f5;
     color: #0f172a;
   }
@@ -318,7 +242,7 @@
   textarea,
   select,
   button {
-    font-family: var(--font-sans), serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
   }
 
   body::before {
