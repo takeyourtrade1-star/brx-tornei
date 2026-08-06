@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config as appConfig } from '@/lib/config';
 import { buildLoginRedirectUrl } from '@/lib/auth/redirect';
-import { isCanonicalRequestOrigin as matchesCanonicalOrigin } from '@/lib/security/canonical-origin';
+import { isCanonicalRequestHost } from '@/lib/security/canonical-origin';
 
 /**
  * Protezione route.
@@ -29,10 +29,10 @@ function getTournamentWebSocketSource(): string | null {
 }
 
 export function isCanonicalRequestOrigin(
-  requestOrigin: string,
+  requestHost: string | null,
   configuredSiteUrl = appConfig.app.siteUrl,
 ): boolean {
-  return matchesCanonicalOrigin(requestOrigin, configuredSiteUrl);
+  return isCanonicalRequestHost(requestHost, configuredSiteUrl);
 }
 
 /** CSP per-request: nessuno script inline viene accettato senza il nonce. */
@@ -91,8 +91,14 @@ export function middleware(request: NextRequest) {
 
   if (
     process.env.NODE_ENV === 'production' &&
-    !isCanonicalRequestOrigin(request.nextUrl.origin)
+    !isCanonicalRequestHost(request.headers.get('host'), appConfig.app.siteUrl)
   ) {
+    // Traccia nei log server cosa è stato rifiutato: un 421 altrimenti si
+    // diagnostica solo per tentativi (gli header sono quelli della CDN).
+    console.warn(
+      `[middleware] 421: host "${request.headers.get('host') ?? '(mancante)'}", ` +
+        `canonica "${appConfig.app.siteUrl}"`,
+    );
     return new NextResponse('Misdirected Request', {
       status: 421,
       headers: { 'Cache-Control': 'private, no-store, max-age=0' },

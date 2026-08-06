@@ -16,6 +16,18 @@ describe('same-origin mutation guard', () => {
     }), SITE)).toBe(false);
   });
 
+  it('accepts the CDN-forwarded request (internal http URL, https Origin)', () => {
+    // La CDN termina il TLS: l'app vede sempre un URL interno http, mentre
+    // Origin/Referer arrivano dal browser e restano https canonici.
+    expect(isSameOriginMutation(new Request('http://tornei.ebartex.com/api/test', {
+      method: 'POST',
+      headers: { Origin: SITE, 'Sec-Fetch-Site': 'same-origin' },
+    }), SITE)).toBe(true);
+    expect(isSameOriginMutation(new Request('http://tornei.ebartex.com/api/test', {
+      method: 'GET',
+    }), SITE)).toBe(true);
+  });
+
   it('rejects a poisoned request host even with a forged matching Origin', () => {
     expect(isSameOriginMutation(new Request('https://evil.example/api/test', {
       method: 'POST',

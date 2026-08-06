@@ -8,7 +8,7 @@ import {
   buildContentSecurityPolicy,
   middleware,
 } from '@/middleware';
-import { isCanonicalRequestOrigin } from '@/lib/security/canonical-origin';
+import { isCanonicalRequestHost } from '@/lib/security/canonical-origin';
 
 describe('middleware CSP', () => {
   it('usa nonce e WebAssembly ristretto senza unsafe-inline/eval per gli script', () => {
@@ -68,18 +68,17 @@ describe('middleware CSP', () => {
     );
   });
 
-  it('rifiuta host poisoning rispetto all origine canonica', () => {
+  it('rifiuta host poisoning rispetto all host canonico', () => {
     expect(
-      isCanonicalRequestOrigin(
-        'https://tornei.ebartex.com',
-        'https://tornei.ebartex.com',
-      ),
+      isCanonicalRequestHost('tornei.ebartex.com', 'https://tornei.ebartex.com'),
+    ).toBe(true);
+    // L'header Host può includere la porta esplicita: va ignorata.
+    expect(
+      isCanonicalRequestHost('tornei.ebartex.com:443', 'https://tornei.ebartex.com'),
     ).toBe(true);
     expect(
-      isCanonicalRequestOrigin(
-        'https://attacker.example',
-        'https://tornei.ebartex.com',
-      ),
+      isCanonicalRequestHost('attacker.example', 'https://tornei.ebartex.com'),
     ).toBe(false);
+    expect(isCanonicalRequestHost(null, 'https://tornei.ebartex.com')).toBe(false);
   });
 });
