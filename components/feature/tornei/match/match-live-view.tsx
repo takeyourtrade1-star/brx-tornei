@@ -23,7 +23,6 @@ import { MatchIntroOverlay } from './match-intro-overlay';
 import { MatchLiveHeader } from './match-live-header';
 import {
   MatchConnectionNotice,
-  MatchDeclareResultBar,
   MatchEndedPanel,
   MatchErrorNotice,
   MatchResultPendingPanel,
@@ -167,6 +166,9 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
         peerState={peerState}
         peerError={peerError}
         peerTransport={peerTransport}
+        canDeclare={showLiveNotices && tournament.matchStatus === 'ongoing'}
+        declareBusy={declareResult.declaring}
+        onDeclare={declareResult.declare}
         onLeave={leave.leave}
       />
 
@@ -202,9 +204,6 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
           graceDeadline={tournament.graceDeadline}
           disconnectedIsMe={disconnectedIsMe}
         />
-      )}
-      {showLiveNotices && isPlayer && tournament.matchStatus === 'ongoing' && (
-        <MatchDeclareResultBar busy={declareResult.declaring} onDeclare={declareResult.declare} />
       )}
       {showLiveNotices && visibleError && isPlayer && (
         <MatchErrorNotice message={visibleError} onRetry={visiblePeerError ? retryPeer : undefined} />

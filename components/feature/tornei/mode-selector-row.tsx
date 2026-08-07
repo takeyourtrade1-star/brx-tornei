@@ -97,7 +97,7 @@ function ModeCard({
         'group relative isolate flex w-full items-center overflow-hidden border text-left transition duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
         lightPanel
-          ? 'min-h-[4.25rem] gap-3 rounded-2xl border px-3.5 py-2 active:scale-[0.99]'
+          ? 'min-h-[4.25rem] gap-2.5 rounded-2xl border px-3 py-2 active:scale-[0.99]'
           : dense
             ? 'min-h-11 gap-2 rounded-xl px-2.5 py-2'
             : 'min-h-[4.75rem] gap-3 rounded-xl px-4 py-3',

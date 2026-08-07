@@ -55,7 +55,7 @@ export function LobbyTableList({
       >
         <ReputationSummary reputation={reputation} />
 
-        <div className="relative z-30 my-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="relative z-30 my-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
           <section>
             <div className="mb-2.5 flex items-center gap-2 px-1">
               <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">

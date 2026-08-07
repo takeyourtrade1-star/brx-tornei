@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, Flag, RefreshCw } from 'lucide-react';
 import { useGraceCountdown } from '@/hooks/use-grace-countdown';
-import { cn } from '@/lib/utils';
 
 export function MatchErrorNotice({
   message,
@@ -128,47 +127,6 @@ export function MatchConnectionNotice({
       <button type="button" onClick={onRetry} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase hover:bg-white/15">
         <RefreshCw className="h-3.5 w-3.5" /> Riprova ora
       </button>
-    </div>
-  );
-}
-
-const RESULT_BUTTON_CLASS =
-  'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-black uppercase disabled:opacity-50';
-
-/**
- * Striscia sempre visibile durante il gioco (match ancora 'ongoing' lato
- * backend): il server non sa quando la partita fisica finisce, quindi è il
- * giocatore a dichiararlo. Simmetrica per entrambi (Requisito 2): stessi due
- * bottoni, non un flusso "contesta" separato.
- */
-export function MatchDeclareResultBar({
-  busy,
-  onDeclare,
-}: {
-  busy: boolean;
-  onDeclare: (iWon: boolean) => void;
-}) {
-  return (
-    <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white/80">
-      <span>Partita finita? Dichiara chi ha vinto:</span>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onDeclare(true)}
-          className={cn(RESULT_BUTTON_CLASS, 'bg-gradient-to-b from-primary to-orange-600 text-white hover:brightness-110')}
-        >
-          Ho vinto io
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onDeclare(false)}
-          className={cn(RESULT_BUTTON_CLASS, 'bg-white/10 text-white hover:bg-white/15')}
-        >
-          Ha vinto l’avversario
-        </button>
-      </div>
     </div>
   );
 }
