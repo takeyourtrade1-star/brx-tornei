@@ -47,7 +47,7 @@ export function LobbyTableList({
 }: LobbyTableListProps) {
   return (
     <>
-      <DashboardHeader user={user} displayName={gamertag} />
+      <DashboardHeader user={user} displayName={gamertag} reputation={reputation} />
       <main
         data-lobby-focus-fallback="true"
         tabIndex={-1}

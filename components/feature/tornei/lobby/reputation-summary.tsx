@@ -1,4 +1,5 @@
 import { Swords, TrendingUp } from 'lucide-react';
+import { evaluateAchievements } from '@/lib/data/achievements';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 
 const OUTCOME_LABEL: Record<string, string> = {
@@ -22,7 +23,15 @@ const OUTCOME_TONE: Record<string, string> = {
  * una statistica che interessa al giocatore: resta nel ledger interno.
  */
 export function ReputationSummary({ reputation }: { reputation: ReputationSummaryData | null }) {
-  const stats = reputation ?? { played: 0, wins: 0, losses: 0, abandoned: 0, disputed: 0, recent: [] };
+  const stats: ReputationSummaryData = reputation ?? {
+    played: 0,
+    wins: 0,
+    losses: 0,
+    abandoned: 0,
+    disputed: 0,
+    recent: [],
+    history: [],
+  };
   const decided = stats.wins + stats.losses;
   const winRate = decided > 0 ? Math.round((stats.wins / decided) * 100) : null;
 
@@ -82,6 +91,11 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
         </div>
       )}
 
+      {/* Anteprima achievement: primi badge sbloccati, scoperta senza click. */}
+      {stats.played > 0 && (
+        <AchievementPreviewRow reputation={stats} />
+      )}
+
       {reputation && reputation.recent.length > 0 && (
         <ul className="grid gap-0.5 border-t border-slate-900/[0.06] bg-slate-50/60 px-5 py-3 sm:px-6">
           {reputation.recent.slice(0, 5).map((m, index) => (
@@ -97,6 +111,39 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
         </ul>
       )}
     </section>
+  );
+}
+
+/** Strip con i primi N achievement sbloccati — suggerisce "apri il profilo". */
+function AchievementPreviewRow({ reputation }: { reputation: ReputationSummaryData }) {
+  const unlocked = evaluateAchievements(reputation).filter((a) => a.unlockedNow);
+  if (unlocked.length === 0) return null;
+  return (
+    <div className="border-t border-slate-900/[0.06] bg-slate-50/60 px-5 py-2.5 sm:px-6">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+        Badge sbloccati
+      </p>
+      <ul className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        {unlocked.slice(0, 4).map((a) => {
+          const Icon = a.icon;
+          return (
+            <li
+              key={a.id}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-900/[0.07] bg-white px-2 py-0.5 text-[10px] font-bold text-slate-700 shadow-sm"
+              title={a.description}
+            >
+              <Icon className="h-3 w-3 text-slate-500" strokeWidth={2.4} aria-hidden />
+              {a.title}
+            </li>
+          );
+        })}
+        {unlocked.length > 4 && (
+          <li className="inline-flex items-center rounded-full border border-slate-900/[0.07] bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500 shadow-sm">
+            +{unlocked.length - 4}
+          </li>
+        )}
+      </ul>
+    </div>
   );
 }
 

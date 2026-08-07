@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
 import { Heart, Minus, Plus, RotateCcw, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +39,19 @@ export function MatchLifeBadge({
   onReset,
 }: MatchLifeBadgeProps) {
   const local = variant === 'local';
+  const [flash, setFlash] = useState<{ id: number; delta: number } | null>(null);
+  const prevLife = useRef(life);
+
+  // Flash sobrio su cambio vita: niente gradienti slabbrati, solo un cue colorato.
+  useEffect(() => {
+    if (prevLife.current === life) return;
+    const delta = life - prevLife.current;
+    prevLife.current = life;
+    setFlash({ id: Date.now(), delta });
+    const t = window.setTimeout(() => setFlash(null), 900);
+    return () => window.clearTimeout(t);
+  }, [life]);
+
   return (
     <div
       aria-label={local ? 'Punti vita tuoi' : 'Punti vita avversario'}
@@ -103,19 +119,37 @@ export function MatchLifeBadge({
             </LifeButton>
           </>
         )}
-        <div className={cn('flex items-center gap-1.5 text-white', interactive && 'mx-1.5')}>
+        <div className={cn('relative flex items-center gap-1.5 text-white', interactive && 'mx-1.5')}>
           <Heart
             aria-hidden
             className={cn(
-              'h-[18px] w-[18px]',
+              'h-[18px] w-[18px] transition-colors duration-200',
               local
                 ? 'fill-primary text-primary drop-shadow-[0_0_6px_rgba(255,115,0,0.6)]'
-                : 'fill-sky-400 text-sky-400 drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]',
+                : 'fill-sky-300 text-sky-300 drop-shadow-[0_0_6px_rgba(125,211,252,0.5)]',
             )}
           />
-          <strong className="min-w-[2ch] text-center font-sans text-4xl font-black leading-none tabular-nums">
+          <strong
+            className={cn(
+              'life-pulse min-w-[2ch] text-center font-sans text-4xl font-black leading-none tabular-nums',
+              life <= 0 && 'text-red-400',
+            )}
+            key={life}
+          >
             {life}
           </strong>
+          {flash && (
+            <span
+              key={flash.id}
+              aria-hidden
+              className={cn(
+                'life-flash pointer-events-none absolute -right-9 top-0 text-lg font-black tabular-nums',
+                flash.delta > 0 ? 'text-emerald-400' : 'text-red-400',
+              )}
+            >
+              {flash.delta > 0 ? `+${flash.delta}` : `${flash.delta}`}
+            </span>
+          )}
         </div>
         {interactive && (
           <>

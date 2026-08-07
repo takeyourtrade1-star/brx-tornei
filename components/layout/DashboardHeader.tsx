@@ -1,13 +1,16 @@
 'use client';
 
-import { logoutAction } from '@/actions/auth';
-import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
-import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
-import { cn } from '@/lib/utils';
-import type { SessionUser } from '@/types/auth';
-import { Layers, LogOut, Gamepad2, Swords } from 'lucide-react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Gamepad2, Layers, LogOut, Swords } from 'lucide-react';
+import { logoutAction } from '@/actions/auth';
+import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
+import { ProfileDrawer } from '@/components/feature/profile/profile-drawer';
+import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
+import { cn } from '@/lib/utils';
+import type { ReputationSummary } from '@/lib/data/player-api-client';
+import type { SessionUser } from '@/types/auth';
 
 interface DashboardHeaderProps {
   user: SessionUser;
@@ -16,16 +19,26 @@ interface DashboardHeaderProps {
   /** Mostra il pulsante icona per tornare al minigioco (vista semplice desktop). */
   showMinigameBack?: boolean;
   onBackToMinigame?: () => void;
+  /** Reputazione già disponibile sulla pagina: passata al drawer per evitare fetch. */
+  reputation?: ReputationSummary | null;
 }
 
 /**
  * Header dashboard tornei — Mazzi e Partite sono le azioni primarie; profilo,
  * ritorno al minigioco e logout restano controlli secondari e più discreti.
+ * Il chip profilo apre un drawer con badge achievement e statistiche.
  */
-export function DashboardHeader({ user, displayName, showMinigameBack, onBackToMinigame }: DashboardHeaderProps) {
+export function DashboardHeader({
+  user,
+  displayName,
+  showMinigameBack,
+  onBackToMinigame,
+  reputation,
+}: DashboardHeaderProps) {
   const pathname = usePathname();
   const shownName = displayName ?? user.name ?? user.email;
   const initial = (shownName[0] ?? '?').toUpperCase();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   return (
     <header className="w-full border-b border-slate-900/10 bg-white/70 font-sans text-slate-900 shadow-[0_12px_35px_-28px_rgba(15,23,42,0.75)] backdrop-blur-xl">
@@ -67,9 +80,17 @@ export function DashboardHeader({ user, displayName, showMinigameBack, onBackToM
             </button>
           )}
 
-          <div
-            aria-label="Profilo"
-            className="flex h-9 items-center gap-2 rounded-full border border-slate-900/10 bg-white/65 p-1 sm:pr-3"
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={profileOpen}
+            aria-label={`Apri il profilo di ${shownName}`}
+            className={cn(
+              'flex h-9 items-center gap-2 rounded-full border border-slate-900/10 bg-white/65 p-1 transition sm:pr-3',
+              'hover:border-slate-900/20 hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              profileOpen && 'border-slate-900/25 bg-white shadow-sm',
+            )}
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-header-bg text-xs font-black text-white">
               {initial}
@@ -77,7 +98,7 @@ export function DashboardHeader({ user, displayName, showMinigameBack, onBackToM
             <span className="hidden max-w-[7rem] truncate text-xs font-bold text-slate-700 lg:block xl:max-w-[10rem]">
               {shownName}
             </span>
-          </div>
+          </button>
 
           <form action={logoutAction}>
             <button
@@ -91,6 +112,13 @@ export function DashboardHeader({ user, displayName, showMinigameBack, onBackToM
           </form>
         </div>
       </div>
+
+      <ProfileDrawer
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        gamertag={shownName}
+        initialReputation={reputation}
+      />
     </header>
   );
 }

@@ -1,0 +1,186 @@
+'use client';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { X } from 'lucide-react';
+import { fetchMyAchievementsAction } from '@/actions/achievements';
+import { evaluateAchievements } from '@/lib/data/achievements';
+import type { ReputationSummary } from '@/lib/data/player-api-client';
+import { AchievementCard, AchievementSummary } from './achievement-card';
+
+interface ProfileDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  gamertag: string;
+  /** Reputazione già nota: evita una fetch se ce l'hai in pagina. */
+  initialReputation?: ReputationSummary | null;
+}
+
+type FetchState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; reputation: ReputationSummary }
+  | { status: 'error'; message: string };
+
+/**
+ * Drawer laterale con profilo + badge achievement. Lazy: se `initialReputation`
+ * è null o assente fetcha via server action alla prima apertura — nessun dato
+ * viene caricato al boot della pagina.
+ */
+export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: ProfileDrawerProps) {
+  const [state, setState] = useState<FetchState>(() =>
+    initialReputation ? { status: 'success', reputation: initialReputation } : { status: 'idle' },
+  );
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  // Focus trap minimale + chiusura su Esc.
+  useEffect(() => {
+    if (!open) return;
+    previouslyFocused.current = document.activeElement as HTMLElement;
+    const t = window.setTimeout(() => closeRef.current?.focus(), 20);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = '';
+      window.clearTimeout(t);
+      previouslyFocused.current?.focus?.();
+    };
+  }, [open, onClose]);
+
+  // Lazy fetch al primo accesso.
+  useEffect(() => {
+    if (!open || state.status !== 'idle') return;
+    setState({ status: 'loading' });
+    let cancelled = false;
+    fetchMyAchievementsAction()
+      .then((res) => {
+        if (cancelled) return;
+        setState(res.ok
+          ? { status: 'success', reputation: res.reputation }
+          : { status: 'error', message: res.error });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setState({
+          status: 'error',
+          message: err instanceof Error ? err.message : 'Errore di rete',
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, state.status]);
+
+  const achievements = useMemo(
+    () => (state.status === 'success' ? evaluateAchievements(state.reputation) : []),
+    [state],
+  );
+
+  if (!open) return null;
+
+  return (
+    <div
+      role="presentation"
+      className="fixed inset-0 z-[900]"
+      onClick={onClose}
+      aria-hidden="false"
+    >
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
+      <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Profilo giocatore"
+        className="profile-drawer-panel absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Testata */}
+        <header className="relative flex items-start justify-between gap-3 border-b border-slate-900/[0.06] px-6 py-5">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+              Profilo torneo
+            </p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-header-bg">
+              {gamertag}
+            </h2>
+            {state.status === 'success' && (
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                {state.reputation.played} partite · {state.reputation.wins} vinte ·{' '}
+                {state.reputation.losses} perse
+              </p>
+            )}
+          </div>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Chiudi"
+            className="grid h-10 w-10 place-items-center rounded-full border border-slate-900/[0.1] bg-white text-slate-500 transition hover:border-slate-900/25 hover:text-header-bg"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </header>
+
+        {/* Contenuto */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          {state.status === 'loading' && (
+            <p className="rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-6 text-center text-sm font-semibold text-slate-500">
+              Caricamento dei tuoi badge…
+            </p>
+          )}
+
+          {state.status === 'error' && (
+            <p
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+            >
+              {state.message}
+            </p>
+          )}
+
+          {state.status === 'success' && (
+            <>
+              <AchievementSummary achievements={achievements} />
+
+              <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {achievements.map((a) => (
+                  <AchievementCard key={a.id} achievement={a} />
+                ))}
+              </ul>
+
+              <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-400">
+                I badge si sbloccano giocando: ogni partita conclusa aggiorna lo stato. Nessuno è
+                segreto — accumula vittorie e buon comportamento.
+              </p>
+            </>
+          )}
+        </div>
+      </aside>
+    </div>
+  );
+}
