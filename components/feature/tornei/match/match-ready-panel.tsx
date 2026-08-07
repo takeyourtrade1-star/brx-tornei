@@ -1,7 +1,13 @@
-import { CheckCircle2, Heart, Hourglass, Swords } from 'lucide-react';
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, Heart, Hourglass, Swords, X } from 'lucide-react';
 import type { Participant } from '@/types/tournament';
 import { STARTING_LIFE_OPTIONS } from '@/lib/match-life-protocol';
 import { cn } from '@/lib/utils';
+
+/** Finestra di accettazione: come la coda di League, si ha poco tempo. */
+const ACCEPT_WINDOW_SECONDS = 30;
 
 interface MatchReadyPanelProps {
   local: Participant;
@@ -14,6 +20,8 @@ interface MatchReadyPanelProps {
   canSetStartingLife: boolean;
   onStartingLifeChange: (value: number) => void;
   onReady: () => void;
+  /** Rifiuto esplicito: esci dal tavolo e chiudi l'attesa. */
+  onDecline: () => void;
 }
 
 export function MatchReadyPanel({
@@ -27,29 +35,87 @@ export function MatchReadyPanel({
   canSetStartingLife,
   onStartingLifeChange,
   onReady,
+  onDecline,
 }: MatchReadyPanelProps) {
+  const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
+  const declinedRef = useRef(false);
+
+  // Countdown di accettazione: attivo finché non ho confermato. A zero →
+  // automaticamente fuori dal tavolo (l'avversario vedrà il rifiuto).
+  useEffect(() => {
+    if (myReady || pending || declinedRef.current) return;
+    setRemaining(ACCEPT_WINDOW_SECONDS);
+    const interval = setInterval(() => {
+      setRemaining((seconds) => {
+        if (seconds <= 1) {
+          clearInterval(interval);
+          declinedRef.current = true;
+          onDecline();
+          return 0;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [myReady, pending, onDecline]);
+
   return (
-    <section className="mb-4 rounded-2xl border border-primary/30 bg-header-bg/95 p-4 shadow-[0_24px_48px_-24px_rgba(15,23,42,0.55)]">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Swords className="h-5 w-5 text-primary" />
-        <div>
-          <p className="text-sm font-black uppercase tracking-wide text-white">Conferma disponibilita</p>
-          <p className="text-xs font-semibold text-white/75">La partita parte solo dopo la conferma di entrambi.</p>
+    <section
+      aria-live="polite"
+      className="relative mb-4 overflow-hidden rounded-2xl border border-primary/25 bg-header-bg/95 p-4 shadow-[0_24px_48px_-24px_rgba(15,23,42,0.55)] sm:p-5"
+    >
+      <div
+        className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-primary/[0.14] blur-3xl"
+        aria-hidden
+      />
+
+      <div className="relative flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-[#e0564d] text-white shadow-[0_14px_32px_-12px_rgba(255,115,0,0.6)]">
+            <Swords className="h-6 w-6" aria-hidden="true" />
+            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-ping rounded-full bg-emerald-400" aria-hidden />
+          </span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+              Avversario trovato
+            </p>
+            <h1 className="mt-0.5 font-sans text-lg font-black tracking-tight text-white sm:text-xl">
+              Sei pronto?
+            </h1>
+            <p className="mt-0.5 text-xs font-semibold text-white/70">
+              {myReady
+                ? 'In attesa che l\'avversario confermi…'
+                : 'Accetta per iniziare, oppure esci dal tavolo. Se non rispondi, la sfida viene chiusa.'}
+            </p>
+          </div>
         </div>
+        {!myReady && (
+          <span
+            className={cn(
+              'shrink-0 rounded-full border px-3 py-1.5 text-sm font-black tabular-nums',
+              remaining <= 10
+                ? 'animate-pulse border-red-400/50 bg-red-500/15 text-red-300'
+                : 'border-white/20 bg-white/[0.08] text-white/90',
+            )}
+            role="timer"
+            aria-label={`${remaining} secondi per accettare`}
+          >
+            {remaining}s
+          </span>
+        )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="relative mt-4 grid gap-3 sm:grid-cols-2">
         <ReadyConfirmation
           username={local.username}
           ready={myReady}
           isMe
           pending={pending}
-          onReady={onReady}
         />
         <ReadyConfirmation username={remote.username} ready={opponentReady} />
       </div>
 
-      <div className="mt-3 rounded-xl border border-white/15 bg-white/[0.07] px-3 py-2">
+      <div className="relative mt-3 rounded-xl border border-white/15 bg-white/[0.07] px-3 py-2">
         <div className="mb-1.5 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-white/75">
           <Heart className="h-3.5 w-3.5 fill-primary text-primary" />
           Vita iniziale condivisa
@@ -79,6 +145,32 @@ export function MatchReadyPanel({
           </p>
         )}
       </div>
+
+      <div className="relative mt-4 flex flex-wrap items-center justify-end gap-2.5">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onDecline}
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-red-400/40 bg-red-500/10 px-5 text-xs font-black uppercase tracking-wide text-red-200 transition hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+          No, non ora
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onReady}
+          className={cn(
+            'inline-flex h-11 items-center gap-2 rounded-full px-6 text-xs font-black uppercase tracking-wide text-white transition active:scale-95 disabled:opacity-50',
+            myReady
+              ? 'border border-white/20 bg-white/10 hover:bg-white/15'
+              : 'ready-pulse bg-gradient-to-r from-primary to-orange-500 shadow-[0_14px_32px_-12px_rgba(255,115,0,0.7)] hover:opacity-90',
+          )}
+        >
+          {myReady ? <Hourglass className="h-4 w-4" aria-hidden="true" /> : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
+          {myReady ? 'Confermato, attendo' : 'Sì, sono pronto'}
+        </button>
+      </div>
     </section>
   );
 }
@@ -88,13 +180,11 @@ function ReadyConfirmation({
   ready,
   isMe = false,
   pending = false,
-  onReady,
 }: {
   username: string;
   ready: boolean;
   isMe?: boolean;
   pending?: boolean;
-  onReady?: () => void;
 }) {
   return (
     <article
@@ -108,28 +198,21 @@ function ReadyConfirmation({
       <div className="min-w-0">
         <p className="truncate text-sm font-black text-white">{username}</p>
         <p className={cn('mt-0.5 text-[10px] font-black uppercase tracking-wider', ready ? 'text-emerald-300' : 'text-white/70')}>
-          {ready ? 'Confermato' : isMe ? 'In attesa della tua conferma' : 'In attesa della conferma'}
+          {ready
+            ? 'Confermato'
+            : isMe
+              ? pending
+                ? 'Conferma in corso…'
+                : 'In attesa della tua conferma'
+              : 'In attesa della conferma'}
         </p>
       </div>
       {isMe ? (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onReady}
-          className={cn(
-            'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-black uppercase tracking-wide text-white transition active:scale-[0.98] disabled:opacity-50',
-            ready
-              ? 'border border-white/20 bg-white/10 hover:bg-white/15'
-              : 'ready-pulse bg-gradient-to-r from-primary to-orange-500 hover:opacity-90',
-          )}
-        >
-          {ready ? <Hourglass className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-          {ready ? 'Annulla' : 'Pronto'}
-        </button>
+        <Hourglass className={cn('h-5 w-5 shrink-0', ready ? 'text-emerald-300' : 'text-white/50')} aria-hidden="true" />
       ) : ready ? (
-        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" />
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" aria-hidden="true" />
       ) : (
-        <Hourglass className="h-5 w-5 shrink-0 text-white/60" />
+        <Hourglass className="h-5 w-5 shrink-0 text-white/50" aria-hidden="true" />
       )}
     </article>
   );

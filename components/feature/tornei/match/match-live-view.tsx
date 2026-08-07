@@ -1,4 +1,7 @@
 'use client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { leaveTournamentAction } from '@/actions/tournaments';
 import type { Tournament } from '@/types/tournament';
 import type { LiveViewRole } from '@/lib/validations/live';
 import { getFormat, getMode } from '@/lib/data/catalog';
@@ -23,6 +26,7 @@ import { MatchIntroOverlay } from './match-intro-overlay';
 import { MatchLiveHeader } from './match-live-header';
 import {
   MatchConnectionNotice,
+  MatchDeclinedPanel,
   MatchEndedPanel,
   MatchErrorNotice,
   MatchResultPendingPanel,
@@ -40,6 +44,7 @@ interface MatchLiveViewProps {
 }
 
 export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPlaymatId }: MatchLiveViewProps) {
+  const router = useRouter();
   const isObserver = role === 'observer';
   const isPlayer = !isObserver;
   const { local, remote, players } = resolveMatchSides(tournament, me, userId);
@@ -95,6 +100,53 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     await notifyLeave();
   });
   const declareResult = useDeclareResult(tournament, userId, remote.id);
+
+  // Uscita senza conferma: usata per il rifiuto esplicito (o il timeout
+  // dell'accettazione) e per restituire in lobby chi ha visto il tavolo chiuso.
+  const exitTable = useCallback(() => {
+    (async () => {
+      const result = await leaveTournamentAction(tournament.id);
+      clearActiveMatch(tournament.id);
+      if (result.error) {
+        router.refresh();
+        return;
+      }
+      router.replace('/tornei');
+      router.refresh();
+    })();
+  }, [tournament.id, router]);
+
+  // L'avversario era seduto (tavolo pieno) e ora non più, senza che il match
+  // sia iniziato: significa che non ha accettato → pannello dedicato.
+  const hadFullTable = useRef(ready.tableFull);
+  useEffect(() => {
+    hadFullTable.current = ready.tableFull;
+  }, [ready.tableFull]);
+  const opponentDeclined =
+    isPlayer &&
+    !resultClaimPending &&
+    !matchEnded &&
+    tournament.status === 'in_registrazione' &&
+    hadFullTable.current &&
+    !ready.tableFull;
+
+  // Dopo l'avviso si torna in lobby da soli: conto alla rovescia breve.
+  const [declinedLeftSeconds, setDeclinedLeftSeconds] = useState(5);
+  useEffect(() => {
+    if (!opponentDeclined) return;
+    setDeclinedLeftSeconds(5);
+    const interval = setInterval(() => {
+      setDeclinedLeftSeconds((seconds) => {
+        if (seconds <= 1) {
+          clearInterval(interval);
+          void exitTable();
+          return 0;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [opponentDeclined, exitTable]);
   const { stickerShot, handleSticker } = useMatchStickerShot();
   const chat = useMatchChat({
     matchId: tournament.matchId,
@@ -189,6 +241,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
           canSetStartingLife={isHost}
           onStartingLifeChange={life.setStartingLife}
           onReady={ready.toggleReady}
+          onDecline={exitTable}
         />
       )}
       {ready.error && isPlayer && <MatchErrorNotice message={ready.error} />}
@@ -209,7 +262,13 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
         <MatchErrorNotice message={visibleError} onRetry={visiblePeerError ? retryPeer : undefined} />
       )}
 
-      {matchEnded ? (
+      {opponentDeclined ? (
+        <MatchDeclinedPanel
+          leaving={declinedLeftSeconds === 0}
+          secondsLeft={declinedLeftSeconds}
+          onLeave={exitTable}
+        />
+      ) : matchEnded ? (
         <MatchEndedPanel
           opponentLeft={isPlayer && peerState === 'peer-left'}
           didIWin={didIWin}

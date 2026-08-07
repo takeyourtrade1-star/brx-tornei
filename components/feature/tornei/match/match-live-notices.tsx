@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Flag, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Flag, RefreshCw, UserX } from 'lucide-react';
 import { useGraceCountdown } from '@/hooks/use-grace-countdown';
 
 export function MatchErrorNotice({
@@ -93,6 +93,48 @@ export function MatchEndedPanel({
           <ArrowLeft className="h-4 w-4" />
           Torna in lobby
         </Link>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * L'avversario (o io, per timeout) ha rifiutato l'accettazione: il tavolo
+ * era pieno e ora è di nuovo a un giocatore solo. Il pannello lo comunica
+ * e il countdown riporta automaticamente in lobby.
+ */
+export function MatchDeclinedPanel({
+  leaving,
+  secondsLeft,
+  onLeave,
+}: {
+  leaving: boolean;
+  secondsLeft: number;
+  onLeave: () => void;
+}) {
+  return (
+    <section aria-live="assertive" className="grid min-h-0 flex-1 place-items-center py-6">
+      <div className="flex w-full max-w-xl flex-col items-center gap-5 rounded-3xl border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-6 py-10 text-center text-white shadow-xl shadow-card2-end/20 sm:px-10 sm:py-12">
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-[0_16px_40px_-10px_rgba(239,68,68,0.6)] ring-1 ring-white/20">
+          <UserX className="h-7 w-7 text-white" aria-hidden />
+        </span>
+        <div>
+          <h2 className="font-display text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
+            L&rsquo;avversario non ha accettato
+          </h2>
+          <p className="mt-2 text-sm text-white/60 sm:text-base">
+            Non ha risposto alla chiamata entro il tempo: la sfida viene chiusa automaticamente.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={leaving}
+          onClick={onLeave}
+          className="inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-b from-primary to-orange-600 px-8 text-sm font-black uppercase tracking-wide text-white shadow-[0_12px_28px_-10px_rgba(255,115,0,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95 disabled:opacity-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {secondsLeft > 0 ? `Torna in lobby (${secondsLeft}s)` : 'Torna in lobby'}
+        </button>
       </div>
     </section>
   );
