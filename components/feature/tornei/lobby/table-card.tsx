@@ -1,14 +1,10 @@
 'use client';
 
 import {
-  Armchair,
-  BadgeEuro,
-  Gamepad2,
   LogOut,
   Play,
   UserPlus,
   Users,
-  UsersRound,
   type LucideIcon,
 } from 'lucide-react';
 import { getBuyInLabel } from '@/lib/data/buy-in';
@@ -56,126 +52,123 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
   return (
     <article
       className={cn(
-        'overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition duration-200',
+        'group relative overflow-hidden rounded-2xl border bg-white transition-all duration-200 ease-out',
+        'hover:-translate-y-1 hover:shadow-[0_18px_36px_-16px_rgba(15,23,42,0.22)]',
         isMine
-          ? 'border-primary/30 ring-1 ring-primary/10'
-          : 'border-slate-900/[0.08] hover:-translate-y-0.5 hover:border-slate-900/[0.14] hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.18)]',
+          ? 'border-primary/35 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-primary/10 hover:border-primary/55 hover:shadow-[0_18px_36px_-14px_rgba(255,115,0,0.3)]'
+          : 'border-slate-900/[0.08] shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-primary/35',
       )}
     >
-      <header className="flex flex-col gap-4 p-5 pb-0 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            className={cn(
-              'grid h-11 w-11 shrink-0 place-items-center rounded-2xl border',
-              isMine
-                ? 'border-primary/20 bg-primary/[0.07] text-primary'
-                : 'border-slate-900/[0.06] bg-slate-50 text-slate-500',
-            )}
-          >
-            <Armchair className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.17em] text-slate-400">
-              {isMine ? 'La tua postazione' : seatedCount > 0 ? 'Sfida aperta' : 'Tavolo disponibile'}
-            </p>
-            <h3 className="mt-0.5 truncate text-base font-black text-header-bg sm:text-lg">{title}</h3>
-            <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">{subtitle}</p>
-          </div>
-        </div>
+      {/* Filo di marca che appare in hover. */}
+      <span
+        className={cn(
+          'pointer-events-none absolute inset-x-0 top-0 h-[3px] origin-left bg-gradient-to-r from-[#FF7300] via-[#ff9a3d] to-[#e0564d] transition-transform duration-300 ease-out',
+          isMine ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100',
+        )}
+        aria-hidden="true"
+      />
 
-        <div className="grid w-full grid-cols-3 gap-2 xl:max-w-2xl">
-          <TableDatum icon={BadgeEuro} label="Prezzo" value={price} />
-          <TableDatum icon={UsersRound} label="Giocatori" value={`${seatedCount}/${maxPlayers}`} />
-          <TableDatum icon={Gamepad2} label="Tipo" value={gameType} />
+      <header className="flex items-start justify-between gap-3 px-5 pt-4 sm:px-6">
+        <div className="min-w-0">
+          <p className="text-[9px] font-black uppercase tracking-[0.17em] text-slate-400">
+            {isMine ? 'La tua postazione' : seatedCount > 0 ? 'Sfida aperta' : 'Tavolo disponibile'}
+          </p>
+          <h3 className="mt-1 flex items-center gap-2 truncate text-base font-black text-header-bg sm:text-lg">
+            {title}
+            {isMine && (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary">
+                Tu
+              </span>
+            )}
+          </h3>
+          <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">{subtitle}</p>
         </div>
+        {table.tournament?.withFriend && (
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-50 px-3 py-1.5 text-[10px] font-extrabold text-amber-700">
+            <Users className="h-3.5 w-3.5" aria-hidden="true" />
+            Amici
+          </span>
+        )}
       </header>
 
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-5 sm:gap-3">
-        <LobbySeat
-          occupied={table.seats[0].occupied}
-          username={table.seats[0].occupied ? table.seats[0].username : null}
-          isMe={table.seats[0].occupied && table.seats[0].isMe}
-          label={table.seats[0].occupied && table.seats[0].isMe ? 'Il tuo posto' : 'Posto 1'}
-          light
-        />
-        <VersusBadge light />
-        <LobbySeat
-          occupied={table.seats[1].occupied}
-          username={table.seats[1].occupied ? table.seats[1].username : null}
-          isMe={table.seats[1].occupied && table.seats[1].isMe}
-          label={table.seats[1].occupied && table.seats[1].isMe ? 'Il tuo posto' : 'Posto 2'}
-          light
-        />
+      <div className="mt-3 flex items-center gap-4 px-5 sm:px-6">
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+          <LobbySeat
+            occupied={table.seats[0].occupied}
+            username={table.seats[0].occupied ? table.seats[0].username : null}
+            isMe={table.seats[0].occupied && table.seats[0].isMe}
+            label={table.seats[0].occupied && table.seats[0].isMe ? 'Il tuo posto' : 'Posto 1'}
+            light
+          />
+          <VersusBadge light />
+          <LobbySeat
+            occupied={table.seats[1].occupied}
+            username={table.seats[1].occupied ? table.seats[1].username : null}
+            isMe={table.seats[1].occupied && table.seats[1].isMe}
+            label={table.seats[1].occupied && table.seats[1].isMe ? 'Il tuo posto' : 'Posto 2'}
+            light
+          />
+        </div>
       </div>
 
-      <footer className="mt-4 flex flex-col gap-3 border-t border-slate-900/[0.06] p-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {table.tournament?.withFriend && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-50 px-3 py-1.5 text-[10px] font-extrabold text-amber-700">
-              <Users className="h-3.5 w-3.5" aria-hidden="true" />
-              Tavolo amici
-            </span>
-          )}
-          {isMine && (
-            <TableStateBadge started={table.started} opponentSeated={table.seats[1].occupied} />
-          )}
-        </div>
+      <div className="mt-3 flex flex-wrap items-center gap-1.5 px-5 sm:px-6">
+        <MetaChip label="Prezzo" value={price} />
+        <MetaChip label="Giocatori" value={`${seatedCount}/${maxPlayers}`} />
+        <MetaChip label="Tipo" value={gameType} />
+        {isMine && <StateChip started={table.started} opponentSeated={table.seats[1].occupied} />}
+      </div>
 
-        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
-          {(table.kind === 'empty' || table.kind === 'joinable') && (
-            <PrimaryButton busy={busy} onClick={handlePrimary}>
-              <UserPlus className="h-4 w-4" aria-hidden="true" />
-              Siediti
-            </PrimaryButton>
-          )}
-          {isMine && !table.started && (
-            <>
-              {table.seats[1].occupied ? (
-                <PrimaryButton busy={busy} onClick={() => onGoLive(table)}>
-                  <Play className="h-4 w-4" aria-hidden="true" />
-                  Vai al tavolo
-                </PrimaryButton>
-              ) : (
-                <SecondaryButton busy={busy} onClick={() => onOpen(table)} label="Apri tavolo" />
-              )}
-              <LeaveButton busy={busy} onClick={() => onLeave(table)} label="Alzati" />
-            </>
-          )}
-          {isMine && table.started && (
-            <>
+      <footer className="mt-3 flex items-center justify-end gap-2 border-t border-slate-900/[0.06] bg-slate-50/50 px-5 py-3 sm:px-6">
+        {(table.kind === 'empty' || table.kind === 'joinable') && (
+          <PrimaryButton busy={busy} onClick={handlePrimary}>
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            Siediti
+          </PrimaryButton>
+        )}
+        {isMine && !table.started && (
+          <>
+            {table.seats[1].occupied ? (
               <PrimaryButton busy={busy} onClick={() => onGoLive(table)}>
                 <Play className="h-4 w-4" aria-hidden="true" />
-                Vai alla partita
+                Vai al tavolo
               </PrimaryButton>
-              <LeaveButton busy={busy} onClick={() => onLeave(table)} label="Abbandona" />
-            </>
-          )}
-        </div>
+            ) : (
+              <SecondaryButton busy={busy} onClick={() => onOpen(table)} label="Apri tavolo" />
+            )}
+            <LeaveButton busy={busy} onClick={() => onLeave(table)} label="Alzati" />
+          </>
+        )}
+        {isMine && table.started && (
+          <>
+            <PrimaryButton busy={busy} onClick={() => onGoLive(table)}>
+              <Play className="h-4 w-4" aria-hidden="true" />
+              Vai alla partita
+            </PrimaryButton>
+            <LeaveButton busy={busy} onClick={() => onLeave(table)} label="Abbandona" />
+          </>
+        )}
       </footer>
     </article>
   );
 }
 
-function TableDatum({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+function MetaChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-900/[0.06] bg-slate-50/80 px-2.5 py-2">
-      <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-slate-400 shadow-sm sm:grid">
-        <Icon className="h-4 w-4" aria-hidden="true" />
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-[8px] font-black uppercase tracking-[0.12em] text-slate-400">
-          {label}
-        </span>
-        <span className="mt-0.5 block truncate text-xs font-black text-header-bg sm:text-sm">{value}</span>
-      </span>
-    </div>
+    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-slate-900/[0.07] bg-white px-2.5 py-1 text-[10px] shadow-sm">
+      <span className="shrink-0 font-bold uppercase tracking-wider text-slate-400">{label}</span>
+      <span className="truncate font-black text-slate-700">{value}</span>
+    </span>
   );
 }
 
-function TableStateBadge({ started, opponentSeated }: { started: boolean; opponentSeated: boolean }) {
+function StateChip({ started, opponentSeated }: { started: boolean; opponentSeated: boolean }) {
   const label = started ? 'Partita pronta' : opponentSeated ? 'Ready check' : 'In attesa';
   return (
-    <span className="rounded-full border border-slate-900/[0.08] bg-slate-50 px-3 py-1.5 text-[10px] font-extrabold text-slate-500">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-header-bg/[0.05] px-2.5 py-1 text-[10px] font-extrabold text-slate-500">
+      <span
+        className={cn('h-1.5 w-1.5 rounded-full', started ? 'bg-emerald-500' : 'bg-amber-500')}
+        aria-hidden="true"
+      />
       {label}
     </span>
   );
@@ -190,12 +183,12 @@ function PrimaryButton({ children, busy, onClick }: { children: React.ReactNode;
 }
 
 function SecondaryButton({ busy, onClick, label }: { busy?: boolean; onClick: () => void; label: string }) {
-  return <button type="button" disabled={busy} onClick={onClick} className="min-h-10 rounded-full border border-slate-900/[0.1] bg-white px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:border-slate-900/20 hover:text-header-bg disabled:opacity-50">{label}</button>;
+  return <button type="button" disabled={busy} onClick={onClick} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-slate-900/[0.12] bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-slate-900/25 hover:text-header-bg disabled:opacity-50">{label}</button>;
 }
 
 function LeaveButton({ busy, onClick, label }: { busy?: boolean; onClick: () => void; label: string }) {
   return (
-    <button type="button" disabled={busy} onClick={onClick} aria-label={label === 'Alzati' ? 'Alzati dal tavolo' : 'Abbandona la partita'} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-red-500/25 bg-red-50/60 px-3 py-2.5 text-xs font-bold text-red-600 transition hover:border-red-500/40 hover:bg-red-50 disabled:opacity-50">
+    <button type="button" disabled={busy} onClick={onClick} aria-label={label === 'Alzati' ? 'Alzati dal tavolo' : 'Abbandona la partita'} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-red-500/25 bg-transparent px-3.5 py-2 text-xs font-bold text-red-600 transition hover:border-red-500/50 hover:bg-red-50 disabled:opacity-50">
       <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
       {label}
     </button>

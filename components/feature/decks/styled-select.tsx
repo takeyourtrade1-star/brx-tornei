@@ -109,7 +109,7 @@ export function StyledSelect<T extends string>({
         id={`${id}-menu`}
         role="listbox"
         aria-labelledby={`${id}-btn`}
-        className="fixed z-[9999] m-0 list-none overflow-y-auto rounded-xl border border-white/20 bg-[#1a1f3a] p-1.5 text-white shadow-2xl"
+        className="fixed z-[9999] m-0 list-none overflow-y-auto rounded-xl border border-slate-900/[0.08] bg-white p-1.5 text-header-bg shadow-[0_18px_44px_-14px_rgba(15,23,42,0.28)]"
         style={{
           top: pos.top,
           left: pos.left,
@@ -137,22 +137,22 @@ export function StyledSelect<T extends string>({
                 }
               }}
               className={cn(
-                'relative flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-white/85 outline-none transition-colors',
-                'hover:bg-[#FF7300]/20 hover:text-white focus:bg-[#FF7300]/20 focus:text-white',
-                selected && 'bg-[#FF7300]/25 text-white'
+                'relative flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-slate-700 outline-none transition-colors',
+                'hover:bg-primary/[0.08] hover:text-header-bg focus:bg-primary/[0.08] focus:text-header-bg',
+                selected && 'bg-primary/10 text-primary'
               )}
             >
               {selected && (
                 <span
-                  className="absolute left-0 top-1/4 h-1/2 w-0.5 rounded-r bg-[#FF7300]"
+                  className="absolute left-0 top-1/4 h-1/2 w-0.5 rounded-r bg-primary"
                   aria-hidden
                 />
               )}
               {opt.icon ? (
                 <span
                   className={cn(
-                    'grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-white/60',
-                    selected && 'bg-[#FF7300]/20 text-[#FF7300]'
+                    'grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500',
+                    selected && 'bg-primary/10 text-primary'
                   )}
                   aria-hidden
                 >
@@ -160,7 +160,7 @@ export function StyledSelect<T extends string>({
                 </span>
               ) : opt.color ? (
                 <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]"
+                  className="h-2.5 w-2.5 shrink-0 rounded-sm shadow-[inset_0_0_0_1px_rgba(15,23,42,0.15)]"
                   style={{ background: opt.color }}
                   aria-hidden
                 />
@@ -168,11 +168,11 @@ export function StyledSelect<T extends string>({
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate font-bold">{opt.label}</span>
                 {opt.hint && (
-                  <span className="truncate text-[10.5px] font-medium text-white/50">{opt.hint}</span>
+                  <span className="truncate text-[10.5px] font-medium text-slate-400">{opt.hint}</span>
                 )}
               </span>
               {selected && (
-                <span className="shrink-0 text-xs font-black text-[#FF7300]" aria-hidden>
+                <span className="shrink-0 text-xs font-black text-primary" aria-hidden>
                   ✓
                 </span>
               )}
@@ -193,11 +193,11 @@ export function StyledSelect<T extends string>({
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold text-white transition-colors',
-          'border-white/15 bg-white/5 shadow-inner',
-          'hover:border-[#FF7300]/55 hover:bg-white/[0.07]',
+          'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold text-header-bg transition-colors',
+          'border-slate-900/12 bg-white shadow-sm',
+          'hover:border-primary/45 hover:bg-slate-50',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          open && 'border-[#FF7300] ring-2 ring-[#FF7300]/25',
+          open && 'border-primary ring-2 ring-primary/20',
           triggerClassName
         )}
       >
@@ -206,14 +206,14 @@ export function StyledSelect<T extends string>({
             <>
               {current.icon ? (
                 <span
-                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#FF7300]/15 text-[#FF7300]"
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-primary/10 text-primary"
                   aria-hidden
                 >
                   {current.icon}
                 </span>
               ) : current.color ? (
                 <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-sm shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]"
+                  className="h-2.5 w-2.5 shrink-0 rounded-sm shadow-[inset_0_0_0_1px_rgba(15,23,42,0.15)]"
                   style={{ background: current.color }}
                   aria-hidden
                 />
@@ -221,12 +221,12 @@ export function StyledSelect<T extends string>({
               <span className="truncate">{current.label}</span>
             </>
           ) : (
-            <span className="truncate italic text-white/45">{placeholder}</span>
+            <span className="truncate italic text-slate-400">{placeholder}</span>
           )}
         </span>
         <span
           className={cn(
-            'shrink-0 text-[11px] text-[#FF7300] transition-transform',
+            'shrink-0 text-[11px] text-primary transition-transform',
             open && 'rotate-180'
           )}
           aria-hidden

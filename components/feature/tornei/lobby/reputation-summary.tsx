@@ -1,4 +1,4 @@
-import { Swords } from 'lucide-react';
+import { Swords, TrendingUp } from 'lucide-react';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 
 const OUTCOME_LABEL: Record<string, string> = {
@@ -18,38 +18,76 @@ const OUTCOME_TONE: Record<string, string> = {
 /**
  * Card reputazione (Requisito 2): sempre visibile — anche a zero partite —
  * così la funzione è scopribile; i contatori a zero sono lo stato vuoto.
- * Aggregati dal ledger match_results + ultime 5 partite.
+ * Aggregati dal ledger match_results + ultime 5 partite. "Contestate" non è
+ * una statistica che interessa al giocatore: resta nel ledger interno.
  */
 export function ReputationSummary({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats = reputation ?? { played: 0, wins: 0, losses: 0, abandoned: 0, disputed: 0, recent: [] };
+  const decided = stats.wins + stats.losses;
+  const winRate = decided > 0 ? Math.round((stats.wins / decided) * 100) : null;
 
   return (
     <section
       aria-label="Le tue partite"
-      className="rounded-2xl border border-slate-900/[0.08] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
+      className="relative overflow-hidden rounded-2xl border border-slate-900/[0.08] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
     >
-      <div className="flex items-center gap-2.5 border-b border-slate-900/[0.06] px-5 py-3.5">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary/[0.08] text-primary">
-          <Swords className="h-3.5 w-3.5" aria-hidden="true" />
-        </span>
-        <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-          Le tue partite
-        </h2>
-        <span className="ml-auto text-[11px] font-semibold text-slate-400">
-          {stats.played} {stats.played === 1 ? 'partita' : 'partite'}
-        </span>
+      {/* Filo di marca: striscia superiore a gradiente arancione misurato. */}
+      <span
+        className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#FF7300] via-[#ff9a3d] to-[#e0564d]"
+        aria-hidden="true"
+      />
+
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-4 px-5 py-4 sm:px-6">
+        <div className="flex min-w-40 items-center gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-[0_8px_20px_-6px_rgba(255,115,0,0.45)]">
+            <Swords className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Le tue partite
+            </h2>
+            <p className="mt-0.5 flex items-baseline gap-1.5">
+              <span className="text-2xl font-black tabular-nums leading-none text-header-bg">
+                {stats.played}
+              </span>
+              <span className="text-xs font-semibold text-slate-400">
+                {stats.played === 1 ? 'partita' : 'partite'}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <dl className="flex flex-1 items-stretch justify-end gap-2 sm:gap-0 sm:divide-x sm:divide-slate-900/[0.08]">
+          <Counter label="Vinte" value={stats.wins} tone="text-emerald-600" />
+          <Counter label="Perse" value={stats.losses} tone="text-red-500" />
+          <Counter label="Abbandonate" value={stats.abandoned} tone="text-amber-600" />
+          <div className="hidden items-center gap-2 pl-4 sm:flex">
+            <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-black tabular-nums leading-none text-header-bg">
+                {winRate === null ? '—' : `${winRate}%`}
+              </p>
+              <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                vittorie
+              </p>
+            </div>
+          </div>
+        </dl>
       </div>
 
-      <dl className="grid grid-cols-3 divide-x divide-slate-900/[0.06] sm:grid-cols-5">
-        <Stat label="Giocate" value={stats.played} />
-        <Stat label="Vinte" value={stats.wins} tone="text-emerald-600" />
-        <Stat label="Perse" value={stats.losses} tone="text-red-500" />
-        <Stat label="Abbandonate" value={stats.abandoned} tone="text-amber-600" />
-        <Stat label="Contestate" value={stats.disputed} tone="text-slate-500" />
-      </dl>
+      {decided > 0 && (
+        <div className="px-5 pb-4 sm:px-6" aria-hidden="true">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] transition-all"
+              style={{ width: `${winRate ?? 0}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {reputation && reputation.recent.length > 0 && (
-        <ul className="grid gap-0.5 border-t border-slate-900/[0.06] px-5 py-3">
+        <ul className="grid gap-0.5 border-t border-slate-900/[0.06] bg-slate-50/60 px-5 py-3 sm:px-6">
           {reputation.recent.slice(0, 5).map((m, index) => (
             <li key={index} className="flex items-center justify-between gap-2 py-1 text-sm">
               <span className="truncate font-semibold text-slate-700">
@@ -66,13 +104,11 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
   );
 }
 
-function Stat({ label, value, tone = 'text-header-bg' }: { label: string; value: number; tone?: string }) {
+function Counter({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
-    <div className="flex flex-col px-3 py-4 text-center">
-      <dt className="order-2 mt-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-        {label}
-      </dt>
-      <dd className={`order-1 text-xl font-black tabular-nums ${tone}`}>{value}</dd>
+    <div className="min-w-16 px-2 py-1 text-center sm:px-4">
+      <dd className={`text-xl font-black tabular-nums leading-none ${tone}`}>{value}</dd>
+      <dt className="mt-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">{label}</dt>
     </div>
   );
 }
