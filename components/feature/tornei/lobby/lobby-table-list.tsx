@@ -56,7 +56,7 @@ export function LobbyTableList({
         <ReputationSummary reputation={reputation} />
 
         <div className="relative z-30 my-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <section className="rounded-2xl border border-slate-900/[0.08] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:p-4">
+          <section>
             <div className="mb-2.5 flex items-center gap-2 px-1">
               <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
                 1
@@ -125,7 +125,6 @@ export function LobbyTableList({
             <span className="rounded-full border border-header-bg/10 bg-slate-50/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-header-bg/65">
               Best of 3
             </span>
-          </div>
         </section>
 
         {error && (

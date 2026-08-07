@@ -112,14 +112,14 @@ export function FormatSelectorGrid({
             aria-label={`Formato ${format.name}`}
             className={cn(
               'group relative min-w-0 overflow-hidden rounded-2xl bg-header-bg/80',
-              dense && !compact ? 'aspect-[6/5]' : 'aspect-video',
+              dense && !compact ? 'aspect-[4/3]' : 'aspect-video',
               TILE_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
                 : cn(
                     'origin-center first:origin-left last:origin-right hover:z-20 hover:-translate-y-0.5 hover:scale-[1.16] motion-reduce:hover:scale-100',
                     dense
-                      ? 'w-[7.25rem] shrink-0 sm:w-[8rem] md:flex-1 md:basis-0'
+                      ? 'w-[8.5rem] shrink-0 sm:w-[9.5rem] md:flex-1 md:basis-0'
                       : 'flex-1 basis-0',
                   ),
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-inset',

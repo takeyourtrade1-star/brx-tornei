@@ -97,7 +97,7 @@ function ModeCard({
         'group relative isolate flex w-full items-center overflow-hidden border text-left transition duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
         lightPanel
-          ? 'min-h-[5.75rem] gap-3.5 rounded-2xl border px-4 py-4 active:scale-[0.99]'
+          ? 'min-h-[4.25rem] gap-3 rounded-2xl border px-3.5 py-2 active:scale-[0.99]'
           : dense
             ? 'min-h-11 gap-2 rounded-xl px-2.5 py-2'
             : 'min-h-[4.75rem] gap-3 rounded-xl px-4 py-3',
@@ -116,8 +116,8 @@ function ModeCard({
       )}
       <span
         className={cn(
-          'grid shrink-0 place-items-center rounded-2xl transition-colors',
-          dense && !lightPanel ? 'h-8 w-8' : 'h-12 w-12',
+          'grid shrink-0 place-items-center rounded-xl transition-colors',
+          dense && !lightPanel ? 'h-8 w-8' : 'h-10 w-10',
           selected && available
             ? lightPanel
               ? 'bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-[0_6px_16px_-4px_rgba(255,115,0,0.45)]'
@@ -150,12 +150,12 @@ function ModeCard({
           )}
         </span>
         {!dense && (
-          <span className={cn('mt-1 block truncate text-xs font-semibold', lightPanel ? 'text-slate-500' : 'text-white/55')}>
+          <span className={cn('mt-0.5 block truncate text-xs font-semibold', lightPanel ? 'text-slate-500' : 'text-white/55')}>
             {description}
           </span>
         )}
         {lightPanel && dense && (
-          <span className="mt-1 block truncate text-xs font-semibold text-slate-500">
+          <span className="mt-0.5 block truncate text-xs font-semibold text-slate-500">
             {description}
           </span>
         )}
