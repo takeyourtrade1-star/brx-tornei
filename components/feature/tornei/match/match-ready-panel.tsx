@@ -6,7 +6,7 @@ import type { Participant } from '@/types/tournament';
 import { STARTING_LIFE_OPTIONS } from '@/lib/match-life-protocol';
 import { cn } from '@/lib/utils';
 
-/** Finestra di accettazione: come la coda di League, si ha poco tempo. */
+/** Finestra globale di accettazione (stile League): parte con il tavolo pieno. */
 const ACCEPT_WINDOW_SECONDS = 30;
 
 interface MatchReadyPanelProps {
@@ -20,8 +20,10 @@ interface MatchReadyPanelProps {
   canSetStartingLife: boolean;
   onStartingLifeChange: (value: number) => void;
   onReady: () => void;
-  /** Rifiuto esplicito: esci dal tavolo e chiudi l'attesa. */
+  /** Rifiuto: mio (esplicito o timeout senza conferma) → esco dal tavolo. */
   onDecline: () => void;
+  /** Timeout lato avversario (o mio "tavolo pieno" senza sua conferma). */
+  onOpponentDeclined: () => void;
 }
 
 export function MatchReadyPanel({
@@ -36,28 +38,48 @@ export function MatchReadyPanel({
   onStartingLifeChange,
   onReady,
   onDecline,
+  onOpponentDeclined,
 }: MatchReadyPanelProps) {
-  const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
-  const declinedRef = useRef(false);
+const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
+  // Deadline fissa al mount: i riavvii dell'effect (es. pending) NON devono
+  // riavviare la finestra, altrimenti un accettazione lenta la prolunga.
+  const [deadline] = useState(() => Date.now() + ACCEPT_WINDOW_SECONDS * 1000);
+  const myReadyRef = useRef(myReady);
+  const finishedRef = useRef(false);
 
-  // Countdown di accettazione: attivo finché non ho confermato. A zero →
-  // automaticamente fuori dal tavolo (l'avversario vedrà il rifiuto).
+  // Aggiorno il ref parallelo senza ripartire il countdown.
   useEffect(() => {
-    if (myReady || pending || declinedRef.current) return;
-    setRemaining(ACCEPT_WINDOW_SECONDS);
+    myReadyRef.current = myReady;
+  }, [myReady]);
+
+  // Deadline UNICA per entrambi i ruoli (fissa alla comparsa del pannello):
+  // - non ho confermato alla scadenza → declino (esco dal tavolo);
+  // - ho confermato ma l'avversario no → segnalo "non ha accettato".
+  // La deadline globale (non riavviata dalla mia conferma) copre anche il
+  // caso "l'avversario ha la tab chiusa" — nessun client li a rispondere.
+  useEffect(() => {
+    if (finishedRef.current) return;
     const interval = setInterval(() => {
-      setRemaining((seconds) => {
-        if (seconds <= 1) {
-          clearInterval(interval);
-          declinedRef.current = true;
+      if (finishedRef.current) {
+        clearInterval(interval);
+        return;
+      }
+      const left = Math.ceil((deadline - Date.now()) / 1000);
+      setRemaining(Math.max(0, left));
+      if (left <= 0) {
+        clearInterval(interval);
+        if (finishedRef.current) return;
+        finishedRef.current = true;
+        if (myReadyRef.current) {
+          onOpponentDeclined();
+        } else {
           onDecline();
-          return 0;
         }
-        return seconds - 1;
-      });
-    }, 1000);
+      }
+    }, 250);
     return () => clearInterval(interval);
-  }, [myReady, pending, onDecline]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, onDecline, onOpponentDeclined, deadline]);
 
   return (
     <section
@@ -85,7 +107,7 @@ export function MatchReadyPanel({
             <p className="mt-0.5 text-xs font-semibold text-white/70">
               {myReady
                 ? 'In attesa che l\'avversario confermi…'
-                : 'Accetta per iniziare, oppure esci dal tavolo. Se non rispondi, la sfida viene chiusa.'}
+                : 'Hai fino a 30 secondi. Se non confermi, il tavolo verrà chiuso automaticamente.'}
             </p>
           </div>
         </div>
