@@ -8,6 +8,24 @@ import {
   parseMatchStartCommand,
 } from '@/lib/match-start-protocol';
 
+const STORAGE_PREFIX = 'match-start:';
+
+function readStoredStartsAt(matchId: string): number {
+  try {
+    return Number(window.localStorage.getItem(`${STORAGE_PREFIX}${matchId}`));
+  } catch {
+    return 0;
+  }
+}
+
+function writeStoredStartsAt(matchId: string, value: number): void {
+  try {
+    window.localStorage.setItem(`${STORAGE_PREFIX}${matchId}`, String(value));
+  } catch {
+    /* storage pieno o privacy: non bloccare il match */
+  }
+}
+
 interface UseMatchStartCountdownOptions {
   active: boolean;
   matchId?: string | null;
@@ -45,13 +63,12 @@ export function useMatchStartCountdown({
 
   useEffect(() => {
     if (!active || !matchId || startsAt !== null) return;
-    const storageKey = `match-start:${matchId}`;
-    const stored = Number(window.sessionStorage.getItem(storageKey));
+    const stored = readStoredStartsAt(matchId);
     const synchronizationGraceMs = userId === authorityPlayerId ? 0 : 1_000;
     const nextStartsAt =
       stored > 0 ? stored : Date.now() + MATCH_START_COUNTDOWN_MS + synchronizationGraceMs;
     setStartsAt(nextStartsAt);
-    window.sessionStorage.setItem(storageKey, String(nextStartsAt));
+    writeStoredStartsAt(matchId, nextStartsAt);
   }, [active, authorityPlayerId, matchId, startsAt, userId]);
 
   useEffect(() => {
@@ -80,7 +97,7 @@ export function useMatchStartCountdown({
 
       if (command.type === 'announce' && message.userId === authorityPlayerId) {
         setStartsAt(command.startsAt);
-        if (matchId) window.sessionStorage.setItem(`match-start:${matchId}`, String(command.startsAt));
+        if (matchId) writeStoredStartsAt(matchId, command.startsAt);
       } else if (
         command.type === 'sync-request' &&
         userId === authorityPlayerId &&

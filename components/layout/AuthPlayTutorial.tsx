@@ -13,7 +13,6 @@ type TutorialStep = {
   label: string;
   title: string;
   lines: readonly string[];
-  accent: string;
 };
 
 const STEPS: TutorialStep[] = [
@@ -25,7 +24,6 @@ const STEPS: TutorialStep[] = [
       'Usa email o username e password del sito principale.',
       'Un solo account per carte, inventario e piattaforma tornei.',
     ],
-    accent: '#FB923C',
   },
   {
     key: 'browse',
@@ -35,7 +33,6 @@ const STEPS: TutorialStep[] = [
       'Dalla dashboard apri la sezione Tornei.',
       'Seleziona formato TCG e modalità di gioco; puoi filtrare l’elenco.',
     ],
-    accent: '#34D399',
   },
   {
     key: 'join',
@@ -45,7 +42,6 @@ const STEPS: TutorialStep[] = [
       'Su un torneo in registrazione premi Partecipa per entrare.',
       'Per organizzare, crea il tuo torneo con formato, best-of e visibilità.',
     ],
-    accent: '#A78BFA',
   },
   {
     key: 'play',
@@ -55,13 +51,12 @@ const STEPS: TutorialStep[] = [
       'Al via del match collega la webcam dal PC.',
       'Il telefono può fare da camera via QR; poi segui risultati e classifiche.',
     ],
-    accent: '#38BDF8',
   },
 ];
 
 /**
  * Colonna sinistra auth — stile LoginDemoShowcase (new_frontend_brx):
- * headline editorial, pillar con barre accent e chip formati.
+ * headline editorial, step numerati sobri e chip formati.
  */
 export function AuthPlayTutorial({ className }: AuthPlayTutorialProps) {
   const formatTags = FORMATS.slice(0, 5);
@@ -97,21 +92,19 @@ export function AuthPlayTutorial({ className }: AuthPlayTutorialProps) {
         </div>
 
         <ul className="flex flex-col">
-          {STEPS.map(({ key, label, title, lines, accent }, i) => (
+          {STEPS.map(({ key, label, title, lines }, i) => (
             <li
               key={key}
-              className={cn('flex gap-4 py-3', i > 0 && 'border-t border-white/10')}
+              className={cn('flex gap-4 py-3.5', i > 0 && 'border-t border-white/10')}
             >
               <span
-                className="mt-1 h-9 w-[3px] shrink-0 rounded-full"
-                style={{ backgroundColor: accent, boxShadow: `0 0 12px ${accent}99` }}
+                className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/15 bg-white/[0.06] text-[10px] font-black text-white/85 tabular-nums"
                 aria-hidden
-              />
+              >
+                {String(i + 1).padStart(2, '0')}
+              </span>
               <div className="min-w-0">
-                <span
-                  className="text-[10px] font-bold uppercase tracking-[0.2em]"
-                  style={{ color: accent }}
-                >
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
                   {label}
                 </span>
                 <p className="text-[15px] font-bold leading-tight text-white">{title}</p>

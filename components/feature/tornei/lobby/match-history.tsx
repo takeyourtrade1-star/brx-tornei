@@ -47,14 +47,11 @@ export function MatchHistory({ reputation }: { reputation: ReputationSummaryData
   return (
     <div className="flex flex-col gap-5">
       <section className="relative overflow-hidden rounded-2xl border border-slate-900/[0.08] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-        <span
-          className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#FF7300] via-[#ff9a3d] to-[#e0564d]"
-          aria-hidden="true"
-        />
         <div className="flex flex-wrap items-center gap-x-6 gap-y-4 px-5 py-5 sm:px-7">
           <div className="flex min-w-44 items-center gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-[0_8px_20px_-6px_rgba(255,115,0,0.45)]">
+            <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-header-bg text-white shadow-[0_10px_24px_-12px_rgba(15,23,42,0.55)]">
               <Swords className="h-5 w-5" aria-hidden="true" />
+              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-white" aria-hidden />
             </span>
             <div>
               <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
@@ -93,7 +90,7 @@ export function MatchHistory({ reputation }: { reputation: ReputationSummaryData
           <div className="px-5 pb-5 sm:px-7" aria-hidden="true">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-primary to-[#ff9a3d] transition-all"
                 style={{ width: `${winRate ?? 0}%` }}
               />
             </div>

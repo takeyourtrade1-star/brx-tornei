@@ -123,8 +123,6 @@ export function JoinTournamentDeckModal({
           }
         `}</style>
 
-        <div className="h-1 w-full shrink-0 bg-gradient-to-r from-primary to-orange-500" aria-hidden />
-
         {/* Header */}
         <header className="relative shrink-0 overflow-hidden px-5 pb-4 pt-5">
           <div

@@ -49,25 +49,31 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
     else onOpen(table);
   };
 
+  // Tavolo vuoto → look "apri nuovo": più basso, bordo tratteggiato, tono invito.
+  if (table.kind === 'empty') {
+    return (
+      <button
+        type="button"
+        disabled={busy}
+        onClick={handlePrimary}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-900/[0.14] bg-white/70 px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-900/25 hover:bg-white hover:text-header-bg hover:shadow-[0_12px_28px_-16px_rgba(15,23,42,0.2)] motion-reduce:hover:translate-y-0"
+      >
+        <UserPlus className="h-4 w-4" aria-hidden />
+        {title}
+      </button>
+    );
+  }
+
   return (
     <article
       className={cn(
         'group relative overflow-hidden rounded-2xl border bg-white transition-all duration-200 ease-out',
-        'hover:-translate-y-1 hover:shadow-[0_18px_36px_-16px_rgba(15,23,42,0.22)]',
+        'hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-20px_rgba(15,23,42,0.25)]',
         isMine
-          ? 'border-primary/35 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-primary/10 hover:border-primary/55 hover:shadow-[0_18px_36px_-14px_rgba(255,115,0,0.3)]'
-          : 'border-slate-900/[0.08] shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-primary/35',
+          ? 'border-header-bg/15 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-header-bg/10'
+          : 'border-slate-900/[0.08] shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:border-header-bg/20',
       )}
     >
-      {/* Filo di marca che appare in hover. */}
-      <span
-        className={cn(
-          'pointer-events-none absolute inset-x-0 top-0 h-[3px] origin-left bg-gradient-to-r from-[#FF7300] via-[#ff9a3d] to-[#e0564d] transition-transform duration-300 ease-out',
-          isMine ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100',
-        )}
-        aria-hidden="true"
-      />
-
       <header className="flex items-start justify-between gap-3 px-5 pt-4 sm:px-6">
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-[0.17em] text-slate-400">
@@ -76,7 +82,7 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
           <h3 className="mt-1 flex items-center gap-2 truncate text-base font-black text-header-bg sm:text-lg">
             {title}
             {isMine && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary">
+              <span className="rounded-full bg-header-bg/[0.07] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-header-bg/80">
                 Tu
               </span>
             )}
@@ -84,7 +90,7 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
           <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">{subtitle}</p>
         </div>
         {table.tournament?.withFriend && (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-50 px-3 py-1.5 text-[10px] font-extrabold text-amber-700">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-900/[0.08] bg-slate-50 px-3 py-1.5 text-[10px] font-extrabold text-slate-600">
             <Users className="h-3.5 w-3.5" aria-hidden="true" />
             Amici
           </span>
@@ -119,7 +125,7 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
       </div>
 
       <footer className="mt-3 flex items-center justify-end gap-2 border-t border-slate-900/[0.06] bg-slate-50/50 px-5 py-3 sm:px-6">
-        {(table.kind === 'empty' || table.kind === 'joinable') && (
+        {table.kind === 'joinable' && (
           <PrimaryButton busy={busy} onClick={handlePrimary}>
             <UserPlus className="h-4 w-4" aria-hidden="true" />
             Siediti
@@ -166,7 +172,7 @@ function StateChip({ started, opponentSeated }: { started: boolean; opponentSeat
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-header-bg/[0.05] px-2.5 py-1 text-[10px] font-extrabold text-slate-500">
       <span
-        className={cn('h-1.5 w-1.5 rounded-full', started ? 'bg-emerald-500' : 'bg-amber-500')}
+        className={cn('h-1.5 w-1.5 rounded-full', started ? 'bg-emerald-500' : 'bg-slate-400')}
         aria-hidden="true"
       />
       {label}

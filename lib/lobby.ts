@@ -18,9 +18,6 @@ export interface LobbyTable {
   started: boolean;
 }
 
-/** Massimo numero di tavoli vuoti mostrati contemporaneamente. */
-export const MAX_EMPTY_TABLES = 2;
-
 function isActive(t: Tournament): boolean {
   return t.status === 'in_registrazione' || t.status === 'iniziata';
 }
@@ -47,7 +44,9 @@ function toSeats(t: Tournament, userId: string): [Seat, Seat] {
     if (!p) return { occupied: false };
     return { occupied: true, id: p.id, username: p.username, isMe: p.id === userId };
   };
-  return [seatFor(0), seatFor(1)];
+  // Metto sempre prima il posto dell'utente se presente, così la card è "dalla sua prospettiva".
+  const seats: [Seat, Seat] = [seatFor(0), seatFor(1)];
+  return seats;
 }
 
 const EMPTY_SEATS: [Seat, Seat] = [{ occupied: false }, { occupied: false }];
@@ -56,11 +55,9 @@ const EMPTY_SEATS: [Seat, Seat] = [{ occupied: false }, { occupied: false }];
  * Costruisce l'elenco di tavoli mostrato in lobby, secondo le regole:
  * - se sono seduto, mostro SOLO il mio tavolo (niente vuoti da cui creare
  *   doppioni finché non mi alzo);
- * - i tavoli altrui con un giocatore in attesa sono "siediti";
- * - i tavoli esistenti ma vuoti (0 giocatori, orfani lasciati da qualcuno) NON
- *   si moltiplicano: valgono come tavoli vuoti riutilizzabili, mostrati al
- *   massimo in {@link MAX_EMPTY_TABLES};
- * - se non c'è nessun tavolo vuoto disponibile, ne mostro uno sintetico da creare.
+ * - in cima c'è sempre il singolo invito "Apri nuovo tavolo": se esiste già
+ *   un tavolo vuoto lo riutilizzo, altrimenti è sintetico e ne crea uno nuovo;
+ * - i tavoli altrui con un giocatore in attesa sono "siediti".
  */
 export function buildLobbyTables(params: {
   tournaments: Tournament[];
@@ -112,14 +109,11 @@ export function buildLobbyTables(params: {
     }
   }
 
-  // Tavoli vuoti: riuso quelli esistenti (max MAX_EMPTY_TABLES); se non ce ne
-  // sono, ne offro uno sintetico da creare.
-  let empties = emptyExisting.slice(0, MAX_EMPTY_TABLES);
-  if (empties.length === 0) {
-    empties = [
-      { key: '__empty-0', kind: 'empty', tournament: null, seats: EMPTY_SEATS, started: false },
-    ];
-  }
+  // Sempre un unico tasto "Apri nuovo tavolo" in cima: se esiste un vuoto reale
+  // lo riutilizzo (host ci si siede), altrimenti sintetico che ne crea uno nuovo.
+  const primaryEmpty: LobbyTable =
+    emptyExisting[0] ??
+    { key: '__empty-0', kind: 'empty', tournament: null, seats: EMPTY_SEATS, started: false };
 
-  return [...joinable, ...empties];
+  return [primaryEmpty, ...joinable];
 }

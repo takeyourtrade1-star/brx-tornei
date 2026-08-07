@@ -50,7 +50,6 @@ export function TournamentRequestSentModal({
         aria-describedby="request-sent-description"
         className={`${modalFont.uiSans} relative w-full max-w-md overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end text-center text-white shadow-2xl shadow-card2-end/50 sm:rounded-[2rem]`}
       >
-        <div className="h-1 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
         <button
           type="button"
           onClick={onClose}

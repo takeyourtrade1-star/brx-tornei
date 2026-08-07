@@ -144,6 +144,26 @@
     }
   }
 
+  /* Alone che "respira" sul tile formato selezionato: pulsatore sobrio */
+  @keyframes format-glow-pulse {
+    0%, 100% {
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+        0 0 0 0 rgba(255, 255, 255, 0),
+        0 12px 28px -14px rgba(15, 23, 42, 0.6);
+    }
+    50% {
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.78),
+        0 0 22px 2px rgba(255, 255, 255, 0.18),
+        0 14px 32px -14px rgba(15, 23, 42, 0.55);
+    }
+  }
+  .format-selected-glow {
+    animation: format-glow-pulse 2.6s ease-in-out infinite;
+    will-change: box-shadow;
+  }
+
   .mode-card-glow {
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
@@ -453,24 +473,51 @@
   100% { transform: scale(1); }
 }
 
+/* Particelle che fluttuano durante countdown/sorteggio */
+@keyframes intro-particle-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-14px) scale(1.15);
+    opacity: 0.7;
+  }
+}
+.intro-particle {
+  animation: intro-particle-float 3s ease-in-out infinite;
+}
+
+/* Fondali dell'intro di partita */
 .match-intro-radial {
   background:
-    radial-gradient(circle at center, rgb(255 115 0 / 0.2), transparent 32%),
-    radial-gradient(circle at center, rgb(255 255 255 / 0.06), transparent 62%);
+    radial-gradient(700px 360px at 50% 42%, rgba(255, 255, 255, 0.07), transparent 70%),
+    radial-gradient(1200px 800px at 50% 100%, rgba(255, 255, 255, 0.05), transparent 72%);
 }
 
 .match-intro-grid {
   background-image:
-    linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
-  background-size: 52px 52px;
-  mask-image: radial-gradient(circle at center, black, transparent 72%);
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(circle at center, black, transparent 75%);
+}
+
+.match-intro-title {
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.55);
+}
+
+.match-intro-winner {
+  text-shadow: 0 6px 34px rgba(0, 0, 0, 0.55);
 }
 
 .match-intro-emblem { animation: match-intro-emblem 0.8s cubic-bezier(0.22, 1.4, 0.36, 1) both; }
 .match-intro-title { animation: match-intro-title 0.5s ease-out both; }
 .match-intro-winner { animation: match-intro-winner 0.65s cubic-bezier(0.22, 1.4, 0.36, 1) both; }
 .match-intro-progress { animation: match-intro-progress 5s linear both; }
+@media (prefers-reduced-motion: reduce) {
+  .intro-particle { animation: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .match-intro-emblem,
