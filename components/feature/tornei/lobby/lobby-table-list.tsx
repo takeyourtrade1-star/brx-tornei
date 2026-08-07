@@ -110,8 +110,7 @@ export function LobbyTableList({
           </section>
         </div>
 
-        <section className="mb-4 rounded-2xl border border-slate-900/[0.08] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <section className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
                 {formatName} · {modeName}

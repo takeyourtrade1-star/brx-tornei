@@ -56,10 +56,10 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
         type="button"
         disabled={busy}
         onClick={handlePrimary}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-900/[0.14] bg-white/70 px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-900/25 hover:bg-white hover:text-header-bg hover:shadow-[0_12px_28px_-16px_rgba(15,23,42,0.2)] motion-reduce:hover:translate-y-0"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-900/[0.14] bg-white/70 px-4 py-3 text-center text-[10px] font-black uppercase leading-snug tracking-[0.12em] text-slate-500 transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-900/25 hover:bg-white hover:text-header-bg hover:shadow-[0_12px_28px_-16px_rgba(15,23,42,0.2)] motion-reduce:hover:translate-y-0"
       >
-        <UserPlus className="h-4 w-4" aria-hidden />
-        {title}
+        <UserPlus className="h-4 w-4 shrink-0" aria-hidden />
+        Siediti ad un tavolo vuoto e cerca avversari
       </button>
     );
   }
