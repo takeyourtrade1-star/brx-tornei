@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { evaluateAchievements } from '@/lib/data/achievements';
@@ -30,9 +31,15 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
   const [state, setState] = useState<FetchState>(() =>
     initialReputation ? { status: 'success', reputation: initialReputation } : { status: 'idle' },
   );
+  const [mounted, setMounted] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  // Portal su document.body: l'header del padre ha backdrop-blur (crea un
+  // containing block) che farebbe "agganciare" il drawer all'header invece
+  // che al viewport. Con il portal il fixed lavora sempre sul viewport.
+  useEffect(() => setMounted(true), []);
 
   // Focus trap minimale + chiusura su Esc.
   useEffect(() => {
@@ -101,9 +108,9 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
     [state],
   );
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       role="presentation"
       className="fixed inset-0 z-[900]"
@@ -181,6 +188,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
           )}
         </div>
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }
