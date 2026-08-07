@@ -53,26 +53,9 @@ export function LobbyTableList({
         tabIndex={-1}
         className="mx-auto mt-6 flex w-full max-w-content animate-auth-enter flex-col px-4 pb-16 focus:outline-none sm:px-6"
       >
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-              {formatName} · {modeName}
-            </p>
-            <h1 className="mt-1 font-sans text-2xl font-black tracking-tight text-header-bg sm:text-3xl">
-              Partite disponibili
-            </h1>
-            <p className="mt-1 text-sm font-semibold text-header-bg/55">
-              Scegli un tavolo libero oppure entra in una sfida già aperta.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-header-bg/65">
-            <span className="rounded-full border border-header-bg/10 bg-white/55 px-3 py-1.5">Best of 3</span>
-          </div>
-        </div>
-
         <ReputationSummary reputation={reputation} />
 
-        <div className="relative z-30 my-6 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="relative z-30 my-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <section className="rounded-2xl border border-slate-900/[0.08] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:p-4">
             <div className="mb-2.5 flex items-center gap-2 px-1">
               <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
@@ -126,6 +109,26 @@ export function LobbyTableList({
             </div>
           </section>
         </div>
+
+        <section className="mb-4 rounded-2xl border border-slate-900/[0.08] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                {formatName} · {modeName}
+              </p>
+              <h1 className="mt-1 font-sans text-xl font-black tracking-tight text-header-bg sm:text-2xl">
+                Partite disponibili
+              </h1>
+              <p className="mt-1 text-sm font-semibold text-header-bg/55">
+                Scegli un tavolo libero oppure entra in una sfida già aperta.
+              </p>
+            </div>
+            <span className="rounded-full border border-header-bg/10 bg-slate-50/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-header-bg/65">
+              Best of 3
+            </span>
+          </div>
+        </section>
+
         {error && (
           <p
             role="alert"
