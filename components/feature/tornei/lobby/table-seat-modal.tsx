@@ -96,7 +96,7 @@ export function TableSeatModal({
         tabIndex={-1}
         aria-hidden="true"
         disabled={busy}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <section
@@ -106,9 +106,9 @@ export function TableSeatModal({
         aria-modal="true"
         aria-labelledby="table-seat-title"
         aria-describedby="table-seat-description"
-        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-xl animate-slide-up flex-col overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end text-white shadow-2xl shadow-card2-end/50 sm:max-h-[90vh] sm:rounded-[2rem]`}
+        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-xl animate-slide-up flex-col overflow-hidden rounded-t-[2rem] border border-slate-900/[0.08] bg-white text-header-bg shadow-[0_32px_80px_-24px_rgba(15,23,42,0.4)] sm:max-h-[90vh] sm:rounded-[2rem]`}
       >
-        <div className="h-1 shrink-0 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
+        <div className="h-1 shrink-0 bg-gradient-to-r from-[#FF7300] to-[#e0564d]" aria-hidden="true" />
         <LobbyModalHeader
           eyebrow={isHost ? 'Tavolo creato' : 'Ultimo passaggio'}
           titleId="table-seat-title"
@@ -144,20 +144,20 @@ export function TableSeatModal({
             eyebrow={isHost ? 'Il tuo tavolo' : 'Passaggio 2'}
           />
           {error && (
-            <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/15 px-3 py-2.5 text-sm font-semibold text-white">
+            <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700">
               {error}
             </p>
           )}
         </div>
 
-        <footer className="shrink-0 border-t border-white/10 bg-card2-end/40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <footer className="shrink-0 border-t border-slate-900/[0.08] bg-slate-50/60 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {isHost ? (
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={onLeave}
                 disabled={busy}
-                className="inline-flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/15 px-5 py-3 text-sm font-bold text-white transition hover:bg-destructive/25 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50/60 px-5 py-3 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
               >
                 <LogOut className="h-4 w-4" aria-hidden="true" />
                 Alzati
@@ -176,7 +176,7 @@ export function TableSeatModal({
                 type="button"
                 onClick={onClose}
                 disabled={busy}
-                className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-white/80 transition hover:bg-white/10 disabled:opacity-50"
+                className="rounded-full border border-slate-900/15 bg-white px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 hover:text-header-bg disabled:opacity-50"
               >
                 Annulla
               </button>
@@ -214,7 +214,7 @@ function PrimaryAction({
       onClick={onClick}
       disabled={busy}
       data-modal-initial-focus={initialFocus ? 'true' : undefined}
-      className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary to-orange-500 px-5 py-3 text-sm font-black text-white transition hover:opacity-90 disabled:opacity-50"
+      className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-black text-white shadow-[0_8px_20px_-8px_rgba(255,115,0,0.45)] transition hover:opacity-95 disabled:opacity-50"
     >
       {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
       {busy ? busyLabel : label}

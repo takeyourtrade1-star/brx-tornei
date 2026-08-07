@@ -57,7 +57,7 @@ export function FriendConnectionModal({
         tabIndex={-1}
         aria-hidden="true"
         disabled={busy}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <section
@@ -69,10 +69,10 @@ export function FriendConnectionModal({
         aria-describedby="friend-connection-description"
         className={cn(
           modalFont.uiSans,
-          'relative w-full max-w-xl overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end text-white shadow-2xl shadow-card2-end/50 sm:rounded-[2rem]',
+          'relative w-full max-w-xl overflow-hidden rounded-t-[2rem] border border-slate-900/[0.08] bg-white text-header-bg shadow-[0_32px_80px_-24px_rgba(15,23,42,0.4)] sm:rounded-[2rem]',
         )}
       >
-        <div className="h-1 bg-gradient-to-r from-primary to-orange-500" aria-hidden="true" />
+        <div className="h-1 bg-gradient-to-r from-[#FF7300] to-[#e0564d]" aria-hidden="true" />
         <LobbyModalHeader
           eyebrow="Nuovo tavolo"
           titleId="friend-connection-title"
@@ -86,7 +86,7 @@ export function FriendConnectionModal({
         <div className="space-y-4 px-5 py-5 sm:px-6">
           {mode === 'create' && (
             <div
-              className="grid auto-rows-fr grid-cols-2 gap-1.5 rounded-[2rem] border border-white/10 bg-black/30 p-1.5 shadow-inner shadow-black/40 backdrop-blur-xl"
+              className="grid auto-rows-fr grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1.5"
               role="group"
               aria-label="Tipo di partita"
             >
@@ -109,13 +109,13 @@ export function FriendConnectionModal({
           )}
 
           {withFriend && (
-            <div className="flex items-start gap-3 rounded-2xl border border-marquee/20 bg-marquee/[0.06] p-4">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-marquee/10 text-marquee">
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-50 p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-600">
                 <ShieldCheck className="h-5 w-5" aria-hidden="true" />
               </span>
               <div>
-                <p className="text-sm font-extrabold text-white">Un consiglio per giocare sereni</p>
-                <p className="mt-1 text-sm font-medium leading-relaxed text-white/65">
+                <p className="text-sm font-extrabold text-header-bg">Un consiglio per giocare sereni</p>
+                <p className="mt-1 text-sm font-medium leading-relaxed text-slate-600">
                   Gioca solo con persone che conosci davvero.
                 </p>
               </div>
@@ -124,19 +124,19 @@ export function FriendConnectionModal({
           {error && (
             <p
               role="alert"
-              className="rounded-2xl border border-destructive/40 bg-destructive/15 px-4 py-3 text-sm font-semibold text-white"
+              className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
             >
               {error}
             </p>
           )}
         </div>
 
-        <footer className="flex gap-3 border-t border-white/10 bg-black/20 px-5 py-4 sm:px-6">
+        <footer className="flex gap-3 border-t border-slate-900/[0.06] bg-slate-50 px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-white/80 transition hover:bg-white/10 disabled:opacity-50"
+            className="rounded-full border border-slate-900/15 bg-white px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 hover:text-header-bg disabled:opacity-50"
           >
             Annulla
           </button>
@@ -145,7 +145,7 @@ export function FriendConnectionModal({
             disabled={busy}
             onClick={() => onConfirm(withFriend)}
             data-modal-initial-focus={mode === 'join' ? 'true' : undefined}
-            className="flex flex-1 items-center justify-center rounded-full bg-gradient-to-r from-primary to-orange-500 px-5 py-3 text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex flex-1 items-center justify-center rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-black text-white shadow-[0_8px_20px_-8px_rgba(255,115,0,0.45)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? 'Attendi…' : mode === 'join' ? 'Continua' : 'Siediti'}
           </button>
@@ -179,21 +179,18 @@ function ChoiceCard({
       data-modal-initial-focus={initialFocus ? 'true' : undefined}
       className={cn(
         'group relative isolate flex h-full min-h-40 flex-col overflow-hidden rounded-[1.6rem] border p-3.5 text-left transition duration-200 sm:p-4',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card2-end',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
         selected
-          ? 'border-white/25 bg-gradient-to-br from-white/20 via-white/10 to-white/[0.04] shadow-xl shadow-black/20 ring-1 ring-inset ring-white/10'
-          : 'border-transparent bg-transparent hover:border-white/10 hover:bg-white/[0.05]',
+          ? 'border-primary/50 bg-white shadow-[0_10px_28px_-14px_rgba(255,115,0,0.4)] ring-1 ring-primary/25'
+          : 'border-slate-900/[0.08] bg-white hover:border-primary/30 hover:shadow-[0_12px_30px_-14px_rgba(15,23,42,0.22)]',
       )}
     >
-      {selected && (
-        <span className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" aria-hidden="true" />
-      )}
       <span
         className={cn(
           'absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full border transition',
           selected
-            ? 'border-white/20 bg-white/15 text-primary'
-            : 'border-white/15 bg-white/[0.04] text-transparent',
+            ? 'border-primary/50 bg-primary/10 text-primary'
+            : 'border-slate-900/15 bg-slate-50 text-transparent',
         )}
         aria-hidden="true"
       >
@@ -203,18 +200,18 @@ function ChoiceCard({
         className={cn(
           'grid h-10 w-10 place-items-center rounded-xl transition sm:h-11 sm:w-11',
           selected
-            ? 'bg-white/10 text-primary ring-1 ring-white/15'
-            : 'bg-white/[0.07] text-white/55 group-hover:text-white',
+            ? 'bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-md shadow-orange-500/30'
+            : 'bg-slate-100 text-slate-400 group-hover:bg-header-bg group-hover:text-white',
         )}
       >
         <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
-      <p className="mt-4 text-sm font-black leading-tight text-white sm:text-base">{title}</p>
-      <p className="mt-1.5 text-xs font-semibold leading-relaxed text-white/55 sm:text-sm">{description}</p>
+      <p className="mt-4 text-sm font-black leading-tight text-header-bg sm:text-base">{title}</p>
+      <p className="mt-1.5 text-xs font-semibold leading-relaxed text-slate-500 sm:text-sm">{description}</p>
       <span
         className={cn(
           'mt-auto pt-3 text-[10px] font-black uppercase tracking-[0.14em]',
-          selected ? 'text-primary' : 'text-white/35',
+          selected ? 'text-primary' : 'text-slate-300',
         )}
       >
         {selected ? 'Selezionata' : 'Seleziona'}
