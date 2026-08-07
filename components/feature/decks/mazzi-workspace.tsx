@@ -15,10 +15,12 @@ import type { PlaymatId } from '@/lib/playmats';
 interface MazziWorkspaceProps {
   initialDecks: Deck[];
   user: SessionUser;
+  /** Gamertag torneo-only mostrato nell'header al posto di email/username. */
+  gamertag?: string;
   defaultPlaymatId: PlaymatId;
 }
 
-export function MazziWorkspace({ initialDecks, user, defaultPlaymatId }: MazziWorkspaceProps) {
+export function MazziWorkspace({ initialDecks, user, gamertag, defaultPlaymatId }: MazziWorkspaceProps) {
   const [deckView, setDeckView] = useState<'list' | 'builder'>('list');
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
 
@@ -68,7 +70,7 @@ export function MazziWorkspace({ initialDecks, user, defaultPlaymatId }: MazziWo
 
   return (
     <div className="min-h-screen">
-      <DashboardHeader user={user} />
+      <DashboardHeader user={user} displayName={gamertag} />
 
       <div className="mx-auto w-full max-w-content px-4 py-6 sm:px-6">
         <header className="relative mb-5 overflow-hidden rounded-2xl border border-white/10 bg-header-bg/95 p-3.5 text-white sm:p-6">

@@ -19,7 +19,7 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   const { id } = await params;
   const session = await getSession();
   if (!session) redirect('/login');
-  await requireGamertag(`/tornei/${id}/live`);
+  const gamertag = await requireGamertag(`/tornei/${id}/live`);
 
   const tournament = await getTournamentById(id);
   if (!tournament) notFound();
@@ -46,12 +46,12 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <div className="shrink-0">
-        <DashboardHeader user={session.user} />
+        <DashboardHeader user={session.user} displayName={gamertag} />
       </div>
       <MatchLiveView
         tournament={tournament}
         role={role}
-        me={session.user.name ?? session.user.email}
+        me={gamertag}
         userId={session.user.id}
         isHost={isHost}
         defaultPlaymatId={defaultPlaymatId}

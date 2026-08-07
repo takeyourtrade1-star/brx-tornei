@@ -7,9 +7,12 @@ import { fetchMyGamertag } from '@/lib/data/player-api-client';
  * Gate UX, non l'unico: il vero gate è il 409 GAMERTAG_REQUIRED del backend
  * su create/join. Va chiamato DOPO aver verificato la sessione (richiede un
  * accessToken valido per leggere il profilo).
+ *
+ * Restituisce il gamertag: chi supera il gate lo ha già in mano e può
+ * mostrarlo al posto di email/username Ebartex senza una seconda chiamata.
  */
-export async function requireGamertag(returnTo: string): Promise<void> {
+export async function requireGamertag(returnTo: string): Promise<string> {
   const gamertag = await fetchMyGamertag();
-  if (gamertag) return;
+  if (gamertag) return gamertag;
   redirect(`/imposta-username?redirect=${encodeURIComponent(returnTo)}`);
 }

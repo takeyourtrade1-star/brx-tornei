@@ -11,10 +11,10 @@ export const metadata: Metadata = { title: 'Crea mazzo' };
 export default async function MazziPage() {
   const session = await getSession();
   if (!session) redirect('/login');
-  await requireGamertag('/mazzi');
+  const gamertag = await requireGamertag('/mazzi');
 
   const decks = await listDecks(session.user.id);
   const defaultPlaymatId = await getDefaultPlaymatId();
 
-  return <MazziWorkspace initialDecks={decks} user={session.user} defaultPlaymatId={defaultPlaymatId} />;
+  return <MazziWorkspace initialDecks={decks} user={session.user} gamertag={gamertag} defaultPlaymatId={defaultPlaymatId} />;
 }

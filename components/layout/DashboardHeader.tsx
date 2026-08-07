@@ -11,6 +11,8 @@ import { usePathname } from 'next/navigation';
 
 interface DashboardHeaderProps {
   user: SessionUser;
+  /** Identità mostrata nel chip profilo: il gamertag torneo, quando noto. */
+  displayName?: string;
   /** Mostra il pulsante icona per tornare al minigioco (vista semplice desktop). */
   showMinigameBack?: boolean;
   onBackToMinigame?: () => void;
@@ -20,10 +22,10 @@ interface DashboardHeaderProps {
  * Header dashboard tornei — Mazzi e Partite sono le azioni primarie; profilo,
  * ritorno al minigioco e logout restano controlli secondari e più discreti.
  */
-export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: DashboardHeaderProps) {
+export function DashboardHeader({ user, displayName, showMinigameBack, onBackToMinigame }: DashboardHeaderProps) {
   const pathname = usePathname();
-  const displayName = user.name ?? user.email;
-  const initial = (displayName[0] ?? '?').toUpperCase();
+  const shownName = displayName ?? user.name ?? user.email;
+  const initial = (shownName[0] ?? '?').toUpperCase();
 
   return (
     <header className="w-full border-b border-slate-900/10 bg-white/70 font-sans text-slate-900 shadow-[0_12px_35px_-28px_rgba(15,23,42,0.75)] backdrop-blur-xl">
@@ -73,7 +75,7 @@ export function DashboardHeader({ user, showMinigameBack, onBackToMinigame }: Da
               {initial}
             </span>
             <span className="hidden max-w-[7rem] truncate text-xs font-bold text-slate-700 lg:block xl:max-w-[10rem]">
-              {displayName}
+              {shownName}
             </span>
           </div>
 

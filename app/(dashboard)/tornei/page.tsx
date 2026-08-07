@@ -25,7 +25,9 @@ export default async function TorneiPage({ searchParams }: PageProps) {
 
   const session = await getSession();
   if (!session) redirect('/login');
-  await requireGamertag(`/tornei?format=${selection.format}&mode=${selection.mode}`);
+  const gamertag = await requireGamertag(
+    `/tornei?format=${selection.format}&mode=${selection.mode}`,
+  );
 
   const format = getFormat(selection.format)!;
   const mode = getMode(selection.mode)!;
@@ -39,6 +41,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
     <LobbyPage
       tournaments={tournaments}
       user={session.user}
+      gamertag={gamertag}
       selection={selection}
       formatId={format.id}
       formatName={format.name}

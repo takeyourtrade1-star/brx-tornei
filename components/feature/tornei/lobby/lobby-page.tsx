@@ -20,6 +20,8 @@ import { LobbyTableList } from './lobby-table-list';
 interface LobbyPageProps {
   tournaments: Tournament[];
   user: SessionUser;
+  /** Gamertag torneo-only: unica identità mostrata in lobby. */
+  gamertag: string;
   selection: Selection;
   formatId: FormatId;
   formatName: string;
@@ -36,6 +38,7 @@ type ConnectionModalState =
 export function LobbyPage({
   tournaments,
   user,
+  gamertag,
   selection,
   formatId,
   formatName,
@@ -47,7 +50,7 @@ export function LobbyPage({
   const [connectionModal, setConnectionModal] = useState<ConnectionModalState>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
-  const myUsername = user.name ?? user.email;
+  const myUsername = gamertag;
   const tables = useMemo(
     () => buildLobbyTables({ tournaments, userId: user.id }),
     [tournaments, user.id],
@@ -213,6 +216,7 @@ export function LobbyPage({
       <LobbyTableList
         tables={tables}
         user={user}
+        gamertag={gamertag}
         selection={selection}
         formatId={formatId}
         formatName={formatName}

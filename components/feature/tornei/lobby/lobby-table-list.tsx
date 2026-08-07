@@ -14,6 +14,8 @@ import { TableCard } from './table-card';
 interface LobbyTableListProps {
   tables: LobbyTable[];
   user: SessionUser;
+  /** Gamertag torneo-only mostrato nell'header al posto di email/username. */
+  gamertag?: string;
   selection: Selection;
   formatId: FormatId;
   formatName: string;
@@ -30,6 +32,7 @@ interface LobbyTableListProps {
 export function LobbyTableList({
   tables,
   user,
+  gamertag,
   selection,
   formatId,
   formatName,
@@ -44,7 +47,7 @@ export function LobbyTableList({
 }: LobbyTableListProps) {
   return (
     <>
-      <DashboardHeader user={user} />
+      <DashboardHeader user={user} displayName={gamertag} />
       <main
         data-lobby-focus-fallback="true"
         tabIndex={-1}
