@@ -104,9 +104,9 @@ export function FormatSelectorGrid({
                       : 'flex-1 basis-0',
                   ),
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
-              !isSelected && 'shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)]',
+              !isSelected && 'shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]',
               isSelected &&
-                'z-[1] ring-[3px] ring-primary ring-inset shadow-[0_0_28px_-6px_rgba(255,115,0,0.45)]',
+                'z-[1] ring-[3px] ring-primary/90 ring-inset shadow-[0_10px_24px_-12px_rgba(15,23,42,0.35)]',
             )}
           >
             <Image

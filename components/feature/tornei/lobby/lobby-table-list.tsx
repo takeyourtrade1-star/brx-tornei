@@ -72,61 +72,58 @@ export function LobbyTableList({
 
         <ReputationSummary reputation={reputation} />
 
-        <div className="relative z-30 my-6 flex flex-col gap-4">
-          <section>
-            <div className="mb-2 flex items-center gap-2 px-1">
-              <span className="grid h-6 w-6 place-items-center rounded-full bg-card2-end text-[9px] font-black text-white">
-                01
+        <div className="relative z-30 my-6 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <section className="rounded-2xl border border-slate-900/[0.08] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:p-4">
+            <div className="mb-2.5 flex items-center gap-2 px-1">
+              <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
+                1
               </span>
               <h2
                 id="tornei-format-label"
-                className="font-sans text-[11px] font-black uppercase tracking-[0.18em] text-header-bg/70"
+                className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-slate-500"
               >
                 Formato
               </h2>
             </div>
-            <div className="overflow-visible rounded-[1.75rem] border border-white/15 bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-3 py-3 text-white shadow-xl shadow-card2-end/30 sm:px-4">
-              <div className="w-full md:hidden">
-                <FormatSelectorGrid
-                  selectedFormatId={formatId}
-                  currentModeId={selection.mode as ModeId}
-                  mobile
-                />
-              </div>
-              <div className="hidden w-full md:block">
-                <FormatSelectorGrid
-                  selectedFormatId={formatId}
-                  currentModeId={selection.mode as ModeId}
-                  dense
-                />
-              </div>
+            <div className="w-full md:hidden">
+              <FormatSelectorGrid
+                selectedFormatId={formatId}
+                currentModeId={selection.mode as ModeId}
+                mobile
+              />
+            </div>
+            <div className="hidden w-full md:block">
+              <FormatSelectorGrid
+                selectedFormatId={formatId}
+                currentModeId={selection.mode as ModeId}
+                dense
+              />
             </div>
           </section>
 
-          <section>
-            <div className="mb-2 flex items-center gap-2 px-1">
-              <span className="grid h-6 w-6 place-items-center rounded-full bg-card2-end text-[9px] font-black text-white">
-                02
+          <section className="rounded-2xl border border-slate-900/[0.08] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:p-4">
+            <div className="mb-2.5 flex items-center gap-2 px-1">
+              <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
+                2
               </span>
-              <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.18em] text-header-bg/70">
+              <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
                 Modalità
               </h2>
             </div>
-            <div className="w-full rounded-[1.75rem] border border-white/15 bg-gradient-to-br from-footer-start via-card2-end to-card2-end p-2 text-white shadow-xl shadow-card2-end/30">
-              <div className="w-full md:hidden">
-                <ModeSelectorRow
-                  selectedModeId={selection.mode as ModeId}
-                  currentFormatId={formatId}
-                  mobile
-                />
-              </div>
-              <div className="hidden w-full md:block">
-                <ModeSelectorRow
-                  selectedModeId={selection.mode as ModeId}
-                  currentFormatId={formatId}
-                  compact
-                />
-              </div>
+            <div className="w-full md:hidden">
+              <ModeSelectorRow
+                selectedModeId={selection.mode as ModeId}
+                currentFormatId={formatId}
+                mobile
+              />
+            </div>
+            <div className="hidden w-full md:block">
+              <ModeSelectorRow
+                selectedModeId={selection.mode as ModeId}
+                currentFormatId={formatId}
+                compact
+                lightPanel
+              />
             </div>
           </section>
         </div>

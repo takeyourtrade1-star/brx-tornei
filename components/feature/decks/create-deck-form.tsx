@@ -94,7 +94,7 @@ export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: Cre
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="deck-name" className="text-xs font-bold uppercase tracking-wide text-white/70">
+        <label htmlFor="deck-name" className="text-xs font-bold uppercase tracking-wide text-slate-500">
           Nome mazzo
         </label>
         <input
@@ -103,7 +103,7 @@ export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: Cre
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Es. Mono Red Aggro"
-          className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#FF7300] focus:outline-none"
+          className="w-full rounded-xl border border-slate-900/12 bg-white px-4 py-2.5 text-sm text-header-bg placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           autoFocus
         />
       </div>
@@ -112,7 +112,7 @@ export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: Cre
         <div className="flex flex-col gap-1.5">
           <p
             id="deck-format-label"
-            className="text-xs font-bold uppercase tracking-wide text-white/70"
+            className="text-xs font-bold uppercase tracking-wide text-slate-500"
           >
             Formato
           </p>
@@ -124,7 +124,7 @@ export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: Cre
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-bold uppercase tracking-wide text-white/70">Tipologia</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Tipologia</p>
           <StyledSelect
             value={archetypeId}
             onChange={(v) => setArchetypeId(v)}
@@ -135,7 +135,7 @@ export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: Cre
         </div>
       </div>
 
-      {error && <p className="text-xs text-red-300">{error}</p>}
+      {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
 
       <div className="flex gap-3 pt-2">
         <button
@@ -149,7 +149,7 @@ export function CreateDeckForm({ onCreate, onCancel, isSubmitting = false }: Cre
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl border border-slate-900/12 bg-white px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Annulla
         </button>

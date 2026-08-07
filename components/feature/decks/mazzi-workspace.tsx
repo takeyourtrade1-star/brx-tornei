@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Layers } from 'lucide-react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import { DeckBuilder } from '@/components/feature/decks/deck-builder';
-import { DeckList } from '@/components/feature/decks/deck-list';
-import { DeckPlaymatSettings } from '@/components/feature/decks/deck-playmat-settings';
-import { useServerDecks } from '@/components/feature/decks/use-server-decks';
 import type { SessionUser } from '@/types/auth';
 import type { Deck } from '@/types/deck';
 import type { CreateDeckInput } from '@/lib/validations/deck';
 import type { PlaymatId } from '@/lib/playmats';
+import { DeckBuilder } from './deck-builder';
+import { DeckList } from './deck-list';
+import { DeckPlaymatSettings } from './deck-playmat-settings';
+import { useServerDecks } from './use-server-decks';
 
 interface MazziWorkspaceProps {
   initialDecks: Deck[];
@@ -68,60 +68,52 @@ export function MazziWorkspace({ initialDecks, user, gamertag, defaultPlaymatId 
     [decks]
   );
 
+  const inBuilder = deckView === 'builder' && editingDeck;
+
   return (
     <div className="min-h-screen">
       <DashboardHeader user={user} displayName={gamertag} />
 
       <div className="mx-auto w-full max-w-content px-4 py-6 sm:px-6">
-        <header className="relative mb-5 overflow-hidden rounded-2xl border border-white/10 bg-header-bg/95 p-3.5 text-white sm:p-6">
-          <div
-            className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#FF7300]/15 blur-3xl"
-            aria-hidden
-          />
-          <div className="relative flex items-center gap-3 sm:gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] shadow-[0_6px_18px_rgba(255,115,0,0.3)] sm:h-14 sm:w-14 sm:rounded-2xl">
-              <Layers className="h-5 w-5 text-white sm:h-7 sm:w-7" strokeWidth={2.2} aria-hidden />
+        <header className="mb-5 rounded-2xl border border-slate-900/[0.08] bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-7 sm:py-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/[0.09] text-primary sm:h-14 sm:w-14">
+              <Layers className="h-5 w-5 sm:h-7 sm:w-7" strokeWidth={2.2} aria-hidden />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-lg font-black uppercase tracking-wide text-white sm:text-3xl">
+              <h1 className="text-xl font-black tracking-tight text-header-bg sm:text-2xl">
                 Crea mazzo
               </h1>
-              <p className="mt-1 hidden max-w-2xl text-sm leading-relaxed text-white/60 sm:block">
+              <p className="mt-1 hidden max-w-2xl text-sm leading-relaxed text-slate-500 sm:block">
                 Cerca le carte nel catalogo Ebartex, costruisci il mazzo per formato e verifica
                 legalità, ban e limitazioni con Scryfall.
               </p>
             </div>
-
-            <div className="flex shrink-0 items-center gap-2 sm:hidden">
-              <div className="rounded-xl border border-white/10 bg-black/20 px-2.5 py-1.5 text-center">
-                <div className="font-display text-base font-black leading-none text-white">
+            <dl className="flex shrink-0 items-center divide-x divide-slate-900/[0.08]">
+              <div className="px-3 text-center sm:px-5">
+                <dt className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Mazzi</dt>
+                <dd className="mt-0.5 text-lg font-black tabular-nums text-header-bg sm:text-2xl">
                   {decks.length}
-                </div>
-                <div className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-white/40">
-                  Mazzi
-                </div>
+                </dd>
               </div>
-            </div>
+              <div className="px-3 text-center sm:px-5">
+                <dt className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Carte totali</dt>
+                <dd className="mt-0.5 text-lg font-black tabular-nums text-header-bg sm:text-2xl">
+                  {totalCards}
+                </dd>
+              </div>
+            </dl>
           </div>
-
-          <dl className="relative mt-5 hidden grid-cols-2 gap-3 sm:grid sm:max-w-md">
-            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-white/40">Mazzi</dt>
-              <dd className="mt-0.5 font-display text-xl font-black text-white">{decks.length}</dd>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-white/40">
-                Carte totali
-              </dt>
-              <dd className="mt-0.5 font-display text-xl font-black text-white">{totalCards}</dd>
-            </div>
-          </dl>
         </header>
 
-        <DeckPlaymatSettings initialPlaymatId={defaultPlaymatId} />
+        {!inBuilder && (
+          <div className="mb-5">
+            <DeckPlaymatSettings initialPlaymatId={defaultPlaymatId} />
+          </div>
+        )}
 
-        <div className="rounded-2xl border border-white/10 bg-header-bg/95 p-4 text-white sm:p-6">
-          {deckView === 'builder' && editingDeck ? (
+        <div className="rounded-2xl border border-slate-900/[0.08] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:p-6">
+          {inBuilder ? (
             <DeckBuilder
               deck={editingDeck}
               onBack={() => {

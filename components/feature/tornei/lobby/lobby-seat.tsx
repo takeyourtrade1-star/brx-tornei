@@ -7,6 +7,8 @@ interface LobbySeatProps {
   label: string;
   isMe?: boolean;
   compact?: boolean;
+  /** Variante chiara per le superfici Apple-style della lobby. */
+  light?: boolean;
 }
 
 /** Posto giocatore condiviso tra card lobby e riepilogo del modale. */
@@ -16,6 +18,7 @@ export function LobbySeat({
   label,
   isMe = false,
   compact = false,
+  light = false,
 }: LobbySeatProps) {
   return (
     <div
@@ -24,21 +27,31 @@ export function LobbySeat({
         compact
           ? 'min-h-[4.25rem] gap-2 p-2'
           : 'min-h-[5.25rem] gap-2.5 p-2.5 sm:gap-3 sm:p-3.5',
-        occupied
-          ? 'border-white/15 bg-white/[0.09] shadow-sm'
-          : 'border-dashed border-white/20 bg-black/10',
-        isMe && 'border-card3-start/40 bg-card3-start/10',
+        light
+          ? occupied
+            ? 'border-slate-900/[0.08] bg-slate-50'
+            : 'border-dashed border-slate-900/[0.14] bg-white'
+          : occupied
+            ? 'border-white/15 bg-white/[0.09] shadow-sm'
+            : 'border-dashed border-white/20 bg-black/10',
+        isMe && (light ? 'border-primary/30 bg-primary/[0.05]' : 'border-card3-start/40 bg-card3-start/10'),
       )}
     >
       <span
         className={cn(
           'shrink-0 place-items-center rounded-full border',
           compact ? 'hidden h-9 w-9 sm:grid' : 'grid h-9 w-9 sm:h-11 sm:w-11',
-          occupied
-            ? isMe
-              ? 'border-card3-start/35 bg-card3-start/15 text-card3-start'
-              : 'border-white/15 bg-white/10 text-white'
-            : 'border-white/10 bg-white/[0.05] text-white/35',
+          light
+            ? occupied
+              ? isMe
+                ? 'border-primary/25 bg-primary/10 text-primary'
+                : 'border-slate-900/[0.08] bg-white text-slate-600'
+              : 'border-slate-900/[0.06] bg-slate-50 text-slate-400'
+            : occupied
+              ? isMe
+                ? 'border-card3-start/35 bg-card3-start/15 text-card3-start'
+                : 'border-white/15 bg-white/10 text-white'
+              : 'border-white/10 bg-white/[0.05] text-white/35',
         )}
       >
         {occupied ? (
@@ -49,14 +62,25 @@ export function LobbySeat({
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[9px] font-black uppercase tracking-[0.14em] text-white/45">
+        <span
+          className={cn(
+            'block truncate text-[9px] font-black uppercase tracking-[0.14em]',
+            light ? 'text-slate-400' : 'text-white/45',
+          )}
+        >
           {label}
         </span>
         <span
           className={cn(
             'mt-1 block truncate font-black',
             compact ? 'text-xs sm:text-sm' : 'text-xs sm:text-base',
-            occupied ? 'text-white' : 'text-white/55',
+            light
+              ? occupied
+                ? 'text-header-bg'
+                : 'text-slate-400'
+              : occupied
+                ? 'text-white'
+                : 'text-white/55',
           )}
         >
           {occupied ? username : 'Posto libero'}
@@ -64,7 +88,12 @@ export function LobbySeat({
       </span>
 
       {isMe && !compact && (
-        <span className="hidden shrink-0 rounded-full bg-card3-start/15 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-card3-start sm:inline-flex">
+        <span
+          className={cn(
+            'hidden shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wider sm:inline-flex',
+            light ? 'bg-primary/10 text-primary' : 'bg-card3-start/15 text-card3-start',
+          )}
+        >
           Tu
         </span>
       )}
@@ -72,9 +101,16 @@ export function LobbySeat({
   );
 }
 
-export function VersusBadge() {
+export function VersusBadge({ light = false }: { light?: boolean }) {
   return (
-    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 bg-card2-end/70 text-[10px] font-black uppercase tracking-wider text-white/55 shadow-sm">
+    <span
+      className={cn(
+        'grid h-9 w-9 shrink-0 place-items-center rounded-full border text-[10px] font-black uppercase tracking-wider',
+        light
+          ? 'border-slate-900/[0.08] bg-white text-slate-400 shadow-sm'
+          : 'border-white/15 bg-card2-end/70 text-white/55 shadow-sm',
+      )}
+    >
       vs
     </span>
   );

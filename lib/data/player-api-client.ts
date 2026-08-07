@@ -64,6 +64,8 @@ export interface ReputationSummary {
   abandoned: number;
   disputed: number;
   recent: RecentMatchResult[];
+  /** Storico completo (pagina /partite); oggi ricade sulla coda recent. */
+  history: RecentMatchResult[];
 }
 
 const VALID_OUTCOMES: MatchOutcome[] = ['win', 'loss', 'abandoned', 'disputed'];
@@ -74,32 +76,56 @@ function toNumber(value: unknown): number {
 
 /** Aggregati di reputazione (Requisito 2) dal ledger match_results. */
 export async function fetchMyReputation(): Promise<ReputationSummary> {
+  return fetchMyReputationPage();
+}
+
+/** Un elemento dello storico partite: stesso outcome del ledger, con data. */
+export interface MatchHistoryEntry {
+  opponentGamertag: string | null;
+  outcome: MatchOutcome;
+  settledBy: string;
+  durationSeconds: number;
+  createdAt: string;
+}
+
+/**
+ * Storico partite completo (pagina /partite): oggi il backend espone gli
+ * aggregati + le recenti; la pagina consuma la lista lunga se presente,
+ * altrimenti ricade sulle recent del summary. I contatori sono da sempre
+ * parte del contratto.
+ */
+export async function fetchMyReputationPage(): Promise<ReputationSummary> {
   const { ok, status, body } = await tournamentFetch('/api/v1/players/me/reputation');
   if (!ok) {
     throw extractApiError(body, status, 'Impossibile leggere la reputazione');
   }
   const data = unwrapApiPayload<Record<string, unknown>>(body) ?? {};
   const recentRaw = Array.isArray(data.recent) ? data.recent : [];
+  // Se il backend espone una lista lunga separata (storico completo) la
+  // preferiamo; altrimenti la pagina usera' la coda recente.
+  const historyRaw = Array.isArray(data.history) ? data.history : recentRaw;
+  const mapRow = (entry: unknown) => {
+    const row = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
+    const outcome =
+      typeof row.outcome === 'string' && VALID_OUTCOMES.includes(row.outcome as MatchOutcome)
+        ? (row.outcome as MatchOutcome)
+        : 'disputed';
+    return {
+      opponentGamertag: typeof row.opponent_gamertag === 'string' ? row.opponent_gamertag : null,
+      outcome,
+      settledBy: typeof row.settled_by === 'string' ? row.settled_by : '',
+      durationSeconds: toNumber(row.duration_seconds),
+      createdAt: typeof row.created_at === 'string' ? row.created_at : '',
+    };
+  };
   return {
     played: toNumber(data.played),
     wins: toNumber(data.wins),
     losses: toNumber(data.losses),
     abandoned: toNumber(data.abandoned),
     disputed: toNumber(data.disputed),
-    recent: recentRaw.map((entry) => {
-      const row = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
-      const outcome =
-        typeof row.outcome === 'string' && VALID_OUTCOMES.includes(row.outcome as MatchOutcome)
-          ? (row.outcome as MatchOutcome)
-          : 'disputed';
-      return {
-        opponentGamertag: typeof row.opponent_gamertag === 'string' ? row.opponent_gamertag : null,
-        outcome,
-        settledBy: typeof row.settled_by === 'string' ? row.settled_by : '',
-        durationSeconds: toNumber(row.duration_seconds),
-        createdAt: typeof row.created_at === 'string' ? row.created_at : '',
-      };
-    }),
+    recent: recentRaw.map(mapRow),
+    history: historyRaw.map(mapRow),
   };
 }
 

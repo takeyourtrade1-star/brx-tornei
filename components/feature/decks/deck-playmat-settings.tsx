@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Palette } from 'lucide-react';
+import { ChevronDown, Palette } from 'lucide-react';
 import { saveDefaultPlaymatAction } from '@/actions/decks';
 import { getPlaymat, PLAYMATS, type PlaymatId } from '@/lib/playmats';
 import { cn } from '@/lib/utils';
@@ -30,28 +30,30 @@ export function DeckPlaymatSettings({ initialPlaymatId }: DeckPlaymatSettingsPro
   }
 
   return (
-    <details className="simple-panel mb-5 overflow-hidden">
-      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 text-white marker:hidden sm:px-5">
+    <details className="group overflow-hidden rounded-2xl border border-slate-900/[0.08] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 marker:hidden sm:px-5">
         <span
-          className="h-10 w-16 shrink-0 rounded-lg bg-cover bg-center ring-1 ring-white/20"
+          className="h-10 w-16 shrink-0 rounded-lg bg-cover bg-center ring-1 ring-slate-900/10"
           style={{ backgroundImage: 'url(' + playmat.src + ')' }}
           aria-hidden
         />
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 text-sm font-black uppercase tracking-wide">
+          <span className="flex items-center gap-2 text-sm font-black text-header-bg">
             <Palette className="h-4 w-4 text-primary" />
             Decorazione tappetino
           </span>
-          <span className="mt-0.5 block truncate text-xs text-white/55">
+          <span className="mt-0.5 block truncate text-xs text-slate-500">
             Predefinito fullscreen: {playmat.name}
           </span>
         </span>
-        <span className="text-[10px] font-black uppercase tracking-wider text-primary">Modifica</span>
+        <span className="grid h-7 w-7 place-items-center rounded-full border border-slate-900/[0.08] text-slate-400 transition-transform duration-200 group-open:rotate-180">
+          <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        </span>
       </summary>
 
-      <div className="border-t border-white/10 px-4 py-4 sm:px-5">
-        <p className="mb-3 text-xs text-white/60">
-          Questa scelta verra mostrata come sfondo del tavolo in tutte le tue partite fullscreen.
+      <div className="border-t border-slate-900/[0.06] px-4 py-4 sm:px-5">
+        <p className="mb-3 text-xs text-slate-500">
+          Questa scelta verrà mostrata come sfondo del tavolo in tutte le tue partite fullscreen.
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {PLAYMATS.map((item) => (
@@ -64,8 +66,8 @@ export function DeckPlaymatSettings({ initialPlaymatId }: DeckPlaymatSettingsPro
               className={cn(
                 'relative aspect-[16/7] overflow-hidden rounded-xl border text-left transition disabled:cursor-wait disabled:opacity-50',
                 item.id === playmatId
-                  ? 'border-primary ring-2 ring-primary/60'
-                  : 'border-white/15 opacity-75 hover:border-white/35 hover:opacity-100',
+                  ? 'border-primary ring-2 ring-primary/40'
+                  : 'border-slate-900/10 opacity-80 hover:border-primary/40 hover:opacity-100',
               )}
               style={{ backgroundImage: 'url(' + item.src + ')', backgroundPosition: 'center', backgroundSize: 'cover' }}
             >
@@ -76,7 +78,7 @@ export function DeckPlaymatSettings({ initialPlaymatId }: DeckPlaymatSettingsPro
             </button>
           ))}
         </div>
-        {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
+        {error && <p className="mt-3 text-xs font-semibold text-red-600">{error}</p>}
       </div>
     </details>
   );
