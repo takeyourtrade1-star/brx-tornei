@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { selectionSchema } from './selection';
+import { formatIdSchema, selectionSchema } from './selection';
 
 /** Input creazione torneo (MVP: buy-in fisso "For Fun", Heads-Up = 2 giocatori). */
-export const createTournamentSchema = selectionSchema.extend({
+export const createTournamentSchema = selectionSchema.omit({ format: true }).extend({
+  format: formatIdSchema,
   bestOf: z.enum(['BO1', 'BO3', 'BO5']),
   isPrivate: z.preprocess(
     (val) => val === true || val === 'true' || val === 'on',

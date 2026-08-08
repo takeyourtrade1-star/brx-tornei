@@ -9,9 +9,8 @@ import {
   readyTournamentAction,
 } from '@/actions/tournaments';
 import { buildLobbyTables, findMyTables, type LobbyTable } from '@/lib/lobby';
-import type { FormatId } from '@/lib/data/catalog';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
-import type { Selection } from '@/lib/validations/selection';
+import type { FormatFilter, Selection } from '@/lib/validations/selection';
 import type { SessionUser } from '@/types/auth';
 import type { Tournament } from '@/types/tournament';
 import { TableSeatModal } from './table-seat-modal';
@@ -25,7 +24,7 @@ interface LobbyPageProps {
   /** Gamertag torneo-only: unica identità mostrata in lobby. */
   gamertag: string;
   selection: Selection;
-  formatId: FormatId;
+  formatId: FormatFilter;
   formatName: string;
   modeName: string;
   reputation: ReputationSummary | null;
@@ -238,6 +237,13 @@ export function LobbyPage({
         return;
       }
 
+      // Creare richiede un formato preciso: "Tutti" è solo una vista.
+      if (selection.format === 'all') {
+        setError('Seleziona un formato specifico per creare un tavolo.');
+        setConnectionModal(null);
+        return;
+      }
+
       startTransition(async () => {
         const res = await createTableAction(selection.format, selection.mode, withFriend);
         if (res.error || !res.createdId) {
@@ -330,7 +336,7 @@ export function LobbyPage({
       <TableSeatModal
         open={modal !== null}
         mode={modal?.mode ?? 'host'}
-        formatId={formatId}
+        formatId={(modal && tournaments?.find((t) => t.id === modal.tournamentId)?.format) ?? 'modern'}
         formatName={formatName}
         myUsername={myUsername}
         opponentUsername={modal ? opponentFor(modal.tournamentId) : null}

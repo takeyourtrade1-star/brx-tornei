@@ -1,8 +1,8 @@
 import type { Selection } from '@/lib/validations/selection';
 
-/** Selezione di default dopo login e redirect da /hub. */
+/** Selezione di default dopo login e redirect da /hub: pagina home = "Tutti" i formati. */
 export const DEFAULT_TOURNAMENT_SELECTION: Selection = {
-  format: 'modern',
+  format: 'all',
   mode: 'heads-up',
 };
 

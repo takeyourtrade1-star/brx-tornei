@@ -4,15 +4,18 @@ import { useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FORMATS_WITH_MEDIA } from '@/lib/data/format-media';
-import type { FormatId, ModeId } from '@/lib/data/catalog';
+import type { ModeId } from '@/lib/data/catalog';
+import type { FormatFilter } from '@/lib/validations/selection';
 import { cn } from '@/lib/utils';
 import { FormatPillSelect } from '@/components/feature/tornei/format-pill-select';
+import { Swords } from 'lucide-react';
 
+/** Formato speciale "Tutti i tavoli": scelta aggregata, sempre in primo piano. */
 const TILE_EASE =
   'transition-[transform,box-shadow,filter] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
 
 interface FormatSelectorGridProps {
-  selectedFormatId: FormatId;
+  selectedFormatId: FormatFilter;
   currentModeId: ModeId;
   compact?: boolean;
   /** Card più basse per la barra filtri della lobby, mantenendo nome e hover. */
@@ -73,7 +76,7 @@ export function FormatSelectorGrid({
     }
   }, []);
 
-  const selectFormat = (formatId: FormatId) => {
+  const selectFormat = (formatId: FormatFilter) => {
     if (formatId === selectedFormatId) return;
     router.replace(`/tornei?format=${formatId}&mode=${currentModeId}`, { scroll: false });
   };
@@ -81,12 +84,15 @@ export function FormatSelectorGrid({
   if (mobile) {
     return (
       <FormatPillSelect
+        includeAll
         value={selectedFormatId}
         onChange={selectFormat}
         ariaLabelledBy="tornei-format-label"
       />
     );
   }
+
+  const isAllSelected = selectedFormatId === 'all';
 
   return (
     <div
@@ -95,10 +101,46 @@ export function FormatSelectorGrid({
         compact
           ? 'flex justify-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none'
           : dense
-            ? '-my-5 flex flex-nowrap gap-2 overflow-x-auto py-5 sm:gap-2.5 md:overflow-visible'
-            : '-my-8 flex flex-nowrap gap-2 overflow-x-auto py-8 sm:gap-2.5 md:overflow-visible',
+            ? '-my-4 flex flex-nowrap gap-2.5 overflow-x-auto py-4 sm:gap-3 md:overflow-visible'
+            : '-my-6 flex flex-nowrap gap-2.5 overflow-x-auto py-6 sm:gap-3 md:overflow-visible',
       )}
     >
+      {/* Tile aggregato "Tutti" senza media: primo in griglia, sempre visibile. */}
+      <button
+        type="button"
+        onClick={() => selectFormat('all')}
+        aria-pressed={isAllSelected}
+        aria-label="Formato Tutti"
+        className={cn(
+          'group relative min-w-0 overflow-hidden rounded-2xl bg-header-bg',
+          dense && !compact ? 'aspect-[4/3]' : 'aspect-video',
+          TILE_EASE,
+          compact
+            ? 'w-[4.5rem] sm:w-[5.25rem]'
+            : cn(
+                'origin-center first:origin-left last:origin-right hover:z-20 hover:-translate-y-0.5 hover:scale-[1.12] motion-reduce:hover:scale-100',
+                dense
+                  ? 'w-[9rem] shrink-0 sm:w-[10rem] md:flex-1 md:basis-0'
+                  : 'flex-1 basis-0',
+              ),
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-inset',
+          isAllSelected
+            ? 'ring-2 ring-inset ring-white/85 shadow-[0_14px_32px_-14px_rgba(15,23,42,0.55)]'
+            : 'shadow-[0_6px_18px_-10px_rgba(15,23,42,0.28)] hover:shadow-[0_20px_42px_-16px_rgba(15,23,42,0.5)]',
+        )}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_40%,rgba(255,115,0,0.28),transparent_70%)]" aria-hidden />
+        <div className="absolute inset-0 grid place-items-center">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 ring-1 ring-white/20">
+              <Swords className="h-5 w-5 text-white" aria-hidden="true" />
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white">
+              Tutti
+            </span>
+          </div>
+        </div>
+      </button>
       {FORMATS_WITH_MEDIA.map((format, index) => {
         const isSelected = format.id === selectedFormatId;
         return (
@@ -117,9 +159,9 @@ export function FormatSelectorGrid({
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
                 : cn(
-                    'origin-center first:origin-left last:origin-right hover:z-20 hover:-translate-y-0.5 hover:scale-[1.16] motion-reduce:hover:scale-100',
+                    'origin-center first:origin-left last:origin-right hover:z-20 hover:-translate-y-0.5 hover:scale-[1.12] motion-reduce:hover:scale-100',
                     dense
-                      ? 'w-[8rem] shrink-0 sm:w-[8.75rem] md:flex-1 md:basis-0'
+                      ? 'w-[9rem] shrink-0 sm:w-[10rem] md:flex-1 md:basis-0'
                       : 'flex-1 basis-0',
                   ),
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-inset',

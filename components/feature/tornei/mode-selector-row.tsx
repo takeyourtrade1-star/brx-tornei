@@ -3,11 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { Check, Swords, Users, type LucideIcon } from 'lucide-react';
 import { MODES, type ModeId } from '@/lib/data/catalog';
+import type { FormatFilter } from '@/lib/validations/selection';
 import { cn } from '@/lib/utils';
 
 interface ModeSelectorRowProps {
   selectedModeId: ModeId;
-  currentFormatId: string;
+  currentFormatId: FormatFilter;
   compact?: boolean;
   lightPanel?: boolean;
   /** Layout mobile: due controlli identici e sempre affiancati. */
@@ -114,7 +115,20 @@ function ModeCard({
       {selected && available && !lightPanel && (
         <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" aria-hidden="true" />
       )}
-<span
+      {badge && (
+        <span
+          className={cn(
+            'pointer-events-none absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wider shadow-sm',
+            'transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
+            lightPanel
+              ? 'bg-amber-100 text-amber-700'
+              : 'bg-white/10 text-marquee ring-1 ring-white/15 backdrop-blur-sm',
+          )}
+        >
+          {badge}
+        </span>
+      )}
+      <span
         className={cn(
           'grid shrink-0 place-items-center rounded-xl transition-colors',
           dense && !lightPanel ? 'h-8 w-8' : lightPanel ? 'h-8 w-8' : 'h-9 w-9',
@@ -140,14 +154,6 @@ function ModeCard({
           >
             {title}
           </span>
-          {badge && (
-            <span className={cn(
-              'hidden shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider sm:inline',
-              lightPanel ? 'bg-amber-100 text-amber-700' : 'bg-white/10 text-marquee',
-            )}>
-              {badge}
-            </span>
-          )}
         </span>
         {(!dense || lightPanel) && (
           <span className={cn('mt-0.5 block truncate text-[10px] font-semibold leading-relaxed', lightPanel ? 'text-slate-500' : 'text-white/55')}>

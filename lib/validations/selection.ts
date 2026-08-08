@@ -7,9 +7,15 @@ const availableModeIds = MODES.filter((m) => m.available).map((m) => m.id) as [
   ...ModeId[],
 ];
 
+/** Solo formati espliciti (creazione tavolo, mazzi, ecc.). */
+export const formatIdSchema = z.enum(formatIds);
+
+/** Formato esplicito oppure filtro aggregato "Tutti". */
+export type FormatFilter = FormatId | 'all';
+
 /** Selezione completa richiesta dalla dashboard (/tornei?format=..&mode=..). */
 export const selectionSchema = z.object({
-  format: z.enum(formatIds),
+  format: z.union([formatIdSchema, z.literal('all')]),
   mode: z.enum(availableModeIds), // le modalità "presto in arrivo" non sono selezionabili
 });
 

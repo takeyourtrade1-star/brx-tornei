@@ -133,10 +133,10 @@ export function isTournamentsApiEnabled(): boolean {
 }
 
 export async function fetchTournaments(selection: Selection): Promise<Tournament[]> {
-  const params = new URLSearchParams({
-    format: selection.format,
-    mode: selection.mode,
-  });
+  const params = new URLSearchParams({ mode: selection.mode });
+  // Formato esplicito o aggregato "Tutti": omettiamo il parametro → l'API
+  // torna tutti i tavoli disponibili nella modalità selezionata.
+  if (selection.format !== 'all') params.set('format', selection.format);
   const { ok, status, body } = await tournamentFetch(`/api/v1/tournaments?${params}`);
   if (!ok) {
     throw extractApiError(body, status, 'Impossibile caricare i tornei');

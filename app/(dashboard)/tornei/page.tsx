@@ -29,11 +29,10 @@ export default async function TorneiPage({ searchParams }: PageProps) {
     `/tornei?format=${selection.format}&mode=${selection.mode}`,
   );
 
-  const format = getFormat(selection.format)!;
-  const mode = getMode(selection.mode)!;
+  const formatName = selection.format === 'all' ? 'Tutti i formati' : getFormat(selection.format)!.name;
+  const modeName = getMode(selection.mode)!.name;
   const [tournaments, reputation] = await Promise.all([
     getTournaments(selection),
-    // Nice-to-have: un errore qui non deve bloccare la lobby.
     fetchMyReputation().catch(() => null),
   ]);
 
@@ -43,9 +42,9 @@ export default async function TorneiPage({ searchParams }: PageProps) {
       user={session.user}
       gamertag={gamertag}
       selection={selection}
-      formatId={format.id}
-      formatName={format.name}
-      modeName={mode.name}
+      formatId={selection.format}
+      formatName={formatName}
+      modeName={modeName}
       reputation={reputation}
     />
   );

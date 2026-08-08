@@ -4,8 +4,7 @@ import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { FormatSelectorGrid } from '@/components/feature/tornei/format-selector-grid';
 import { ModeSelectorRow } from '@/components/feature/tornei/mode-selector-row';
 import type { SessionUser } from '@/types/auth';
-import type { FormatId, ModeId } from '@/lib/data/catalog';
-import type { Selection } from '@/lib/validations/selection';
+import type { FormatFilter, Selection } from '@/lib/validations/selection';
 import type { LobbyTable } from '@/lib/lobby';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 import { ReputationSummary } from './reputation-summary';
@@ -17,7 +16,7 @@ interface LobbyTableListProps {
   /** Gamertag torneo-only mostrato nell'header al posto di email/username. */
   gamertag?: string;
   selection: Selection;
-  formatId: FormatId;
+  formatId: FormatFilter;
   formatName: string;
   modeName: string;
   busy: boolean;
@@ -55,8 +54,8 @@ export function LobbyTableList({
       >
         <ReputationSummary reputation={reputation} />
 
-        <div className="relative z-30 my-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,2.6fr)_minmax(0,1fr)]">
-          <section>
+        <div className="relative z-30 my-4 flex flex-col gap-5">
+          <section className="w-full">
             <div className="mb-2.5 flex items-center gap-2 px-1">
               <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
                 1
@@ -71,20 +70,20 @@ export function LobbyTableList({
             <div className="w-full md:hidden">
               <FormatSelectorGrid
                 selectedFormatId={formatId}
-                currentModeId={selection.mode as ModeId}
+                currentModeId={selection.mode}
                 mobile
               />
             </div>
             <div className="hidden w-full md:block">
               <FormatSelectorGrid
                 selectedFormatId={formatId}
-                currentModeId={selection.mode as ModeId}
+                currentModeId={selection.mode}
                 dense
               />
             </div>
           </section>
 
-          <section>
+          <section className="w-full max-w-2xl">
             <div className="mb-2.5 flex items-center gap-2 px-1">
               <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
                 2
@@ -95,14 +94,14 @@ export function LobbyTableList({
             </div>
             <div className="w-full md:hidden">
               <ModeSelectorRow
-                selectedModeId={selection.mode as ModeId}
+                selectedModeId={selection.mode}
                 currentFormatId={formatId}
                 mobile
               />
             </div>
             <div className="hidden w-full md:block">
               <ModeSelectorRow
-                selectedModeId={selection.mode as ModeId}
+                selectedModeId={selection.mode}
                 currentFormatId={formatId}
                 lightPanel
               />
