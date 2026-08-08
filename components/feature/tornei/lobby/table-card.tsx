@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Lock,
   LogOut,
   Play,
   UserPlus,
@@ -16,13 +17,15 @@ import { LobbySeat, VersusBadge } from './lobby-seat';
 interface TableCardProps {
   table: LobbyTable;
   busy?: boolean;
+  /** Su "Tutti i formati" il tavolo vuoto non si può creare: bottone bloccato. */
+  createLocked?: boolean;
   onSit: (table: LobbyTable) => void;
   onOpen: (table: LobbyTable) => void;
   onLeave: (table: LobbyTable) => void;
   onGoLive: (table: LobbyTable) => void;
 }
 
-export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: TableCardProps) {
+export function TableCard({ table, busy, createLocked = false, onSit, onOpen, onLeave, onGoLive }: TableCardProps) {
   const isMine = table.kind === 'mine';
   const seatedCount = table.seats.filter((seat) => seat.occupied).length;
   const maxPlayers = table.tournament?.maxPlayers ?? 2;
@@ -50,16 +53,23 @@ export function TableCard({ table, busy, onSit, onOpen, onLeave, onGoLive }: Tab
   };
 
   // Tavolo vuoto → look "apri nuovo": più basso, bordo tratteggiato, tono invito.
+  // Su "Tutti i formati" è bloccato: prima va scelto un formato specifico.
   if (table.kind === 'empty') {
+    const LockedIcon = createLocked ? Lock : UserPlus;
     return (
       <button
         type="button"
-        disabled={busy}
+        disabled={busy || createLocked}
         onClick={handlePrimary}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-900/[0.14] bg-white/70 px-4 py-3 text-center text-[10px] font-black uppercase leading-snug tracking-[0.12em] text-slate-500 transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-900/25 hover:bg-white hover:text-header-bg hover:shadow-[0_12px_28px_-16px_rgba(15,23,42,0.2)] motion-reduce:hover:translate-y-0"
+        className={cn(
+          'flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-900/[0.14] bg-white/70 px-4 py-3 text-center text-[10px] font-black uppercase leading-snug tracking-[0.12em] text-slate-500 transition duration-200 ease-out',
+          createLocked
+            ? 'cursor-not-allowed opacity-70'
+            : 'hover:-translate-y-0.5 hover:border-slate-900/25 hover:bg-white hover:text-header-bg hover:shadow-[0_12px_28px_-16px_rgba(15,23,42,0.2)] motion-reduce:hover:translate-y-0',
+        )}
       >
-        <UserPlus className="h-4 w-4 shrink-0" aria-hidden />
-        Siediti ad un tavolo vuoto e cerca avversari
+        <LockedIcon className="h-4 w-4 shrink-0" aria-hidden />
+        {createLocked ? 'Scegli un formato prima di giocare' : 'Siediti ad un tavolo vuoto e cerca avversari'}
       </button>
     );
   }

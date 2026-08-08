@@ -211,12 +211,8 @@ export function LobbyPage({
       }
 
       if (table.kind === 'empty') {
-        // "Tutti i formati" è solo una vista: il tavolo vuoto richiede un formato preciso.
-        if (selection.format === 'all') {
-          setError('Scegli un formato per aprire un tavolo.');
-          return;
-        }
-        // Tavolo vuoto già esistente: mi ci siedo (riuso) invece di crearne uno nuovo.
+        // "Tutti i formati" è solo una vista: il tavolo vuoto richiede un formato
+        // preciso e il bottone è già bloccato client-side (createLocked).
         if (table.tournament) {
           if (table.tournament.withFriend) {
             setConnectionModal({ mode: 'join', tournamentId: table.tournament.id });
@@ -228,7 +224,7 @@ export function LobbyPage({
         setConnectionModal({ mode: 'create' });
       }
     },
-    [tournaments, user.id, selection.format],
+    [tournaments, user.id],
   );
 
   const handleConnectionConfirm = useCallback(
@@ -332,6 +328,7 @@ export function LobbyPage({
         busy={busy}
         error={error}
         reputation={reputation}
+        createLocked={selection.format === 'all'}
         onSit={handleSit}
         onOpen={handleOpen}
         onLeave={handleLeave}

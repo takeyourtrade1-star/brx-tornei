@@ -22,6 +22,8 @@ interface LobbyTableListProps {
   busy: boolean;
   error: string | null;
   reputation: ReputationSummaryData | null;
+  /** Su "Tutti i formati" i tavoli vuoti non sono creabili. */
+  createLocked: boolean;
   onSit: (table: LobbyTable) => void;
   onOpen: (table: LobbyTable) => void;
   onLeave: (table: LobbyTable) => void;
@@ -39,6 +41,7 @@ export function LobbyTableList({
   busy,
   error,
   reputation,
+  createLocked,
   onSit,
   onOpen,
   onLeave,
@@ -140,6 +143,7 @@ export function LobbyTableList({
               key={table.key}
               table={table}
               busy={busy}
+              createLocked={createLocked}
               onSit={onSit}
               onOpen={onOpen}
               onLeave={onLeave}
