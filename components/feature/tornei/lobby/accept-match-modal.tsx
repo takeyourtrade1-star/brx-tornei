@@ -107,12 +107,18 @@ export function AcceptMatchModal({
 
   if (!phase) return null;
   const declined = phase === 'declined';
+  const acceptFraction = acceptLeft / ACCEPT_WINDOW_SECONDS;
 
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-6 py-8 text-center text-white shadow-2xl shadow-black/60 sm:px-10">
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-6 py-8 text-center text-white shadow-[0_32px_80px_-24px_rgba(0,0,0,0.9)] sm:px-10">
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-[radial-gradient(60%_50%_at_50%_0%,rgba(255,115,0,0.16),transparent_70%)]"
+          aria-hidden
+        />
+
         {declined ? (
-          <>
+          <div className="relative">
             <span
               className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-[0_16px_40px_-10px_rgba(239,68,68,0.6)] ring-1 ring-white/20"
               aria-hidden
@@ -134,9 +140,9 @@ export function AcceptMatchModal({
               <ArrowLeft className="h-4 w-4" />
               Torna in lobby ({declinedLeft}s)
             </button>
-          </>
+          </div>
         ) : (
-          <>
+          <div className="relative">
             <span className="relative mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-primary to-[#e0564d] shadow-[0_16px_40px_-10px_rgba(255,115,0,0.65)] ring-1 ring-white/20">
               <Swords className="h-7 w-7 text-white" aria-hidden />
               <span className="absolute -right-0.5 -top-0.5 h-3 w-3 animate-ping rounded-full bg-emerald-400" aria-hidden />
@@ -152,13 +158,15 @@ export function AcceptMatchModal({
               il tavolo verrà chiuso automaticamente.
             </p>
 
-            <div className="mt-5 flex items-center gap-2">
+            <div className="mt-5 flex items-stretch gap-2">
               <PlayerChip
                 label={myUsername}
                 ready={myReady}
                 stateText={busy ? 'Conferma in corso…' : myReady ? 'Confermato' : 'In attesa della tua conferma'}
               />
-              <span className="shrink-0 text-sm font-black text-white/40">vs</span>
+              <span className="grid shrink-0 place-items-center self-center rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-2 text-[11px] font-black uppercase text-white/45">
+                vs
+              </span>
               <PlayerChip
                 label={opponentUsername ?? 'Avversario'}
                 ready={opponentReady}
@@ -166,17 +174,23 @@ export function AcceptMatchModal({
               />
             </div>
 
+            {/* Anello timer: si svuota, diventa rosso sotto i 10s restanti. */}
             <span
               className={cn(
-                'mx-auto mt-5 grid h-16 w-16 place-items-center rounded-full border text-2xl font-black tabular-nums',
-                acceptLeft <= 10
-                  ? 'animate-pulse border-red-400/50 bg-red-500/15 text-red-300'
-                  : 'border-white/20 bg-white/[0.08] text-white',
+                'relative mx-auto mt-6 grid h-20 w-20 place-items-center rounded-full',
+                acceptLeft <= 10 ? 'animate-pulse' : 'accept-ring-glow',
               )}
               role="timer"
               aria-label={`${acceptLeft} secondi per accettare`}
+              style={{
+                background: `conic-gradient(${
+                  acceptLeft <= 10 ? '#f87171' : '#FF7300'
+                } ${Math.max(0, acceptFraction) * 360}deg, rgba(255,255,255,0.08) 0deg 360deg)`,
+              }}
             >
-              {acceptLeft}
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-[#16121d] text-2xl font-black tabular-nums text-white sm:h-[3.75rem] sm:w-[3.75rem]">
+                {acceptLeft}
+              </span>
             </span>
 
             {error && (
@@ -219,7 +233,7 @@ export function AcceptMatchModal({
                 )}
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

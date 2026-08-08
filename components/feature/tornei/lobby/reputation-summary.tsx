@@ -1,4 +1,4 @@
-import { Swords, Trophy, Skull, LogOut, TrendingUp, type LucideIcon } from 'lucide-react';
+import { Swords, Trophy, Skull, LogOut, type LucideIcon } from 'lucide-react';
 import { evaluateAchievements } from '@/lib/data/achievements';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 import { cn } from '@/lib/utils';
@@ -13,8 +13,8 @@ const OUTCOME_META: Record<string, { label: string; chip: string; dot: string }>
 /**
  * Card reputazione (Requisito 2): sempre visibile — anche a zero partite —
  * così la funzione è scopribile; i contatori a zero sono lo stato vuoto.
- * Divisione compatta: testata con anello vittorie → 4 contatori → barra
- * win/loss → ultime sfide → anticipazione badge ("Contestate" nel ledger).
+ * Layout a banda: testata con anello vittorie, 3 contatori separati da
+ * filetti, sottile barra win/loss, ultime sfide e anticipazione badge.
  */
 export function ReputationSummary({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats: ReputationSummaryData = reputation ?? {
@@ -32,25 +32,21 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
   return (
     <section
       aria-label="Le tue partite"
-      className="relative overflow-hidden rounded-2xl border border-slate-900/[0.08] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
+      className="relative overflow-hidden rounded-2xl border border-slate-900/[0.08] bg-gradient-to-br from-white to-slate-50/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
     >
       <div
-        className="pointer-events-none absolute -top-24 -right-16 h-52 w-52 rounded-full bg-primary/[0.08] blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-24 -left-20 h-52 w-52 rounded-full bg-emerald-500/[0.05] blur-3xl"
+        className="pointer-events-none absolute -top-20 -right-14 h-44 w-44 rounded-full bg-primary/[0.09] blur-3xl"
         aria-hidden
       />
 
-      {/* Testata compatta: titolo + anello vittorie */}
-      <header className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pt-4 sm:px-6">
-        <div className="flex min-w-40 items-center gap-2.5">
-          <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-header-bg text-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.5)]">
+      {/* Banda principale: emblema + contatori + anello */}
+      <div className="relative flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3.5 sm:px-6">
+        <div className="flex items-center gap-2.5">
+          <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-header-bg text-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.5)]">
             <Swords className="h-4 w-4" aria-hidden="true" />
             <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-white" aria-hidden />
           </span>
-          <div className="min-w-0">
+          <div>
             <h2 className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
               Le tue partite
             </h2>
@@ -59,21 +55,24 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
             </p>
           </div>
         </div>
-        <WinRateRing pct={winRate} />
-      </header>
 
-      {/* Quattro contatori, filetti verticali, aria compatta */}
-      <div className="relative mt-3 grid grid-cols-2 sm:grid-cols-4">
-        <StatBlock icon={Trophy} label="Vinte" value={stats.wins} tone="text-emerald-600" />
-        <StatBlock icon={Skull} label="Perse" value={stats.losses} tone="text-red-500" />
-        <StatBlock icon={LogOut} label="Abbandonate" value={stats.abandoned} tone="text-amber-600" />
-        <StatBlock icon={TrendingUp} label="Vittorie %" value={winRate === null ? '—' : `${winRate}%`} tone="text-header-bg" last />
+        <span className="hidden h-9 w-px bg-slate-900/[0.08] sm:block" aria-hidden />
+
+        <dl className="flex flex-1 items-center justify-around gap-2 sm:justify-end sm:gap-8">
+          <Stat icon={Trophy} label="Vinte" value={stats.wins} tone="text-emerald-600" />
+          <Stat icon={Skull} label="Perse" value={stats.losses} tone="text-red-500" />
+          <Stat icon={LogOut} label="Abbandonate" value={stats.abandoned} tone="text-amber-600" />
+        </dl>
+
+        <span className="hidden h-9 w-px bg-slate-900/[0.08] sm:block" aria-hidden />
+
+        <WinRateRing pct={winRate} />
       </div>
 
-      {/* Barra divisa vittorie/perse */}
+      {/* Barra divisa vittorie/perse: filo sottile nella stessa banda. */}
       {decided > 0 && (
-        <div className="px-5 pb-1 pt-2 sm:px-6" aria-hidden="true">
-          <div className="flex h-1.5 w-full items-center gap-1">
+        <div className="px-5 pb-3 sm:px-6" aria-hidden="true">
+          <div className="flex h-1 w-full items-center gap-1">
             <div className="flex h-full flex-1 overflow-hidden rounded-full bg-emerald-100">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
@@ -90,12 +89,12 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
         </div>
       )}
 
-      {/* Anteprima achievement - filo sottile */}
-      {stats.played > 0 && <AchievementPreviewRow reputation={stats} />}
+      {/* Anteprima achievement: primi badge sbloccati. */}
+      {stats.played > 0 && <AchievementPreviewColumn reputation={stats} />}
 
       {/* Ultime sfide */}
       <div className="border-t border-slate-900/[0.06] px-5 sm:px-6">
-        <h3 className="flex items-center gap-2 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">
+        <h3 className="flex items-center gap-2 py-2.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">
           <span className="h-px w-4 bg-slate-900/10" aria-hidden />
           Ultime sfide
         </h3>
@@ -127,7 +126,7 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
             })}
           </ul>
         ) : (
-          <p className="pb-3 text-xs font-semibold text-slate-400">
+          <p className="pb-3.5 text-xs font-semibold text-slate-400">
             La tua prima sfida ti aspetta: siediti a un tavolo.
           </p>
         )}
@@ -136,20 +135,20 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
   );
 }
 
-/** Anello conico del tasso di vittoria — punto focale, non troppo grande. */
+/** Anello conico del tasso di vittoria, nella stessa banda degli altri dati. */
 function WinRateRing({ pct }: { pct: number | null }) {
   return (
     <span
       title={pct === null ? 'Nessuna partita terminata' : `${pct}% di vittorie`}
-      className="grid h-14 w-14 shrink-0 place-items-center rounded-full shadow-[0_8px_18px_-10px_rgba(15,23,42,0.3)]"
+      className="grid h-12 w-12 shrink-0 place-items-center rounded-full shadow-[0_6px_16px_-8px_rgba(15,23,42,0.25)]"
       style={{
         background: pct === null
           ? 'conic-gradient(rgba(15,23,42,0.08) 0deg 360deg)'
           : `conic-gradient(#FF7300 ${pct * 3.6}deg, rgba(15,23,42,0.08) ${pct * 3.6}deg)`,
       }}
     >
-      <span className="grid h-10 w-10 place-items-center rounded-full bg-white">
-        <span className="text-xs font-black tabular-nums leading-none text-header-bg">
+      <span className="grid h-8 w-8 place-items-center rounded-full bg-white">
+        <span className="text-[11px] font-black tabular-nums leading-none text-header-bg">
           {pct === null ? '—' : `${pct}%`}
         </span>
       </span>
@@ -157,35 +156,18 @@ function WinRateRing({ pct }: { pct: number | null }) {
   );
 }
 
-function StatBlock({
-  icon: Icon,
-  label,
-  value,
-  tone,
-  last = false,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number | string;
-  tone: string;
-  last?: boolean;
-}) {
+function Stat({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: number; tone: string }) {
   return (
-    <div
-      className={cn(
-        'flex flex-col items-center justify-center gap-0.5 py-2.5 text-center',
-        last ? '' : 'border-r border-slate-900/[0.06]',
-      )}
-    >
+    <div className="flex items-center gap-2">
       <Icon className={cn('h-4 w-4', tone)} strokeWidth={2.2} aria-hidden="true" />
-      <dd className={cn('mt-0.5 text-lg font-black tabular-nums leading-none sm:text-xl', tone)}>{value}</dd>
-      <dt className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-slate-400">{label}</dt>
+      <dd className={cn('text-lg font-black tabular-nums leading-none', tone)}>{value}</dd>
+      <dt className="text-[8px] font-bold uppercase tracking-wider text-slate-400">{label}</dt>
     </div>
   );
 }
 
 /** Strip compatta con i primi N achievement sbloccati. */
-function AchievementPreviewRow({ reputation }: { reputation: ReputationSummaryData }) {
+function AchievementPreviewColumn({ reputation }: { reputation: ReputationSummaryData }) {
   const unlocked = evaluateAchievements(reputation).filter((a) => a.unlockedNow);
   if (unlocked.length === 0) return null;
   return (

@@ -112,14 +112,14 @@ export function FormatSelectorGrid({
             aria-label={`Formato ${format.name}`}
             className={cn(
               'group relative min-w-0 overflow-hidden rounded-2xl bg-header-bg/80',
-              dense && !compact ? 'aspect-[3/2]' : 'aspect-video',
+              dense && !compact ? 'aspect-[4/3]' : 'aspect-video',
               TILE_EASE,
               compact
                 ? 'w-[4.5rem] sm:w-[5.25rem]'
                 : cn(
                     'origin-center first:origin-left last:origin-right hover:z-20 hover:-translate-y-0.5 hover:scale-[1.16] motion-reduce:hover:scale-100',
                     dense
-                      ? 'w-[10rem] shrink-0 sm:w-[11rem] md:flex-1 md:basis-0'
+                      ? 'w-[8rem] shrink-0 sm:w-[8.75rem] md:flex-1 md:basis-0'
                       : 'flex-1 basis-0',
                   ),
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-inset',
@@ -167,16 +167,17 @@ export function FormatSelectorGrid({
               />
             )}
             {!compact && (
-              <span className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-header-bg/90 via-header-bg/50 to-transparent px-2 pb-1.5 pt-5 text-center">
+              <span className="pointer-events-none absolute inset-x-1.5 bottom-1.5 z-[2] flex justify-center sm:inset-x-2 sm:bottom-2">
                 <span
                   className={cn(
-                    'block truncate text-[9px] font-black uppercase tracking-[0.1em] transition-[transform,color] duration-300 sm:text-[10px]',
-                    'group-hover:scale-[1.05]',
-                    isSelected ? 'text-white' : 'text-white/80 group-hover:text-white',
+                    'inline-flex max-w-full items-center justify-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase leading-none tracking-wide backdrop-blur-sm transition-colors duration-300 sm:px-3 sm:text-[11px]',
+                    isSelected
+                      ? 'border-white/70 bg-white/95 text-header-bg'
+                      : 'border-white/20 bg-black/60 text-white group-hover:border-white/50 group-hover:bg-black/75',
                   )}
                   style={!isSelected ? { transitionDelay: `${index * 12}ms` } : undefined}
                 >
-                  {format.name}
+                  <span className="truncate">{format.name}</span>
                 </span>
               </span>
             )}

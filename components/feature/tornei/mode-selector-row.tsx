@@ -97,7 +97,7 @@ function ModeCard({
         'group relative isolate flex w-full items-center overflow-hidden border text-left transition duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
         lightPanel
-          ? 'min-h-[4.25rem] gap-2.5 rounded-2xl border px-3 py-2 active:scale-[0.99]'
+          ? 'min-h-[3.75rem] gap-2.5 rounded-2xl border px-3 py-2 active:scale-[0.99]'
           : dense
             ? 'min-h-11 gap-2 rounded-xl px-2.5 py-2'
             : 'min-h-[4.75rem] gap-3 rounded-xl px-4 py-3',
@@ -117,7 +117,7 @@ function ModeCard({
       <span
         className={cn(
           'grid shrink-0 place-items-center rounded-xl transition-colors',
-          dense && !lightPanel ? 'h-8 w-8' : 'h-10 w-10',
+          dense && !lightPanel ? 'h-8 w-8' : 'h-9 w-9',
           selected && available
             ? lightPanel
               ? 'bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-[0_6px_16px_-4px_rgba(255,115,0,0.45)]'
@@ -127,7 +127,7 @@ function ModeCard({
               : 'bg-white/10 text-white/70',
         )}
       >
-        <Icon className={dense && !lightPanel ? 'h-4 w-4' : 'h-5 w-5'} aria-hidden="true" />
+        <Icon className={dense && !lightPanel ? 'h-4 w-4' : 'h-4 w-4'} aria-hidden="true" />
       </span>
 
       <span className="min-w-0 flex-1">
@@ -135,14 +135,14 @@ function ModeCard({
           <span
             className={cn(
               'truncate font-black uppercase tracking-wide',
-              dense && !lightPanel ? 'text-[10px] sm:text-xs' : lightPanel ? 'text-sm' : 'text-sm',
+              dense && !lightPanel ? 'text-[10px] sm:text-xs' : 'text-xs',
             )}
           >
             {title}
           </span>
           {badge && (
             <span className={cn(
-              'hidden shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider sm:inline',
+              'hidden shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider sm:inline',
               lightPanel ? 'bg-amber-100 text-amber-700' : 'bg-white/10 text-marquee',
             )}>
               {badge}
@@ -150,12 +150,12 @@ function ModeCard({
           )}
         </span>
         {!dense && (
-          <span className={cn('mt-0.5 block truncate text-xs font-semibold', lightPanel ? 'text-slate-500' : 'text-white/55')}>
+          <span className={cn('mt-0.5 block truncate text-[10px] font-semibold leading-relaxed', lightPanel ? 'text-slate-500' : 'text-white/55')}>
             {description}
           </span>
         )}
         {lightPanel && dense && (
-          <span className="mt-0.5 block truncate text-xs font-semibold text-slate-500">
+          <span className="mt-0.5 block truncate text-[10px] font-semibold leading-relaxed text-slate-500">
             {description}
           </span>
         )}
