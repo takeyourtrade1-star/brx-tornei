@@ -94,13 +94,13 @@ function ModeCard({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'group relative isolate flex w-full items-center overflow-hidden border text-left transition duration-200',
+        'group relative isolate flex w-full overflow-hidden border transition duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
         lightPanel
-          ? 'min-h-[3.75rem] gap-2.5 rounded-2xl border px-3 py-2 active:scale-[0.99]'
+          ? 'flex-col items-center gap-1 rounded-2xl px-3 py-2.5 text-center active:scale-[0.99]'
           : dense
-            ? 'min-h-11 gap-2 rounded-xl px-2.5 py-2'
-            : 'min-h-[4.75rem] gap-3 rounded-xl px-4 py-3',
+            ? 'min-h-11 flex-row items-center gap-2 rounded-xl px-2.5 py-2 text-left'
+            : 'min-h-[4.75rem] flex-row items-center gap-3 rounded-xl px-4 py-3 text-left',
         selected && available
           ? lightPanel
             ? 'border-primary/60 bg-white text-header-bg shadow-[0_10px_28px_-14px_rgba(255,115,0,0.4)] ring-1 ring-primary/25'
@@ -114,10 +114,10 @@ function ModeCard({
       {selected && available && !lightPanel && (
         <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" aria-hidden="true" />
       )}
-      <span
+<span
         className={cn(
           'grid shrink-0 place-items-center rounded-xl transition-colors',
-          dense && !lightPanel ? 'h-8 w-8' : 'h-9 w-9',
+          dense && !lightPanel ? 'h-8 w-8' : lightPanel ? 'h-8 w-8' : 'h-9 w-9',
           selected && available
             ? lightPanel
               ? 'bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-[0_6px_16px_-4px_rgba(255,115,0,0.45)]'
@@ -127,15 +127,15 @@ function ModeCard({
               : 'bg-white/10 text-white/70',
         )}
       >
-        <Icon className={dense && !lightPanel ? 'h-4 w-4' : 'h-4 w-4'} aria-hidden="true" />
+        <Icon className="h-4 w-4" aria-hidden="true" />
       </span>
 
-      <span className="min-w-0 flex-1">
-        <span className="flex min-w-0 items-center gap-2">
+      <span className={cn(lightPanel ? 'flex min-w-0 flex-col items-center' : 'min-w-0 flex-1')}>
+        <span className={cn('flex min-w-0 items-center gap-1.5', lightPanel && 'justify-center')}>
           <span
             className={cn(
               'truncate font-black uppercase tracking-wide',
-              dense && !lightPanel ? 'text-[10px] sm:text-xs' : 'text-xs',
+              dense && !lightPanel ? 'text-[10px] sm:text-xs' : 'text-[11px]',
             )}
           >
             {title}
@@ -149,22 +149,24 @@ function ModeCard({
             </span>
           )}
         </span>
-        {!dense && (
+        {(!dense || lightPanel) && (
           <span className={cn('mt-0.5 block truncate text-[10px] font-semibold leading-relaxed', lightPanel ? 'text-slate-500' : 'text-white/55')}>
-            {description}
-          </span>
-        )}
-        {lightPanel && dense && (
-          <span className="mt-0.5 block truncate text-[10px] font-semibold leading-relaxed text-slate-500">
             {description}
           </span>
         )}
       </span>
 
       {selected && available && (
-        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-white shadow-sm">
-          <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-        </span>
+        lightPanel ? (
+          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-sm">
+            <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+            Selezionata
+          </span>
+        ) : (
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-white shadow-sm">
+            <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+          </span>
+        )
       )}
     </button>
   );
