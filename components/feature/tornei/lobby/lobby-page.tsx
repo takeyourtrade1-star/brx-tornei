@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createTableAction,
   joinTournamentAction,
   leaveTournamentAction,
+  readyTournamentAction,
 } from '@/actions/tournaments';
 import { buildLobbyTables, findMyTables, type LobbyTable } from '@/lib/lobby';
 import type { FormatId } from '@/lib/data/catalog';
@@ -16,6 +17,7 @@ import type { Tournament } from '@/types/tournament';
 import { TableSeatModal } from './table-seat-modal';
 import { FriendConnectionModal } from './friend-connection-modal';
 import { LobbyTableList } from './lobby-table-list';
+import { AcceptMatchModal } from './accept-match-modal';
 
 interface LobbyPageProps {
   tournaments: Tournament[];
@@ -49,6 +51,7 @@ export function LobbyPage({
   const [modal, setModal] = useState<ModalState>(null);
   const [connectionModal, setConnectionModal] = useState<ConnectionModalState>(null);
   const [error, setError] = useState<string | null>(null);
+  const [approvalPhase, setApprovalPhase] = useState<'accepting' | 'declined' | null>(null);
   const [busy, startTransition] = useTransition();
   const myUsername = gamertag;
   const tables = useMemo(
@@ -62,7 +65,7 @@ export function LobbyPage({
   );
 
   // Con PIÙ partite attive (stato incoerente: partita vecchia mai abbandonata)
-  // NON reindirizzo: resto in lobby, dove ogni tavolo ha il suo "Abbandona".
+  // NON reindirizzo: resto in lobby, dove ogni tavolo ha il suo "Alzati".
   useEffect(() => {
     const mine = findMyTables(tournaments, user.id);
     if (mine.length === 0) return;
@@ -73,10 +76,7 @@ export function LobbyPage({
         return;
       }
       const started = only.status === 'iniziata' && only.matchId;
-      const readyCheck =
-        only.status === 'in_registrazione' &&
-        only.participants.length >= only.maxPlayers;
-      if (started || readyCheck) {
+      if (started) {
         goLiveTo(only.id);
         return;
       }
@@ -86,6 +86,99 @@ export function LobbyPage({
     }, 4000);
     return () => clearInterval(iv);
   }, [tournaments, user.id, router, goLiveTo, selection.format, selection.mode]);
+
+  // Accettazione stile LoL in LOBBY: tavolo pieno e partita non ancora
+  // iniziata → modale "Avversario trovato". Il tavolo resta in lobby.
+  const approvalTarget = useMemo(() => {
+    const mine = findMyTables(tournaments, user.id);
+    if (mine.length !== 1) return null;
+    const [table] = mine;
+    if (!table || table.status !== 'in_registrazione') return null;
+    if (table.participants.length < table.maxPlayers) return null;
+    return table;
+  }, [tournaments, user.id]);
+
+  // L'id resta disponibile anche quando il tavolo torna a un solo giocatore
+  // (stato "declined"): il leave automatico ne ha ancora bisogno.
+  const [approvalId, setApprovalId] = useState<string | null>(null);
+  useEffect(() => {
+    if (approvalTarget) setApprovalId(approvalTarget.id);
+  }, [approvalTarget]);
+
+  // Latch del pannello: una volta "declined" resta visibile (auto-leave
+  // incluso) anche se il target derivato sparisce ai refresh successivi.
+  const wasFullRef = useRef(false);
+  useEffect(() => {
+    const mine = findMyTables(tournaments, user.id);
+    const [table] = mine;
+    const status = table?.status;
+    const isFull =
+      mine.length === 1 &&
+      status === 'in_registrazione' &&
+      (table?.participants.length ?? 0) >= (table?.maxPlayers ?? 0);
+    const wasFull = wasFullRef.current;
+    if (isFull) wasFullRef.current = true;
+    if (status === 'iniziata') wasFullRef.current = false;
+
+    setApprovalPhase((current) => {
+      if (current !== 'accepting' && current !== 'declined' && isFull && status === 'in_registrazione') {
+        // Tavolo pieno: chiudo eventuali modali di seduta e apro l'accept.
+        setModal(null);
+        return 'accepting';
+      }
+      // Tavolo tornato a un solo giocatore mentre ero in attesa di accettare:
+      // l'avversario ha rifiutato (o è sparito) → pannello dedicato.
+      if (current === 'accepting' && wasFull && !isFull && status === 'in_registrazione') {
+        return 'declined';
+      }
+      // Match partito o nessun tavolo: il pannello si chiude.
+      if (current === 'accepting' && (!isFull || status !== 'in_registrazione')) return null;
+      return current;
+    });
+  }, [tournaments, user.id]);
+
+  const myReady = Boolean(
+    approvalTarget?.participants.find((participant) => participant.id === user.id)?.ready,
+  );
+  const opponentReady = Boolean(
+    approvalTarget?.participants.find((participant) => participant.id !== user.id)?.ready,
+  );
+
+  const handleApprovalAccept = useCallback(() => {
+    if (!approvalTarget) return;
+    const targetId = approvalTarget.id;
+    setError(null);
+    startTransition(async () => {
+      const res = await readyTournamentAction(targetId, true);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      if (res.matchId) {
+        // Match già creato: si va direct alla schermata live (webcam).
+        goLiveTo(targetId);
+        return;
+      }
+      router.refresh();
+    });
+  }, [approvalTarget, router, goLiveTo]);
+
+  // Uscita dal tavolo senza confirm: rifiuto o timeout dell'accettazione.
+  // L'id viene dallo stato persistente anche in fase "declined".
+  const handleApprovalLeave = useCallback(() => {
+    const targetId = approvalId;
+    if (!targetId) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await leaveTournamentAction(targetId);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setApprovalPhase(null);
+      router.refresh();
+    });
+  }, [approvalId, router]);
 
   const opponentFor = useCallback(
     (tournamentId: string): string | null => {
@@ -170,10 +263,13 @@ export function LobbyPage({
           return;
         }
         setModal(null);
-        if (res.matchId || res.tableFull) {
-          // Tavolo pieno: si va in pagina partita per il ready check.
+        if (res.matchId) {
+          // Match già partito (es. tavolo pieno con entrambi pronti):
+          // si va direttamente alla schermata live.
           goLiveTo(tournamentId);
         } else {
+          // Tavolo pieno in attesa di congedo: l'accettazione stile LoL
+          // appare in lobby, nessun redirect esplicito.
           router.refresh();
         }
       });
@@ -256,6 +352,19 @@ export function LobbyPage({
         error={error}
         onClose={() => setConnectionModal(null)}
         onConfirm={handleConnectionConfirm}
+      />
+
+      <AcceptMatchModal
+        phase={approvalPhase}
+        myUsername={myUsername}
+        opponentUsername={approvalTarget ? opponentFor(approvalTarget.id) : null}
+        busy={busy}
+        error={error}
+        myReady={myReady}
+        opponentReady={opponentReady}
+        onAccept={handleApprovalAccept}
+        onLeave={handleApprovalLeave}
+        onOpponentTimeout={() => setApprovalPhase('declined')}
       />
     </>
   );
