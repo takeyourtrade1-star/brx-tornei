@@ -92,15 +92,15 @@ function ModeCard({
       aria-pressed={selected}
       title={description}
       className={cn(
-        'flex h-9 items-center justify-center gap-1.5 rounded-full px-2.5 transition-colors duration-200 sm:px-3',
+        'flex h-9 items-center justify-center gap-1.5 rounded-full border px-2.5 transition-colors duration-200 sm:px-3',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-inset',
         selected && available
           ? lightPanel
-            ? 'bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-[0_6px_14px_-6px_rgba(255,115,0,0.55)]'
-            : 'bg-white/15 text-white ring-1 ring-white/20'
+            ? 'border-primary/20 bg-white/70 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_16px_-8px_rgba(255,115,0,0.35)] ring-1 ring-primary/20 backdrop-blur-md'
+            : 'border-white/15 bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] ring-1 ring-inset ring-white/25 backdrop-blur-md'
           : lightPanel
-            ? 'text-slate-500 hover:bg-slate-100 hover:text-header-bg'
-            : 'text-white/55 hover:bg-white/[0.07] hover:text-white',
+            ? 'border-transparent text-slate-500 hover:border-slate-900/[0.08] hover:bg-slate-100 hover:text-header-bg'
+            : 'border-transparent bg-transparent text-white/55 hover:bg-white/[0.07] hover:text-white',
         !available && 'cursor-not-allowed opacity-70',
       )}
     >

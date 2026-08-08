@@ -83,7 +83,7 @@ export function LobbyTableList({
             </div>
           </section>
 
-          <section className="w-full max-w-2xl">
+          <section className="w-full">
             <div className="mb-2.5 flex items-center gap-2 px-1">
               <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
                 2
