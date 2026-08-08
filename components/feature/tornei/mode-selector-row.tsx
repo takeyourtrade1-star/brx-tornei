@@ -10,20 +10,19 @@ interface ModeSelectorRowProps {
   selectedModeId: ModeId;
   currentFormatId: FormatFilter;
   compact?: boolean;
+  /** Pannello chiaro (lobby desktop): segmenti bianchi su sfondo chiaro. */
   lightPanel?: boolean;
   /** Layout mobile: due controlli identici e sempre affiancati. */
   mobile?: boolean;
 }
 
+/** Tipo di partita come controllo segmentato sottile: poco invasivo. */
 export function ModeSelectorRow({
   selectedModeId,
   currentFormatId,
-  compact = false,
   lightPanel = false,
-  mobile = false,
 }: ModeSelectorRowProps) {
   const router = useRouter();
-  const dense = compact || mobile;
   const headsUp = MODES.find((mode) => mode.id === 'heads-up')!;
   const multiplayer = MODES.find((mode) => mode.id === 'multiplayer')!;
 
@@ -35,9 +34,10 @@ export function ModeSelectorRow({
   return (
     <div
       className={cn(
-        'grid w-full grid-cols-2',
-        lightPanel ? 'gap-3' : 'gap-1.5 rounded-2xl border border-white/10 bg-black/25 p-1.5 shadow-inner shadow-black/30',
-        !dense && !lightPanel && 'max-w-3xl',
+        'grid w-full grid-cols-2 gap-1 rounded-full p-1',
+        lightPanel
+          ? 'bg-white shadow-[0_2px_12px_-6px_rgba(15,23,42,0.22)] ring-1 ring-slate-900/[0.07]'
+          : 'bg-black/20 ring-1 ring-white/10',
       )}
     >
       <ModeCard
@@ -46,7 +46,6 @@ export function ModeSelectorRow({
         icon={Swords}
         selected={selectedModeId === headsUp.id}
         available
-        dense={dense}
         lightPanel={lightPanel}
         onSelect={() => selectMode(headsUp.id, true)}
       />
@@ -57,7 +56,6 @@ export function ModeSelectorRow({
         selected={selectedModeId === multiplayer.id}
         available={multiplayer.available}
         badge={multiplayer.badge}
-        dense={dense}
         lightPanel={lightPanel}
         onSelect={() => selectMode(multiplayer.id, multiplayer.available)}
       />
@@ -72,7 +70,6 @@ interface ModeCardProps {
   selected: boolean;
   available: boolean;
   badge?: string;
-  dense: boolean;
   lightPanel: boolean;
   onSelect: () => void;
 }
@@ -84,7 +81,6 @@ function ModeCard({
   selected,
   available,
   badge,
-  dense,
   lightPanel,
   onSelect,
 }: ModeCardProps) {
@@ -94,85 +90,33 @@ function ModeCard({
       disabled={!available}
       onClick={onSelect}
       aria-pressed={selected}
+      title={description}
       className={cn(
-        'group relative isolate flex w-full overflow-hidden border transition duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
-        lightPanel
-          ? 'flex-col items-center gap-1 rounded-2xl px-3 py-2.5 text-center active:scale-[0.99]'
-          : dense
-            ? 'min-h-11 flex-row items-center gap-2 rounded-xl px-2.5 py-2 text-left'
-            : 'min-h-[4.75rem] flex-row items-center gap-3 rounded-xl px-4 py-3 text-left',
+        'flex h-9 items-center justify-center gap-1.5 rounded-full px-2.5 transition-colors duration-200 sm:px-3',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-inset',
         selected && available
           ? lightPanel
-            ? 'border-primary/60 bg-white text-header-bg shadow-[0_10px_28px_-14px_rgba(255,115,0,0.4)] ring-1 ring-primary/25'
-            : 'border-white/25 bg-gradient-to-br from-white/20 via-white/10 to-white/[0.04] text-white shadow-lg shadow-black/20 ring-1 ring-inset ring-white/10'
+            ? 'bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-[0_6px_14px_-6px_rgba(255,115,0,0.55)]'
+            : 'bg-white/15 text-white ring-1 ring-white/20'
           : lightPanel
-            ? 'border-slate-900/[0.08] bg-white text-header-bg shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:-translate-y-0.5 hover:border-slate-900/[0.18] hover:shadow-[0_12px_30px_-14px_rgba(15,23,42,0.22)]'
-            : 'border-transparent bg-transparent text-white hover:border-white/10 hover:bg-white/[0.06]',
-        !available && 'cursor-not-allowed opacity-55',
+            ? 'text-slate-500 hover:bg-slate-100 hover:text-header-bg'
+            : 'text-white/55 hover:bg-white/[0.07] hover:text-white',
+        !available && 'cursor-not-allowed opacity-70',
       )}
     >
-      {selected && available && !lightPanel && (
-        <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" aria-hidden="true" />
-      )}
-      {badge && (
-        <span
-          className={cn(
-            'pointer-events-none absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-wider shadow-sm',
-            'transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
-            lightPanel
-              ? 'bg-amber-100 text-amber-700'
-              : 'bg-white/10 text-marquee ring-1 ring-white/15 backdrop-blur-sm',
-          )}
-        >
-          {badge}
-        </span>
-      )}
-      <span
-        className={cn(
-          'grid shrink-0 place-items-center rounded-xl transition-colors',
-          dense && !lightPanel ? 'h-8 w-8' : lightPanel ? 'h-8 w-8' : 'h-9 w-9',
-          selected && available
-            ? lightPanel
-              ? 'bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-[0_6px_16px_-4px_rgba(255,115,0,0.45)]'
-              : 'bg-white/10 text-primary ring-1 ring-white/15'
-            : lightPanel
-              ? 'bg-slate-100 text-slate-500 group-hover:bg-header-bg group-hover:text-white'
-              : 'bg-white/10 text-white/70',
-        )}
-      >
-        <Icon className="h-4 w-4" aria-hidden="true" />
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span className="truncate text-[11px] font-black uppercase tracking-wide sm:text-xs">
+        {title}
       </span>
-
-      <span className={cn(lightPanel ? 'flex min-w-0 flex-col items-center' : 'min-w-0 flex-1')}>
-        <span className={cn('flex min-w-0 items-center gap-1.5', lightPanel && 'justify-center')}>
-          <span
-            className={cn(
-              'truncate font-black uppercase tracking-wide',
-              dense && !lightPanel ? 'text-[10px] sm:text-xs' : 'text-[11px]',
-            )}
-          >
-            {title}
-          </span>
-        </span>
-        {(!dense || lightPanel) && (
-          <span className={cn('mt-0.5 block truncate text-[10px] font-semibold leading-relaxed', lightPanel ? 'text-slate-500' : 'text-white/55')}>
-            {description}
-          </span>
-        )}
-      </span>
-
       {selected && available && (
-        lightPanel ? (
-          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-sm">
-            <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-            Selezionata
-          </span>
-        ) : (
-          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-white shadow-sm">
-            <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
-          </span>
-        )
+        <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={3.5} aria-hidden="true" />
+      )}
+      {badge && !selected && (
+        <span
+          className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"
+          title={badge}
+          aria-label={badge}
+        />
       )}
     </button>
   );

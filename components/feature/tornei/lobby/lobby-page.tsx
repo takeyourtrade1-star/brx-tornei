@@ -211,6 +211,11 @@ export function LobbyPage({
       }
 
       if (table.kind === 'empty') {
+        // "Tutti i formati" è solo una vista: il tavolo vuoto richiede un formato preciso.
+        if (selection.format === 'all') {
+          setError('Scegli un formato per aprire un tavolo.');
+          return;
+        }
         // Tavolo vuoto già esistente: mi ci siedo (riuso) invece di crearne uno nuovo.
         if (table.tournament) {
           if (table.tournament.withFriend) {
@@ -223,7 +228,7 @@ export function LobbyPage({
         setConnectionModal({ mode: 'create' });
       }
     },
-    [tournaments, user.id],
+    [tournaments, user.id, selection.format],
   );
 
   const handleConnectionConfirm = useCallback(
