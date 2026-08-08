@@ -40,7 +40,22 @@ export function AcceptMatchModal({
 }: AcceptMatchModalProps) {
   const [acceptLeft, setAcceptLeft] = useState(ACCEPT_WINDOW_SECONDS);
   const [declinedLeft, setDeclinedLeft] = useState(DECLINED_LEAVE_SECONDS);
-  const [deadline] = useState(() => Date.now() + ACCEPT_WINDOW_SECONDS * 1000);
+  // Deadline valida solo finché la modale è davvero in fase active: il
+  // componente resta montato (renderizza null quando chiuso), quindi la
+  // deadline va (ri)settata OGNI volta che si entra in 'accepting', non al
+  // primo load della pagina — altrimenti dopo un minuto in lobby la finestra
+  // schiatterebbe già scaduta.
+  const [deadline, setDeadline] = useState(() => Date.now() + ACCEPT_WINDOW_SECONDS * 1000);
+  const prevPhaseRef = useRef<AcceptMatchModalProps['phase']>(null);
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    if (phase === 'accepting' && prev !== 'accepting') {
+      firedRef.current = false;
+      setAcceptLeft(ACCEPT_WINDOW_SECONDS);
+      setDeadline(Date.now() + ACCEPT_WINDOW_SECONDS * 1000);
+    }
+  }, [phase]);
   const myReadyRef = useRef(myReady);
   const firedRef = useRef(false);
   useEffect(() => {
