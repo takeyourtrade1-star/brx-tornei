@@ -68,7 +68,6 @@ export function LobbyPage({
   // NON reindirizzo: resto in lobby, dove ogni tavolo ha il suo "Alzati".
   useEffect(() => {
     const mine = findMyTables(tournaments, user.id);
-    if (mine.length === 0) return;
     const [only] = mine;
     if (mine.length === 1 && only) {
       if (only.format !== selection.format || only.mode !== selection.mode) {
@@ -81,9 +80,11 @@ export function LobbyPage({
         return;
       }
     }
+    // Poll sempre attivo (anche senza tavoli miei): un nuovo tavolo creato
+    // da altri deve comparire subito, senza reload manuale.
     const iv = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
-    }, 4000);
+    }, 3000);
     return () => clearInterval(iv);
   }, [tournaments, user.id, router, goLiveTo, selection.format, selection.mode]);
 
