@@ -52,7 +52,7 @@ export function WebcamLinkModalBody({
       </div>
 
       {source === 'pc' && pcError && (
-        <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/15 px-3 py-2.5 text-sm font-semibold text-white">
+        <p role="alert" className="rounded-xl border border-destructive/60 bg-destructive px-3 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm">
           {pcError}
         </p>
       )}

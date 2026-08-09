@@ -12,7 +12,7 @@ export function MatchErrorNotice({
   return (
     <div
       role="alert"
-      className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+      className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-500/50 bg-red-950/85 px-3 py-2 text-sm text-red-50"
     >
       <span>{message}</span>
       {onRetry && (

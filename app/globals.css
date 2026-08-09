@@ -543,6 +543,161 @@
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Emblema "Le tue partite": due spade che si scontrano in loop.       */
+/* Ogni lama ruota attorno al proprio pomo (transform-origin 0 0 +     */
+/* translate nel keyframe): carica, colpisce, rincula, torna in        */
+/* guardia. La scintilla e l'alone dell'emblema sono sincronizzati sul */
+/* frame d'impatto (30% del ciclo).                                    */
+/* ------------------------------------------------------------------ */
+
+@keyframes swords-strike-left {
+  0%,
+  10% {
+    transform: translate(5.5px, 18.6px) rotate(56deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  20% {
+    transform: translate(5.5px, 18.6px) rotate(61deg);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.1, 1);
+  }
+  30% {
+    transform: translate(5.5px, 18.6px) rotate(42deg);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  36% {
+    transform: translate(5.5px, 18.6px) rotate(49deg);
+  }
+  42% {
+    transform: translate(5.5px, 18.6px) rotate(44deg);
+  }
+  50% {
+    transform: translate(5.5px, 18.6px) rotate(46deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  72%,
+  100% {
+    transform: translate(5.5px, 18.6px) rotate(56deg);
+  }
+}
+
+@keyframes swords-strike-right {
+  0%,
+  10% {
+    transform: translate(18.5px, 18.6px) rotate(-56deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  20% {
+    transform: translate(18.5px, 18.6px) rotate(-61deg);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.1, 1);
+  }
+  30% {
+    transform: translate(18.5px, 18.6px) rotate(-42deg);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  36% {
+    transform: translate(18.5px, 18.6px) rotate(-49deg);
+  }
+  42% {
+    transform: translate(18.5px, 18.6px) rotate(-44deg);
+  }
+  50% {
+    transform: translate(18.5px, 18.6px) rotate(-46deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  72%,
+  100% {
+    transform: translate(18.5px, 18.6px) rotate(-56deg);
+  }
+}
+
+/* Scintilla: lampo secco sul contatto, poi si allarga e svanisce. */
+@keyframes swords-clash-spark {
+  0%,
+  27% {
+    opacity: 0;
+    transform: translate(12px, 11.4px) scale(0.25) rotate(0deg);
+  }
+  31% {
+    opacity: 1;
+    transform: translate(12px, 11.4px) scale(1.05) rotate(18deg);
+  }
+  44% {
+    opacity: 0;
+    transform: translate(12px, 11.4px) scale(1.55) rotate(38deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(12px, 11.4px) scale(0.25) rotate(0deg);
+  }
+}
+
+.swords-blade-left,
+.swords-blade-right,
+.swords-clash-spark {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* Posa di riposo (anche senza animazione): spade incrociate a 45°. */
+.swords-blade-left {
+  transform: translate(5.5px, 18.6px) rotate(48deg);
+  animation: swords-strike-left 2.4s infinite;
+}
+
+.swords-blade-right {
+  transform: translate(18.5px, 18.6px) rotate(-48deg);
+  animation: swords-strike-right 2.4s infinite;
+}
+
+.swords-clash-spark {
+  opacity: 0;
+  transform: translate(12px, 11.4px) scale(0.25);
+  animation: swords-clash-spark 2.4s infinite;
+}
+
+/* L'alone dell'emblema pulsa sull'impatto: il colpo si sente anche fuori. */
+@keyframes swords-emblem-impact {
+  0%,
+  27% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 10px 20px -12px rgba(15, 23, 42, 0.65);
+  }
+  32% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 0 0 3px rgba(255, 115, 0, 0.16),
+      0 10px 26px -10px rgba(255, 115, 0, 0.55);
+  }
+  52%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 10px 20px -12px rgba(15, 23, 42, 0.65);
+  }
+}
+
+.swords-emblem {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 10px 20px -12px rgba(15, 23, 42, 0.65);
+  animation: swords-emblem-impact 2.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swords-blade-left,
+  .swords-blade-right,
+  .swords-emblem {
+    animation: none;
+  }
+  .swords-clash-spark {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* Pannello profilo: ingresso da destra */
 @keyframes profile-drawer-in {
   from {
