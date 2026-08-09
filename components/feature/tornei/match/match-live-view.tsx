@@ -24,6 +24,7 @@ import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchFullscreenArena } from './match-fullscreen-arena';
 import { MatchIntroOverlay } from './match-intro-overlay';
 import { MatchLiveHeader } from './match-live-header';
+import { reconnectingLabel } from './match-live-parts';
 import {
   MatchConnectionNotice,
   MatchDeclinedPanel,
@@ -213,6 +214,12 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     onRetry: chat.retry,
     participantNames,
   };
+  // Il video dell'avversario era già arrivato ed è caduto: non è una prima
+  // connessione ma una riconnessione, e va detto con il suo nome — sia nel
+  // riquadro vuoto sia nell'avviso in cima.
+  const remoteEmptyLabel = peerReconnecting
+    ? reconnectingLabel(remote.username, disconnectedIsMe)
+    : undefined;
   const visiblePeerError = peerReconnecting || peerState === 'peer-left' ? null : peerError;
   const visibleError = leave.error ?? webcamError ?? visiblePeerError ?? declareResult.error;
   const showLiveNotices = !matchEnded && !resultClaimPending;
@@ -229,6 +236,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
         peerState={peerState}
         peerError={peerError}
         peerTransport={peerTransport}
+        peerReconnecting={peerReconnecting}
         canDeclare={showLiveNotices && tournament.matchStatus === 'ongoing'}
         declareBusy={declareResult.declaring}
         onDeclare={declareResult.declare}
@@ -266,6 +274,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
         <MatchConnectionNotice
           reconnecting={peerReconnecting}
           onRetry={retryPeer}
+          opponentName={remote.username}
           graceDeadline={tournament.graceDeadline}
           disconnectedIsMe={disconnectedIsMe}
         />
@@ -307,6 +316,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
             remoteStream={remoteStream}
             feedLabel={feedLabel}
             peerConnecting={peerConnecting}
+            remoteEmptyLabel={remoteEmptyLabel}
             camOn={camOn}
             micOn={micOn}
             lifeByPlayerId={life.lifeByPlayerId}
@@ -339,6 +349,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
         remotePlayerId={remote.id}
         localFeedLabel={feedLabel}
         connecting={peerConnecting}
+        remoteEmptyLabel={remoteEmptyLabel}
         camOn={camOn}
         micOn={micOn}
         startingLife={life.startingLife}

@@ -1,14 +1,28 @@
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import { cn } from '@/lib/utils';
 
+/**
+ * Testo unico della riconnessione: dice CHI si sta riconnettendo, non "la
+ * connessione". Lo condividono avviso, badge e tile video dell'avversario,
+ * così l'utente legge sempre la stessa frase nello stesso momento.
+ */
+export function reconnectingLabel(opponentName: string, disconnectedIsMe?: boolean): string {
+  return disconnectedIsMe
+    ? 'Ti stai riconnettendo…'
+    : `${opponentName} si sta riconnettendo…`;
+}
+
 export function ConnectionBadge({
   state,
   error,
   transport,
+  reconnecting = false,
 }: {
   state: string;
   error: string | null;
   transport: PeerTransport;
+  /** true: il video era già attivo ed è caduto → non è una prima connessione. */
+  reconnecting?: boolean;
 }) {
   const live = state === 'connected';
   const failed = state === 'failed';
@@ -40,7 +54,7 @@ export function ConnectionBadge({
               : 'animate-pulse bg-amber-300',
         )}
       />
-      {live ? liveLabel : error ? 'Riconnessione…' : 'Connessione…'}
+      {live ? liveLabel : reconnecting || error ? 'Riconnessione…' : 'Connessione…'}
     </span>
   );
 }

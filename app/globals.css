@@ -450,6 +450,26 @@
   animation: ready-pulse 1.6s ease-out infinite;
 }
 
+/* Modale accettazione stile League: il pannello "atterra" con uno scatto. */
+@keyframes accept-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.accept-modal-panel {
+  animation: accept-modal-in 0.26s cubic-bezier(0.22, 1.3, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .accept-modal-panel {
+    animation: none;
+  }
+}
+
 /* Modale accettazione stile League: alone morbido attorno all'anello timer. */
 @keyframes accept-ring-glow {
   0%,
@@ -554,81 +574,81 @@
 @keyframes swords-strike-left {
   0%,
   10% {
-    transform: translate(5.5px, 18.6px) rotate(56deg);
+    transform: translate(5.5px, 18.6px) rotate(51deg);
     animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
   }
   20% {
-    transform: translate(5.5px, 18.6px) rotate(61deg);
+    transform: translate(5.5px, 18.6px) rotate(54deg);
     animation-timing-function: cubic-bezier(0.55, 0, 0.1, 1);
   }
   30% {
-    transform: translate(5.5px, 18.6px) rotate(42deg);
+    transform: translate(5.5px, 18.6px) rotate(41deg);
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
   36% {
-    transform: translate(5.5px, 18.6px) rotate(49deg);
+    transform: translate(5.5px, 18.6px) rotate(48deg);
   }
   42% {
-    transform: translate(5.5px, 18.6px) rotate(44deg);
+    transform: translate(5.5px, 18.6px) rotate(43.5deg);
   }
   50% {
-    transform: translate(5.5px, 18.6px) rotate(46deg);
+    transform: translate(5.5px, 18.6px) rotate(45deg);
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
   72%,
   100% {
-    transform: translate(5.5px, 18.6px) rotate(56deg);
+    transform: translate(5.5px, 18.6px) rotate(51deg);
   }
 }
 
 @keyframes swords-strike-right {
   0%,
   10% {
-    transform: translate(18.5px, 18.6px) rotate(-56deg);
+    transform: translate(18.5px, 18.6px) rotate(-51deg);
     animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
   }
   20% {
-    transform: translate(18.5px, 18.6px) rotate(-61deg);
+    transform: translate(18.5px, 18.6px) rotate(-54deg);
     animation-timing-function: cubic-bezier(0.55, 0, 0.1, 1);
   }
   30% {
-    transform: translate(18.5px, 18.6px) rotate(-42deg);
+    transform: translate(18.5px, 18.6px) rotate(-41deg);
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   }
   36% {
-    transform: translate(18.5px, 18.6px) rotate(-49deg);
+    transform: translate(18.5px, 18.6px) rotate(-48deg);
   }
   42% {
-    transform: translate(18.5px, 18.6px) rotate(-44deg);
+    transform: translate(18.5px, 18.6px) rotate(-43.5deg);
   }
   50% {
-    transform: translate(18.5px, 18.6px) rotate(-46deg);
+    transform: translate(18.5px, 18.6px) rotate(-45deg);
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
   72%,
   100% {
-    transform: translate(18.5px, 18.6px) rotate(-56deg);
+    transform: translate(18.5px, 18.6px) rotate(-51deg);
   }
 }
 
 /* Scintilla: lampo secco sul contatto, poi si allarga e svanisce. */
 @keyframes swords-clash-spark {
   0%,
-  27% {
+  28% {
     opacity: 0;
-    transform: translate(12px, 11.4px) scale(0.25) rotate(0deg);
+    transform: translate(12px, 11.1px) scale(0.2) rotate(0deg);
   }
   31% {
     opacity: 1;
-    transform: translate(12px, 11.4px) scale(1.05) rotate(18deg);
+    transform: translate(12px, 11.1px) scale(0.95) rotate(16deg);
   }
-  44% {
+  40% {
     opacity: 0;
-    transform: translate(12px, 11.4px) scale(1.55) rotate(38deg);
+    transform: translate(12px, 11.1px) scale(1.35) rotate(34deg);
   }
   100% {
     opacity: 0;
-    transform: translate(12px, 11.4px) scale(0.25) rotate(0deg);
+    transform: translate(12px, 11.1px) scale(0.2) rotate(0deg);
   }
 }
 
@@ -653,7 +673,7 @@
 
 .swords-clash-spark {
   opacity: 0;
-  transform: translate(12px, 11.4px) scale(0.25);
+  transform: translate(12px, 11.1px) scale(0.2);
   animation: swords-clash-spark 2.4s infinite;
 }
 

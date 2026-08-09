@@ -19,6 +19,8 @@ interface MatchVideoGridProps {
   remoteStream?: MediaStream | null;
   feedLabel?: string;
   peerConnecting: boolean;
+  /** Testo del tile avversario quando il video non c'è (es. riconnessione in corso). */
+  remoteEmptyLabel?: string;
   camOn: boolean;
   micOn: boolean;
   lifeByPlayerId: Record<string, number>;
@@ -46,6 +48,7 @@ export function MatchVideoGrid({
   remoteStream,
   feedLabel,
   peerConnecting,
+  remoteEmptyLabel,
   camOn,
   micOn,
   lifeByPlayerId,
@@ -138,7 +141,7 @@ export function MatchVideoGrid({
               connecting={isPlayer ? peerConnecting : false}
               muted={false}
               hideUsername
-              emptyLabel={isObserver ? 'Video non disponibile agli osservatori' : undefined}
+              emptyLabel={isObserver ? 'Video non disponibile agli osservatori' : remoteEmptyLabel}
             />
           </div>
           <div className="absolute left-2 top-9 z-20">

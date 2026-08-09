@@ -17,6 +17,8 @@ interface MatchLiveHeaderProps {
   peerState: string;
   peerError: string | null;
   peerTransport: PeerTransport;
+  /** true: il video era già attivo ed è caduto (riconnessione, non prima connessione). */
+  peerReconnecting?: boolean;
   /** true: ho una partita attiva da poter chiudere con una dichiarazione. */
   canDeclare?: boolean;
   declareBusy?: boolean;
@@ -34,6 +36,7 @@ export function MatchLiveHeader({
   peerState,
   peerError,
   peerTransport,
+  peerReconnecting = false,
   canDeclare = false,
   declareBusy = false,
   onDeclare,
@@ -82,7 +85,12 @@ export function MatchLiveHeader({
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
         {isPlayer && status === 'iniziata' && (
-          <ConnectionBadge state={peerState} error={peerError} transport={peerTransport} />
+          <ConnectionBadge
+            state={peerState}
+            error={peerError}
+            transport={peerTransport}
+            reconnecting={peerReconnecting}
+          />
         )}
         {isPlayer && status === 'iniziata' && canDeclare && onDeclare && (
           <button

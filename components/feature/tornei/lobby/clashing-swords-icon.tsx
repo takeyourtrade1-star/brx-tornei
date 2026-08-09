@@ -18,9 +18,9 @@ function Blade() {
         strokeLinecap="round"
       />
       {/* Guardia, impugnatura e pomo: arancio Ebartex */}
-      <rect x="-4.4" y="-7.7" width="8.8" height="1.9" rx="0.95" className="fill-primary" />
-      <rect x="-1.05" y="-5.9" width="2.1" height="5.2" rx="1.05" className="fill-current opacity-60" />
-      <circle r="1.45" className="fill-primary" />
+      <rect x="-4" y="-7.6" width="8" height="1.7" rx="0.85" className="fill-primary" />
+      <rect x="-0.95" y="-5.9" width="1.9" height="5.1" rx="0.95" className="fill-current opacity-55" />
+      <circle r="1.3" className="fill-primary" />
     </g>
   );
 }
@@ -48,15 +48,15 @@ export function ClashingSwordsIcon({ className }: { className?: string }) {
 
       {/* Scintilla: compare solo nel frame d'impatto, dove i fili si toccano */}
       <g className="swords-clash-spark">
-        <circle r="2.8" className="fill-white/25" />
+        <circle r="2.2" className="fill-white/20" />
         <path
-          d="M0-4.8 1.2-1.2 4.8 0 1.2 1.2 0 4.8-1.2 1.2-4.8 0-1.2-1.2z"
+          d="M0-4.9.9-.9 4.9 0 .9.9 0 4.9-.9.9-4.9 0-.9-.9z"
           className="fill-primary"
         />
-        <circle cx="3.7" cy="-3.1" r="0.55" className="fill-primary" />
-        <circle cx="-3.7" cy="-3.1" r="0.55" className="fill-primary" />
-        <circle cx="2.9" cy="3.5" r="0.5" className="fill-primary" />
-        <circle cx="-2.9" cy="3.5" r="0.5" className="fill-primary" />
+        <circle cx="3.9" cy="-3.3" r="0.5" className="fill-primary" />
+        <circle cx="-3.9" cy="-3.3" r="0.5" className="fill-primary" />
+        <circle cx="3.1" cy="3.7" r="0.45" className="fill-primary" />
+        <circle cx="-3.1" cy="3.7" r="0.45" className="fill-primary" />
       </g>
     </svg>
   );

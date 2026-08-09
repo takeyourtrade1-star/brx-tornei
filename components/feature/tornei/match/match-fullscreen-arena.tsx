@@ -19,6 +19,8 @@ interface MatchFullscreenArenaProps {
   remotePlayerId: string;
   localFeedLabel?: string;
   connecting?: boolean;
+  /** Testo del riquadro avversario quando il video manca (es. riconnessione). */
+  remoteEmptyLabel?: string;
   camOn: boolean;
   micOn: boolean;
   startingLife: number;
@@ -43,6 +45,7 @@ export function MatchFullscreenArena({
   remotePlayerId,
   localFeedLabel,
   connecting = false,
+  remoteEmptyLabel,
   camOn,
   micOn,
   startingLife,
@@ -171,6 +174,7 @@ export function MatchFullscreenArena({
                 username={remoteUsername}
                 connecting={connecting}
                 muted={false}
+                emptyLabel={remoteEmptyLabel}
               />
             </div>
             <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-sky-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">

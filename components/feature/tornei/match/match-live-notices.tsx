@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Flag, RefreshCw, UserX } from 'lucide-react';
 import { useGraceCountdown } from '@/hooks/use-grace-countdown';
+import { reconnectingLabel } from './match-live-parts';
 
 export function MatchErrorNotice({
   message,
@@ -143,11 +144,14 @@ export function MatchDeclinedPanel({
 export function MatchConnectionNotice({
   reconnecting,
   onRetry,
+  opponentName,
   graceDeadline,
   disconnectedIsMe,
 }: {
   reconnecting: boolean;
   onRetry: () => void;
+  /** Gamertag dell'avversario: l'avviso dice chi si sta riconnettendo. */
+  opponentName: string;
   /** ISO: countdown autorevole dal backend (report-peer-lost), se attivo. */
   graceDeadline?: string | null;
   /** true: sono io il giocatore segnalato come disconnesso dal backend. */
@@ -156,16 +160,26 @@ export function MatchConnectionNotice({
   const remaining = useGraceCountdown(graceDeadline);
   if (!reconnecting && remaining === null) return null;
 
+  // Senza countdown il link P2P è appena caduto: la riconnessione è in corso
+  // ed è già ripartita da sola. Col countdown il backend ha stabilito CHI è
+  // fuori e cosa succede se non rientra in tempo.
   const message =
     remaining !== null
       ? disconnectedIsMe
-        ? `Ti sei disconnesso dall'avversario. Riconnettiti entro ${remaining}s o la partita sarà persa a tavolino.`
-        : `L'avversario si è disconnesso. Se non torna entro ${remaining}s vincerai la partita a tavolino.`
-      : 'Connessione con l’avversario interrotta. La partita resta aperta e la riconnessione è automatica.';
+        ? `Ti sei disconnesso: stai provando a riconnetterti. Torna online entro ${remaining}s o la partita sarà persa a tavolino.`
+        : `${opponentName} si è disconnesso e sta provando a riconnettersi. Se non rientra entro ${remaining}s vincerai la partita a tavolino.`
+      : `${reconnectingLabel(opponentName, disconnectedIsMe)} La partita resta aperta: il video riparte da solo appena la linea torna.`;
 
   return (
-    <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-      <span>{message}</span>
+    <div
+      role="status"
+      aria-live="polite"
+      className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100"
+    >
+      <span className="flex items-center gap-2">
+        <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin text-amber-300" aria-hidden />
+        {message}
+      </span>
       <button type="button" onClick={onRetry} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase hover:bg-white/15">
         <RefreshCw className="h-3.5 w-3.5" /> Riprova ora
       </button>
