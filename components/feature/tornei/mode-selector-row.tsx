@@ -105,7 +105,7 @@ function ModeCard({
       )}
     >
       <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      <span className="truncate text-[11px] font-black uppercase tracking-wide sm:text-xs">
+      <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-wide sm:text-xs">
         {title}
       </span>
       {selected && available && (
@@ -113,10 +113,15 @@ function ModeCard({
       )}
       {badge && !selected && (
         <span
-          className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"
-          title={badge}
-          aria-label={badge}
-        />
+          className={cn(
+            'inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider sm:text-[8px]',
+            lightPanel
+              ? 'bg-amber-100 text-amber-700'
+              : 'bg-white/10 text-amber-300 ring-1 ring-white/15',
+          )}
+        >
+          {badge}
+        </span>
       )}
     </button>
   );
