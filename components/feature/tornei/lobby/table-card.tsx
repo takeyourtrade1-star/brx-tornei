@@ -69,7 +69,7 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
         )}
       >
         <LockedIcon className="h-4 w-4 shrink-0" aria-hidden />
-        {createLocked ? 'Scegli un formato prima di giocare' : 'Siediti ad un tavolo vuoto e cerca avversari'}
+        {createLocked ? 'Scegli un formato prima di giocare oppure siediti ad un tavolo' : 'Siediti ad un tavolo vuoto e cerca avversari'}
       </button>
     );
   }
