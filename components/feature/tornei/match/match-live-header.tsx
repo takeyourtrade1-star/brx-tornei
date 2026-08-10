@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Flag, Gamepad2, LogOut } from 'lucide-react';
-import type { Participant, TournamentStatus } from '@/types/tournament';
+import type { ConnectionQuality, Participant, TournamentStatus } from '@/types/tournament';
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import { ConnectionBadge } from './match-live-parts';
 
@@ -17,6 +17,9 @@ interface MatchLiveHeaderProps {
   peerState: string;
   peerError: string | null;
   peerTransport: PeerTransport;
+  peerQuality?: ConnectionQuality;
+  localName: string;
+  opponentName: string;
   /** true: il video era già attivo ed è caduto (riconnessione, non prima connessione). */
   peerReconnecting?: boolean;
   /** true: ho una partita attiva da poter chiudere con una dichiarazione. */
@@ -36,6 +39,9 @@ export function MatchLiveHeader({
   peerState,
   peerError,
   peerTransport,
+  peerQuality,
+  localName,
+  opponentName,
   peerReconnecting = false,
   canDeclare = false,
   declareBusy = false,
@@ -44,6 +50,9 @@ export function MatchLiveHeader({
 }: MatchLiveHeaderProps) {
   const [playerA, playerB] = players;
   const [declareOpen, setDeclareOpen] = useState(false);
+  useEffect(() => {
+    if (!canDeclare) setDeclareOpen(false);
+  }, [canDeclare]);
 
   const confirmDeclare = (iWon: boolean) => {
     onDeclare?.(iWon);
@@ -89,6 +98,7 @@ export function MatchLiveHeader({
             state={peerState}
             error={peerError}
             transport={peerTransport}
+            quality={peerQuality}
             reconnecting={peerReconnecting}
           />
         )}
@@ -131,7 +141,7 @@ export function MatchLiveHeader({
               Chi ha vinto?
             </h2>
             <p className="mt-1.5 text-sm font-semibold text-white/65">
-              Scegli l&rsquo;esito per chiudere la partita. L&rsquo;avversario dovrà confermare.
+              Scegli il vincitore. Anche {opponentName} dovrà indicare lo stesso nome.
             </p>
             <div className="mt-6 flex flex-col gap-2.5">
               <button
@@ -140,7 +150,7 @@ export function MatchLiveHeader({
                 onClick={() => confirmDeclare(true)}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-gradient-to-b from-primary to-orange-600 px-6 text-sm font-black uppercase tracking-wide text-white shadow-[0_12px_28px_-10px_rgba(255,115,0,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95 disabled:opacity-50"
               >
-                Ho vinto io
+                Ha vinto {localName}
               </button>
               <button
                 type="button"
@@ -148,7 +158,7 @@ export function MatchLiveHeader({
                 onClick={() => confirmDeclare(false)}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white/10 px-6 text-sm font-black uppercase tracking-wide text-white ring-1 ring-white/20 transition hover:bg-white/15 active:scale-95 disabled:opacity-50"
               >
-                Ha vinto l&rsquo;avversario
+                Ha vinto {opponentName}
               </button>
               <button
                 type="button"

@@ -17,6 +17,7 @@ import { TableSeatModal } from './table-seat-modal';
 import { FriendConnectionModal } from './friend-connection-modal';
 import { LobbyTableList } from './lobby-table-list';
 import { AcceptMatchModal } from './accept-match-modal';
+import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
 
 interface LobbyPageProps {
   tournaments: Tournament[];
@@ -53,9 +54,22 @@ export function LobbyPage({
   const [approvalPhase, setApprovalPhase] = useState<'accepting' | 'declined' | null>(null);
   const [busy, startTransition] = useTransition();
   const myUsername = gamertag;
-  const tables = useMemo(
-    () => buildLobbyTables({ tournaments, userId: user.id }),
+  const monitoredTable = useMemo(
+    () => findMyTables(tournaments, user.id).find((table) => table.status === 'in_registrazione'),
     [tournaments, user.id],
+  );
+  const measuredQuality = useServerConnectionQuality(monitoredTable?.webcamSessionId);
+  const tables = useMemo(
+    () =>
+      buildLobbyTables({ tournaments, userId: user.id }).map((table) => ({
+        ...table,
+        seats: table.seats.map((seat) =>
+          seat.occupied && seat.isMe && measuredQuality
+            ? { ...seat, connection: measuredQuality }
+            : seat,
+        ) as LobbyTable['seats'],
+      })),
+    [tournaments, user.id, measuredQuality],
   );
 
   const goLiveTo = useCallback(
@@ -197,7 +211,11 @@ export function LobbyPage({
       // Sono già seduto altrove: non creo doppioni, riapro il mio tavolo.
       const mine = findMyTables(tournaments, user.id)[0];
       if (mine) {
-        setModal({ mode: 'host', tournamentId: mine.id });
+        if (table.tournament?.id === mine.id) {
+          setModal({ mode: 'host', tournamentId: mine.id });
+        } else {
+          setError(`Sei già seduto al tavolo di ${myUsername}. Alzati prima di cambiare sfida.`);
+        }
         return;
       }
 
@@ -224,11 +242,11 @@ export function LobbyPage({
         setConnectionModal({ mode: 'create' });
       }
     },
-    [tournaments, user.id],
+    [tournaments, user.id, myUsername],
   );
 
   const handleConnectionConfirm = useCallback(
-    (withFriend: boolean) => {
+    () => {
       if (!connectionModal) return;
       setError(null);
       if (connectionModal.mode === 'join') {
@@ -246,7 +264,7 @@ export function LobbyPage({
       }
 
       startTransition(async () => {
-        const res = await createTableAction(selection.format, selection.mode, withFriend);
+        const res = await createTableAction(selection.format, selection.mode);
         if (res.error || !res.createdId) {
           setError(res.error ?? 'Impossibile creare il tavolo.');
           return;
@@ -371,6 +389,13 @@ export function LobbyPage({
         error={error}
         myReady={myReady}
         opponentReady={opponentReady}
+        myConnection={
+          measuredQuality ??
+          approvalTarget?.participants.find((participant) => participant.id === user.id)?.connection
+        }
+        opponentConnection={
+          approvalTarget?.participants.find((participant) => participant.id !== user.id)?.connection
+        }
         onAccept={handleApprovalAccept}
         onLeave={handleApprovalLeave}
         onOpponentTimeout={() => setApprovalPhase('declined')}

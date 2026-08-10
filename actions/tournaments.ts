@@ -52,7 +52,6 @@ function mapApiError(err: unknown, fallback: string): TournamentActionState {
 export async function createTableAction(
   format: string,
   mode: string,
-  withFriend = false,
 ): Promise<TournamentActionState> {
   const session = await getSession();
   if (!session) {
@@ -64,7 +63,7 @@ export async function createTableAction(
     mode,
     bestOf: 'BO3',
     isPrivate: false,
-    withFriend,
+    withFriend: true,
     isTournament: false,
     enableScryfallCheck: false,
     enablePhysicalVerification: false,
@@ -174,7 +173,7 @@ export interface ActiveMatchStatus {
   /** 'unknown' su errore API: il chiamante non deve scartare il riferimento. */
   status: 'active' | 'inactive' | 'unknown';
   opponent?: string | null;
-  /** ISO: presente solo se IO sono il giocatore segnalato come disconnesso. */
+  /** ISO: finestra di riconnessione attiva per uno dei due giocatori. */
   graceDeadline?: string | null;
 }
 
@@ -195,8 +194,7 @@ export async function activeMatchStatusAction(
     if (!seated) return { status: 'inactive' };
     const opponent =
       tournament.participants.find((p) => p.id !== session.user.id)?.username ?? null;
-    const graceDeadline =
-      tournament.disconnectedUserId === session.user.id ? tournament.graceDeadline ?? null : null;
+    const graceDeadline = tournament.graceDeadline ?? null;
     return { status: 'active', opponent, graceDeadline };
   } catch {
     return { status: 'unknown' };

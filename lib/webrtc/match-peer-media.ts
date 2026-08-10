@@ -2,6 +2,8 @@
 
 import { fetchIceConfig } from './ice-config';
 import type { PeerTransport, SignalEnvelope } from './match-peer-types';
+import { classifyConnectionQuality } from './connection-quality';
+import type { ConnectionQuality } from '@/types/tournament';
 
 const MAX_VIDEO_BITRATE = 2_500_000;
 const TARGET_FPS = 30;
@@ -33,6 +35,60 @@ export async function detectTransport(pc: RTCPeerConnection): Promise<PeerTransp
   } catch {
     return 'unknown';
   }
+}
+
+export async function collectConnectionQuality(
+  pc: RTCPeerConnection,
+  transport: PeerTransport,
+): Promise<ConnectionQuality> {
+  let rttMs: number | undefined;
+  let jitterMs: number | undefined;
+  let packetsLost = 0;
+  let packetsReceived = 0;
+  try {
+    const stats = await pc.getStats();
+    let selectedPairId: string | undefined;
+    stats.forEach((report) => {
+      if (report.type === 'transport' && typeof report.selectedCandidatePairId === 'string') {
+        selectedPairId = report.selectedCandidatePairId;
+      }
+      if (!selectedPairId && report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
+        selectedPairId = report.id;
+      }
+      if (report.type === 'inbound-rtp' && !report.isRemote) {
+        if (typeof report.packetsLost === 'number') packetsLost += Math.max(0, report.packetsLost);
+        if (typeof report.packetsReceived === 'number') packetsReceived += Math.max(0, report.packetsReceived);
+        if (typeof report.jitter === 'number') {
+          jitterMs = Math.max(jitterMs ?? 0, Math.round(report.jitter * 1000));
+        }
+      }
+    });
+    const pair = selectedPairId ? stats.get(selectedPairId) : undefined;
+    if (typeof pair?.currentRoundTripTime === 'number') {
+      rttMs = Math.round(pair.currentRoundTripTime * 1000);
+    }
+  } catch {
+    /* il livello resta comunque diagnostico e verrà ricampionato */
+  }
+  const denominator = packetsLost + packetsReceived;
+  const packetLossPct = denominator > 0
+    ? Math.round((packetsLost / denominator) * 10_000) / 100
+    : undefined;
+  const normalizedTransport = transport === 'unknown' ? 'unknown' : transport;
+  return {
+    level: classifyConnectionQuality({
+      rttMs,
+      packetLossPct,
+      jitterMs,
+      online: pc.connectionState === 'connected',
+      transport: normalizedTransport,
+    }),
+    rttMs,
+    packetLossPct,
+    jitterMs,
+    transport: normalizedTransport,
+    checkedAt: new Date().toISOString(),
+  };
 }
 
 export async function newPeerConnection(

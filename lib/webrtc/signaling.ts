@@ -11,7 +11,7 @@
  */
 
 export type SignalRole = 'host' | 'guest';
-export type SignalKind = 'offer' | 'answer' | 'candidate' | 'bye';
+export type SignalKind = 'offer' | 'answer' | 'candidate' | 'bye' | 'offline';
 
 export interface SignalMessage {
   seq: number;
@@ -72,7 +72,7 @@ export class SignalingChannel {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ from: this.role, kind, data }),
-        keepalive: kind === 'bye',
+        keepalive: kind === 'bye' || kind === 'offline',
         redirect: 'error',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });

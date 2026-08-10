@@ -42,9 +42,8 @@ export function MatchIntroOverlay({
   const [drawIndex, setDrawIndex] = useState(0);
   const [seen, setSeen] = useState<boolean | null>(null);
 
-  const stablePlayers = useMemo(
+  const [stablePlayers] = useState(
     () => [...players].sort((a, b) => a.id.localeCompare(b.id)) as [Participant, Participant],
-    [], // escluso di proposito: vogliamo lo snapshot iniziale dei due partecipanti
   );
   const starter = useMemo(
     () => pickStartingPlayer(matchId ?? 'match', stablePlayers),

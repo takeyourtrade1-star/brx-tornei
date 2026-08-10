@@ -10,6 +10,7 @@ import {
 import type { Tournament, JoinTournamentResult } from '@/types/tournament';
 import type { Selection } from '@/lib/validations/selection';
 import type { CreateTournamentInput } from '@/lib/validations/tournament';
+import type { ConnectionQualityInput } from '@/lib/validations/connection-quality';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 
 const MAX_TOURNAMENT_RESPONSE_BYTES = 512 * 1024;
@@ -229,8 +230,8 @@ export async function postLeaveTournament(id: string): Promise<void> {
   }
 }
 
-/** Segnali di presenza P2P per il countdown di abbandono (90s, Requisiti 3+4):
- * identificati dalla webcam_session_id del match, non dal suo id. */
+/** Segnali locali di instabilità P2P con TTL: non assegnano risultati.
+ * Sono identificati dalla webcam_session_id del match, non dal suo id. */
 export async function postReportPeerLost(webcamSessionId: string): Promise<void> {
   const { ok, status, body } = await tournamentFetch(
     `/api/v1/matches/${encodeURIComponent(webcamSessionId)}/report-peer-lost`,
@@ -251,9 +252,30 @@ export async function postReportPeerAlive(webcamSessionId: string): Promise<void
   }
 }
 
-/** "Chi ha vinto?" (Requisito 2): dichiarazione simmetrica, prima richiesta o
- * risposta a quella dell'avversario. Identificato dal match id, non dalla
- * webcam_session_id: qui il chiamante ha già il match id nel contratto. */
+export async function postConnectionQuality(
+  webcamSessionId: string,
+  sample: ConnectionQualityInput,
+): Promise<void> {
+  const { ok, status, body } = await tournamentFetch(
+    `/api/v1/matches/${encodeURIComponent(webcamSessionId)}/connection-quality`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        quality: sample.level,
+        rtt_ms: sample.rttMs,
+        packet_loss_pct: sample.packetLossPct,
+        jitter_ms: sample.jitterMs,
+        transport: sample.transport,
+      }),
+    },
+  );
+  if (!ok) {
+    throw extractApiError(body, status, 'Impossibile registrare la qualità della connessione');
+  }
+}
+
+/** "Chi ha vinto?": proposta simmetrica; solo due scelte concordi chiudono.
+ * È identificata dal match id, non dalla webcam_session_id. */
 export async function postDeclareResult(matchId: string, winnerUserId: string): Promise<void> {
   const { ok, status, body } = await tournamentFetch(
     `/api/v1/matches/${encodeURIComponent(matchId)}/result`,

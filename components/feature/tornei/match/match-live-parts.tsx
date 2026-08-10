@@ -1,4 +1,6 @@
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
+import type { ConnectionQuality } from '@/types/tournament';
+import { connectionQualityLabel } from '@/lib/webrtc/connection-quality';
 import { cn } from '@/lib/utils';
 
 /**
@@ -16,17 +18,19 @@ export function ConnectionBadge({
   state,
   error,
   transport,
+  quality,
   reconnecting = false,
 }: {
   state: string;
   error: string | null;
   transport: PeerTransport;
+  quality?: ConnectionQuality;
   /** true: il video era già attivo ed è caduto → non è una prima connessione. */
   reconnecting?: boolean;
 }) {
   const live = state === 'connected';
   const failed = state === 'failed';
-  const liveLabel =
+  const transportLabel =
     transport === 'direct'
       ? 'Partita tra amici'
       : transport === 'relay'
@@ -54,7 +58,9 @@ export function ConnectionBadge({
               : 'animate-pulse bg-amber-300',
         )}
       />
-      {live ? liveLabel : reconnecting || error ? 'Riconnessione…' : 'Connessione…'}
+      {live
+        ? `${transportLabel} · ${connectionQualityLabel(quality)}`
+        : reconnecting || error ? 'Riconnessione…' : 'Connessione…'}
     </span>
   );
 }

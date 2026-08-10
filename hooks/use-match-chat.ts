@@ -17,12 +17,15 @@ interface UseMatchChatOptions {
 }
 
 export type MatchChatConnectionState = 'idle' | 'connecting' | 'connected' | 'error';
+export type MatchPeerPresence = 'unknown' | 'online' | 'offline';
 const MAX_RECONNECT_ATTEMPTS = 4;
+const PRESENCE_HEARTBEAT_MS = 3_000;
 
 export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
   const [messages, setMessages] = useState<MatchChatMessage[]>([]);
   const [connectionState, setConnectionState] = useState<MatchChatConnectionState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [opponentPresence, setOpponentPresence] = useState<MatchPeerPresence>('unknown');
   const [generation, setGeneration] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
@@ -58,6 +61,7 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
     sequence.current = 0;
     setMessages([]);
     setError(null);
+    setOpponentPresence('unknown');
   }, [active, matchId, userId]);
 
   useEffect(() => {
@@ -76,6 +80,7 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
 
     let cancelled = false;
     let reconnectTimer: number | null = null;
+    let heartbeatTimer: number | null = null;
     let ws: WebSocket | null = null;
     const reconnect = () => {
       if (cancelled || reconnectTimer || reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) return;
@@ -100,12 +105,28 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
         ws.onopen = () => {
           if (cancelled || !ws) return;
           ws.send(JSON.stringify({ ticket: capability.ticket }));
+          const heartbeat = () => {
+            if (ws?.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ event: 'presence' }));
+            }
+          };
+          heartbeat();
+          heartbeatTimer = window.setInterval(heartbeat, PRESENCE_HEARTBEAT_MS);
           reconnectAttempts.current = 0;
           setConnectionState('connected');
         };
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(String(event.data)) as Record<string, unknown>;
+            if (
+              data.event === 'presence' &&
+              typeof data.user_id === 'string' &&
+              data.user_id !== userId &&
+              typeof data.online === 'boolean'
+            ) {
+              setOpponentPresence(data.online ? 'online' : 'offline');
+              return;
+            }
             if (data.event !== 'chat' || typeof data.text !== 'string') return;
             const sender = typeof data.user_id === 'string' ? data.user_id : 'unknown';
             const sentAt = typeof data.sent_at === 'number' ? data.sent_at : Date.now();
@@ -118,6 +139,8 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
           if (!cancelled) setError('Connessione chat interrotta.');
         };
         ws.onclose = () => {
+          if (heartbeatTimer) window.clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
           if (cancelled) return;
           setConnectionState('error');
           setError('Chat disconnessa. Riconnessione in corso…');
@@ -135,10 +158,11 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
     return () => {
       cancelled = true;
       if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      if (heartbeatTimer) window.clearInterval(heartbeatTimer);
       ws?.close();
       if (wsRef.current === ws) wsRef.current = null;
     };
   }, [active, generation, matchId, nextId]);
 
-  return { messages, send, connectionState, error, retry };
+  return { messages, send, connectionState, error, retry, opponentPresence };
 }

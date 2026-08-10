@@ -156,14 +156,6 @@ export function WebcamLinkModal({
         className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end text-white shadow-2xl shadow-card2-end/60 sm:max-h-[90vh] sm:rounded-[1.75rem]`}
         style={{ animation: 'wl-in 0.28s cubic-bezier(0.16,1,0.3,1)' }}
       >
-        <style>{`
-          @keyframes wl-fade { from { opacity: 0 } to { opacity: 1 } }
-          @keyframes wl-in {
-            from { opacity: 0; transform: translateY(24px) scale(0.98); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-          }
-        `}</style>
-
         {/* Barra accento */}
         <div className="h-1 w-full shrink-0 bg-gradient-to-r from-[#FF7300] to-orange-500" aria-hidden />
 

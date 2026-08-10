@@ -18,8 +18,11 @@ import { useMatchTournamentRefresh } from '@/hooks/use-match-tournament-refresh'
 import { useMatchMediaState } from '@/hooks/use-match-media-state';
 import { useActiveMatchReference } from '@/hooks/use-active-match-reference';
 import { usePlayerWebcam } from '@/hooks/use-player-webcam';
+import { useMatchGapRecorder } from '@/hooks/use-match-gap-recorder';
+import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
 import type { PlaymatId } from '@/lib/playmats';
 import { clearActiveMatch } from '@/lib/active-match-storage';
+import { publicConfig } from '@/lib/public-config';
 import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchFullscreenArena } from './match-fullscreen-arena';
 import { MatchIntroOverlay } from './match-intro-overlay';
@@ -35,6 +38,7 @@ import {
 import { MatchReadyPanel } from './match-ready-panel';
 import { resolveMatchSides } from './match-players';
 import { MatchVideoGrid } from './match-video-grid';
+import { MatchGapProtectionNotice } from './match-gap-protection-notice';
 interface MatchLiveViewProps {
   tournament: Tournament;
   role: LiveViewRole;
@@ -67,6 +71,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     remoteStream,
     error: peerError,
     transport: peerTransport,
+    quality: peerQuality,
     reconnecting: peerReconnecting,
     retry: retryPeer,
     notifyLeave,
@@ -77,24 +82,39 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     localStream,
     allowDirect: tournament.withFriend === true,
   });
+  const fallbackQuality = useServerConnectionQuality(
+    isPlayer && started && !peerQuality ? peerSessionId : null,
+  );
+  const visiblePeerQuality = peerQuality ?? fallbackQuality;
+  const gapProtection = useMatchGapRecorder({
+    enabled: publicConfig.features.matchGapRecording,
+    active: isPlayer && started && tournament.matchStatus !== 'finished',
+    matchId: tournament.matchId,
+    webcamSessionId: peerSessionId,
+    userId,
+    peerState,
+    localStream,
+  });
   const peerConnecting =
     isPlayer && started && !remoteStream && peerState !== 'failed' && peerState !== 'idle';
 
-  // Requisito 2: il match è già 'finished' lato backend (close_match già
-  // eseguito alla prima dichiarazione) ma il torneo resta 'active' per tutta
-  // la finestra di reclamo — non è ancora l'esito finale, quindi non deve
-  // far scattare né il session-ended del signaling né matchEnded.
-  const resultClaimPending = tournament.matchStatus === 'finished' && tournament.resultStatus === 'claimed';
+  // La prima dichiarazione è solo una proposta: tavolo, video e chat restano
+  // attivi finché l'altro giocatore non indica lo stesso vincitore.
+  const resultClaimPending = tournament.resultStatus === 'claimed';
+  const resultReselectionRequired = tournament.resultReselectionRequired === true;
   const matchEnded =
     tournament.status === 'terminata' ||
-    (!resultClaimPending && isPlayer && (peerState === 'peer-left' || peerState === 'session-ended'));
-  // Esito autorevole (Requisiti 3+4): undefined finché il backend non l'ha
-  // ancora risolto, o per gli osservatori (per cui non ha senso).
+    (!resultClaimPending && tournament.matchStatus === 'finished');
+  // Un evento WebRTC locale non è una prova di abbandono e non chiude il
+  // match. L'esito è mostrato solo quando arriva dal contratto autorevole.
   const didIWin =
     isPlayer && tournament.winnerUserId ? tournament.winnerUserId === userId : undefined;
   const disconnectedIsMe = isPlayer && tournament.disconnectedUserId === userId;
   const iClaimedResult = resultClaimPending && tournament.resultClaimedBy === userId;
+  const showResultPanel = resultClaimPending || resultReselectionRequired;
   const resultCountdown = useGraceCountdown(tournament.resultClaimDeadline);
+  const disconnectCountdown = useGraceCountdown(tournament.graceDeadline);
+  const [reconnectGraceElapsed, setReconnectGraceElapsed] = useState(false);
   const ready = useMatchReady(tournament, userId);
   const leave = useLeaveMatch(tournament, async () => {
     clearActiveMatch(tournament.id);
@@ -165,6 +185,26 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     userId,
     active: isPlayer && !!tournament.matchId && tournament.status !== 'terminata',
   });
+  useEffect(() => {
+    if (chat.opponentPresence !== 'unknown') router.refresh();
+  }, [chat.opponentPresence, router]);
+  const hasReconnectDeadline = Boolean(tournament.graceDeadline);
+  useEffect(() => {
+    if (hasReconnectDeadline && disconnectCountdown !== null) {
+      setReconnectGraceElapsed(disconnectCountdown <= 0);
+    } else if (!peerReconnecting && chat.opponentPresence === 'online') {
+      setReconnectGraceElapsed(false);
+    }
+  }, [
+    chat.opponentPresence,
+    disconnectCountdown,
+    hasReconnectDeadline,
+    peerReconnecting,
+  ]);
+  const reconnectGraceActive = hasReconnectDeadline
+    ? disconnectCountdown === null || disconnectCountdown > 0
+    : !reconnectGraceElapsed &&
+      (peerReconnecting || chat.opponentPresence === 'offline');
   const life = useMatchLife({
     matchId: tournament.matchId,
     players,
@@ -191,7 +231,10 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     // Anche 'session-ended' (il backend ha già chiuso il match) deve
     // aggiornare subito, non solo il bye esplicito dell'avversario.
     peerLeft: peerState === 'peer-left' || peerState === 'session-ended',
-    graceCountdownActive: Boolean(tournament.graceDeadline) || Boolean(tournament.resultClaimDeadline),
+    graceCountdownActive:
+      Boolean(tournament.graceDeadline) ||
+      Boolean(tournament.resultClaimDeadline) ||
+      resultReselectionRequired,
   });
 
   useActiveMatchReference({
@@ -222,7 +265,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     : undefined;
   const visiblePeerError = peerReconnecting || peerState === 'peer-left' ? null : peerError;
   const visibleError = leave.error ?? webcamError ?? visiblePeerError ?? declareResult.error;
-  const showLiveNotices = !matchEnded && !resultClaimPending;
+  const showLiveNotices = !matchEnded;
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-content-2xl flex-1 flex-col overflow-y-auto px-4 py-3 sm:px-6">
@@ -236,8 +279,17 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
         peerState={peerState}
         peerError={peerError}
         peerTransport={peerTransport}
+        peerQuality={visiblePeerQuality}
+        localName={local.username}
+        opponentName={remote.username}
         peerReconnecting={peerReconnecting}
-        canDeclare={showLiveNotices && tournament.matchStatus === 'ongoing'}
+        canDeclare={
+          showLiveNotices &&
+          !resultClaimPending &&
+          !resultReselectionRequired &&
+          !reconnectGraceActive &&
+          tournament.matchStatus === 'ongoing'
+        }
         declareBusy={declareResult.declaring}
         onDeclare={declareResult.declare}
         onLeave={leave.leave}
@@ -279,8 +331,23 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
           disconnectedIsMe={disconnectedIsMe}
         />
       )}
+      {showLiveNotices && isPlayer && started && (
+        <MatchGapProtectionNotice snapshot={gapProtection} />
+      )}
       {showLiveNotices && visibleError && isPlayer && (
         <MatchErrorNotice message={visibleError} onRetry={visiblePeerError ? retryPeer : undefined} />
+      )}
+      {showResultPanel && !matchEnded && isPlayer && (
+        <MatchResultPendingPanel
+          awaitingMe={resultReselectionRequired && !resultClaimPending ? true : !iClaimedResult}
+          reselection={resultReselectionRequired}
+          remaining={resultCountdown}
+          reconnecting={reconnectGraceActive}
+          busy={declareResult.declaring}
+          localName={local.username}
+          opponentName={remote.username}
+          onDeclare={declareResult.declare}
+        />
       )}
 
       {opponentDeclined ? (
@@ -294,13 +361,6 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
           opponentLeft={isPlayer && peerState === 'peer-left'}
           didIWin={didIWin}
           endReason={tournament.endReason}
-        />
-      ) : resultClaimPending ? (
-        <MatchResultPendingPanel
-          awaitingMe={!iClaimedResult}
-          remaining={resultCountdown}
-          busy={declareResult.declaring}
-          onDeclare={declareResult.declare}
         />
       ) : (
       <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -340,7 +400,7 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
       )}
 
       <MatchFullscreenArena
-        open={fullscreenOpen && !matchEnded && !resultClaimPending}
+        open={fullscreenOpen && !matchEnded}
         localStream={localStream}
         remoteStream={remoteStream}
         localUsername={local.username}

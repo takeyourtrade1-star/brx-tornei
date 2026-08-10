@@ -773,3 +773,75 @@
   .match-intro-winner { animation-duration: 0.01ms; }
   .match-intro-progress { animation-duration: 1.65s; }
 }
+
+/* Animazioni componenti dichiarate nel foglio locale: gli elementi <style>
+   runtime restano vietati dalla CSP. */
+@keyframes wl-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wl-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes jt-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes jt-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.asso-eyes .asso-lid {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleY(1);
+}
+.asso-eyes--active .asso-lid { animation: asso-blink 4.2s ease-in-out infinite; }
+.asso-eyes--active .asso-gaze { animation: asso-gaze 2.6s ease-in-out infinite; }
+.asso-eyes--active .asso-glow { opacity: 1; }
+.asso-glow { opacity: 0; transition: opacity 0.3s ease; }
+@keyframes asso-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.08); }
+}
+@keyframes asso-gaze {
+  0%, 100% { transform: translateX(-2.4px); }
+  45%, 55% { transform: translateX(2.4px); }
+}
+
+@keyframes loading-bar {
+  0% { transform: scaleX(0); transform-origin: left; }
+  50% { transform: scaleX(0.7); transform-origin: left; }
+  100% { transform: scaleX(1); transform-origin: left; opacity: 0; }
+}
+@keyframes scanner-corner-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+@keyframes scanner-match-pop {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(1.04); }
+}
+@keyframes scanner-line {
+  0% { top: 8%; opacity: 0; }
+  15%, 85% { opacity: 1; }
+  100% { top: 92%; opacity: 0; }
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes flash-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes brx-tip-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes brx-shot-spin { to { transform: rotate(360deg); } }
+@keyframes onnx-indeterminate {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(350%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asso-eyes--active .asso-lid,
+  .asso-eyes--active .asso-gaze { animation: none; }
+}

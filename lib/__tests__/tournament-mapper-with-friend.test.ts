@@ -17,4 +17,34 @@ describe('mapTournamentFromApi with_friend', () => {
   it('usa la modalità protetta per default', () => {
     expect(mapTournamentFromApi(baseTournament)?.withFriend).toBe(false);
   });
+
+  it('mappa qualità connessione e secondo giro risultato', () => {
+    const mapped = mapTournamentFromApi({
+      ...baseTournament,
+      result_round: 2,
+      result_reselection_required: true,
+      participants: [
+        {
+          id: 'player-1',
+          username: 'Nick',
+          connection: {
+            level: 'fair',
+            rtt_ms: 182,
+            packet_loss_pct: 1.7,
+            transport: 'relay',
+            poor_samples: 2,
+          },
+        },
+      ],
+    });
+    expect(mapped?.participants[0]?.connection).toMatchObject({
+      level: 'fair',
+      rttMs: 182,
+      packetLossPct: 1.7,
+      transport: 'relay',
+      poorSamples: 2,
+    });
+    expect(mapped?.resultRound).toBe(2);
+    expect(mapped?.resultReselectionRequired).toBe(true);
+  });
 });

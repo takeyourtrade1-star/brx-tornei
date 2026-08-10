@@ -174,12 +174,14 @@ export const config = {
     refreshMaxAge: 60 * 60 * 24 * 30, // 30 giorni
   },
   app: publicConfig.app,
+  storage: publicConfig.storage,
   debug: {
     isDevelopment,
   },
   features: {
-    // No persistent write APIs exist yet. Ephemeral stores are development-only
-    // and must never masquerade as successful production persistence.
+    matchGapRecording: publicConfig.features.matchGapRecording,
+    // Deck/inventory writes do not exist yet. Their ephemeral stores are
+    // development-only and must not masquerade as production persistence.
     ephemeralDeckMutations:
       isDevelopment && process.env.ENABLE_EPHEMERAL_DECK_MUTATIONS === 'true',
     ephemeralInventoryMutations:

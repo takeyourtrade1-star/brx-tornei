@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config as appConfig } from '@/lib/config';
 import { buildLoginRedirectUrl } from '@/lib/auth/redirect';
+import { BRIDGE_NONCE_COOKIE } from '@/lib/auth/bridge-nonce';
 import { isCanonicalRequestHost } from '@/lib/security/canonical-origin';
 
 /**
@@ -28,6 +29,12 @@ function getTournamentWebSocketSource(): string | null {
   return appConfig.api.tournamentsWebSocketOrigin || null;
 }
 
+function getMatchGapUploadSource(): string | null {
+  return appConfig.features.matchGapRecording
+    ? appConfig.storage.matchGapUploadOrigin || null
+    : null;
+}
+
 export function isCanonicalRequestOrigin(
   requestHost: string | null,
   configuredSiteUrl = appConfig.app.siteUrl,
@@ -40,13 +47,19 @@ export function buildContentSecurityPolicy(nonce: string): string {
   const connectSources = [
     "'self'",
     getTournamentWebSocketSource(),
+    getMatchGapUploadSource(),
   ].filter((source): source is string => Boolean(source));
 
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'`,
     "script-src-attr 'none'",
-    "style-src 'self' 'unsafe-inline'",
+    // React usa ancora attributi style per dimensioni/avanzamento dinamici.
+    // Gli elementi <style>, che permetterebbero regole e selettori arbitrari,
+    // restano invece limitati ai soli fogli serviti dalla stessa origine.
+    "style-src 'self'",
+    "style-src-elem 'self'",
+    "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https://di0y87a9s8da9.cloudfront.net https://cards.scryfall.io https://svgs.scryfall.io",
     "font-src 'self' data:",
     "media-src 'self' blob:",
@@ -115,10 +128,23 @@ export function middleware(request: NextRequest) {
 
   const url = new URL(request.nextUrl.pathname, appConfig.app.siteUrl);
 
-  if (request.cookies.has(REFRESH_COOKIE)) {
+  const fetchSite = request.headers.get('sec-fetch-site');
+  const refreshNavigationAllowed =
+    fetchSite === null || fetchSite === 'none' || fetchSite === 'same-origin';
+  if (request.cookies.has(REFRESH_COOKIE) && refreshNavigationAllowed) {
+    const bridgeNonce = crypto.randomUUID().replaceAll('-', '');
     url.pathname = '/auth/bridge';
-    url.search = `?next=${encodeURIComponent(`${pathname}${search}`)}`;
-    return createPageResponse(request, () => NextResponse.redirect(url));
+    url.searchParams.set('next', `${pathname}${search}`);
+    url.searchParams.set('nonce', bridgeNonce);
+    const response = createPageResponse(request, () => NextResponse.redirect(url));
+    response.cookies.set(BRIDGE_NONCE_COOKIE, bridgeNonce, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60,
+    });
+    return response;
   }
 
   url.pathname = '/login';

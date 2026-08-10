@@ -25,7 +25,7 @@ export function LobbySeat({
       className={cn(
         'flex min-w-0 items-center rounded-2xl border text-left',
         compact
-          ? 'min-h-[4.25rem] gap-2 p-2'
+          ? 'min-h-11 gap-1.5 rounded-xl px-2 py-1'
           : 'min-h-[5.25rem] gap-2.5 p-2.5 sm:gap-3 sm:p-3.5',
         light
           ? occupied
@@ -72,7 +72,7 @@ export function LobbySeat({
         </span>
         <span
           className={cn(
-            'mt-1 block truncate font-black',
+            'block truncate font-black',
             compact ? 'text-xs sm:text-sm' : 'text-xs sm:text-base',
             light
               ? occupied
@@ -101,11 +101,12 @@ export function LobbySeat({
   );
 }
 
-export function VersusBadge({ light = false }: { light?: boolean }) {
+export function VersusBadge({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
   return (
     <span
       className={cn(
-        'grid h-9 w-9 shrink-0 place-items-center rounded-full border text-[10px] font-black uppercase tracking-wider',
+        'grid shrink-0 place-items-center rounded-full border font-black uppercase tracking-wider',
+        compact ? 'h-7 w-7 text-[8px]' : 'h-9 w-9 text-[10px]',
         light
           ? 'border-slate-900/[0.08] bg-white text-slate-400 shadow-sm'
           : 'border-white/15 bg-card2-end/70 text-white/55 shadow-sm',

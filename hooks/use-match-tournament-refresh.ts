@@ -8,7 +8,7 @@ interface MatchTournamentRefreshOptions {
   status: TournamentStatus;
   tableFull: boolean;
   peerLeft: boolean;
-  /** Un countdown di abbandono (grace_deadline) è attivo: stringe il poll. */
+  /** Una scadenza P2P o una proposta risultato è attiva: stringe il poll. */
   graceCountdownActive?: boolean;
 }
 

@@ -9,6 +9,7 @@ import {
   middleware,
 } from '@/middleware';
 import { isCanonicalRequestHost } from '@/lib/security/canonical-origin';
+import { BRIDGE_NONCE_COOKIE } from '@/lib/auth/bridge-nonce';
 
 describe('middleware CSP', () => {
   it('usa nonce e WebAssembly ristretto senza unsafe-inline/eval per gli script', () => {
@@ -18,12 +19,19 @@ describe('middleware CSP', () => {
       "script-src 'self' 'nonce-abc123' 'strict-dynamic' 'wasm-unsafe-eval'",
     );
     expect(csp).toContain("script-src-attr 'none'");
+    expect(csp).toContain("style-src 'self'");
+    expect(csp).toContain("style-src-elem 'self'");
+    expect(csp).toContain("style-src-attr 'unsafe-inline'");
+    expect(csp).not.toMatch(/style-src(?!-(?:elem|attr))[^;]*'unsafe-inline'/);
     expect(csp).toContain("object-src 'none'");
     expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/);
     expect(csp).not.toContain("'unsafe-eval'");
     expect(csp).not.toContain('connect-src https:');
     expect(csp).not.toContain('connect-src wss:');
-    expect(csp).not.toContain('amazonaws.com');
+    expect(csp).toContain(
+      'https://tournaments-000876600482-eu-south-1-match-gaps.s3.eu-south-1.amazonaws.com',
+    );
+    expect(csp).not.toContain('*.amazonaws.com');
     expect(csp).not.toContain('*.cloudfront.net');
     expect(csp).not.toContain('*.scryfall.io');
   });
@@ -66,6 +74,33 @@ describe('middleware CSP', () => {
     expect(response.headers.get('cache-control')).toBe(
       'private, no-store, max-age=0',
     );
+  });
+
+  it('emette un nonce monouso solo per refresh navigation non cross-site', () => {
+    const sameOrigin = middleware(
+      new NextRequest('https://tornei.ebartex.com/tornei', {
+        headers: {
+          cookie: '__Host-ebartex_refresh_token=refresh-token',
+          'sec-fetch-site': 'same-origin',
+        },
+      }),
+    );
+    expect(sameOrigin.headers.get('location')).toMatch(
+      /\/auth\/bridge\?next=%2Ftornei&nonce=[a-f0-9]{32}/,
+    );
+    expect(sameOrigin.headers.get('set-cookie')).toContain(`${BRIDGE_NONCE_COOKIE}=`);
+
+    const crossSite = middleware(
+      new NextRequest('https://tornei.ebartex.com/tornei', {
+        headers: {
+          cookie: '__Host-ebartex_refresh_token=refresh-token',
+          'sec-fetch-site': 'cross-site',
+        },
+      }),
+    );
+    expect(crossSite.headers.get('location')).toContain('/login');
+    expect(crossSite.headers.get('location')).not.toContain('/auth/bridge');
+    expect(crossSite.headers.get('set-cookie')).toBeNull();
   });
 
   it('rifiuta host poisoning rispetto all host canonico', () => {

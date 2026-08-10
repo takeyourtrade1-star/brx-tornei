@@ -4,8 +4,21 @@ import { clearSessionCookies, getRefreshToken, setSessionCookies } from '@/lib/a
 import { buildLoginRedirectUrl, sanitizeRedirect } from '@/lib/auth/redirect';
 import type { TokenResponse } from '@/types/auth';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+import { BRIDGE_NONCE_COOKIE } from '@/lib/auth/bridge-nonce';
 
 export const dynamic = 'force-dynamic';
+
+function redirectWithoutBridgeNonce(url: URL) {
+  const response = NextResponse.redirect(url);
+  response.cookies.set(BRIDGE_NONCE_COOKIE, '', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 0,
+  });
+  return response;
+}
 
 /**
  * Refresh bridge locale (vedi ARCHITECTURE.md §2.2).
@@ -18,10 +31,21 @@ export async function GET(request: NextRequest) {
   const loginUrl = new URL('/login', config.app.siteUrl);
   loginUrl.search = buildLoginRedirectUrl(next, '');
 
+  const nonce = request.nextUrl.searchParams.get('nonce');
+  const nonceCookie = request.cookies.get(BRIDGE_NONCE_COOKIE)?.value;
+  if (
+    !nonce ||
+    !nonceCookie ||
+    !/^[a-f0-9]{32}$/.test(nonce) ||
+    nonce !== nonceCookie
+  ) {
+    return redirectWithoutBridgeNonce(loginUrl);
+  }
+
   const refreshToken = await getRefreshToken();
 
   if (!refreshToken || !config.api.baseURL) {
-    return NextResponse.redirect(loginUrl);
+    return redirectWithoutBridgeNonce(loginUrl);
   }
 
   try {
@@ -53,12 +77,12 @@ export async function GET(request: NextRequest) {
       if (res.status >= 400 && res.status < 500) {
         await clearSessionCookies();
       }
-      return NextResponse.redirect(loginUrl);
+      return redirectWithoutBridgeNonce(loginUrl);
     }
 
     await setSessionCookies(body as unknown as TokenResponse);
-    return NextResponse.redirect(new URL(next, config.app.siteUrl));
+    return redirectWithoutBridgeNonce(new URL(next, config.app.siteUrl));
   } catch {
-    return NextResponse.redirect(loginUrl);
+    return redirectWithoutBridgeNonce(loginUrl);
   }
 }

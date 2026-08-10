@@ -2,18 +2,23 @@
 
 import { getSession } from '@/lib/auth/session';
 import {
+  postConnectionQuality,
   postDeclareResult,
   postReportPeerAlive,
   postReportPeerLost,
   TournamentApiError,
 } from '@/lib/data/tournament-api-client';
+import {
+  connectionQualitySchema,
+  type ConnectionQualityInput,
+} from '@/lib/validations/connection-quality';
 
 /**
- * Segnali di presenza P2P per il countdown di abbandono lato backend (90s):
+ * Segnali locali di instabilità P2P con scadenza lato backend:
  * chiamati automaticamente dal link WebRTC (vedi use-match-peer-connection.ts),
  * non da un'azione dell'utente. Best-effort: un fallimento qui non deve mai
- * interrompere la partita in corso, il backend converge comunque tramite lo
- * sweep periodico (vedi CORREZIONE 1 nel piano).
+ * interrompere la partita in corso. Non assegnano risultati o penalità: lo
+ * sweep periodico rimuove soltanto i segnali scaduti.
  */
 export async function reportPeerLostAction(webcamSessionId: string): Promise<void> {
   const session = await getSession();
@@ -35,8 +40,25 @@ export async function reportPeerAliveAction(webcamSessionId: string): Promise<vo
   }
 }
 
+/** Campione diagnostico autenticato. È best-effort e non può assegnare esiti. */
+export async function reportConnectionQualityAction(
+  webcamSessionId: string,
+  sample: ConnectionQualityInput,
+): Promise<void> {
+  const session = await getSession();
+  if (!session) return;
+  const parsed = connectionQualitySchema.safeParse(sample);
+  if (!parsed.success || !webcamSessionId) return;
+  try {
+    await postConnectionQuality(webcamSessionId, parsed.data);
+  } catch {
+    /* Il monitor riprova al campione successivo. */
+  }
+}
+
 export interface DeclareResultActionState {
   error?: string;
+  errorCode?: string;
 }
 
 /**
@@ -57,7 +79,9 @@ export async function declareResultAction(
     await postDeclareResult(matchId, winnerUserId);
     return {};
   } catch (err) {
-    if (err instanceof TournamentApiError) return { error: err.message };
+    if (err instanceof TournamentApiError) {
+      return { error: err.message, errorCode: err.code };
+    }
     return { error: 'Impossibile dichiarare il risultato' };
   }
 }

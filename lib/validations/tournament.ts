@@ -9,12 +9,9 @@ export const createTournamentSchema = selectionSchema.omit({ format: true }).ext
     (val) => val === true || val === 'true' || val === 'on',
     z.boolean().default(false),
   ),
-  // "Giochi con un amico?": true = P2P diretto (IP visibili tra i due peer,
-  // zero costo relay); false = video forzato sul TURN (IP oscurati).
-  withFriend: z.preprocess(
-    (val) => val === true || val === 'true' || val === 'on',
-    z.boolean().default(false),
-  ),
+  // Per ora resta solo "Sfida i tuoi amici": il server action invia sempre
+  // true e il backend rifiuta la modalità normale.
+  withFriend: z.literal(true),
   isTournament: z.preprocess(
     (val) => val === true || val === 'true' || val === 'on',
     z.boolean().default(false),

@@ -1,4 +1,11 @@
-import type { BestOf, BuyIn, Participant, Tournament, TournamentStatus } from '@/types/tournament';
+import type {
+  BestOf,
+  BuyIn,
+  ConnectionQuality,
+  Participant,
+  Tournament,
+  TournamentStatus,
+} from '@/types/tournament';
 import type { FormatId, ModeId } from '@/lib/data/catalog';
 
 const VALID_STATUS: TournamentStatus[] = ['in_registrazione', 'iniziata', 'terminata'];
@@ -28,6 +35,14 @@ function pickBool(obj: Record<string, unknown>, ...keys: string[]): boolean | un
   return undefined;
 }
 
+function pickNumber(obj: Record<string, unknown>, ...keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return undefined;
+}
+
 function pickEnum<T extends string>(
   obj: Record<string, unknown>,
   valid: readonly T[],
@@ -43,7 +58,33 @@ function mapParticipant(raw: unknown): Participant | null {
   const id = pickString(obj, 'id', 'user_id');
   const username = pickString(obj, 'username', 'name');
   if (!id || !username) return null;
-  return { id, username, ready: pickBool(obj, 'ready', 'is_ready') ?? false };
+  const connectionObj = asRecord(obj.connection);
+  let connection: ConnectionQuality | undefined;
+  if (connectionObj) {
+    const level = pickString(connectionObj, 'level');
+    const transport = pickString(connectionObj, 'transport');
+    if (
+      (level === 'good' || level === 'fair' || level === 'poor') &&
+      (transport === 'server' || transport === 'direct' || transport === 'relay' || transport === 'unknown')
+    ) {
+      connection = {
+        level,
+        transport,
+        rttMs: pickNumber(connectionObj, 'rtt_ms', 'rttMs'),
+        packetLossPct: pickNumber(connectionObj, 'packet_loss_pct', 'packetLossPct'),
+        jitterMs: pickNumber(connectionObj, 'jitter_ms', 'jitterMs'),
+        checkedAt: pickString(connectionObj, 'checked_at', 'checkedAt'),
+        poorSamples: pickNumber(connectionObj, 'poor_samples', 'poorSamples'),
+        lastPoorAt: pickString(connectionObj, 'last_poor_at', 'lastPoorAt'),
+      };
+    }
+  }
+  return {
+    id,
+    username,
+    ready: pickBool(obj, 'ready', 'is_ready') ?? false,
+    connection,
+  };
 }
 
 function mapParticipants(raw: unknown): Participant[] {
@@ -130,6 +171,9 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     resultClaimDeadline: pickString(obj, 'result_claim_deadline', 'resultClaimDeadline'),
     resultClaimedBy: pickString(obj, 'result_claimed_by', 'resultClaimedBy'),
     resultClaimedWinner: pickString(obj, 'result_claimed_winner', 'resultClaimedWinner'),
+    resultRound: pickNumber(obj, 'result_round', 'resultRound'),
+    resultReselectionRequired:
+      pickBool(obj, 'result_reselection_required', 'resultReselectionRequired') ?? false,
   };
 }
 

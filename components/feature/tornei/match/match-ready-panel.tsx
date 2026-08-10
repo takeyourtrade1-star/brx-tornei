@@ -5,6 +5,7 @@ import { CheckCircle2, Heart, Hourglass, Swords, X } from 'lucide-react';
 import type { Participant } from '@/types/tournament';
 import { STARTING_LIFE_OPTIONS } from '@/lib/match-life-protocol';
 import { cn } from '@/lib/utils';
+import { ConnectionQualityBadge } from '../connection-quality-badge';
 
 /** Finestra globale di accettazione (stile League): parte con il tavolo pieno. */
 const ACCEPT_WINDOW_SECONDS = 30;
@@ -99,14 +100,14 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
           </span>
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-              Avversario trovato
+              {remote.username} trovato
             </p>
             <h1 className="mt-0.5 font-sans text-lg font-black tracking-tight text-white sm:text-xl">
               Sei pronto?
             </h1>
             <p className="mt-0.5 text-xs font-semibold text-white/70">
               {myReady
-                ? 'In attesa che l\'avversario confermi…'
+                ? `In attesa che ${remote.username} confermi…`
                 : 'Hai fino a 30 secondi. Se non confermi, il tavolo verrà chiuso automaticamente.'}
             </p>
           </div>
@@ -130,11 +131,16 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
       <div className="relative mt-4 grid gap-3 sm:grid-cols-2">
         <ReadyConfirmation
           username={local.username}
+          connection={local.connection}
           ready={myReady}
           isMe
           pending={pending}
         />
-        <ReadyConfirmation username={remote.username} ready={opponentReady} />
+        <ReadyConfirmation
+          username={remote.username}
+          connection={remote.connection}
+          ready={opponentReady}
+        />
       </div>
 
       <div className="relative mt-3 rounded-xl border border-white/15 bg-white/[0.07] px-3 py-2">
@@ -199,11 +205,13 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
 
 function ReadyConfirmation({
   username,
+  connection,
   ready,
   isMe = false,
   pending = false,
 }: {
   username: string;
+  connection?: Participant['connection'];
   ready: boolean;
   isMe?: boolean;
   pending?: boolean;
@@ -219,6 +227,7 @@ function ReadyConfirmation({
     >
       <div className="min-w-0">
         <p className="truncate text-sm font-black text-white">{username}</p>
+        <ConnectionQualityBadge connection={connection} dark />
         <p className={cn('mt-0.5 text-[10px] font-black uppercase tracking-wider', ready ? 'text-emerald-300' : 'text-white/70')}>
           {ready
             ? 'Confermato'

@@ -15,11 +15,27 @@ export interface ParticipantDeck {
   verified?: boolean;
 }
 
+export type ConnectionQualityLevel = 'good' | 'fair' | 'poor';
+export type ConnectionTransport = 'server' | 'direct' | 'relay' | 'unknown';
+
+export interface ConnectionQuality {
+  level: ConnectionQualityLevel;
+  rttMs?: number;
+  packetLossPct?: number;
+  jitterMs?: number;
+  transport: ConnectionTransport;
+  checkedAt?: string;
+  poorSamples?: number;
+  lastPoorAt?: string;
+}
+
 export interface Participant {
   id: string;
   username: string;
   /** Ready check: true quando il giocatore ha premuto "Pronto". */
   ready?: boolean;
+  /** Ultimo controllo diagnostico; non determina mai l'esito della partita. */
+  connection?: ConnectionQuality;
   /** Mazzo usato in partita — popolato dal backend quando disponibile. */
   deck?: ParticipantDeck;
 }
@@ -51,12 +67,12 @@ export interface Tournament {
   createdById?: string;
   /** Stato del match corrente lato backend. */
   matchStatus?: 'ongoing' | 'finished';
-  /** Causa di chiusura: forfeit volontario, timeout abbandono (90s), dichiarazione. */
+  /** Causa di chiusura: forfeit volontario, cleanup neutro, dichiarazione concorde. */
   endReason?: 'leave' | 'timeout' | 'reported' | 'disputed';
   winnerUserId?: string;
-  /** Il giocatore segnalato come disconnesso dal link P2P (report-peer-lost). */
+  /** Solo per il viewer: il suo client ha registrato una perdita del peer P2P. */
   disconnectedUserId?: string;
-  /** ISO: istante oltre il quale l'abbandono diventa forfeit automatico. */
+  /** ISO: istante oltre il quale il segnale P2P locale viene rimosso. */
   graceDeadline?: string;
   resultStatus?: 'claimed' | 'settled';
   resultClaimDeadline?: string;
@@ -64,6 +80,9 @@ export interface Tournament {
   resultClaimedBy?: string;
   /** Chi la prima dichiarazione indica come vincitore. */
   resultClaimedWinner?: string;
+  /** 1 = prima scelta; 2 = seconda scelta richiesta dopo un disaccordo. */
+  resultRound?: number;
+  resultReselectionRequired?: boolean;
 }
 
 /** Risultato join torneo (può avviare un match). */

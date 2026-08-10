@@ -1,13 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { reportPeerAliveAction, reportPeerLostAction } from '@/actions/matches';
+import {
+  reportConnectionQualityAction,
+  reportPeerAliveAction,
+  reportPeerLostAction,
+} from '@/actions/matches';
 import {
   createMatchPeerLink,
   type PeerLinkState,
   type PeerRole,
   type PeerTransport,
 } from '@/lib/webrtc/match-peer-link';
+import type { ConnectionQuality } from '@/types/tournament';
 
 interface UseMatchPeerConnectionOptions {
   sessionId?: string | null;
@@ -37,12 +42,17 @@ export function useMatchPeerConnection({
   const [transport, setTransport] = useState<PeerTransport>('unknown');
   const [generation, setGeneration] = useState(0);
   const [everConnected, setEverConnected] = useState(false);
+  const [quality, setQuality] = useState<ConnectionQuality>();
+  const [relayFallback, setRelayFallback] = useState(false);
   const ctrlRef = useRef<ReturnType<typeof createMatchPeerLink> | null>(null);
+  const qualityRef = useRef<ConnectionQuality>();
   const automaticRetries = useRef(0);
 
   const clearConnectionState = useCallback(() => {
     setRemoteStream(null);
     setTransport('unknown');
+    setQuality(undefined);
+    qualityRef.current = undefined;
     setState('idle');
   }, []);
 
@@ -54,6 +64,7 @@ export function useMatchPeerConnection({
 
   const retry = useCallback(() => {
     automaticRetries.current = 0;
+    setRelayFallback(false);
     setError(null);
     setGeneration((current) => current + 1);
   }, []);
@@ -73,7 +84,7 @@ export function useMatchPeerConnection({
     setError(null);
     setState('connecting');
 
-    const ctrl = createMatchPeerLink(sessionId, role, localStream, allowDirect, {
+    const ctrl = createMatchPeerLink(sessionId, role, localStream, allowDirect && !relayFallback, {
       onState: (nextState) => {
         if (nextState === 'connected') setEverConnected(true);
         setState(nextState);
@@ -83,7 +94,24 @@ export function useMatchPeerConnection({
       onSessionEnded: () => setRemoteStream(null),
       onError: setError,
       onTransport: setTransport,
+      onQuality: (sample) => {
+        qualityRef.current = sample;
+        setQuality(sample);
+        void reportConnectionQualityAction(sessionId, sample);
+      },
       onPeerLost: () => {
+        const current = qualityRef.current;
+        const degraded: ConnectionQuality = {
+          level: 'poor',
+          rttMs: current?.rttMs,
+          packetLossPct: current?.packetLossPct,
+          jitterMs: current?.jitterMs,
+          transport: current?.transport ?? 'unknown',
+          checkedAt: new Date().toISOString(),
+        };
+        qualityRef.current = degraded;
+        setQuality(degraded);
+        void reportConnectionQualityAction(sessionId, degraded);
         void reportPeerLostAction(sessionId);
       },
       onPeerAlive: () => {
@@ -92,15 +120,20 @@ export function useMatchPeerConnection({
     });
     ctrlRef.current = ctrl;
     ctrl.start();
+    const notifyPageExit = () => {
+      void ctrl.notifyOffline();
+    };
+    window.addEventListener('pagehide', notifyPageExit);
 
     return () => {
+      window.removeEventListener('pagehide', notifyPageExit);
       ctrl.stop();
       if (ctrlRef.current === ctrl) {
         ctrlRef.current = null;
         clearConnectionState();
       }
     };
-  }, [active, sessionId, role, localStream, videoTrackId, allowDirect, clearConnectionState, stop, generation]);
+  }, [active, sessionId, role, localStream, videoTrackId, allowDirect, relayFallback, clearConnectionState, stop, generation]);
 
   useEffect(() => {
     if (state === 'connected') automaticRetries.current = 0;
@@ -108,6 +141,11 @@ export function useMatchPeerConnection({
 
   useEffect(() => {
     if (!active || state !== 'failed') return;
+    if (allowDirect && !relayFallback) {
+      setError('Connessione diretta instabile: attivo il fallback relay…');
+      setRelayFallback(true);
+      return;
+    }
     automaticRetries.current += 1;
     if (automaticRetries.current > MAX_AUTOMATIC_RETRIES) return;
     const delay = Math.min(automaticRetries.current * 1_500, 12_000);
@@ -116,11 +154,12 @@ export function useMatchPeerConnection({
       setGeneration((current) => current + 1);
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [active, state]);
+  }, [active, allowDirect, relayFallback, state]);
 
   useEffect(() => {
     setEverConnected(false);
     automaticRetries.current = 0;
+    setRelayFallback(false);
   }, [active, sessionId]);
 
   const reconnecting =
@@ -130,5 +169,5 @@ export function useMatchPeerConnection({
       state === 'connecting' ||
       state === 'waiting');
 
-  return { state, remoteStream, error, transport, reconnecting, retry, notifyLeave };
+  return { state, remoteStream, error, transport, quality, reconnecting, retry, notifyLeave };
 }

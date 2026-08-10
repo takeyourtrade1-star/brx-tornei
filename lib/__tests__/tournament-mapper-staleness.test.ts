@@ -26,8 +26,8 @@ describe('tournament mapper activity timestamp', () => {
   });
 });
 
-describe('tournament mapper disconnessione/abbandono (Requisiti 3+4)', () => {
-  it('maps the disconnect countdown fields when a peer is flagged as lost', () => {
+describe('tournament mapper stato P2P e cleanup neutro', () => {
+  it('maps the local reconnect expiry fields', () => {
     const tournament = mapTournamentFromApi({
       ...base,
       match_status: 'ongoing',
@@ -40,18 +40,17 @@ describe('tournament mapper disconnessione/abbandono (Requisiti 3+4)', () => {
     expect(tournament?.graceDeadline).toBe('2026-07-22T10:01:30+00:00');
   });
 
-  it('maps a settled abandonment outcome', () => {
+  it('maps a neutral stale-table closure without inventing a winner', () => {
     const tournament = mapTournamentFromApi({
       ...base,
       match_status: 'finished',
       end_reason: 'timeout',
-      winner_user_id: 'user-1',
       result_status: 'settled',
     });
 
     expect(tournament?.matchStatus).toBe('finished');
     expect(tournament?.endReason).toBe('timeout');
-    expect(tournament?.winnerUserId).toBe('user-1');
+    expect(tournament?.winnerUserId).toBeUndefined();
     expect(tournament?.resultStatus).toBe('settled');
   });
 
@@ -74,25 +73,25 @@ describe('tournament mapper disconnessione/abbandono (Requisiti 3+4)', () => {
   });
 });
 
-describe('tournament mapper dichiarazione risultato (Requisito 2)', () => {
+describe('tournament mapper dichiarazione risultato concorde', () => {
   it('maps the claimed-result fields once a player declares', () => {
     const tournament = mapTournamentFromApi({
       ...base,
-      match_status: 'finished',
+      match_status: 'ongoing',
       result_status: 'claimed',
       result_claimed_by: 'user-1',
       result_claimed_winner: 'user-1',
       result_claim_deadline: '2026-07-22T10:00:45+00:00',
     });
 
-    expect(tournament?.matchStatus).toBe('finished');
+    expect(tournament?.matchStatus).toBe('ongoing');
     expect(tournament?.resultStatus).toBe('claimed');
     expect(tournament?.resultClaimedBy).toBe('user-1');
     expect(tournament?.resultClaimedWinner).toBe('user-1');
     expect(tournament?.resultClaimDeadline).toBe('2026-07-22T10:00:45+00:00');
   });
 
-  it('maps a disputed outcome with no winner', () => {
+  it('keeps legacy disputed outcomes readable without a winner', () => {
     const tournament = mapTournamentFromApi({
       ...base,
       match_status: 'finished',

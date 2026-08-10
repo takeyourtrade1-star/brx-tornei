@@ -118,10 +118,10 @@ export function LobbyTableList({
                 {formatName} · {modeName}
               </p>
               <h1 className="mt-1 font-sans text-xl font-black tracking-tight text-header-bg sm:text-2xl">
-                Partite disponibili
+                Sfida i tuoi amici
               </h1>
               <p className="mt-1 text-sm font-semibold text-header-bg/55">
-                Scegli un tavolo libero oppure entra in una sfida già aperta.
+                Gioca in P2P e divertiti.
               </p>
             </div>
             <span className="rounded-full border border-header-bg/10 bg-slate-50/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-header-bg/65">

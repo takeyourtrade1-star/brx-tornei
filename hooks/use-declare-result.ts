@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import { declareResultAction } from '@/actions/matches';
 import type { Tournament } from '@/types/tournament';
 
-/** "Chi ha vinto?" (Requisito 2): dichiara se stessi o l'avversario come
- * vincitore. Lo stato risultante (claimed/settled) arriva dal prossimo poll
- * del contratto torneo — qui basta un router.refresh() dopo l'azione. */
+/** "Chi ha vinto?": propone se stessi o l'avversario. Il backend registra
+ * l'esito solo quando l'altro giocatore indica lo stesso vincitore. */
 export function useDeclareResult(tournament: Tournament, userId: string, opponentId: string) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +20,7 @@ export function useDeclareResult(tournament: Tournament, userId: string, opponen
       const res = await declareResultAction(matchId, iWon ? userId : opponentId);
       if (res.error) {
         setError(res.error);
+        if (res.errorCode === 'RESULT_RESELECT_REQUIRED') router.refresh();
         return;
       }
       router.refresh();

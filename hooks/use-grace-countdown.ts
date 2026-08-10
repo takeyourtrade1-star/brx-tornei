@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 /**
  * Secondi rimanenti fino a `deadlineIso`, o null se assente/scaduto. Ricalcola
- * ogni secondo — usato per il countdown di abbandono (90s, Requisiti 3+4).
+ * ogni secondo — usato per scadenze di riconnessione e proposta risultato.
  */
 export function useGraceCountdown(deadlineIso?: string | null): number | null {
   const [now, setNow] = useState<number | null>(null);
