@@ -94,10 +94,12 @@ export function LobbyPage({
       }
     }
     // Poll sempre attivo (anche senza tavoli miei): un nuovo tavolo creato
-    // da altri deve comparire subito, senza reload manuale.
+    // da altri deve comparire senza reload manuale. Il margine di 10 secondi,
+    // insieme alla lista aggregata in una sola chiamata, resta ben sotto la
+    // quota per utente anche con più tab aperte.
     const iv = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
-    }, 3000);
+    }, 10_000);
     return () => clearInterval(iv);
   }, [tournaments, user.id, router, goLiveTo, selection.format, selection.mode]);
 
