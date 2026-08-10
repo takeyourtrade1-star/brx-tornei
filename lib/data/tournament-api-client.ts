@@ -71,33 +71,50 @@ export async function tournamentFetch(
     throw new TournamentApiError('Percorso Tournament API non valido', 500, 'INVALID_PATH');
   }
   const url = new URL(path, base).toString();
-  try {
-    const res = await fetch(url, {
-      ...init,
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        'Accept-Encoding': 'identity',
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...init.headers,
-      },
-      cache: 'no-store',
-      redirect: 'error',
-      signal: init.signal ?? AbortSignal.timeout(config.api.timeout),
-    });
+  const method = (init.method ?? 'GET').toUpperCase();
+  // Le letture alimentano direttamente gli RSC: un singolo reset di rete o un
+  // 5xx durante un rolling deploy non deve trasformarsi nella pagina generica
+  // "Application error". Ritentiamo soltanto i GET, quindi mai le mutazioni.
+  const attempts = method === 'GET' ? 2 : 1;
 
-    const body = await readBoundedResponseJson(
-      res,
-      MAX_TOURNAMENT_RESPONSE_BYTES,
-    ).catch(() => ({}));
-    return { ok: res.ok, status: res.status, body };
-  } catch (err) {
-    const message =
-      err instanceof Error && err.name === 'TimeoutError'
-        ? 'Il Tournament Service non risponde (timeout).'
-        : 'Impossibile contattare il Tournament Service.';
-    throw new TournamentApiError(message, 503, 'API_UNAVAILABLE');
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const res = await fetch(url, {
+        ...init,
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          'Accept-Encoding': 'identity',
+          ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+          ...init.headers,
+        },
+        cache: 'no-store',
+        redirect: 'error',
+        signal: init.signal ?? AbortSignal.timeout(config.api.timeout),
+      });
+
+      const body = await readBoundedResponseJson(
+        res,
+        MAX_TOURNAMENT_RESPONSE_BYTES,
+      ).catch(() => ({}));
+      if (res.status >= 500 && attempt + 1 < attempts) continue;
+      return { ok: res.ok, status: res.status, body };
+    } catch (err) {
+      if (attempt + 1 < attempts) continue;
+      const message =
+        err instanceof Error && err.name === 'TimeoutError'
+          ? 'Il Tournament Service non risponde (timeout).'
+          : 'Impossibile contattare il Tournament Service.';
+      throw new TournamentApiError(message, 503, 'API_UNAVAILABLE');
+    }
   }
+
+  // Il ciclo termina sempre con un return o un throw; fallback per TypeScript.
+  throw new TournamentApiError(
+    'Impossibile contattare il Tournament Service.',
+    503,
+    'API_UNAVAILABLE',
+  );
 }
 
 function mapJoinResult(payload: unknown): JoinTournamentResult {
