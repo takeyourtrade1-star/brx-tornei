@@ -22,6 +22,20 @@ interface MemoryCounter {
 }
 
 const memoryCounters = new Map<string, MemoryCounter>();
+const MAX_MEMORY_KEYS = 5_000;
+let memoryFallbackWarningShown = false;
+
+/**
+ * Stessa eccezione temporanea per-instance del sito principale
+ * (new_frontend_brx/docs/RATE_LIMITING.md): solo in assenza totale di Upstash
+ * si usa il limiter in memoria, con un unico warning e senza IP/segreti.
+ */
+function warnProductionMemoryFallbackOnce(): void {
+  if (memoryFallbackWarningShown) return;
+  memoryFallbackWarningShown = true;
+  console.warn('[rate-limit] Upstash non configurato: fallback temporaneo per-instance attivo.');
+}
+
 const RATE_LIMIT_SCRIPT = [
   "local count = redis.call('INCR', KEYS[1])",
   "local ttl = redis.call('TTL', KEYS[1])",
@@ -39,6 +53,10 @@ function enforceMemory(key: string, limit: number, windowSeconds: number): void 
   const now = Date.now();
   const current = memoryCounters.get(key);
   if (!current || current.expiresAt <= now) {
+    if (memoryCounters.size >= MAX_MEMORY_KEYS) {
+      const oldestKey = memoryCounters.keys().next().value;
+      if (oldestKey !== undefined) memoryCounters.delete(oldestKey);
+    }
     memoryCounters.set(key, {
       count: 1,
       expiresAt: now + windowSeconds * 1000,
@@ -64,13 +82,14 @@ export async function enforceServerRateLimit({
   try {
     redisConfigured = getUpstashRedisConfig() !== null;
   } catch {
+    // Configurazione parziale o invalida: mai fallback silenzioso.
     if (process.env.NODE_ENV === 'production') {
       throw new ServerRateLimitUnavailable('Upstash non configurato correttamente');
     }
   }
   if (!redisConfigured) {
     if (process.env.NODE_ENV === 'production') {
-      throw new ServerRateLimitUnavailable('Upstash non configurato');
+      warnProductionMemoryFallbackOnce();
     }
     enforceMemory(key, limit, windowSeconds);
     return;

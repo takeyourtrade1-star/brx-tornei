@@ -19,8 +19,21 @@ describe('server rate limit', () => {
     vi.unstubAllGlobals();
   });
 
-  it('fails closed with 503 when Upstash is not configured', async () => {
+  it('falls back to the bounded per-instance limiter when Upstash is absent', async () => {
     vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
+    await enforceServerRateLimit({ scope: 'scanner', subject: 'user-1', limit: 10 });
+    const error = await enforceServerRateLimit({
+      scope: 'scanner',
+      subject: 'user-1',
+      limit: 1,
+    }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ServerRateLimitExceeded);
+    expect(statusForServerRateLimitError(error)).toBe(429);
+  });
+
+  it('fails closed with 503 on partial or invalid Upstash configuration', async () => {
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://redis-test.upstash.io');
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
     const error = await enforceServerRateLimit({
       scope: 'scanner',
