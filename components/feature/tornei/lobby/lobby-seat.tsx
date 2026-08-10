@@ -25,7 +25,7 @@ export function LobbySeat({
       className={cn(
         'flex min-w-0 items-center rounded-2xl border text-left',
         compact
-          ? 'min-h-11 gap-1.5 rounded-xl px-2 py-1'
+          ? 'min-h-[3.25rem] gap-2 rounded-xl px-2.5 py-1.5'
           : 'min-h-[5.25rem] gap-2.5 p-2.5 sm:gap-3 sm:p-3.5',
         light
           ? occupied
@@ -106,7 +106,7 @@ export function VersusBadge({ light = false, compact = false }: { light?: boolea
     <span
       className={cn(
         'grid shrink-0 place-items-center rounded-full border font-black uppercase tracking-wider',
-        compact ? 'h-7 w-7 text-[8px]' : 'h-9 w-9 text-[10px]',
+        compact ? 'h-8 w-8 text-[8px]' : 'h-9 w-9 text-[10px]',
         light
           ? 'border-slate-900/[0.08] bg-white text-slate-400 shadow-sm'
           : 'border-white/15 bg-card2-end/70 text-white/55 shadow-sm',

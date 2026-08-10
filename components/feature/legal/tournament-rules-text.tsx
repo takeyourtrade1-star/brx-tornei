@@ -74,11 +74,16 @@ export function TournamentRulesText() {
         </p>
         <p>
           Unica eccezione: in caso di disconnessione hai a disposizione 90 secondi per
-          riconnetterti. Per risolvere eventuali dispute nate in quell&apos;intervallo, il segmento
-          di registrazione relativo al solo periodo di disconnessione può essere conservato e
-          mostrato all&apos;avversario come prova che non hai manomesso mazzi o carte mentre eri
-          disconnesso. Lo stesso diritto — e lo stesso obbligo di trasparenza — vale in modo
-          speculare per il tuo avversario nei tuoi confronti.
+          riconnetterti. Qualora, in tale intervallo, insorga una disputa, il segmento di
+          registrazione relativo esclusivamente al periodo di disconnessione può essere
+          conservato e mostrato all&apos;avversario quale prova che non hai manomesso mazzi o
+          carte mentre eri disconnesso. Detta condivisione avviene soltanto previo consenso
+          espresso di entrambi i giocatori: solo ed esclusivamente in presenza di tale
+          consenso il segmento potrà essere caricato sui server e ivi conservato per il tempo
+          strettamente necessario alla definizione della disputa, trascorso il quale verrà
+          eliminato immediatamente e in via definitiva a disputa risolta. Il medesimo diritto
+          — e il medesimo obbligo di trasparenza — vale in modo speculare per il tuo
+          avversario nei tuoi confronti.
         </p>
       </Section>
 
