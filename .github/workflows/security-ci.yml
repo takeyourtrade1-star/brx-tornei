@@ -41,6 +41,16 @@ jobs:
         run: npm run typecheck
 
       - name: Lint
+        env:
+          TRUSTED_HTTPS_HOSTNAMES: auth.example.test,sync.example.test,tournaments.example.test,app.example.test,www.example.test
+          TRUSTED_UPSTREAM_HOSTS: auth.example.test,sync.example.test,tournaments.example.test
+          AUTH_API_URL: https://auth.example.test
+          SYNC_API_URL: https://sync.example.test
+          TOURNAMENTS_API_URL: https://tournaments.example.test
+          NEXT_PUBLIC_TOURNAMENTS_WS_ORIGIN: wss://tournaments.example.test
+          NEXT_PUBLIC_SITE_URL: https://app.example.test
+          NEXT_PUBLIC_MAIN_SITE_URL: https://www.example.test
+          WEBCAM_RELAY_SECRET: ci-only-webcam-secret-000000000000000000000000
         run: npm run lint
 
       - name: Audit complete dependency graph
