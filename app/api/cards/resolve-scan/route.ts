@@ -6,6 +6,10 @@ import { resolveScanSchema } from '@/lib/validations/scan';
 import { config } from '@/lib/config';
 import { isJsonContentType, readBoundedJson } from '@/lib/security/bounded-json';
 import { isSameOriginMutation } from '@/lib/security/request-origin';
+import {
+  enforceServerRateLimit,
+  statusForServerRateLimitError,
+} from '@/lib/security/server-rate-limit';
 
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request, config.app.siteUrl)) {
@@ -26,6 +30,26 @@ export async function POST(request: Request) {
   }
   if (!config.features.ephemeralInventoryMutations) {
     return NextResponse.json({ error: 'Inventory writes unavailable' }, { status: 503 });
+  }
+
+  try {
+    await enforceServerRateLimit({
+      scope: 'resolve-scan',
+      subject: session.user.id,
+      limit: 10,
+    });
+  } catch (error) {
+    const status = statusForServerRateLimitError(error);
+    return NextResponse.json(
+      { error: status === 429 ? 'Troppe scansioni' : 'Servizio non disponibile' },
+      {
+        status,
+        headers: {
+          'Cache-Control': 'no-store',
+          ...(status === 429 ? { 'Retry-After': '60' } : {}),
+        },
+      },
+    );
   }
 
   const decoded = await readBoundedJson(request, 32 * 1024);
@@ -55,5 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: result.error }, { status: 422 });
   }
 
-  return NextResponse.json(result.data);
+  return NextResponse.json(result.data, {
+    headers: { 'Cache-Control': 'private, no-store' },
+  });
 }

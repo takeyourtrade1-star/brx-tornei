@@ -30,6 +30,8 @@ describe('BRX Match BFF security contract', () => {
     expect(source).toContain("requiresSession: false, requiresInternalToken: true");
     expect(source).not.toContain("req.headers.get('X-Internal-Rate-Subject')");
     expect(source).not.toMatch(/req\.headers\.get\(['"]x-forwarded-for/i);
+    expect(source).toContain("req.method === 'POST' && !isSameOriginMutation(");
+    expect(source).toContain("{ error: 'cross-site request rejected' }");
   });
 
   it('requires HTTPS in production and permits only private HTTP development targets', () => {

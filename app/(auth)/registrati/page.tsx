@@ -7,8 +7,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * MVP: la registrazione (multi-step, verifica email) resta sul sito principale.
- * Grazie all'SSO cross-subdomain, dopo la registrazione l'utente torna qui già loggato.
+ * La registrazione (multi-step, verifica email) resta sul sito principale.
+ * Al ritorno l'utente effettua qui il login: nessun cookie o token di sessione
+ * viene condiviso tra sottodomini.
  */
 export default function RegistratiPage() {
   return <RegistratiView />;

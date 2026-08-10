@@ -8,9 +8,13 @@ import {
   isGapConnectedState,
   isGapLossState,
   makeMatchUserKey,
-  rollingCutoff,
 } from '@/lib/gap-recording/policy';
 import type { GapRecordingStore } from '@/lib/gap-recording/indexed-db';
+import {
+  declinePendingGapUploads,
+  grantPendingGapConsent,
+  persistGapClip,
+} from '@/lib/gap-recording/coordinator-storage';
 import {
   buildGapSnapshot,
   finalizeGapIncident,
@@ -18,19 +22,8 @@ import {
   recoverInterruptedIncidents,
   withClipSummary,
 } from '@/lib/gap-recording/incidents';
-import type { GapClipRecord, GapIncidentRecord, GapProtectionSnapshot, RecordedClip } from '@/lib/gap-recording/types';
-import { MATCH_GAP_NOTICE_VERSION } from '@/lib/gap-recording/types';
+import type { GapCoordinatorOptions, GapIncidentRecord, GapProtectionSnapshot, RecordedClip } from '@/lib/gap-recording/types';
 import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
-
-interface CoordinatorOptions {
-  store: GapRecordingStore;
-  matchId: string;
-  webcamSessionId: string;
-  userId: string;
-  onSnapshot: (snapshot: GapProtectionSnapshot) => void;
-  now?: () => number;
-  makeId?: () => string;
-}
 
 export class GapRecordingCoordinator {
   private readonly store: GapRecordingStore;
@@ -50,7 +43,7 @@ export class GapRecordingCoordinator {
   private lastError: string | null = null;
 
   constructor({ store, matchId, webcamSessionId, userId, onSnapshot,
-    now = Date.now, makeId = () => crypto.randomUUID() }: CoordinatorOptions) {
+    now = Date.now, makeId = () => crypto.randomUUID() }: GapCoordinatorOptions) {
     this.store = store;
     this.matchId = matchId;
     this.webcamSessionId = webcamSessionId;
@@ -85,21 +78,15 @@ export class GapRecordingCoordinator {
 
   acceptClip(clip: RecordedClip): Promise<void> {
     return this.enqueue(async () => {
-      const incident = this.activeIncident;
-      const belongsToIncident =
-        incident !== null &&
-        clip.endedAt >= incident.captureStartedAt &&
-        (incident.captureEndedAt === null || clip.startedAt <= incident.captureEndedAt);
-      const record: GapClipRecord = {
-        ...clip,
+      const belongsToIncident = await persistGapClip({
+        store: this.store,
         matchId: this.matchId,
         userId: this.userId,
         matchUserKey: this.matchUserKey,
-        byteLength: clip.blob.size,
-        incidentId: belongsToIncident ? incident.id : null,
-      };
-      await this.store.putClip(record);
-      await this.store.pruneRolling(this.matchUserKey, rollingCutoff(this.now()));
+        incident: this.activeIncident,
+        clip,
+        now: this.now(),
+      });
       if (belongsToIncident) await this.refreshActiveIncident();
       await this.publishSnapshot();
     });
@@ -128,41 +115,14 @@ export class GapRecordingCoordinator {
 
   grantUploadConsent(): Promise<void> {
     return this.enqueue(async () => {
-      const consentedAt = this.now();
-      const incidents = await this.store.listIncidents(this.matchUserKey);
-      for (const incident of incidents) {
-        const consentMissing =
-          incident.uploadConsentVersion !== MATCH_GAP_NOTICE_VERSION ||
-          typeof incident.uploadConsentedAt !== 'number';
-        if (!consentMissing || !['awaiting-consent', 'queued', 'failed'].includes(incident.status)) {
-          continue;
-        }
-        await this.store.putIncident({
-          ...incident,
-          status: 'queued',
-          uploadConsentedAt: consentedAt,
-          uploadConsentVersion: MATCH_GAP_NOTICE_VERSION,
-          retryCount: 0,
-          nextRetryAt: null,
-          lastError: null,
-          updatedAt: consentedAt,
-        });
-      }
+      await grantPendingGapConsent(this.store, this.matchUserKey, this.now());
       await this.publishSnapshot();
     });
   }
 
   declineUpload(): Promise<void> {
     return this.enqueue(async () => {
-      const incidents = await this.store.listIncidents(this.matchUserKey);
-      for (const incident of incidents) {
-        const consentMissing =
-          incident.uploadConsentVersion !== MATCH_GAP_NOTICE_VERSION ||
-          typeof incident.uploadConsentedAt !== 'number';
-        if (consentMissing && ['awaiting-consent', 'queued', 'failed'].includes(incident.status)) {
-          await this.store.deleteIncidentData(incident.id);
-        }
-      }
+      await declinePendingGapUploads(this.store, this.matchUserKey);
       await this.publishSnapshot();
     });
   }

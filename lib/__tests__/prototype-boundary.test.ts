@@ -29,6 +29,10 @@ describe('prototype deployment boundary', () => {
       .map((path) => relative(ROOT_PATH, path));
 
     expect(violations).toEqual([]);
+
+    const amplify = readFileSync(new URL('../../amplify.yml', import.meta.url), 'utf8');
+    expect(amplify).toMatch(/baseDirectory:\s*\.next/);
+    expect(amplify).not.toContain('minigioco-test');
   });
 
   it('uses cryptographic deck identifiers on client and server', () => {

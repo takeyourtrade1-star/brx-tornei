@@ -7,6 +7,10 @@ describe('match result consensus UI contract', () => {
       new URL('../../components/feature/tornei/match/match-live-view.tsx', import.meta.url),
       'utf8',
     );
+    const content = readFileSync(
+      new URL('../../components/feature/tornei/match/match-live-content.tsx', import.meta.url),
+      'utf8',
+    );
     const notices = readFileSync(
       new URL('../../components/feature/tornei/match/match-live-notices.tsx', import.meta.url),
       'utf8',
@@ -16,8 +20,8 @@ describe('match result consensus UI contract', () => {
     expect(view).not.toContain(
       "(!resultClaimPending && isPlayer && (peerState === 'peer-left' || peerState === 'session-ended'))",
     );
-    expect(view).toContain('open={fullscreenOpen && !matchEnded}');
-    expect(view).toContain('!reconnectGraceActive');
+    expect(content).toContain('open={fullscreenOpen && !matchEnded}');
+    expect(content).toContain('!reconnectGraceActive');
     expect(view).toContain("chat.opponentPresence === 'offline'");
     expect(notices).toContain('Nessun risultato viene assegnato automaticamente');
     expect(notices).toContain('Risposta sospesa durante la riconnessione');

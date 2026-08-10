@@ -12,11 +12,12 @@ import {
   getPreAuthCookie,
   setPreAuthCookie,
 } from '@/lib/auth/pre-auth-cookie';
-import {
-  applyTrustedDeviceResponse,
-  getTrustedDeviceForwardHeaders,
-} from '@/lib/auth/trusted-device';
 import { sanitizeRedirect } from '@/lib/auth/redirect';
+import {
+  authFetch,
+  authRateLimitError,
+  extractAuthError,
+} from '@/lib/data/auth-action-client';
 import {
   buildLoginPayload,
   loginCodeRequestSchema,
@@ -25,54 +26,6 @@ import {
   verifyMfaFormSchema,
 } from '@/lib/validations/auth';
 import type { AuthActionState, TokenResponse } from '@/types/auth';
-import { readBoundedResponseJson } from '@/lib/security/bounded-response';
-
-/** Estrae il body utile: il backend a volte annida la risposta in { data: ... }. */
-function unwrap(payload: unknown): Record<string, unknown> {
-  if (!payload || typeof payload !== 'object') return {};
-  const data = (payload as Record<string, unknown>).data;
-  return (data && typeof data === 'object' ? data : payload) as Record<string, unknown>;
-}
-
-function extractError(body: Record<string, unknown>, fallback: string): string {
-  return (
-    (typeof body.detail === 'string' && body.detail) ||
-    (typeof body.message === 'string' && body.message) ||
-    fallback
-  );
-}
-
-async function authFetch(
-  path: string,
-  body: Record<string, unknown>
-): Promise<{ ok: boolean; body: Record<string, unknown> }> {
-  if (!config.api.baseURL) {
-    return { ok: false, body: { message: 'Servizio di autenticazione non configurato' } };
-  }
-
-  try {
-    const trustedDeviceHeaders = await getTrustedDeviceForwardHeaders(path);
-    const res = await fetch(`${config.api.baseURL}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'Accept-Encoding': 'identity',
-        ...trustedDeviceHeaders,
-      },
-      body: JSON.stringify(body),
-      cache: 'no-store',
-      redirect: 'error',
-      signal: AbortSignal.timeout(config.api.timeout),
-    });
-    // Login e verifica MFA possono emettere, ruotare o revocare il cookie.
-    await applyTrustedDeviceResponse(path, res.headers);
-    const parsed = unwrap(await readBoundedResponseJson(res, 512 * 1024).catch(() => ({})));
-    return { ok: res.ok, body: parsed };
-  } catch {
-    return { ok: false, body: { message: 'Impossibile contattare il servizio di autenticazione' } };
-  }
-}
 
 /**
  * Login speculare a Ebartex (stesso backend FastAPI, stesso honeypot),
@@ -88,12 +41,19 @@ export async function loginAction(formData: FormData): Promise<AuthActionState> 
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi' };
   }
+  const rateError = await authRateLimitError(
+    'auth-login',
+    parsed.data.identifier.trim().toLowerCase(),
+    5,
+    20,
+  );
+  if (rateError) return { error: rateError };
 
   const destination = sanitizeRedirect(parsed.data.redirect ?? null);
   const { ok, body: response } = await authFetch('/api/auth/login', buildLoginPayload(parsed.data));
 
   if (!ok) {
-    return { error: extractError(response, 'Credenziali non valide') };
+    return { error: extractAuthError(response, 'Credenziali non valide') };
   }
 
   if (response.mfa_required === true) {
@@ -132,6 +92,8 @@ export async function verifyMfaAction(formData: FormData): Promise<AuthActionSta
   if (!preAuthToken) {
     return { error: 'Sessione MFA scaduta. Accedi di nuovo.' };
   }
+  const rateError = await authRateLimitError('auth-verify-mfa', preAuthToken, 5, 20);
+  if (rateError) return { error: rateError };
 
   const destination = sanitizeRedirect(parsed.data.redirect ?? null);
   const { ok, body: response } = await authFetch('/api/auth/verify-mfa', {
@@ -141,7 +103,7 @@ export async function verifyMfaAction(formData: FormData): Promise<AuthActionSta
   });
 
   if (!ok) {
-    return { error: extractError(response, 'Codice MFA non valido') };
+    return { error: extractAuthError(response, 'Codice MFA non valido') };
   }
 
   if (
@@ -165,13 +127,20 @@ export async function requestLoginCodeAction(formData: FormData): Promise<AuthAc
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Email non valida' };
   }
+  const rateError = await authRateLimitError(
+    'auth-login-code-request',
+    parsed.data.email.trim().toLowerCase(),
+    5,
+    10,
+  );
+  if (rateError) return { error: rateError };
 
   const { ok, body } = await authFetch('/api/auth/login/code/request', {
     email: parsed.data.email,
   });
 
   if (!ok) {
-    return { error: extractError(body, 'Impossibile inviare il codice') };
+    return { error: extractAuthError(body, 'Impossibile inviare il codice') };
   }
 
   return { success: true };
@@ -187,6 +156,13 @@ export async function verifyLoginCodeAction(formData: FormData): Promise<AuthAct
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Codice non valido' };
   }
+  const rateError = await authRateLimitError(
+    'auth-login-code-verify',
+    parsed.data.email.trim().toLowerCase(),
+    10,
+    30,
+  );
+  if (rateError) return { error: rateError };
 
   const destination = sanitizeRedirect(parsed.data.redirect ?? null);
   const { ok, body: response } = await authFetch('/api/auth/login/code/verify', {
@@ -195,7 +171,7 @@ export async function verifyLoginCodeAction(formData: FormData): Promise<AuthAct
   });
 
   if (!ok) {
-    return { error: extractError(response, 'Codice non valido o scaduto') };
+    return { error: extractAuthError(response, 'Codice non valido o scaduto') };
   }
 
   if (response.mfa_required === true) {

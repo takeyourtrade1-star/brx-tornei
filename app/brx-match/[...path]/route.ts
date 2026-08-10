@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { config } from '@/lib/config';
 import { getSession } from '@/lib/auth/session';
 import {
   enforceServerRateLimit,
@@ -13,6 +14,7 @@ import {
   isAllowedOnnxMediaType,
   pinnedEdgeModelSha256,
 } from '@/lib/security/onnx-response';
+import { isSameOriginMutation } from '@/lib/security/request-origin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -314,6 +316,12 @@ async function proxy(
   req: NextRequest,
   ctx: { params: Promise<{ path: string[] }> },
 ): Promise<NextResponse> {
+  if (req.method === 'POST' && !isSameOriginMutation(req, config.app.siteUrl)) {
+    return NextResponse.json(
+      { error: 'cross-site request rejected' },
+      { status: 403, headers: { 'Cache-Control': 'private, no-store' } },
+    );
+  }
   const { path } = await ctx.params;
   const rule = resolveRule(req.method, path);
   if (!rule) {

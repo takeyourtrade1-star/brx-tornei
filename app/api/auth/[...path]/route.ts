@@ -12,6 +12,11 @@ import {
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 import { readBoundedText } from '@/lib/security/bounded-json';
 import { isSameOriginMutation } from '@/lib/security/request-origin';
+import { getRateLimitClientIp } from '@/lib/security/client-ip';
+import {
+  enforceServerRateLimit,
+  statusForServerRateLimitError,
+} from '@/lib/security/server-rate-limit';
 
 export const dynamic = 'force-dynamic';
 const MAX_BODY_BYTES = 64 * 1024;
@@ -19,6 +24,12 @@ const MAX_QUERY_BYTES = 2048;
 const ALLOWED_AUTH_PATHS = new Set([
   'login', 'login/code/request', 'login/code/verify', 'register', 'refresh',
   'me', 'logout', 'verify-mfa', 'password/reset', 'password/reset/confirm',
+]);
+const AUTH_RATE_LIMITS = new Map<string, number>([
+  ['login', 10],
+  ['login/code/request', 5],
+  ['login/code/verify', 10],
+  ['verify-mfa', 10],
 ]);
 
 interface ExtractedTokens {
@@ -86,6 +97,28 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Next
   const declaredLength = Number(request.headers.get('content-length') ?? '0');
   if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
     return NextResponse.json({ detail: 'Payload too large' }, { status: 413 });
+  }
+  const localLimit = AUTH_RATE_LIMITS.get(path);
+  if (localLimit !== undefined) {
+    try {
+      await enforceServerRateLimit({
+        scope: `auth-proxy:${path}`,
+        subject: getRateLimitClientIp(request),
+        limit: localLimit,
+      });
+    } catch (error) {
+      const status = statusForServerRateLimitError(error);
+      return NextResponse.json(
+        { detail: status === 429 ? 'Too many attempts' : 'Auth service unavailable' },
+        {
+          status,
+          headers: {
+            'Cache-Control': 'private, no-store',
+            ...(status === 429 ? { 'Retry-After': '60' } : {}),
+          },
+        },
+      );
+    }
   }
 
   const authPath = `/api/auth/${path}`;

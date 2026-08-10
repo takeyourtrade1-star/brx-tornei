@@ -7,6 +7,7 @@ import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 
 export const MAX_QUERY_LENGTH = 200;
 export const MAX_LIMIT = 60;
+export const MAX_PAGE = 1000;
 export const DEFAULT_LIMIT = 20;
 export const MAX_CATEGORY_IDS = 20;
 export const MAX_IDS_BATCH = 100;
@@ -62,7 +63,7 @@ export function normalizeSetName(raw: string | null | undefined): string {
 
 export function normalizePage(raw: string | null | undefined): number {
   const parsed = parseInt(raw ?? '', 10);
-  return clampInt(Number.isNaN(parsed) ? 1 : parsed, 1, 100000);
+  return clampInt(Number.isNaN(parsed) ? 1 : parsed, 1, MAX_PAGE);
 }
 
 export function normalizeLimit(

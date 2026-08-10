@@ -5,6 +5,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getMeilisearchServerConfig } from '@/lib/meilisearch-server-env';
+import { getRateLimitClientIp } from '@/lib/security/client-ip';
+import {
+  enforceServerRateLimit,
+  statusForServerRateLimitError,
+} from '@/lib/security/server-rate-limit';
 import {
   MeiliFetchError,
   escapeMeiliFilterValue,
@@ -86,6 +91,26 @@ function buildSort(sortBy: string): string[] {
 }
 
 export async function GET(request: NextRequest) {
+  try {
+    await enforceServerRateLimit({
+      scope: 'public-catalog-search',
+      subject: getRateLimitClientIp(request),
+      limit: 60,
+    });
+  } catch (error) {
+    const status = statusForServerRateLimitError(error);
+    return NextResponse.json(
+      { error: status === 429 ? 'Troppe ricerche' : 'Ricerca non disponibile' },
+      {
+        status,
+        headers: {
+          'Cache-Control': 'no-store',
+          ...(status === 429 ? { 'Retry-After': '60' } : {}),
+        },
+      },
+    );
+  }
+
   const { url: MEILI_URL, apiKey: MEILI_KEY, index: INDEX } = getMeilisearchServerConfig();
 
   if (!MEILI_URL || !MEILI_KEY || !INDEX) {

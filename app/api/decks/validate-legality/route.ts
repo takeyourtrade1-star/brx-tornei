@@ -88,5 +88,8 @@ export async function POST(request: Request) {
 
   const formatId = (parsed.data.formatId ?? deck.formatId) as Deck['formatId'];
   const result = await validateDeckLegalityWithScryfall(deck, formatId);
-  return NextResponse.json({ legal: result.legal, issues: result.issues });
+  return NextResponse.json(
+    { legal: result.legal, issues: result.issues },
+    { headers: { 'Cache-Control': 'private, no-store' } },
+  );
 }

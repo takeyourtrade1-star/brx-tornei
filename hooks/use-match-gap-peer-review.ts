@@ -36,6 +36,7 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
     );
     const parsed = gapPeerListResponseSchema.safeParse(await jsonResponse(response));
     if (!response.ok || !parsed.success) throw new Error('Verifica video non disponibile.');
+    setError(null);
     setRecordings(parsed.data.data);
   }, [active, matchId]);
 

@@ -185,7 +185,6 @@ export function ScreenshotButton() {
           >
             <X size={12} />
           </button>
-          <style>{`@keyframes brx-tip-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
         </div>
       )}
     <button
@@ -226,7 +225,6 @@ export function ScreenshotButton() {
         size={17}
         style={status === 'capturing' ? { animation: 'brx-shot-spin 0.9s linear infinite' } : undefined}
       />
-      <style>{`@keyframes brx-shot-spin{to{transform:rotate(360deg)}}`}</style>
     </button>
     </>
   );

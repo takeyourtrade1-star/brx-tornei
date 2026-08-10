@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const resolveScanSchema = z.object({
-  cardName: z.string().min(1, 'Nome carta obbligatorio'),
+  cardName: z.string().min(1, 'Nome carta obbligatorio').max(256, 'Nome carta troppo lungo'),
   setCode: z.string().optional().nullable(),
   setName: z.string().optional().nullable(),
   collectorNumber: z.string().optional().nullable(),

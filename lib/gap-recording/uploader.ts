@@ -2,14 +2,13 @@ import type { GapRecordingStore } from '@/lib/gap-recording/indexed-db';
 import { makeMatchUserKey } from '@/lib/gap-recording/policy';
 import type { GapClipRecord, GapIncidentRecord } from '@/lib/gap-recording/types';
 import { MATCH_GAP_NOTICE_VERSION } from '@/lib/gap-recording/types';
-import { publicConfig } from '@/lib/public-config';
+import { uploadGapClipsWithLimit } from '@/lib/gap-recording/upload-transport';
 import {
   gapUploadCompleteResponseSchema,
   gapUploadInitResponseSchema,
   type CreateGapRecordingInput,
 } from '@/lib/validations/gap-recording';
 
-const UPLOAD_CONCURRENCY = 2;
 const MAX_RETRY_DELAY_MS = 5 * 60 * 1_000;
 
 class TerminalGapUploadError extends Error {}
@@ -93,92 +92,6 @@ async function initUpload(matchId: string, body: CreateGapRecordingInput) {
   return parsed.data.data;
 }
 
-async function uploadClip(
-  clip: GapClipRecord,
-  ticket: {
-    url: string;
-    fields: Record<string, string>;
-    transport: 'multipart' | 'raw';
-  },
-): Promise<void> {
-  const uploadUrl = new URL(ticket.url);
-  const isLoopbackRawUpload =
-    process.env.NODE_ENV !== 'production' &&
-    ticket.transport === 'raw' &&
-    uploadUrl.protocol === 'http:' &&
-    ['localhost', '127.0.0.1', '[::1]'].includes(uploadUrl.hostname.toLowerCase());
-  if (
-    uploadUrl.origin !== publicConfig.storage.matchGapUploadOrigin ||
-    (uploadUrl.protocol !== 'https:' && !isLoopbackRawUpload) ||
-    uploadUrl.username ||
-    uploadUrl.password
-  ) {
-    throw new Error('Destinazione di upload non autorizzata.');
-  }
-  let body: BodyInit;
-  let headers: Headers | undefined;
-  if (ticket.transport === 'raw') {
-    const expectedFields = new Set([
-      'Content-Type',
-      'X-Ebartex-Gap-Checksum',
-      'X-Ebartex-Gap-Ticket',
-    ]);
-    const entries = Object.entries(ticket.fields);
-    if (
-      !isLoopbackRawUpload ||
-      entries.length !== expectedFields.size ||
-      entries.some(([key, value]) => !expectedFields.has(key) || !value)
-    ) {
-      throw new Error('Capability di upload locale non valida.');
-    }
-    headers = new Headers(ticket.fields);
-    body = clip.blob;
-  } else {
-    const form = new FormData();
-    for (const [key, value] of Object.entries(ticket.fields)) form.append(key, value);
-    const extension = clip.mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
-    form.append(
-      'file',
-      clip.blob,
-      `${clip.sequence.toString().padStart(2, '0')}.${extension}`,
-    );
-    body = form;
-  }
-  const response = await fetch(ticket.url, {
-    method: 'POST',
-    headers,
-    body,
-    cache: 'no-store',
-    credentials: 'omit',
-    redirect: 'error',
-    signal: AbortSignal.timeout(60_000),
-  });
-  if (!response.ok) throw new Error('Upload di una clip non riuscito.');
-}
-
-async function uploadWithLimit(
-  clips: GapClipRecord[],
-  tickets: Map<string, {
-    url: string;
-    fields: Record<string, string>;
-    transport: 'multipart' | 'raw';
-  }>,
-): Promise<void> {
-  let index = 0;
-  async function worker() {
-    while (index < clips.length) {
-      const clip = clips[index];
-      index += 1;
-      const ticket = tickets.get(clip.id);
-      if (!ticket) throw new Error('Capability di upload mancante.');
-      await uploadClip(clip, ticket);
-    }
-  }
-  await Promise.all(
-    Array.from({ length: Math.min(UPLOAD_CONCURRENCY, clips.length) }, () => worker()),
-  );
-}
-
 async function completeUpload(matchId: string, recordingId: string): Promise<void> {
   const response = await fetch(
     `/api/tournaments/match/${encodeURIComponent(matchId)}/gap-recordings/${encodeURIComponent(recordingId)}/complete`,
@@ -221,7 +134,7 @@ async function uploadIncident(
     const tickets = new Map(
       initialized.uploads.map((ticket) => [ticket.client_clip_id, ticket]),
     );
-    await uploadWithLimit(clips, tickets);
+    await uploadGapClipsWithLimit(clips, tickets);
     await completeUpload(incident.matchId, initialized.incident_id);
   }
   await store.deleteIncidentData(incident.id);

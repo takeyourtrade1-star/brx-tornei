@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   captureCapAt,
@@ -58,5 +59,15 @@ describe('gap recording policy', () => {
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)',
       maxTouchPoints: 5,
     })).toBe(false);
+  });
+
+  it('does not poll peer-review endpoints while the feature is disabled', () => {
+    const liveContent = readFileSync(
+      new URL('../../components/feature/tornei/match/match-live-content.tsx', import.meta.url),
+      'utf8',
+    );
+    expect(liveContent).toContain(
+      'publicConfig.features.matchGapRecording && isPlayer && tournament.matchId',
+    );
   });
 });

@@ -1,4 +1,5 @@
 import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
+import type { GapRecordingStore } from '@/lib/gap-recording/indexed-db';
 
 export type GapIncidentStatus =
   | 'capturing'
@@ -65,6 +66,16 @@ export interface GapProtectionSnapshot {
 }
 
 export const MATCH_GAP_NOTICE_VERSION = 'peer-gap-review-v1' as const;
+
+export interface GapCoordinatorOptions {
+  store: GapRecordingStore;
+  matchId: string;
+  webcamSessionId: string;
+  userId: string;
+  onSnapshot: (snapshot: GapProtectionSnapshot) => void;
+  now?: () => number;
+  makeId?: () => string;
+}
 
 export interface MatchGapRecorderController {
   snapshot: GapProtectionSnapshot;

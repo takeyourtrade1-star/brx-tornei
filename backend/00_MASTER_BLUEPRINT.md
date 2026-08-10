@@ -53,10 +53,14 @@ The frontend is a Next.js 15 application deployed to `tournaments.ebartex.com`. 
 ### Key Business Rules
 
 - **Heads-Up** (`mode: 'heads-up'`): exactly 2 players; **ALWAYS 1v1** — this is a fundamental constraint
-- **Best-Of**: BO1, BO3, or BO5; games tracked per player; match winner determined by `ceil(bestOf / 2)` games
+- **Best-Of**: BO1, BO3, or BO5 come metadato/UI. Non è previsto nel breve
+  termine alcun riconoscimento automatico dell'esito: i due giocatori
+  dichiarano il vincitore. Il primo disaccordo richiede una seconda scelta;
+  un secondo disaccordo chiude il match come disputa senza vincitore.
 - **Privacy**: private tournaments (`isPrivate: true`) require join-request approval before the player receives the webcam QR
 - **Match phases** (Magic phases): Cambio → Mantenimento → Acquisizione → Principale I → Combattimento → Principale II → Fine (per-turn cycle)
-- **Life totals**: each game starts at 20 life; reaching 0 ends that game
+- **Life totals**: contatori collaborativi di supporto; raggiungere 0 non
+  chiude né assegna automaticamente game o match.
 - **Dual camera**: player has face stream (PC webcam) + hands stream (phone via WebRTC QR link)
 - **Observer role**: spectators watch live match state; Picture-in-Picture available
 - **Signaling store**: keyed by `sessionId`, TTL 600 seconds, max 300 messages, backed by Redis

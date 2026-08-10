@@ -34,35 +34,6 @@ export function AssoVisionEyes({
         strokeLinejoin="round"
         className={cn('asso-eyes', active && 'asso-eyes--active')}
       >
-        <style>{`
-          .asso-eyes .asso-lid {
-            transform-box: fill-box;
-            transform-origin: center;
-            transform: scaleY(1);
-          }
-          .asso-eyes--active .asso-lid {
-            animation: asso-blink 4.2s ease-in-out infinite;
-          }
-          .asso-eyes--active .asso-gaze {
-            animation: asso-gaze 2.6s ease-in-out infinite;
-          }
-          .asso-eyes--active .asso-glow { opacity: 1; }
-          .asso-glow { opacity: 0; transition: opacity .3s ease; }
-          @keyframes asso-blink {
-            0%, 92%, 100% { transform: scaleY(1); }
-            95%           { transform: scaleY(0.08); }
-          }
-          @keyframes asso-gaze {
-            0%, 100% { transform: translateX(-2.4px); }
-            45%      { transform: translateX(2.4px); }
-            55%      { transform: translateX(2.4px); }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .asso-eyes--active .asso-lid,
-            .asso-eyes--active .asso-gaze { animation: none; }
-          }
-        `}</style>
-
         {/* Bagliore scanner dietro gli occhi */}
         <g className="asso-glow">
           <circle cx="35" cy="39" r="14" fill="#FF7300" opacity="0.18" />

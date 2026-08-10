@@ -37,6 +37,7 @@ vi.mock('@/lib/config', () => ({
 import { POST as cardsByBlueprints } from '../../app/api/cards-by-blueprints/route';
 import { POST as resolveScan } from '../../app/api/cards/resolve-scan/route';
 import { POST as validateDeckLegality } from '../../app/api/decks/validate-legality/route';
+import { resolveScanSchema } from '@/lib/validations/scan';
 
 const handlers = [
   ['cards-by-blueprints', cardsByBlueprints],
@@ -88,5 +89,9 @@ describe('card POST origin and media-type gates', () => {
     expect(mocks.resolveScanAndAddToInventory).not.toHaveBeenCalled();
     expect(mocks.getDeckById).not.toHaveBeenCalled();
     expect(mocks.validateDeckLegalityWithScryfall).not.toHaveBeenCalled();
+  });
+
+  it('bounds card names before any Scryfall fan-out', () => {
+    expect(resolveScanSchema.safeParse({ cardName: 'a'.repeat(257) }).success).toBe(false);
   });
 });

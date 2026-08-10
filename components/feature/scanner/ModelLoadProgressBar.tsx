@@ -126,13 +126,6 @@ export function ModelLoadProgressBar({
         aria-valuetext={ariaValueText}
         aria-busy={!isCaching}
       >
-        <style>{`
-          @keyframes onnx-indeterminate {
-            0%   { transform: translateX(-100%); }
-            100% { transform: translateX(350%); }
-          }
-        `}</style>
-
         <p className="text-[13px] font-medium text-white/95">{title}</p>
 
         <div

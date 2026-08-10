@@ -60,13 +60,6 @@ function TopLoadingBar({ active }: { active: boolean }) {
             : undefined
         }
       />
-      <style>{`
-        @keyframes loading-bar {
-          0%   { transform: scaleX(0); transform-origin: left; }
-          50%  { transform: scaleX(0.7); transform-origin: left; }
-          100% { transform: scaleX(1); transform-origin: left; opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -108,18 +101,6 @@ function ScanCorners({ bracketState }: { bracketState: BracketState }) {
       style={{ width: CARD_W, height: CARD_H }}
       aria-hidden
     >
-      <style>{`
-        @keyframes scanner-corner-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.55; }
-        }
-        @keyframes scanner-match-pop {
-          0% { transform: scale(1); }
-          40% { transform: scale(1.04); }
-          100% { transform: scale(1); }
-        }
-      `}</style>
-
       {/* Top-left */}
       <span
         className={baseCorner}
@@ -171,14 +152,6 @@ function ScanCorners({ bracketState }: { bracketState: BracketState }) {
           style={{ animation: 'scanner-line 2.6s ease-in-out infinite' }}
         />
       )}
-      <style>{`
-        @keyframes scanner-line {
-          0%   { top: 8%;  opacity: 0; }
-          15%  { opacity: 1; }
-          85%  { opacity: 1; }
-          100% { top: 92%; opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -305,13 +278,6 @@ function MatchPreview({
       aria-label="Carta trovata"
       aria-live="polite"
     >
-      <style>{`
-        @keyframes slide-up {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);   opacity: 1; }
-        }
-      `}</style>
-
       <div
         className="absolute inset-0 rounded-t-[2rem] border border-white/10 bg-gradient-to-b from-[#0d1528]/95 via-[#0a0f1a]/92 to-[#050810]/98 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-12px_48px_rgba(0,0,0,0.55)]"
         aria-hidden
@@ -410,13 +376,6 @@ function UnrecognizedPreview({
       aria-label="Carta non riconosciuta"
       aria-live="polite"
     >
-      <style>{`
-        @keyframes slide-up {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);   opacity: 1; }
-        }
-      `}</style>
-
       <div
         className="absolute inset-0 rounded-t-[2rem] border border-white/10 bg-gradient-to-b from-[#1a1020]/95 via-[#0a0f1a]/92 to-[#050810]/98 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_-12px_48px_rgba(0,0,0,0.55)]"
         aria-hidden
@@ -812,12 +771,6 @@ export function ScannerModal({
             )}
             <span className="min-w-0 flex-1 truncate">{flash.text}</span>
           </div>
-          <style>{`
-            @keyframes flash-in {
-              from { opacity: 0; transform: translate(-50%, -8px); }
-              to   { opacity: 1; transform: translate(-50%, 0); }
-            }
-          `}</style>
         </div>
       )}
 

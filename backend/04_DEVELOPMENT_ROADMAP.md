@@ -79,10 +79,12 @@
 - ✅ webcam_session_id assignment
 
 ### Phase 5: Game Results (Completed)
-- ✅ POST /matches/{id}/games endpoint
-- ✅ ELO rating calculation
-- ✅ Conflict detection for disputed results
-- ✅ Match winner determination logic
+- ✅ `POST /api/v1/matches/{id}/result` per la dichiarazione dei giocatori
+- ✅ Registrazione di win/loss soltanto con due dichiarazioni concordi
+- ✅ Il primo disaccordo richiede una seconda scelta a entrambi; un secondo
+  disaccordo chiude la partita come disputa senza vincitore
+- ✅ Le dichiarazioni non confermate entro la scadenza vengono annullate
+- ⛔ Nessun riconoscimento automatico della vittoria previsto nel breve termine
 
 ### Phase 6: Real-time Notifications (Completed)
 - ✅ WebSocket connection management

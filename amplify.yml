@@ -8,7 +8,7 @@ frontend:
         - node --version
         - npm ci --ignore-scripts --cache .npm --prefer-offline
         - node scripts/copy-ort-wasm.mjs
-        - npm audit --audit-level=high
+        - npm audit --audit-level=moderate
     build:
       commands:
         - npm run build
