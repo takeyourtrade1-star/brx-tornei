@@ -136,9 +136,18 @@ describe('gap recording coordinator', () => {
     await coordinator.finish();
 
     const [incident] = [...store.incidents.values()];
-    expect(incident.status).toBe('queued');
+    expect(incident.status).toBe('awaiting-consent');
     expect(incident.clipIds).toEqual(['pre-roll', 'gap']);
     expect(snapshots.at(-1)?.pendingIncidents).toBe(1);
+    expect(snapshots.at(-1)?.consentRequiredIncidents).toBe(1);
+
+    now.value = 30_000;
+    await coordinator.grantUploadConsent();
+    expect(store.incidents.get(incident.id)).toMatchObject({
+      status: 'queued',
+      uploadConsentedAt: 30_000,
+      uploadConsentVersion: 'peer-gap-review-v1',
+    });
   });
 
   it('recovers an open browser incident as interrupted without inventing footage', async () => {
@@ -166,7 +175,7 @@ describe('gap recording coordinator', () => {
 
     await coordinator.initialize();
     expect(store.incidents.get(incident.id)).toMatchObject({
-      status: 'queued',
+      status: 'awaiting-consent',
       interrupted: true,
       captureEndedAt: 25_000,
     });

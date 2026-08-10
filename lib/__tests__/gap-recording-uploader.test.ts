@@ -28,6 +28,8 @@ function incident(): GapIncidentRecord {
     byteLength: 3,
     captureCapped: false,
     interrupted: false,
+    uploadConsentedAt: 35_000,
+    uploadConsentVersion: 'peer-gap-review-v1',
     remoteIncidentId: null,
     retryCount: 0,
     nextRetryAt: null,

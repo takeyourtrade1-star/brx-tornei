@@ -39,6 +39,7 @@ import { MatchReadyPanel } from './match-ready-panel';
 import { resolveMatchSides } from './match-players';
 import { MatchVideoGrid } from './match-video-grid';
 import { MatchGapProtectionNotice } from './match-gap-protection-notice';
+import { MatchGapPeerReview } from './match-gap-peer-review';
 interface MatchLiveViewProps {
   tournament: Tournament;
   role: LiveViewRole;
@@ -331,8 +332,15 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
           disconnectedIsMe={disconnectedIsMe}
         />
       )}
-      {showLiveNotices && isPlayer && started && (
-        <MatchGapProtectionNotice snapshot={gapProtection} />
+      {isPlayer && started && tournament.matchId && (
+        <MatchGapProtectionNotice
+          snapshot={gapProtection.snapshot}
+          onConsent={gapProtection.grantUploadConsent}
+          onDecline={gapProtection.declineUpload}
+        />
+      )}
+      {isPlayer && tournament.matchId && (
+        <MatchGapPeerReview matchId={tournament.matchId} opponentName={remote.username} />
       )}
       {showLiveNotices && visibleError && isPlayer && (
         <MatchErrorNotice message={visibleError} onRetry={visiblePeerError ? retryPeer : undefined} />

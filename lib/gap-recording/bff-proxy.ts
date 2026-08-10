@@ -5,8 +5,9 @@ import { getAccessToken } from '@/lib/auth/session';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 import { privateJson } from '@/lib/security/private-json';
 
-export async function proxyGapRecordingMutation(
+async function proxyGapRecordingRequest(
   path: string,
+  method: 'GET' | 'POST',
   body?: unknown,
 ) {
   if (!path.startsWith('/api/v1/matches/')) {
@@ -19,7 +20,7 @@ export async function proxyGapRecordingMutation(
   }
   try {
     const response = await fetch(new URL(path, config.api.tournamentsBaseURL), {
-      method: 'POST',
+      method,
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
@@ -36,4 +37,12 @@ export async function proxyGapRecordingMutation(
   } catch {
     return privateJson({ error: 'upstream unavailable' }, { status: 502 });
   }
+}
+
+export function proxyGapRecordingMutation(path: string, body?: unknown) {
+  return proxyGapRecordingRequest(path, 'POST', body);
+}
+
+export function proxyGapRecordingQuery(path: string) {
+  return proxyGapRecordingRequest(path, 'GET');
 }

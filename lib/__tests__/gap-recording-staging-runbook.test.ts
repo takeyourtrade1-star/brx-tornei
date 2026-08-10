@@ -22,14 +22,17 @@ describe('match-gap staging rollout guardrails', () => {
     expect(script).toContain('get-caller-identity');
   });
 
-  it('checks state protections and secret parity without writes', () => {
+  it('checks state and private short-lived media protections without writes', () => {
     expect(script).toContain('get-bucket-versioning');
     expect(script).toContain('get-bucket-encryption');
     expect(script).toContain('get-public-access-block');
-    expect(script).toContain('Staff and Tournaments staging broker tokens do not match');
+    expect(script).toContain('MATCH_GAP_STAGING_BUCKET');
+    expect(script).toContain('expire objects within 3 days');
+    expect(script).toContain('CORS must allow only POST from the exact frontend origin');
+    expect(script).toContain('Obsolete Staff tournament parameter must be removed');
     expect(script).not.toContain('put-parameter');
     expect(script).not.toContain('terraform apply');
-    expect(script).not.toMatch(/echo[^\n]*(TOURNAMENTS_TOKEN|STAFF_TOKEN)/);
+    expect(script).not.toContain('get-parameter --with-decryption');
   });
 
   it('documents direct and TURN cases plus immediate deletion', () => {

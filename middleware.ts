@@ -44,11 +44,14 @@ export function isCanonicalRequestOrigin(
 
 /** CSP per-request: nessuno script inline viene accettato senza il nonce. */
 export function buildContentSecurityPolicy(nonce: string): string {
+  const matchGapSource = getMatchGapUploadSource();
   const connectSources = [
     "'self'",
     getTournamentWebSocketSource(),
-    getMatchGapUploadSource(),
+    matchGapSource,
   ].filter((source): source is string => Boolean(source));
+  const mediaSources = ["'self'", 'blob:', matchGapSource]
+    .filter((source): source is string => Boolean(source));
 
   return [
     "default-src 'self'",
@@ -62,7 +65,7 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https://di0y87a9s8da9.cloudfront.net https://cards.scryfall.io https://svgs.scryfall.io",
     "font-src 'self' data:",
-    "media-src 'self' blob:",
+    `media-src ${mediaSources.join(' ')}`,
     `connect-src ${connectSources.join(' ')}`,
     "worker-src 'self' blob:",
     "object-src 'none'",

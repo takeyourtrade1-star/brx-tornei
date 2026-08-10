@@ -24,6 +24,8 @@ export function newGapIncident(input: NewIncidentInput): GapIncidentRecord {
     byteLength: 0,
     captureCapped: false,
     interrupted: false,
+    uploadConsentedAt: null,
+    uploadConsentVersion: null,
     remoteIncidentId: null,
     retryCount: 0,
     nextRetryAt: null,
@@ -62,7 +64,7 @@ export async function recoverInterruptedIncidents(
     await store.putIncident({
       ...recovered,
       captureEndedAt: lastEndedAt,
-      status: clips.length > 0 ? 'queued' : 'failed',
+      status: clips.length > 0 ? 'awaiting-consent' : 'failed',
       interrupted: true,
       lastError: clips.length > 0 ? null : 'Registrazione interrotta senza clip salvate.',
     });
@@ -83,7 +85,7 @@ export async function finalizeGapIncident(
   const summarized = withClipSummary(incident, clips, now);
   const finalized: GapIncidentRecord = {
     ...summarized,
-    status: clips.length > 0 ? 'queued' : 'failed',
+    status: clips.length > 0 ? 'awaiting-consent' : 'failed',
     lastError: clips.length > 0 ? null : 'Nessuna clip disponibile per la disconnessione.',
   };
   await store.putIncident(finalized);
@@ -98,7 +100,12 @@ export async function buildGapSnapshot(
 ): Promise<GapProtectionSnapshot> {
   const incidents = await store.listIncidents(matchUserKey);
   const pending = incidents.filter((incident) =>
-    ['queued', 'uploading', 'failed'].includes(incident.status),
+    ['awaiting-consent', 'queued', 'uploading', 'failed'].includes(incident.status),
+  );
+  const consentRequired = pending.filter(
+    (incident) =>
+      incident.uploadConsentVersion !== 'peer-gap-review-v1' ||
+      typeof incident.uploadConsentedAt !== 'number',
   );
   const status = error
     ? 'error'
@@ -112,6 +119,7 @@ export async function buildGapSnapshot(
   return {
     status,
     pendingIncidents: pending.length,
+    consentRequiredIncidents: consentRequired.length,
     retainedBytes: incidents.reduce((total, incident) => total + incident.byteLength, 0),
     error,
   };

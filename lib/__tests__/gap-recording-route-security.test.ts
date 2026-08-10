@@ -39,6 +39,10 @@ function validManifest() {
     capture_ended_at: '2026-08-10T12:00:30.000Z',
     capture_capped: false,
     interrupted: false,
+    upload_consented_at: '2026-08-10T12:00:30.000Z',
+    upload_consent_version: 'peer-gap-review-v1',
+    temporary_storage_acknowledged: true,
+    opponent_review_acknowledged: true,
     clips: [{
       client_clip_id: '9ae60030-3c6b-46a7-8e30-45eab3e959e6',
       sequence: 0,

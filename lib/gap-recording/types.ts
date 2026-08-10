@@ -3,6 +3,7 @@ import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
 export type GapIncidentStatus =
   | 'capturing'
   | 'closing'
+  | 'awaiting-consent'
   | 'queued'
   | 'uploading'
   | 'failed';
@@ -36,6 +37,8 @@ export interface GapIncidentRecord {
   byteLength: number;
   captureCapped: boolean;
   interrupted: boolean;
+  uploadConsentedAt: number | null;
+  uploadConsentVersion: 'peer-gap-review-v1' | null;
   remoteIncidentId: string | null;
   retryCount: number;
   nextRetryAt: number | null;
@@ -56,8 +59,17 @@ export type GapProtectionStatus =
 export interface GapProtectionSnapshot {
   status: GapProtectionStatus;
   pendingIncidents: number;
+  consentRequiredIncidents: number;
   retainedBytes: number;
   error: string | null;
+}
+
+export const MATCH_GAP_NOTICE_VERSION = 'peer-gap-review-v1' as const;
+
+export interface MatchGapRecorderController {
+  snapshot: GapProtectionSnapshot;
+  grantUploadConsent: () => Promise<void>;
+  declineUpload: () => Promise<void>;
 }
 
 export interface GapRecorderOptions {

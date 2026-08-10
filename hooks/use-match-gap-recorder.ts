@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { GapRecordingCoordinator } from '@/lib/gap-recording/coordinator';
 import { IndexedDbGapRecordingStore } from '@/lib/gap-recording/indexed-db';
 import { startRotatingGapRecorder } from '@/lib/gap-recording/media-recorder';
@@ -9,11 +9,13 @@ import { uploadPendingGapRecordings } from '@/lib/gap-recording/uploader';
 import type {
   GapProtectionSnapshot,
   GapRecorderOptions,
+  MatchGapRecorderController,
 } from '@/lib/gap-recording/types';
 
 const DISABLED: GapProtectionSnapshot = {
   status: 'disabled',
   pendingIncidents: 0,
+  consentRequiredIncidents: 0,
   retainedBytes: 0,
   error: null,
 };
@@ -42,9 +44,10 @@ export function useMatchGapRecorder({
   userId,
   peerState,
   localStream,
-}: GapRecorderOptions): GapProtectionSnapshot {
+}: GapRecorderOptions): MatchGapRecorderController {
   const [snapshot, setSnapshot] = useState<GapProtectionSnapshot>(DISABLED);
   const coordinatorRef = useRef<GapRecordingCoordinator | null>(null);
+  const uploadRef = useRef<() => void>(() => {});
   const peerStateRef = useRef(peerState);
   peerStateRef.current = peerState;
   const videoTrackId = localStream?.getVideoTracks()[0]?.id ?? null;
@@ -55,7 +58,7 @@ export function useMatchGapRecorder({
       typeof indexedDB !== 'undefined' &&
       typeof crypto !== 'undefined' &&
       typeof crypto.randomUUID === 'function';
-    if (!enabled || !active || !matchId || !webcamSessionId || !localStream || !videoTrackId) {
+    if (!enabled || !matchId || !webcamSessionId) {
       setSnapshot(DISABLED);
       return;
     }
@@ -72,6 +75,7 @@ export function useMatchGapRecorder({
     const store = new IndexedDbGapRecordingStore();
     let uploadRunning = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let localRefreshTimer: ReturnType<typeof setInterval> | null = null;
     let maybeUpload = () => {};
     const coordinator = new GapRecordingCoordinator({
       store,
@@ -80,7 +84,7 @@ export function useMatchGapRecorder({
       userId,
       onSnapshot: (next) => {
         if (!disposed) setSnapshot(next);
-        if (next.pendingIncidents > 0) queueMicrotask(maybeUpload);
+        if (next.pendingIncidents > next.consentRequiredIncidents) queueMicrotask(maybeUpload);
       },
     });
     coordinatorRef.current = coordinator;
@@ -88,7 +92,7 @@ export function useMatchGapRecorder({
       if (
         disposed ||
         uploadRunning ||
-        peerStateRef.current !== 'connected' ||
+        (active && peerStateRef.current !== 'connected') ||
         !navigator.onLine
       ) return;
       uploadRunning = true;
@@ -106,30 +110,38 @@ export function useMatchGapRecorder({
           uploadRunning = false;
         });
     };
+    uploadRef.current = maybeUpload;
     window.addEventListener('online', maybeUpload);
 
     let recorder: ReturnType<typeof startRotatingGapRecorder> | null = null;
-    try {
-      recorder = startRotatingGapRecorder({
-        stream: localStream,
-        onClip: (clip) => coordinator.acceptClip(clip),
-        onError: (message) => coordinator.reportError(message),
-      });
-      void coordinator.initialize().then(() => coordinator.observePeer(peerStateRef.current));
-    } catch {
-      setSnapshot({
-        ...UNSUPPORTED,
-        status: 'error',
-        error: 'Impossibile avviare il buffer video locale.',
-      });
+    void coordinator.initialize().then(() => {
+      if (active) void coordinator.observePeer(peerStateRef.current);
+    });
+    localRefreshTimer = setInterval(() => void coordinator.refresh(), 1_000);
+    if (active && localStream && videoTrackId) {
+      try {
+        recorder = startRotatingGapRecorder({
+          stream: localStream,
+          onClip: (clip) => coordinator.acceptClip(clip),
+          onError: (message) => coordinator.reportError(message),
+        });
+      } catch {
+        setSnapshot({
+          ...UNSUPPORTED,
+          status: 'error',
+          error: 'Impossibile avviare il buffer video locale.',
+        });
+      }
     }
 
     return () => {
       disposed = true;
       window.removeEventListener('online', maybeUpload);
       if (retryTimer) clearTimeout(retryTimer);
+      if (localRefreshTimer) clearInterval(localRefreshTimer);
       if (coordinatorRef.current === coordinator) coordinatorRef.current = null;
-      void recorder?.stop().then(() => coordinator.finish(true));
+      uploadRef.current = () => {};
+      if (recorder) void recorder.stop().then(() => coordinator.finish(true));
     };
   }, [active, enabled, localStream, matchId, userId, videoTrackId, webcamSessionId]);
 
@@ -137,5 +149,13 @@ export function useMatchGapRecorder({
     void coordinatorRef.current?.observePeer(peerState);
   }, [peerState]);
 
-  return snapshot;
+  const grantUploadConsent = useCallback(async () => {
+    await coordinatorRef.current?.grantUploadConsent();
+    uploadRef.current();
+  }, []);
+  const declineUpload = useCallback(async () => {
+    await coordinatorRef.current?.declineUpload();
+  }, []);
+
+  return { snapshot, grantUploadConsent, declineUpload };
 }

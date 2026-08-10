@@ -14,7 +14,6 @@ Prima del rollout deve esistere un target staging separato con:
 - hostname, certificato ACM, origin frontend e image digest staging;
 - database e ruoli runtime/migration dedicati;
 - Redis TLS, ECR, S3 e SSM staging separati;
-- un ambiente Staff staging con hostname e secret propri.
 
 ## Gate 1 — sorgente riproducibile
 
@@ -22,31 +21,14 @@ Prima del rollout deve esistere un target staging separato con:
 2. Rieseguire le suite dei tre repository dal commit candidato.
 3. Pubblicare immagini immutabili e annotare digest, commit e SBOM.
 4. Verificare le catene Alembic:
-   - Auth: `012_tournament_gap_review` come unico head;
-   - Tournaments: `006` come unico head.
+   - Tournaments: `007` come unico head.
 
-## Gate 2 — secret e autorizzazioni
+## Gate 2 — identità e consenso
 
-Generare un token casuale di almeno 32 caratteri con il workflow secret
-approvato. Lo stesso valore deve essere disponibile soltanto come:
-
-- Tournaments: `/tournaments-staging/MATCH_GAP_STAFF_API_TOKEN`;
-- Staff staging: `/staging/ebartex/staff/tournament_api_token`.
-
-Non stamparlo, non inserirlo in tfvars/state e non riusarlo per Auth, Support o
-fingerprint. Configurare inoltre nello Staff staging:
-
-- `tournament_internal_origin`;
-- `tournament_allowed_hosts`;
-- `tournament_media_allowed_hosts`, con l'hostname S3 esatto.
-
-Applicare la migrazione Auth e assegnare manualmente al ruolo collaudatore:
-
-- `tournament.gap_recording.read`;
-- `tournament.gap_recording.review`;
-- scope `queue:tournament_gap_review`.
-
-Nessun ruolo riceve questi permessi automaticamente.
+Non configurare token, permessi o broker Staff: la verifica appartiene ai due
+giocatori. Usare due account di test normali e controllare che ogni richiesta
+usi il JWT del partecipante, che l'uploader non possa aprire i propri video e
+che un terzo account riceva `404` senza ottenere ticket S3.
 
 ## Gate 3 — Terraform plan separato
 
@@ -71,13 +53,11 @@ motivato e il plan completo deve comunque essere letto.
 
 ## Gate 4 — migrazioni e deploy con flag spento
 
-1. Eseguire una sola task migrazione Auth con ruolo DB dedicato; richiedere exit
-   code 0 e `alembic check` pulito.
-2. Eseguire una sola task migrazione Tournaments; richiedere exit code 0.
-3. Distribuire Tournaments e Staff con il recorder disattivato.
-4. Verificare `/livez`, `/readyz`, login Staff MFA e risposta fail-closed della
-   coda quando la feature è spenta.
-5. Abilitare prima backend/bucket/Staff, poi il flag client sul solo gruppo di
+1. Eseguire una sola task migrazione Tournaments; richiedere exit code 0 e
+   `alembic heads` uguale a `007`.
+2. Distribuire Tournaments con il recorder disattivato.
+3. Verificare `/livez`, `/readyz` e risposta fail-closed quando la feature è spenta.
+4. Abilitare prima backend/bucket, poi il flag client sul solo gruppo di
    collaudo.
 
 Le migrazioni sono additive: in rollback spegnere i flag e lasciare che TTL e
@@ -98,6 +78,8 @@ supportato eseguire entrambe le modalità ICE disponibili nello staging:
 | Flap ripetuto | incidenti limitati, nessun duplicato |
 | Reload offline | incidente `interrupted`, nessun intervallo inventato |
 | Upload interrotto | retry idempotente dopo ritorno rete |
+| Consenso non dato | zero richieste init e clip ancora solo in IndexedDB |
+| Consenso rifiutato | clip locali eliminate e zero oggetti S3 |
 | IndexedDB pieno | avviso e fallimento sicuro, match non bloccato |
 | P2P diretto | upload HTTPS non usa il DataChannel |
 | P2P via TURN | upload HTTPS non aumenta il traffico TURN |
@@ -106,17 +88,15 @@ Raccogliere `RTCPeerConnection.getStats()` soltanto per confermare il tipo di
 candidate pair e i byte TURN; non salvare SDP, IP, video o identificativi utenti
 nei documenti di evidenza.
 
-## Gate 6 — Staff, cancellazione e telemetria
+## Gate 6 — verifica reciproca, cancellazione e telemetria
 
-1. Aprire la coda con un operatore `read`: può vedere e riprodurre, non decidere.
-2. Verificare che il browser non riceva hostname/query presigned S3 nel markup,
-   nelle API JSON o nella console.
-3. Con un operatore `review`, salvare una decisione e confermare:
-   - audit con subject, reason code e timestamp;
-   - oggetti S3 assenti subito dopo la risposta;
-   - ticket media successivo rifiutato;
-   - stessa decisione idempotente e decisione opposta in conflitto.
-4. Verificare nei log soltanto gli eventi aggregati:
+1. Accettare l'informativa come avversario e aprire i soli frammenti autorizzati.
+2. Verificare che l'uploader e un terzo account non possano ottenere ticket media.
+3. Salvare una verifica positiva e confermare gli oggetti S3 assenti subito dopo la risposta.
+4. In un secondo incidente, contestare e confermare oggetti privati fino al TTL,
+   poi assenti entro 72 ore.
+5. Confermare stessa decisione idempotente e decisione opposta in conflitto.
+6. Verificare nei log soltanto gli eventi aggregati:
    - `match_gap_event=ready`;
    - `match_gap_event=reviewed`;
    - `match_gap_event=expired`;

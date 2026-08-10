@@ -3,12 +3,12 @@ set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-eu-south-1}"
 STAGING_PROJECT="${TOURNAMENTS_STAGING_PROJECT:-tournaments-staging}"
-STAFF_SSM_PREFIX="${STAFF_STAGING_SSM_PREFIX:-/staging/ebartex/staff}"
-TOURNAMENTS_SSM_PREFIX="${TOURNAMENTS_STAGING_SSM_PREFIX:-/${STAGING_PROJECT}}"
 
 : "${EXPECTED_STAGING_AWS_ACCOUNT_ID:?required}"
 : "${TOURNAMENTS_STAGING_BACKEND_BUCKET:?required}"
 : "${TOURNAMENTS_STAGING_BACKEND_KEY:?required}"
+: "${MATCH_GAP_STAGING_BUCKET:?required}"
+: "${MATCH_GAP_STAGING_ORIGIN:?required}"
 
 if [[ ! "$EXPECTED_STAGING_AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]; then
   echo "Invalid expected staging AWS account ID" >&2
@@ -70,46 +70,56 @@ if ! jq -e '.PublicAccessBlockConfiguration | all(.[]; . == true)' \
   exit 1
 fi
 
-require_parameter() {
-  local name="$1"
-  local expected_type="$2"
-  local actual_type
-  actual_type="$(AWS_PAGER='' aws ssm describe-parameters \
+# Il bucket applicativo deve essere già privato e a scadenza prima di accendere
+# il flag. Questo sostituisce il vecchio broker Staff con controlli più stretti
+# sul confine realmente usato dai due giocatori.
+AWS_PAGER='' aws s3api head-bucket \
+  --region "$AWS_REGION" --bucket "$MATCH_GAP_STAGING_BUCKET" >/dev/null
+GAP_PUBLIC_BLOCK="$(AWS_PAGER='' aws s3api get-public-access-block \
+  --region "$AWS_REGION" --bucket "$MATCH_GAP_STAGING_BUCKET" --output json)"
+if ! jq -e '.PublicAccessBlockConfiguration | all(.[]; . == true)' \
+  >/dev/null <<<"$GAP_PUBLIC_BLOCK"; then
+  echo "Match-gap staging bucket must block all public access" >&2
+  exit 1
+fi
+GAP_ENCRYPTION="$(AWS_PAGER='' aws s3api get-bucket-encryption \
+  --region "$AWS_REGION" --bucket "$MATCH_GAP_STAGING_BUCKET" \
+  --query 'ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm' \
+  --output text)"
+if [[ "$GAP_ENCRYPTION" != "AES256" && "$GAP_ENCRYPTION" != "aws:kms" ]]; then
+  echo "Match-gap staging bucket must use server-side encryption" >&2
+  exit 1
+fi
+GAP_LIFECYCLE="$(AWS_PAGER='' aws s3api get-bucket-lifecycle-configuration \
+  --region "$AWS_REGION" --bucket "$MATCH_GAP_STAGING_BUCKET" --output json)"
+if ! jq -e 'any(.Rules[]; .Status == "Enabled" and .Expiration.Days <= 3)' \
+  >/dev/null <<<"$GAP_LIFECYCLE"; then
+  echo "Match-gap staging bucket must expire objects within 3 days" >&2
+  exit 1
+fi
+GAP_CORS="$(AWS_PAGER='' aws s3api get-bucket-cors \
+  --region "$AWS_REGION" --bucket "$MATCH_GAP_STAGING_BUCKET" --output json)"
+if ! jq -e --arg origin "$MATCH_GAP_STAGING_ORIGIN" \
+  'any(.CORSRules[]; .AllowedOrigins == [$origin] and .AllowedMethods == ["POST"])' \
+  >/dev/null <<<"$GAP_CORS"; then
+  echo "Match-gap staging CORS must allow only POST from the exact frontend origin" >&2
+  exit 1
+fi
+
+for obsolete_parameter in \
+  "/${STAGING_PROJECT}/MATCH_GAP_STAFF_API_TOKEN" \
+  "/staging/ebartex/staff/tournament_api_token" \
+  "/staging/ebartex/staff/tournament_internal_origin" \
+  "/staging/ebartex/staff/tournament_allowed_hosts" \
+  "/staging/ebartex/staff/tournament_media_allowed_hosts"; do
+  parameter_count="$(AWS_PAGER='' aws ssm describe-parameters \
     --region "$AWS_REGION" \
-    --parameter-filters "Key=Name,Option=Equals,Values=$name" \
-    --query 'Parameters[0].Type' --output text)"
-  if [[ "$actual_type" != "$expected_type" ]]; then
-    echo "Missing or invalid staging parameter: $name" >&2
+    --parameter-filters "Key=Name,Option=Equals,Values=$obsolete_parameter" \
+    --query 'length(Parameters)' --output text)"
+  if [[ "$parameter_count" != "0" ]]; then
+    echo "Obsolete Staff tournament parameter must be removed: $obsolete_parameter" >&2
     exit 1
   fi
-}
-
-TOURNAMENTS_TOKEN_PATH="${TOURNAMENTS_SSM_PREFIX}/MATCH_GAP_STAFF_API_TOKEN"
-STAFF_TOKEN_PATH="${STAFF_SSM_PREFIX}/tournament_api_token"
-require_parameter "$TOURNAMENTS_TOKEN_PATH" "SecureString"
-require_parameter "$STAFF_TOKEN_PATH" "SecureString"
-for suffix in tournament_internal_origin tournament_allowed_hosts tournament_media_allowed_hosts; do
-  require_parameter "${STAFF_SSM_PREFIX}/${suffix}" "String"
 done
-
-TOURNAMENTS_TOKEN="$(AWS_PAGER='' aws ssm get-parameter \
-  --region "$AWS_REGION" --name "$TOURNAMENTS_TOKEN_PATH" \
-  --with-decryption --query Parameter.Value --output text)"
-STAFF_TOKEN="$(AWS_PAGER='' aws ssm get-parameter \
-  --region "$AWS_REGION" --name "$STAFF_TOKEN_PATH" \
-  --with-decryption --query Parameter.Value --output text)"
-cleanup() {
-  unset TOURNAMENTS_TOKEN STAFF_TOKEN
-}
-trap cleanup EXIT
-
-if [[ ! "$TOURNAMENTS_TOKEN" =~ ^[A-Za-z0-9._~-]{32,512}$ ]]; then
-  echo "Invalid Tournaments staging broker token" >&2
-  exit 1
-fi
-if [[ "$TOURNAMENTS_TOKEN" != "$STAFF_TOKEN" ]]; then
-  echo "Staff and Tournaments staging broker tokens do not match" >&2
-  exit 1
-fi
 
 echo "Staging preflight passed; no infrastructure or parameter was modified."

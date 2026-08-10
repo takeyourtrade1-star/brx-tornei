@@ -3,25 +3,23 @@
 ## Stato implementazione
 
 Implementati dietro feature flag: recorder desktop, pre/post-roll, IndexedDB,
-retry, BFF same-origin, manifest idempotente, upload S3 firmato, verifica
-server-side, cancellazione locale, pulizia applicativa a scadenza e lifecycle
-S3. Sono implementati anche API interna Staff, permessi Auth dedicati, coda di
-revisione, riproduzione same-origin e decisione auditata con cancellazione S3
-immediata. La feature resta spenta per default.
+consenso esplicito prima dell'upload, BFF same-origin, manifest idempotente,
+upload S3 firmato, verifica reciproca tra i due giocatori, cancellazione locale,
+pulizia applicativa a scadenza e lifecycle S3. Staff non partecipa al flusso.
 
 La configurazione Terraform passa `fmt` e `validate` con i provider bloccati.
 Gli eventi operativi sono ora aggregati e privi di ID. Prima del rollout
 restano: creazione di un vero target staging separato, `terraform plan` contro
-quell'account/state, provisioning dei secret e degli scope Staff, migrazioni e
-prova reale a due PC. La procedura completa è in
+quell'account/state, migrazioni e prova reale a due PC. La procedura completa è in
 `docs/MATCH_GAP_STAGING_RUNBOOK.md`.
 
 ## Obiettivo e confini
 
 Quando un giocatore perde il collegamento WebRTC durante un match già connesso,
 il suo PC conserva localmente il video della propria webcam per la durata del
-gap. Alla riconnessione carica solo quel tratto su storage privato. Nessuna
-partita completa viene caricata o conservata.
+gap. Alla riconnessione mostra l'informativa e chiede il consenso: solo dopo
+carica quel tratto su storage privato perché l'avversario possa verificarlo.
+Nessuna partita completa viene caricata o conservata.
 
 Vincoli del primo rilascio:
 
@@ -68,11 +66,12 @@ inizializzazione del contenitore.
 2. `armed`: il PC produce clip locali e conserva soltanto il pre-roll.
 3. `capturing`: dopo una perdita P2P, le clip non vengono più eliminate.
 4. `closing`: P2P ristabilito; si attendono 5 secondi di post-roll.
-5. `queued`: manifest e clip sono completi in IndexedDB.
-6. `uploading`: init idempotente, upload firmati, finalize.
-7. `uploaded`: il backend ha verificato presenza e dimensione degli oggetti;
+5. `awaiting-consent`: manifest e clip sono completi ma ancora soltanto sul PC.
+6. `queued`: il giocatore ha letto l'informativa e autorizzato l'upload.
+7. `uploading`: init idempotente, upload firmati, finalize.
+8. `uploaded`: il backend ha verificato presenza e dimensione degli oggetti;
    i blob locali vengono eliminati.
-8. `failed`: i dati restano locali e il retry riparte su `online`, mount della
+9. `failed`: i dati restano locali e il retry riparte su `online`, mount della
    pagina o comando esplicito.
 
 La transizione verso `capturing` è ammessa solo dopo che il link è stato almeno
@@ -103,6 +102,7 @@ Indici: `matchUser`, `incidentId`, `endedAt`.
 - `matchId`, `webcamSessionId`, `userId`;
 - `detectedAt`, `captureStartedAt`, `captureEndedAt`;
 - `status`, `clipIds`, `byteLength`, `captureCapped`, `interrupted`;
+- `uploadConsentedAt` e `uploadConsentVersion`, null finché manca il consenso;
 - `remoteIncidentId`, `retryCount`, `nextRetryAt`, `lastError`.
 
 Indici: `matchUser`, `status`, `updatedAt`.
@@ -131,6 +131,10 @@ Body massimo 64 KiB:
   "capture_ended_at": "ISO-8601",
   "capture_capped": false,
   "interrupted": false,
+  "upload_consented_at": "ISO-8601",
+  "upload_consent_version": "peer-gap-review-v1",
+  "temporary_storage_acknowledged": true,
+  "opponent_review_acknowledged": true,
   "clips": [
     {
       "client_clip_id": "uuid",
@@ -145,7 +149,8 @@ Body massimo 64 KiB:
 }
 ```
 
-La risposta restituisce l'ID server e, per ogni oggetto non ancora presente,
+Il backend rifiuta il manifest se manca uno dei campi di consenso. La risposta
+restituisce l'ID server e, per ogni oggetto non ancora presente,
 un presigned POST con URL e campi firmati. Ripetere la stessa richiesta non
 crea una seconda registrazione.
 
@@ -165,21 +170,16 @@ La finalizzazione è idempotente.
 
 ### 4. Verifica e cancellazione
 
-Il Tournament Service espone quattro route server-to-server esplicite per
-lista, dettaglio, ticket media e decisione. Richiedono un token dedicato, il
-subject Staff, capability e scope `global` oppure coda
-`tournament_gap_review`; Redis limita le richieste e fallisce chiuso in
-staging/produzione.
+Il Tournament Service espone route autenticate per lista del match, dettaglio,
+presa visione, ticket media e decisione. Autorizza soltanto i due partecipanti;
+l'uploader non può aprire o verificare i propri frammenti. Prima del ticket,
+l'avversario deve accettare l'informativa versionata.
 
-Il browser Staff non vede mai il presigned GET: chiede il frammento a un BFF
-same-origin, che ottiene il ticket, valida l'host S3 esatto e trasmette al
-browser al massimo 4 MiB. I video usano `preload="none"`, quindi non consumano
-banda finché l'operatore non preme Play.
-
-Una decisione `verified` o `rejected` salva operatore, reason code e timestamp,
-poi elimina immediatamente tutte le clip S3. La stessa decisione è idempotente;
-una decisione opposta genera conflitto. Il lifecycle a 72 ore resta la rete di
-sicurezza per file mai revisionati.
+Una decisione `verified` salva giocatore, reason code e timestamp e cancella
+subito le clip S3. `rejected` apre invece la contestazione e conserva gli
+oggetti privati solo fino alla scadenza massima di 72 ore. Il giocatore che ha
+contestato può chiudere una disputa risolta e cancellarli prima; l'uploader non
+può farlo unilateralmente. La stessa decisione è idempotente.
 
 ## Modello backend
 
@@ -188,6 +188,7 @@ sicurezza per file mai revisionati.
 - ID server, ID client, match e utente;
 - intervallo dichiarato, stato e flag di completezza;
 - conteggio clip, byte totali, scadenza;
+- consenso dell'uploader e presa visione dell'avversario, entrambi versionati;
 - timestamp di creazione, completamento, verifica e cancellazione;
 - unique `(match_id, user_id, client_incident_id)`.
 
@@ -219,23 +220,15 @@ sicurezza per file mai revisionati.
 2. API, modello Alembic, adapter S3 e test di autorizzazione/idempotenza.
 3. BFF, uploader e retry persistente.
 4. Bucket, IAM, CORS e lifecycle.
-5. API e UI Staff, permessi sensibili e cancellazione immediata.
-6. Provisioning staging, migrazioni e assegnazione esplicita dei permessi:
-   `tournament.gap_recording.read` e `tournament.gap_recording.review`, scope
-   coda `tournament_gap_review`; nessun ruolo riceve grant automatici.
+5. API e UI di verifica reciproca, informativa e cancellazione immediata.
+6. Provisioning staging e migrazioni, senza token o permessi Staff.
 7. Test reali con Chrome/Edge/Firefox desktop: perdita WAN, flap, 90 secondi,
    reload, quota piena e upload interrotto.
 8. Abilitazione al 5% con metriche, poi progressiva.
 
-Secret/configurazioni da predisporre prima di accendere il flag:
-
-- Tournaments SSM: `/tournaments/MATCH_GAP_STAFF_API_TOKEN`;
-- Staff SSM: `tournament_internal_origin`, `tournament_allowed_hosts`,
-  `tournament_api_token`, `tournament_media_allowed_hosts` sotto
-  `/prod/ebartex/staff/`;
-- il valore dei due token broker deve coincidere tra i servizi, restare diverso
-  da ogni altro secret Staff e non entrare in Terraform state;
-- l'host media deve essere l'hostname virtual-hosted esatto del bucket privato.
+Non esistono secret o permessi Staff per questa funzione. Restano necessari il
+bucket privato, IAM limitato al prefisso, CORS dell'origin tornei e il normale
+JWT dei due giocatori già usato dalle API del match.
 
 ## Criteri di accettazione
 
@@ -246,7 +239,8 @@ Secret/configurazioni da predisporre prima di accendere il flag:
 - doppio init/finalize non duplica righe o oggetti;
 - reload conserva una coda incompleta senza inventare copertura video;
 - dopo conferma backend i blob locali spariscono;
-- dopo la decisione Staff gli oggetti S3 spariscono immediatamente e il record
+- dopo la verifica dell'avversario gli oggetti S3 spariscono immediatamente e il record
   conserva soltanto metadati audit;
+- una contestazione conserva gli oggetti soltanto fino al TTL di 72 ore;
 - dopo 72 ore gli oggetti non verificati spariscono dallo storage;
 - l'upload non usa TURN e non degrada audio/video appena riconnessi.

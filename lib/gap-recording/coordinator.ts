@@ -19,6 +19,7 @@ import {
   withClipSummary,
 } from '@/lib/gap-recording/incidents';
 import type { GapClipRecord, GapIncidentRecord, GapProtectionSnapshot, RecordedClip } from '@/lib/gap-recording/types';
+import { MATCH_GAP_NOTICE_VERSION } from '@/lib/gap-recording/types';
 import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
 
 interface CoordinatorOptions {
@@ -123,6 +124,47 @@ export class GapRecordingCoordinator {
 
   refresh(): Promise<void> {
     return this.enqueue(() => this.publishSnapshot());
+  }
+
+  grantUploadConsent(): Promise<void> {
+    return this.enqueue(async () => {
+      const consentedAt = this.now();
+      const incidents = await this.store.listIncidents(this.matchUserKey);
+      for (const incident of incidents) {
+        const consentMissing =
+          incident.uploadConsentVersion !== MATCH_GAP_NOTICE_VERSION ||
+          typeof incident.uploadConsentedAt !== 'number';
+        if (!consentMissing || !['awaiting-consent', 'queued', 'failed'].includes(incident.status)) {
+          continue;
+        }
+        await this.store.putIncident({
+          ...incident,
+          status: 'queued',
+          uploadConsentedAt: consentedAt,
+          uploadConsentVersion: MATCH_GAP_NOTICE_VERSION,
+          retryCount: 0,
+          nextRetryAt: null,
+          lastError: null,
+          updatedAt: consentedAt,
+        });
+      }
+      await this.publishSnapshot();
+    });
+  }
+
+  declineUpload(): Promise<void> {
+    return this.enqueue(async () => {
+      const incidents = await this.store.listIncidents(this.matchUserKey);
+      for (const incident of incidents) {
+        const consentMissing =
+          incident.uploadConsentVersion !== MATCH_GAP_NOTICE_VERSION ||
+          typeof incident.uploadConsentedAt !== 'number';
+        if (consentMissing && ['awaiting-consent', 'queued', 'failed'].includes(incident.status)) {
+          await this.store.deleteIncidentData(incident.id);
+        }
+      }
+      await this.publishSnapshot();
+    });
   }
 
   private enqueue(operation: () => Promise<void>): Promise<void> {

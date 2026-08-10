@@ -1,6 +1,7 @@
 import type { GapRecordingStore } from '@/lib/gap-recording/indexed-db';
 import { makeMatchUserKey } from '@/lib/gap-recording/policy';
 import type { GapClipRecord, GapIncidentRecord } from '@/lib/gap-recording/types';
+import { MATCH_GAP_NOTICE_VERSION } from '@/lib/gap-recording/types';
 import { publicConfig } from '@/lib/public-config';
 import {
   gapUploadCompleteResponseSchema,
@@ -36,6 +37,12 @@ async function manifest(
   if (incident.captureEndedAt === null) {
     throw new Error('La registrazione locale non è ancora chiusa.');
   }
+  if (
+    incident.uploadConsentVersion !== MATCH_GAP_NOTICE_VERSION ||
+    typeof incident.uploadConsentedAt !== 'number'
+  ) {
+    throw new TerminalGapUploadError('Consenso al caricamento mancante.');
+  }
   const ordered = [...clips].sort((left, right) => left.sequence - right.sequence);
   const items = await Promise.all(
     ordered.map(async (clip, sequence) => ({
@@ -56,6 +63,10 @@ async function manifest(
     capture_ended_at: new Date(incident.captureEndedAt).toISOString(),
     capture_capped: incident.captureCapped,
     interrupted: incident.interrupted,
+    upload_consented_at: new Date(incident.uploadConsentedAt).toISOString(),
+    upload_consent_version: MATCH_GAP_NOTICE_VERSION,
+    temporary_storage_acknowledged: true,
+    opponent_review_acknowledged: true,
     clips: items,
   };
 }
@@ -228,6 +239,10 @@ export async function uploadPendingGapRecordings(
   let nextRetryAt: number | null = null;
   for (const incident of incidents) {
     if (!['queued', 'uploading', 'failed'].includes(incident.status)) continue;
+    if (
+      incident.uploadConsentVersion !== MATCH_GAP_NOTICE_VERSION ||
+      typeof incident.uploadConsentedAt !== 'number'
+    ) continue;
     if (incident.nextRetryAt && incident.nextRetryAt > now) {
       nextRetryAt = nextRetryAt === null
         ? incident.nextRetryAt
