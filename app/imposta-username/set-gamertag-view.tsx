@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Card,
@@ -12,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
 import { checkGamertagAvailabilityAction, setGamertagAction } from '@/actions/players';
 import type { GamertagAvailability } from '@/lib/data/player-api-client';
 
@@ -25,6 +27,8 @@ export function SetGamertagView({ initialGamertag, redirectTo }: SetGamertagView
   const [value, setValue] = useState(initialGamertag ?? '');
   const [error, setError] = useState<string | null>(null);
   const [availability, setAvailability] = useState<GamertagAvailability | null>(null);
+  const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [, startChecking] = useTransition();
   const [saving, startSaving] = useTransition();
 
@@ -59,11 +63,18 @@ export function SetGamertagView({ initialGamertag, redirectTo }: SetGamertagView
   const trimmed = value.trim();
   const unchanged = trimmed.length > 0 && trimmed === (initialGamertag ?? '');
   const showAvailability = !unchanged && trimmed.length >= 3 && availability !== null;
+  // Chi cambia un gamertag esistente l'ha già accettato alla prima attivazione.
+  const mustAcceptRules = initialGamertag === null;
   const canSubmit =
-    trimmed.length >= 3 && trimmed.length <= 20 && !saving && (unchanged || availability?.available === true);
+    trimmed.length >= 3 &&
+    trimmed.length <= 20 &&
+    !saving &&
+    (unchanged || availability?.available === true) &&
+    (!mustAcceptRules || rulesAccepted);
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <TournamentRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Scegli il tuo gamertag</CardTitle>
@@ -101,6 +112,33 @@ export function SetGamertagView({ initialGamertag, redirectTo }: SetGamertagView
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
+            {mustAcceptRules && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-slate-900/[0.06] bg-slate-50 px-3 py-3">
+                <Checkbox
+                  id="accept-rules"
+                  checked={rulesAccepted}
+                  onCheckedChange={setRulesAccepted}
+                  aria-describedby="accept-rules-label"
+                  className="mt-0.5"
+                />
+                <label
+                  id="accept-rules-label"
+                  htmlFor="accept-rules"
+                  className="cursor-pointer text-xs leading-relaxed text-slate-600"
+                >
+                  Registrandomi con questo gamertag entro nella community dei tornei e dichiaro di
+                  aver letto e di accettare il{' '}
+                  <button
+                    type="button"
+                    onClick={() => setRulesOpen(true)}
+                    className="font-semibold text-primary underline underline-offset-2"
+                  >
+                    regolamento e l&apos;informativa privacy dei tornei
+                  </button>
+                  , incluse le note su connessione P2P e registrazione anti-cheat.
+                </label>
+              </div>
+            )}
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={!canSubmit} className="w-full">

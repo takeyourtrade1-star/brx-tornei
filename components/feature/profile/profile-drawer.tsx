@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { evaluateAchievements } from '@/lib/data/achievements';
+import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import { AchievementCard, AchievementSummary } from './achievement-card';
 
@@ -32,6 +33,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
     initialReputation ? { status: 'success', reputation: initialReputation } : { status: 'idle' },
   );
   const [mounted, setMounted] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -48,6 +50,8 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
     const t = window.setTimeout(() => closeRef.current?.focus(), 20);
 
     const onKeyDown = (event: KeyboardEvent) => {
+      // Se il modal regolamento è aperto, Esc spetta a lui (chiude solo il modal).
+      if (rulesOpen) return;
       if (event.key === 'Escape') {
         onClose();
         return;
@@ -77,7 +81,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
       window.clearTimeout(t);
       previouslyFocused.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open, onClose, rulesOpen]);
 
   // Lazy fetch al primo accesso.
   useEffect(() => {
@@ -186,6 +190,15 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
               </p>
             </>
           )}
+
+          <button
+            type="button"
+            onClick={() => setRulesOpen(true)}
+            className="mt-6 w-full rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-3 text-center text-xs font-semibold text-slate-600 transition hover:border-slate-900/15 hover:text-header-bg"
+          >
+            Regolamento e informativa privacy dei tornei
+          </button>
+          <TournamentRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
         </div>
       </aside>
     </div>,
