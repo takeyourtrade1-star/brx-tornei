@@ -1,6 +1,5 @@
 import 'server-only';
 
-import { FORMATS } from '@/lib/data/catalog';
 import type { Participant, Tournament, JoinTournamentResult } from '@/types/tournament';
 import type { Selection } from '@/lib/validations/selection';
 import {
@@ -20,28 +19,9 @@ import type { CreateTournamentInput } from '@/lib/validations/tournament';
  * Il servizio è online: nessun fallback mock, i dati arrivano solo dall'API.
  */
 
-function byRecent(a: Tournament, b: Tournament): number {
-  return b.createdAt.localeCompare(a.createdAt);
-}
-
 export async function getTournaments(selection: Selection): Promise<Tournament[]> {
-  // "Tutti i formati" non esiste per il Tournament Service: l'API accetta solo
-  // formati espliciti, quindi si chiede un elenco per ciascun formato e si
-  // uniscono i risultati (dedup per id). Un singolo formato non risponde non
-  // blocca la vista: restano i tavoli degli altri formati.
-  if (selection.format === 'all') {
-    const settled = await Promise.allSettled(
-      FORMATS.map((format) => fetchTournaments({ ...selection, format: format.id })),
-    );
-    const seen = new Map<string, Tournament>();
-    for (const result of settled) {
-      if (result.status !== 'fulfilled') continue;
-      for (const tournament of result.value) {
-        if (!seen.has(tournament.id)) seen.set(tournament.id, tournament);
-      }
-    }
-    return [...seen.values()].sort(byRecent);
-  }
+  // Il backend interpreta l'assenza di `format` come vista aggregata: anche
+  // "Tutti" costa una sola quota di lettura, invece di una per ogni formato.
   return fetchTournaments(selection);
 }
 
