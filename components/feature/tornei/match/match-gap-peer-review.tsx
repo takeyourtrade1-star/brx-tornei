@@ -11,7 +11,7 @@ function OwnRecording({ recording, opponentName }: { recording: GapPeerRecording
     : recording.status === 'verified'
       ? `Frammenti verificati da ${opponentName} e già eliminati.`
       : `Frammenti contestati da ${opponentName}; restano protetti solo fino alla scadenza indicata.`;
-  return <p className="rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-xs text-white/70">{copy}</p>;
+  return <p className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs text-white/75">{copy}</p>;
 }
 
 export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string | null; opponentName: string }) {
@@ -21,7 +21,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
   if (review.recordings.length === 0 && !review.error) return null;
 
   return (
-    <section className="mb-4 space-y-3 rounded-2xl border border-sky-400/20 bg-sky-500/[0.07] p-4 text-sm text-sky-50">
+    <section className="mb-4 space-y-3 rounded-2xl border border-sky-400/30 bg-card2-end/95 p-4 text-sm text-sky-50 shadow-lg shadow-card2-end/25">
       <div className="flex items-start gap-3">
         <Eye className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
         <div>
@@ -34,7 +34,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
         </div>
       </div>
       {review.error && (
-        <p className="flex items-center gap-2 rounded-xl bg-red-500/10 px-3 py-2 text-xs text-red-100">
+        <p className="flex items-center gap-2 rounded-xl bg-red-950/85 px-3 py-2 text-xs text-red-100">
           <TriangleAlert className="h-4 w-4" aria-hidden="true" /> {review.error}
         </p>
       )}
@@ -45,7 +45,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
         const loaded = review.clips[recording.recording_id];
         const busy = review.busyId === recording.recording_id;
         return (
-          <article key={recording.recording_id} className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
+          <article key={recording.recording_id} className="space-y-3 rounded-xl border border-white/10 bg-white/[0.06] p-3">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
               <strong>{recording.clip_count} framment{recording.clip_count === 1 ? 'o' : 'i'} di {opponentName}</strong>
               <span className="text-white/55">Scadenza {new Date(recording.expires_at).toLocaleString('it-IT')}</span>

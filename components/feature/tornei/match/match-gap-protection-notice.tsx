@@ -29,7 +29,7 @@ export function MatchGapProtectionNotice({
       }
     };
     return (
-      <section className="mb-3 rounded-2xl border border-primary/35 bg-primary/10 p-4 text-sm text-orange-50">
+      <section className="mb-3 rounded-2xl border border-primary/40 bg-card2-end/95 p-4 text-sm text-orange-50 shadow-lg shadow-card2-end/25">
         <div className="flex gap-3">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           <div className="space-y-3">
@@ -91,12 +91,12 @@ export function MatchGapProtectionNotice({
 
   return (
     <p
-      className={`mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${
+      className={`mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-lg shadow-card2-end/20 ${
         failed
-          ? 'border-red-400/25 bg-red-500/10 text-red-100'
+          ? 'border-red-400/25 bg-red-950/85 text-red-100'
           : active
-            ? 'border-primary/30 bg-primary/10 text-orange-100'
-            : 'border-emerald-400/20 bg-emerald-500/[0.08] text-emerald-100/80'
+            ? 'border-primary/40 bg-card2-end/95 text-orange-100'
+            : 'border-emerald-400/20 bg-emerald-950/80 text-emerald-100/90'
       }`}
     >
       <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

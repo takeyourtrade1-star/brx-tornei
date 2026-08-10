@@ -92,7 +92,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         declareBusy={declareResult.declaring} onDeclare={declareResult.declare} onLeave={leave.leave}
       />
       {tournament.status === 'in_registrazione' && !ready.tableFull && (
-        <p className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        <p className="mb-4 rounded-2xl border border-amber-400/30 bg-card2-end/95 px-4 py-3 text-sm text-amber-100 shadow-lg shadow-card2-end/25">
           In attesa del secondo giocatore… La partita inizierà quando il tavolo sarà completo.
         </p>
       )}

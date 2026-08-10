@@ -174,7 +174,7 @@ export function MatchConnectionNotice({
     <div
       role="status"
       aria-live="polite"
-      className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100"
+      className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400/30 bg-card2-end/95 px-3 py-2.5 text-sm text-amber-100 shadow-lg shadow-card2-end/25"
     >
       <span className="flex items-center gap-2">
         <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin text-amber-300" aria-hidden />
@@ -215,7 +215,7 @@ export function MatchResultPendingPanel({
   return (
     <section
       aria-live="polite"
-      className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/35 bg-primary/10 px-4 py-3 text-white"
+      className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/40 bg-card2-end/95 px-4 py-3 text-white shadow-lg shadow-card2-end/25"
     >
       <div className="flex min-w-0 items-center gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/20 ring-1 ring-primary/40">
