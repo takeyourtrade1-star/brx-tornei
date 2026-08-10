@@ -33,7 +33,6 @@ interface LobbyPageProps {
 
 type ModalState = { mode: 'host' | 'join'; tournamentId: string } | null;
 type ConnectionModalState =
-  | { mode: 'create' }
   | { mode: 'join'; tournamentId: string }
   | null;
 
@@ -206,6 +205,30 @@ export function LobbyPage({
     [tournaments, user.id],
   );
 
+  /** Seduta diretta a un tavolo nuovo esistente, senza scelta deck né modali. */
+  const sitAtNewTable = useCallback(
+    (tournamentId: string) => {
+      setError(null);
+      startTransition(async () => {
+        const res = await joinTournamentAction(tournamentId);
+        if (res.error) {
+          setError(res.error);
+          return;
+        }
+        if (res.matchId) {
+          // Match già partito (es. tavolo pieno con entrambi pronti):
+          // si va direttamente alla schermata live.
+          goLiveTo(tournamentId);
+          return;
+        }
+        // Tavolo pieno in attesa di congedo: l'accettazione stile LoL
+        // appare in lobby, nessun redirect esplicito.
+        router.refresh();
+      });
+    },
+    [router, goLiveTo],
+  );
+
   const handleSit = useCallback(
     (table: LobbyTable) => {
       setError(null);
@@ -231,52 +254,40 @@ export function LobbyPage({
       }
 
       if (table.kind === 'empty') {
-        // "Tutti i formati" è solo una vista: il tavolo vuoto richiede un formato
-        // preciso e il bottone è già bloccato client-side (createLocked).
+        // Tavolo nuovo: seduta immediata, nessun modale intermedio.
         if (table.tournament) {
-          if (table.tournament.withFriend) {
-            setConnectionModal({ mode: 'join', tournamentId: table.tournament.id });
-          } else {
-            setModal({ mode: 'join', tournamentId: table.tournament.id });
-          }
+          sitAtNewTable(table.tournament.id);
           return;
         }
-        setConnectionModal({ mode: 'create' });
+        // "Tutti i formati" è solo una vista: il tavolo vuoto richiede un formato
+        // preciso e il bottone è già bloccato client-side (createLocked).
+        if (selection.format === 'all') {
+          setError('Seleziona un formato specifico per creare un tavolo.');
+          return;
+        }
+        setError(null);
+        startTransition(async () => {
+          const res = await createTableAction(selection.format, selection.mode);
+          if (res.error || !res.createdId) {
+            setError(res.error ?? 'Impossibile creare il tavolo.');
+            return;
+          }
+          router.refresh();
+        });
       }
     },
-    [tournaments, user.id, myUsername],
+    [tournaments, user.id, myUsername, selection.format, selection.mode, sitAtNewTable, router],
   );
 
   const handleConnectionConfirm = useCallback(
     () => {
       if (!connectionModal) return;
       setError(null);
-      if (connectionModal.mode === 'join') {
-        const tournamentId = connectionModal.tournamentId;
-        setConnectionModal(null);
-        setModal({ mode: 'join', tournamentId });
-        return;
-      }
-
-      // Creare richiede un formato preciso: "Tutti" è solo una vista.
-      if (selection.format === 'all') {
-        setError('Seleziona un formato specifico per creare un tavolo.');
-        setConnectionModal(null);
-        return;
-      }
-
-      startTransition(async () => {
-        const res = await createTableAction(selection.format, selection.mode);
-        if (res.error || !res.createdId) {
-          setError(res.error ?? 'Impossibile creare il tavolo.');
-          return;
-        }
-        setConnectionModal(null);
-        setModal({ mode: 'host', tournamentId: res.createdId });
-        router.refresh();
-      });
+      const tournamentId = connectionModal.tournamentId;
+      setConnectionModal(null);
+      setModal({ mode: 'join', tournamentId });
     },
-    [connectionModal, router, selection.format, selection.mode],
+    [connectionModal],
   );
 
   const handleConfirmJoin = useCallback(
@@ -376,7 +387,7 @@ export function LobbyPage({
       />
       <FriendConnectionModal
         open={connectionModal !== null}
-        mode={connectionModal?.mode ?? 'create'}
+        mode="join"
         busy={busy}
         error={error}
         onClose={() => setConnectionModal(null)}

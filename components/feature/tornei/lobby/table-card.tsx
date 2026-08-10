@@ -45,7 +45,7 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
         disabled={busy || createLocked}
         onClick={handlePrimary}
         className={cn(
-          'flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-900/[0.14] bg-white/70 px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 transition',
+          'flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-900/[0.14] bg-white/70 px-4 py-3.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 transition',
           createLocked ? 'cursor-not-allowed opacity-70' : 'hover:border-slate-900/25 hover:bg-white hover:text-header-bg',
         )}
       >
@@ -58,11 +58,11 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
   return (
     <article
       className={cn(
-        'group rounded-xl border bg-white px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition sm:px-4',
+        'group rounded-xl border bg-white px-3 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition sm:px-5',
         isMine ? 'border-header-bg/15 ring-1 ring-header-bg/10' : 'border-slate-900/[0.08] hover:border-header-bg/20',
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5 sm:gap-3">
         <div className="flex w-20 min-w-0 shrink-0 items-center justify-between gap-1 sm:w-36 lg:w-44">
           <div className="min-w-0">
             <p className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">
@@ -78,7 +78,7 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
           )}
         </div>
 
-        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
           <LobbySeat
             occupied={table.seats[0].occupied}
             username={table.seats[0].occupied ? table.seats[0].username : null}
@@ -98,8 +98,8 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
           />
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span className="hidden items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-[9px] font-black text-slate-500 sm:inline-flex">
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden items-center gap-1 rounded-full bg-slate-50 px-2.5 py-1.5 text-[9px] font-black text-slate-500 sm:inline-flex">
             <Users className="h-3 w-3" aria-hidden /> {seatedCount}/2 · {price} · P2P
           </span>
           {table.kind === 'joinable' && (
@@ -124,7 +124,7 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
 
 function PrimaryButton({ children, busy, onClick }: { children: React.ReactNode; busy?: boolean; onClick: () => void }) {
   return (
-    <Button type="button" disabled={busy} onClick={onClick} className="h-9 min-h-9 gap-1 px-3 text-xs">
+    <Button type="button" disabled={busy} onClick={onClick} className="h-10 min-h-10 gap-1.5 px-3.5 text-xs">
       {children}
     </Button>
   );
@@ -132,7 +132,7 @@ function PrimaryButton({ children, busy, onClick }: { children: React.ReactNode;
 
 function LeaveButton({ busy, onClick, label }: { busy?: boolean; onClick: () => void; label: string }) {
   return (
-    <button type="button" disabled={busy} onClick={onClick} aria-label={`${label} dal tavolo`} className="inline-flex h-9 items-center gap-1 rounded-full border border-red-500/25 px-2.5 text-[11px] font-bold text-red-600 hover:bg-red-50 disabled:opacity-50">
+    <button type="button" disabled={busy} onClick={onClick} aria-label={`${label} dal tavolo`} className="inline-flex h-10 items-center gap-1.5 rounded-full border border-red-500/25 px-3 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50">
       <LogOut className="h-3.5 w-3.5" aria-hidden />
       <span className="hidden sm:inline">{label}</span>
     </button>
