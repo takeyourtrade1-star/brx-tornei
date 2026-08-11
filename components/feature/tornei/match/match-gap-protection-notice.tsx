@@ -29,23 +29,25 @@ export function MatchGapProtectionNotice({
       }
     };
     return (
-      <section className="mb-3 rounded-2xl border border-primary/40 bg-card2-end/95 p-4 text-sm text-orange-50 shadow-lg shadow-card2-end/25">
+      <section className="mb-4 space-y-3 rounded-2xl border border-primary/35 bg-header-bg/95 p-4.5 text-sm text-white shadow-xl backdrop-blur-md">
         <div className="flex gap-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
+            <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
+          </span>
           <div className="space-y-3">
             <div>
-              <p className="font-bold">Decidi se condividere i frammenti mancanti</p>
-              <p className="mt-1 text-xs leading-5 text-orange-100/80">
+              <p className="font-sans text-sm font-black text-white">Decidi se condividere i frammenti mancanti</p>
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">
                 I frammenti sono ancora soltanto su questo PC. Non salviamo la partita completa:
                 con il tuo consenso saranno caricati temporaneamente in uno spazio protetto,
                 visibili solo all’avversario per la verifica reciproca e cancellati alla chiusura.
                 Se contestati, scadono comunque entro 3 giorni.
               </p>
             </div>
-            <label className="flex cursor-pointer items-start gap-2 text-xs leading-5">
+            <label className="flex cursor-pointer items-start gap-2.5 text-xs font-semibold text-slate-200">
               <input
                 type="checkbox"
-                className="mt-1 h-4 w-4 accent-orange-500"
+                className="mt-0.5 h-4 w-4 rounded accent-[#FF7300]"
                 checked={acknowledged}
                 onChange={(event) => setAcknowledged(event.target.checked)}
                 disabled={busy}
@@ -55,10 +57,10 @@ export function MatchGapProtectionNotice({
                 e alla loro visione da parte dell’avversario.
               </span>
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-1">
               <button
                 type="button"
-                className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white disabled:opacity-45"
+                className="rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 py-2 text-xs font-black uppercase tracking-wider text-white shadow-sm transition hover:brightness-110 disabled:opacity-45"
                 disabled={!acknowledged || busy}
                 onClick={() => void act(onConsent)}
               >
@@ -66,7 +68,7 @@ export function MatchGapProtectionNotice({
               </button>
               <button
                 type="button"
-                className="rounded-xl border border-white/15 px-3 py-2 text-xs font-bold text-white/80 disabled:opacity-45"
+                className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-wider text-white/80 transition hover:bg-white/15 disabled:opacity-45"
                 disabled={busy}
                 onClick={() => void act(onDecline)}
               >
@@ -89,18 +91,18 @@ export function MatchGapProtectionNotice({
         ? `${snapshot.pendingIncidents} tratto${snapshot.pendingIncidents > 1 ? 'i' : ''} autorizzato${snapshot.pendingIncidents > 1 ? 'i' : ''} in caricamento protetto.`
         : 'Protezione disconnessioni attiva. La partita completa non viene salvata.';
 
+  const toneStyle = failed
+    ? { container: 'border-red-500/30 text-red-100', icon: 'border-red-500/30 bg-red-500/15 text-red-400' }
+    : active
+      ? { container: 'border-amber-500/30 text-amber-100', icon: 'border-amber-500/30 bg-amber-500/15 text-amber-400' }
+      : { container: 'border-emerald-500/30 text-emerald-100', icon: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400' };
+
   return (
-    <p
-      className={`mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-lg shadow-card2-end/20 ${
-        failed
-          ? 'border-red-400/25 bg-red-950/85 text-red-100'
-          : active
-            ? 'border-primary/40 bg-card2-end/95 text-orange-100'
-            : 'border-emerald-400/20 bg-emerald-950/80 text-emerald-100/90'
-      }`}
-    >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      {message}
-    </p>
+    <div className={`mb-4 flex items-center gap-3 rounded-2xl border bg-header-bg/95 p-3.5 text-xs font-semibold shadow-xl backdrop-blur-md ${toneStyle.container}`}>
+      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border ${toneStyle.icon}`}>
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </span>
+      <span>{message}</span>
+    </div>
   );
 }

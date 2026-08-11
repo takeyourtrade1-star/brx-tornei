@@ -63,10 +63,10 @@ export function ReturnToMatchBanner() {
 
   return (
     <div className="fixed bottom-4 left-1/2 z-[900] w-max max-w-[calc(100vw-2rem)] -translate-x-1/2">
-      <div className="flex items-center gap-3 rounded-full border border-primary/40 bg-card2-end/95 py-2 pl-4 pr-2 text-white shadow-2xl shadow-card2-end/40 backdrop-blur-xl">
+      <div className="flex items-center gap-3.5 rounded-2xl border border-primary/35 bg-header-bg/95 p-2.5 pl-4 text-white shadow-2xl backdrop-blur-md">
         <span
           aria-hidden
-          className={`h-2 w-2 shrink-0 animate-pulse rounded-full shadow-[0_0_10px_rgba(52,211,153,0.9)] ${
+          className={`h-2.5 w-2.5 shrink-0 animate-pulse rounded-full shadow-sm ${
             remaining !== null ? 'bg-amber-400' : 'bg-emerald-400'
           }`}
         />
@@ -74,13 +74,13 @@ export function ReturnToMatchBanner() {
           <p className="text-[9px] font-black uppercase tracking-[0.18em] text-primary">
             {remaining !== null ? `Rientra entro ${remaining}s!` : 'Partita in corso'}
           </p>
-          <p className="truncate text-xs font-bold text-white/85">
+          <p className="truncate text-xs font-bold text-white">
             {match.opponent ? `vs ${match.opponent}` : 'Il tuo tavolo ti aspetta'}
           </p>
         </div>
         <Link
           href={`/tornei/${match.tournamentId}/live`}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-b from-primary to-orange-600 px-4 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_10px_24px_-10px_rgba(255,115,0,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black uppercase tracking-wider text-white shadow-sm transition hover:brightness-110 active:scale-95"
         >
           <Swords className="h-3.5 w-3.5" />
           Torna alla partita

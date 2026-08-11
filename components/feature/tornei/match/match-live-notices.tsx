@@ -13,14 +13,19 @@ export function MatchErrorNotice({
   return (
     <div
       role="alert"
-      className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-500/50 bg-red-950/85 px-3 py-2 text-sm text-red-50"
+      className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-500/30 bg-header-bg/95 p-4 text-sm text-white shadow-xl backdrop-blur-md"
     >
-      <span>{message}</span>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-red-500/30 bg-red-500/15 text-red-400">
+          <UserX className="h-4 w-4" aria-hidden />
+        </span>
+        <span className="font-semibold text-red-100">{message}</span>
+      </div>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase hover:bg-white/15"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/15 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-red-200 transition hover:bg-red-500/25"
         >
           <RefreshCw className="h-3.5 w-3.5" /> Riprova ora
         </button>
@@ -62,10 +67,7 @@ function endedMessage(
 
 /**
  * Schermata di fine partita: sostituisce webcam e chat, impossibile non
- * accorgersene. `opponentLeft` distingue l'abbandono esplicito dell'avversario
- * (segnale WebRTC locale); `didIWin`/`endReason` (dal contratto torneo)
- * permettono l'esito esplicito "vinta/persa per abbandono" non appena il
- * backend l'ha risolto.
+ * accorgersene.
  */
 export function MatchEndedPanel({
   opponentLeft,
@@ -78,21 +80,21 @@ export function MatchEndedPanel({
 }) {
   return (
     <section aria-live="polite" className="grid min-h-0 flex-1 place-items-center py-6">
-      <div className="flex w-full max-w-xl flex-col items-center gap-5 rounded-3xl border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-6 py-10 text-center text-white shadow-xl shadow-card2-end/20 sm:px-10 sm:py-12">
-        <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-primary to-[#e0564d] shadow-[0_16px_40px_-10px_rgba(255,115,0,0.65)] ring-1 ring-white/20">
-          <Flag className="h-7 w-7 text-white" aria-hidden />
+      <div className="flex w-full max-w-xl flex-col items-center gap-5 rounded-3xl border border-white/15 bg-header-bg/95 p-8 text-center text-white shadow-2xl backdrop-blur-md sm:p-10">
+        <span className="grid h-16 w-16 place-items-center rounded-2xl border border-primary/40 bg-primary/15 text-primary shadow-[0_0_24px_rgba(255,115,0,0.3)]">
+          <Flag className="h-8 w-8 text-primary" aria-hidden />
         </span>
         <div>
-          <h2 className="font-display text-3xl font-black uppercase tracking-wide text-white sm:text-4xl">
+          <h2 className="font-sans text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
             Partita terminata
           </h2>
-          <p className="mt-2 text-sm text-white/60 sm:text-base">
+          <p className="mt-2 text-sm font-semibold text-slate-300 sm:text-base">
             {endedMessage(opponentLeft, didIWin, endReason)}
           </p>
         </div>
         <Link
           href="/tornei"
-          className="inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-b from-primary to-orange-600 px-8 text-sm font-black uppercase tracking-wide text-white shadow-[0_12px_28px_-10px_rgba(255,115,0,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95"
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-7 text-xs font-black uppercase tracking-wider text-white shadow-md transition hover:brightness-110 active:scale-95"
         >
           <ArrowLeft className="h-4 w-4" />
           Torna in lobby
@@ -103,9 +105,7 @@ export function MatchEndedPanel({
 }
 
 /**
- * L'avversario (o io, per timeout) ha rifiutato l'accettazione: il tavolo
- * era pieno e ora è di nuovo a un giocatore solo. Il pannello lo comunica
- * e il countdown riporta automaticamente in lobby.
+ * L'avversario (o io, per timeout) ha rifiutato l'accettazione.
  */
 export function MatchDeclinedPanel({
   leaving,
@@ -118,15 +118,15 @@ export function MatchDeclinedPanel({
 }) {
   return (
     <section aria-live="assertive" className="grid min-h-0 flex-1 place-items-center py-6">
-      <div className="flex w-full max-w-xl flex-col items-center gap-5 rounded-3xl border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-6 py-10 text-center text-white shadow-xl shadow-card2-end/20 sm:px-10 sm:py-12">
-        <span className="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-[0_16px_40px_-10px_rgba(239,68,68,0.6)] ring-1 ring-white/20">
-          <UserX className="h-7 w-7 text-white" aria-hidden />
+      <div className="flex w-full max-w-xl flex-col items-center gap-5 rounded-3xl border border-red-500/30 bg-header-bg/95 p-8 text-center text-white shadow-2xl backdrop-blur-md sm:p-10">
+        <span className="grid h-16 w-16 place-items-center rounded-2xl border border-red-500/40 bg-red-500/15 text-red-400 shadow-[0_0_24px_rgba(239,68,68,0.3)]">
+          <UserX className="h-8 w-8 text-red-400" aria-hidden />
         </span>
         <div>
-          <h2 className="font-display text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
+          <h2 className="font-sans text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
             L&rsquo;avversario non ha accettato
           </h2>
-          <p className="mt-2 text-sm text-white/60 sm:text-base">
+          <p className="mt-2 text-sm font-semibold text-slate-300 sm:text-base">
             Non ha risposto alla chiamata entro il tempo: la sfida viene chiusa automaticamente.
           </p>
         </div>
@@ -134,7 +134,7 @@ export function MatchDeclinedPanel({
           type="button"
           disabled={leaving}
           onClick={onLeave}
-          className="inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-b from-primary to-orange-600 px-8 text-sm font-black uppercase tracking-wide text-white shadow-[0_12px_28px_-10px_rgba(255,115,0,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95 disabled:opacity-50"
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-7 text-xs font-black uppercase tracking-wider text-white shadow-md transition hover:brightness-110 active:scale-95 disabled:opacity-50"
         >
           <ArrowLeft className="h-4 w-4" />
           {secondsLeft > 0 ? `Torna in lobby (${secondsLeft}s)` : 'Torna in lobby'}
@@ -153,11 +153,8 @@ export function MatchConnectionNotice({
 }: {
   reconnecting: boolean;
   onRetry: () => void;
-  /** Gamertag dell'avversario: l'avviso dice chi si sta riconnettendo. */
   opponentName: string;
-  /** ISO: scadenza autorevole della riconnessione, se attiva. */
   graceDeadline?: string | null;
-  /** true: il backend identifica me come giocatore temporaneamente offline. */
   disconnectedIsMe?: boolean;
 }) {
   const remaining = useGraceCountdown(graceDeadline);
@@ -166,31 +163,35 @@ export function MatchConnectionNotice({
   const message =
     remaining !== null
       ? disconnectedIsMe
-        ? `La tua presenza si è interrotta. Riconnettiti entro ${remaining}s; nel frattempo il risultato è bloccato. Nessun risultato viene assegnato automaticamente.`
-        : `${opponentName} risulta disconnesso e ha ancora ${remaining}s per riconnettersi. Non puoi dichiarare il risultato durante l’attesa. Nessun risultato viene assegnato automaticamente.`
-      : `${reconnectingLabel(opponentName, disconnectedIsMe)} La partita resta aperta: il video riparte da solo appena la linea torna.`;
+        ? `La tua presenza si è interrotta. Riconnettiti entro ${remaining}s; nel frattempo il risultato è bloccato.`
+        : `${opponentName} risulta disconnesso ed ha ancora ${remaining}s per riconnettersi.`
+      : `${reconnectingLabel(opponentName, disconnectedIsMe)} La partita resta aperta: il video riparte appena la linea torna.`;
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400/30 bg-card2-end/95 px-3 py-2.5 text-sm text-amber-100 shadow-lg shadow-card2-end/25"
+      className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-header-bg/95 p-4 text-sm text-white shadow-xl backdrop-blur-md"
     >
-      <span className="flex items-center gap-2">
-        <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin text-amber-300" aria-hidden />
-        {message}
-      </span>
-      <button type="button" onClick={onRetry} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase hover:bg-white/15">
-        <RefreshCw className="h-3.5 w-3.5" /> Riprova ora
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400">
+          <RefreshCw className="h-4 w-4 animate-spin" aria-hidden />
+        </span>
+        <span className="font-semibold text-amber-100">{message}</span>
+      </div>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/15 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-amber-200 transition hover:bg-amber-500/25"
+      >
+        <RefreshCw className="h-3.5 w-3.5" /> Riprova
       </button>
     </div>
   );
 }
 
 /**
- * Avviso non bloccante durante una proposta di risultato. Webcam e chat
- * restano attive: soltanto due dichiarazioni concordi chiudono il match.
- * `awaitingMe`=true indica che l'avversario ha dichiarato per primo.
+ * Avviso non bloccante durante una proposta di risultato.
  */
 export function MatchResultPendingPanel({
   awaitingMe,
@@ -215,17 +216,18 @@ export function MatchResultPendingPanel({
   return (
     <section
       aria-live="polite"
-      className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/40 bg-card2-end/95 px-4 py-3 text-white shadow-lg shadow-card2-end/25"
+      className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/35 bg-header-bg/95 p-4 text-white shadow-xl backdrop-blur-md"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/20 ring-1 ring-primary/40">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
           <Flag className="h-5 w-5 text-primary" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h2 className="font-display text-base font-black uppercase tracking-wide">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Dichiarazione Esito</p>
+          <h2 className="font-sans text-base font-black text-white">
             {reselection ? 'Scegliete di nuovo' : 'Risultato proposto'}
           </h2>
-          <p className="text-sm text-white/70">
+          <p className="mt-0.5 text-xs font-semibold text-slate-300">
             {reconnecting
               ? 'Risposta sospesa durante la riconnessione. Avrai nuovamente tutto il tempo quando il collegamento torna.'
               : reselection && awaitingMe
@@ -236,26 +238,26 @@ export function MatchResultPendingPanel({
           </p>
         </div>
       </div>
-        {awaitingMe && !reconnecting && (
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onDeclare(true)}
-              className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-xs font-black uppercase tracking-wide text-white transition hover:brightness-110 active:scale-95 disabled:opacity-50"
-            >
-              Ha vinto {localName}
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onDeclare(false)}
-              className="inline-flex h-10 items-center rounded-full bg-white/10 px-5 text-xs font-black uppercase tracking-wide text-white ring-1 ring-white/20 transition hover:bg-white/15 active:scale-95 disabled:opacity-50"
-            >
-              Ha vinto {opponentName}
-            </button>
-          </div>
-        )}
+      {awaitingMe && !reconnecting && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onDeclare(true)}
+            className="inline-flex h-9.5 items-center rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black uppercase tracking-wider text-white shadow-sm transition hover:brightness-110 active:scale-95 disabled:opacity-50"
+          >
+            Ha vinto {localName}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onDeclare(false)}
+            className="inline-flex h-9.5 items-center rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-black uppercase tracking-wider text-white transition hover:bg-white/15 active:scale-95 disabled:opacity-50"
+          >
+            Ha vinto {opponentName}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

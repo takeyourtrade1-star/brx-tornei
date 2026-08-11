@@ -11,7 +11,7 @@ function OwnRecording({ recording, opponentName }: { recording: GapPeerRecording
     : recording.status === 'verified'
       ? `Frammenti verificati da ${opponentName} e già eliminati.`
       : `Frammenti contestati da ${opponentName}; restano protetti solo fino alla scadenza indicata.`;
-  return <p className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs text-white/75">{copy}</p>;
+  return <p className="rounded-xl border border-white/15 bg-white/[0.05] px-3.5 py-2.5 text-xs text-slate-300">{copy}</p>;
 }
 
 export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string | null; opponentName: string }) {
@@ -21,12 +21,14 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
   if (review.recordings.length === 0 && !review.error) return null;
 
   return (
-    <section className="mb-4 space-y-3 rounded-2xl border border-sky-400/30 bg-card2-end/95 p-4 text-sm text-sky-50 shadow-lg shadow-card2-end/25">
+    <section className="mb-4 space-y-3.5 rounded-2xl border border-primary/35 bg-header-bg/95 p-4.5 text-sm text-white shadow-xl backdrop-blur-md">
       <div className="flex items-start gap-3">
-        <Eye className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
+          <Eye className="h-5 w-5 text-primary" aria-hidden="true" />
+        </span>
         <div>
-          <p className="font-bold">Verifica reciproca delle disconnessioni</p>
-          <p className="mt-1 text-xs leading-5 text-sky-100/75">
+          <p className="font-sans text-sm font-black text-white">Verifica reciproca delle disconnessioni</p>
+          <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">
             La partita completa non viene salvata. Solo i frammenti autorizzati sono temporaneamente
             disponibili ai due giocatori e vengono cancellati alla chiusura; se contestati,
             scadono comunque entro 3 giorni.
@@ -34,8 +36,8 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
         </div>
       </div>
       {review.error && (
-        <p className="flex items-center gap-2 rounded-xl bg-red-950/85 px-3 py-2 text-xs text-red-100">
-          <TriangleAlert className="h-4 w-4" aria-hidden="true" /> {review.error}
+        <p className="flex items-center gap-2.5 rounded-xl border border-red-500/30 bg-red-500/15 px-3.5 py-2.5 text-xs text-red-200">
+          <TriangleAlert className="h-4 w-4 shrink-0 text-red-400" aria-hidden="true" /> {review.error}
         </p>
       )}
       {review.recordings.map((recording) => {
@@ -45,23 +47,23 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
         const loaded = review.clips[recording.recording_id];
         const busy = review.busyId === recording.recording_id;
         return (
-          <article key={recording.recording_id} className="space-y-3 rounded-xl border border-white/10 bg-white/[0.06] p-3">
+          <article key={recording.recording_id} className="space-y-3 rounded-xl border border-white/15 bg-white/[0.05] p-3.5">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <strong>{recording.clip_count} framment{recording.clip_count === 1 ? 'o' : 'i'} di {opponentName}</strong>
-              <span className="text-white/55">Scadenza {new Date(recording.expires_at).toLocaleString('it-IT')}</span>
+              <strong className="font-black text-white">{recording.clip_count} framment{recording.clip_count === 1 ? 'o' : 'i'} di {opponentName}</strong>
+              <span className="text-slate-400">Scadenza {new Date(recording.expires_at).toLocaleString('it-IT')}</span>
             </div>
             {recording.status === 'verified' ? (
-              <p className="flex items-center gap-2 text-xs text-emerald-200">
+              <p className="flex items-center gap-2 text-xs font-bold text-emerald-400">
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Verificati e cancellati.
               </p>
             ) : (
               <>
                 {!loaded && (
-                  <div className="space-y-2">
-                    <label className="flex items-start gap-2 text-xs leading-5 text-white/75">
+                  <div className="space-y-2.5">
+                    <label className="flex items-start gap-2.5 text-xs font-semibold leading-relaxed text-slate-300">
                       <input
                         type="checkbox"
-                        className="mt-1 h-4 w-4 accent-sky-500"
+                        className="mt-0.5 h-4 w-4 rounded accent-[#FF7300]"
                         checked={acknowledged[recording.recording_id] ?? recording.viewer_notice_acknowledged}
                         onChange={(event) => setAcknowledged((current) => ({
                           ...current,
@@ -76,7 +78,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                     </label>
                     <button
                       type="button"
-                      className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-bold text-slate-950 disabled:opacity-45"
+                      className="rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 py-2 text-xs font-black uppercase tracking-wider text-white shadow-sm transition hover:brightness-110 disabled:opacity-45"
                       disabled={busy || !(acknowledged[recording.recording_id] ?? recording.viewer_notice_acknowledged)}
                       onClick={() => void review.open(recording.recording_id)}
                     >
@@ -98,14 +100,14 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-bold text-emerald-950 disabled:opacity-45"
+                      className="rounded-xl bg-emerald-500/20 border border-emerald-500/40 px-4 py-2 text-xs font-black uppercase text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-45"
                       disabled={busy}
                       onClick={() => void review.review(recording.recording_id, 'verified', 'gap_consistent')}
                     >
                       Conferma e cancella
                     </button>
                     <select
-                      className="rounded-xl border border-white/15 bg-slate-950 px-2 py-2 text-xs"
+                      className="rounded-xl border border-white/20 bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
                       value={rejectReason[recording.recording_id] ?? 'gap_incomplete'}
                       onChange={(event) => setRejectReason((current) => ({
                         ...current,
@@ -118,7 +120,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                     </select>
                     <button
                       type="button"
-                      className="rounded-xl border border-red-400/35 px-3 py-2 text-xs font-bold text-red-100 disabled:opacity-45"
+                      className="rounded-xl border border-red-500/30 bg-red-500/15 px-4 py-2 text-xs font-black uppercase text-red-200 hover:bg-red-500/25 disabled:opacity-45"
                       disabled={busy}
                       onClick={() => void review.review(
                         recording.recording_id,
@@ -136,7 +138,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                     {loaded && (
                       <button
                         type="button"
-                        className="rounded-xl bg-emerald-500 px-3 py-2 font-bold text-emerald-950 disabled:opacity-45"
+                        className="rounded-xl bg-emerald-500/20 border border-emerald-500/40 px-4 py-2 text-xs font-black uppercase text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-45"
                         disabled={busy}
                         onClick={() => void review.review(
                           recording.recording_id,

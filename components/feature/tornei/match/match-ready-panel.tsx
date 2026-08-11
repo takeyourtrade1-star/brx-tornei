@@ -85,7 +85,7 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
   return (
     <section
       aria-live="polite"
-      className="relative mb-4 overflow-hidden rounded-2xl border border-primary/25 bg-header-bg/95 p-4 shadow-[0_24px_48px_-24px_rgba(15,23,42,0.55)] sm:p-5"
+      className="relative mb-4 overflow-hidden rounded-2xl border border-primary/35 bg-header-bg/95 p-4.5 shadow-xl backdrop-blur-md sm:p-5"
     >
       <div
         className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-primary/[0.14] blur-3xl"
@@ -94,8 +94,8 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
 
       <div className="relative flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-[#e0564d] text-white shadow-[0_14px_32px_-12px_rgba(255,115,0,0.6)]">
-            <Swords className="h-6 w-6" aria-hidden="true" />
+          <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
+            <Swords className="h-6 w-6 text-primary" aria-hidden="true" />
             <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-ping rounded-full bg-emerald-400" aria-hidden />
           </span>
           <div>
@@ -105,7 +105,7 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
             <h1 className="mt-0.5 font-sans text-lg font-black tracking-tight text-white sm:text-xl">
               Sei pronto?
             </h1>
-            <p className="mt-0.5 text-xs font-semibold text-white/70">
+            <p className="mt-0.5 text-xs font-semibold text-slate-300">
               {myReady
                 ? `In attesa che ${remote.username} confermi…`
                 : 'Hai fino a 30 secondi. Se non confermi, il tavolo verrà chiuso automaticamente.'}
@@ -144,7 +144,7 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
       </div>
 
       <div className="relative mt-3 rounded-xl border border-white/15 bg-white/[0.07] px-3 py-2">
-        <div className="mb-1.5 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-white/75">
+        <div className="mb-1.5 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-300">
           <Heart className="h-3.5 w-3.5 fill-primary text-primary" />
           Vita iniziale condivisa
         </div>
@@ -168,7 +168,7 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
           ))}
         </div>
         {!canSetStartingLife && (
-          <p className="mt-1.5 text-center text-[9px] font-bold text-white/60">
+          <p className="mt-1.5 text-center text-[9px] font-bold text-slate-400">
             La imposta chi ha creato il tavolo
           </p>
         )}
@@ -179,7 +179,7 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
           type="button"
           disabled={pending}
           onClick={onDecline}
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-red-400/40 bg-red-500/10 px-5 text-xs font-black uppercase tracking-wide text-red-200 transition hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
+          className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/15 px-4.5 text-xs font-black uppercase tracking-wider text-red-200 transition hover:bg-red-500/25 active:scale-95 disabled:opacity-50"
         >
           <X className="h-4 w-4" aria-hidden="true" />
           No, non ora
@@ -189,10 +189,10 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
           disabled={pending}
           onClick={onReady}
           className={cn(
-            'inline-flex h-11 items-center gap-2 rounded-full px-6 text-xs font-black uppercase tracking-wide text-white transition active:scale-95 disabled:opacity-50',
+            'inline-flex h-10 items-center gap-2 rounded-xl px-5 text-xs font-black uppercase tracking-wider text-white transition active:scale-95 disabled:opacity-50',
             myReady
               ? 'border border-white/20 bg-white/10 hover:bg-white/15'
-              : 'ready-pulse bg-gradient-to-r from-primary to-orange-500 shadow-[0_14px_32px_-12px_rgba(255,115,0,0.7)] hover:opacity-90',
+              : 'ready-pulse bg-gradient-to-r from-[#FF7300] to-[#e0564d] shadow-md hover:brightness-110',
           )}
         >
           {myReady ? <Hourglass className="h-4 w-4" aria-hidden="true" /> : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}

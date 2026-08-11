@@ -124,108 +124,67 @@ export function ScreenshotButton() {
         <div
           data-screenshot-ignore="true"
           role="status"
-          style={{
-            position: 'fixed',
-            // Alla sinistra del bottone, in basso: non invade header e navigazione.
-            bottom: 'max(16px, env(safe-area-inset-bottom))',
-            right: '58px',
-            zIndex: 2147483646,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            maxWidth: '230px',
-            minHeight: '38px',
-            boxSizing: 'border-box',
-            padding: '6px 10px',
-            borderRadius: '10px',
-            border: '1px solid rgba(255,255,255,0.35)',
-            background: 'rgba(17, 17, 22, 0.78)',
-            color: '#fff',
-            font: '500 12px/1.3 var(--font-sans, system-ui, sans-serif)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            animation: 'brx-tip-in 260ms ease-out',
-          }}
+          className="fixed bottom-[max(16px,env(safe-area-inset-bottom))] right-[58px] z-[2147483646] flex items-center gap-2 max-w-[240px] rounded-2xl border border-primary/35 bg-header-bg/95 px-3 py-2.5 text-xs font-semibold text-white shadow-2xl backdrop-blur-md animate-auth-enter"
         >
           <button
             type="button"
             onClick={handleCapture}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'none',
-              border: 'none',
-              color: 'inherit',
-              font: 'inherit',
-              textAlign: 'left',
-              padding: 0,
-              cursor: 'pointer',
-            }}
+            className="flex flex-1 items-center gap-2 text-left text-white/90 hover:text-white"
           >
-            <Camera size={16} style={{ flexShrink: 0 }} />
+            <Camera size={16} className="shrink-0 text-primary" />
             <span>
-              Visto un bug? <strong>Fai uno screen</strong> e mandacelo!
+              Visto un bug? <strong className="text-white">Fai uno screen</strong> e mandacelo!
             </span>
           </button>
           <button
             type="button"
             onClick={() => setShowTip(false)}
             aria-label="Chiudi promemoria"
-            style={{
-              flexShrink: 0,
-              display: 'flex',
-              background: 'none',
-              border: 'none',
-              color: 'rgba(255,255,255,0.6)',
-              padding: '2px',
-              cursor: 'pointer',
-            }}
+            className="shrink-0 p-1 text-slate-400 hover:text-white"
           >
-            <X size={12} />
+            <X size={13} />
           </button>
         </div>
       )}
-    <button
-      type="button"
-      data-screenshot-ignore="true"
-      onClick={handleCapture}
-      title={label}
-      aria-label={label}
-      style={{
-        position: 'fixed',
-        bottom: 'max(16px, env(safe-area-inset-bottom))',
-        right: '12px',
-        zIndex: 2147483647,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '38px',
-        height: '38px',
-        borderRadius: '9999px',
-        border: '1px solid rgba(255,255,255,0.45)',
-        background: bg,
-        color: '#fff',
-        cursor: status === 'capturing' ? 'progress' : 'pointer',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        transition: 'background 160ms ease, transform 120ms ease',
-        userSelect: 'none',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'scale(1.08)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
-      }}
-    >
-      <Icon
-        size={17}
-        style={status === 'capturing' ? { animation: 'brx-shot-spin 0.9s linear infinite' } : undefined}
-      />
-    </button>
+      <button
+        type="button"
+        data-screenshot-ignore="true"
+        onClick={handleCapture}
+        title={label}
+        aria-label={label}
+        style={{
+          position: 'fixed',
+          bottom: 'max(16px, env(safe-area-inset-bottom))',
+          right: '12px',
+          zIndex: 2147483647,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '38px',
+          height: '38px',
+          borderRadius: '9999px',
+          border: '1px solid rgba(255,255,255,0.45)',
+          background: bg,
+          color: '#fff',
+          cursor: status === 'capturing' ? 'progress' : 'pointer',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          transition: 'background 160ms ease, transform 120ms ease',
+          userSelect: 'none',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.08)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+        }}
+      >
+        <Icon
+          size={17}
+          style={status === 'capturing' ? { animation: 'brx-shot-spin 0.9s linear infinite' } : undefined}
+        />
+      </button>
     </>
   );
 }

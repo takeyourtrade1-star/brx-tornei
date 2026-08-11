@@ -52,16 +52,19 @@ export function WebcamLinkModalBody({
       </div>
 
       {source === 'pc' && pcError && (
-        <p role="alert" className="rounded-xl border border-destructive/60 bg-destructive px-3 py-2.5 text-sm font-semibold text-destructive-foreground shadow-sm">
-          {pcError}
-        </p>
+        <div role="alert" className="flex items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/15 p-3.5 text-xs font-semibold text-red-200">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" aria-hidden="true" />
+          <span>{pcError}</span>
+        </div>
       )}
 
       {source === 'phone' && phoneFailed && (
-        <div className="space-y-3 rounded-2xl border border-destructive/40 bg-destructive/15 p-4 text-center">
-          <AlertTriangle className="mx-auto h-5 w-5 text-white" aria-hidden="true" />
-          <p className="text-sm text-white/80">{lastError ?? 'Connessione col telefono non riuscita. Verifica la rete e riprova.'}</p>
-          <button type="button" onClick={onRestart} className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-orange-500 px-4 py-2 text-sm font-bold text-white">
+        <div className="space-y-3 rounded-2xl border border-red-500/30 bg-red-500/15 p-4 text-center">
+          <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-red-500/30 bg-red-500/20 text-red-400">
+            <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <p className="text-xs font-semibold text-slate-200">{lastError ?? 'Connessione col telefono non riuscita. Verifica la rete e riprova.'}</p>
+          <button type="button" onClick={onRestart} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 py-2 text-xs font-black uppercase text-white shadow-sm hover:brightness-110">
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Nuovo QR
           </button>
@@ -69,10 +72,10 @@ export function WebcamLinkModalBody({
       )}
 
       {source === 'phone' && !phoneReady && !phoneFailed && (
-        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="space-y-3 rounded-2xl border border-white/15 bg-white/[0.04] p-4">
           {insecure && (
-            <div className="flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200/90">
-              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/15 px-3.5 py-2.5 text-xs font-semibold text-amber-200">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" aria-hidden="true" />
               <span>Per collegare il telefono serve una connessione HTTPS e la stessa rete Wi-Fi.</span>
             </div>
           )}
