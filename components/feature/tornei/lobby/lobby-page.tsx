@@ -14,7 +14,6 @@ import type { FormatFilter, Selection } from '@/lib/validations/selection';
 import type { SessionUser } from '@/types/auth';
 import type { Tournament } from '@/types/tournament';
 import { TableSeatModal } from './table-seat-modal';
-import { FriendConnectionModal } from './friend-connection-modal';
 import { LobbyTableList } from './lobby-table-list';
 import { AcceptMatchModal } from './accept-match-modal';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
@@ -32,9 +31,6 @@ interface LobbyPageProps {
 }
 
 type ModalState = { mode: 'host' | 'join'; tournamentId: string } | null;
-type ConnectionModalState =
-  | { mode: 'join'; tournamentId: string }
-  | null;
 
 export function LobbyPage({
   tournaments,
@@ -48,7 +44,6 @@ export function LobbyPage({
 }: LobbyPageProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>(null);
-  const [connectionModal, setConnectionModal] = useState<ConnectionModalState>(null);
   const [error, setError] = useState<string | null>(null);
   const [approvalPhase, setApprovalPhase] = useState<'accepting' | 'declined' | null>(null);
   const [busy, startTransition] = useTransition();
@@ -245,11 +240,8 @@ export function LobbyPage({
       }
 
       if (table.kind === 'joinable' && table.tournament) {
-        if (table.tournament.withFriend) {
-          setConnectionModal({ mode: 'join', tournamentId: table.tournament.id });
-        } else {
-          setModal({ mode: 'join', tournamentId: table.tournament.id });
-        }
+        // Seduta diretta, nessun modale intermedio: ci si siede e basta.
+        sitAtNewTable(table.tournament.id);
         return;
       }
 
@@ -277,17 +269,6 @@ export function LobbyPage({
       }
     },
     [tournaments, user.id, myUsername, selection.format, selection.mode, sitAtNewTable, router],
-  );
-
-  const handleConnectionConfirm = useCallback(
-    () => {
-      if (!connectionModal) return;
-      setError(null);
-      const tournamentId = connectionModal.tournamentId;
-      setConnectionModal(null);
-      setModal({ mode: 'join', tournamentId });
-    },
-    [connectionModal],
   );
 
   const handleConfirmJoin = useCallback(
@@ -385,15 +366,6 @@ export function LobbyPage({
         }}
         onConfirmJoin={handleConfirmJoin}
       />
-      <FriendConnectionModal
-        open={connectionModal !== null}
-        mode="join"
-        busy={busy}
-        error={error}
-        onClose={() => setConnectionModal(null)}
-        onConfirm={handleConnectionConfirm}
-      />
-
       <AcceptMatchModal
         phase={approvalPhase}
         myUsername={myUsername}
