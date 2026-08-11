@@ -30,7 +30,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
           <p className="font-sans text-sm font-black text-white">Verifica video della disconnessione</p>
           <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">
             Non salviamo la partita completa. Qui puoi vedere solo il video registrato
-            durante la disconnessione, inviato col consenso dell'avversario.
+            durante la disconnessione, inviato col consenso dell’avversario.
             Viene cancellato dopo la verifica (o al massimo entro 3 giorni).
           </p>
         </div>

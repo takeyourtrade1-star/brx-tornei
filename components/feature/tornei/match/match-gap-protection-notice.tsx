@@ -54,7 +54,7 @@ export function MatchGapProtectionNotice({
                 disabled={busy}
               />
               <span>
-                Acconsento all'invio della registrazione al mio avversario per la verifica.
+                Acconsento all’invio della registrazione al mio avversario per la verifica.
               </span>
             </label>
             <div className="flex flex-wrap gap-2 pt-1">
@@ -64,7 +64,7 @@ export function MatchGapProtectionNotice({
                 disabled={!acknowledged || busy}
                 onClick={() => void act(onConsent)}
               >
-                Invia all'avversario
+                Invia all’avversario
               </button>
               <button
                 type="button"

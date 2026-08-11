@@ -23,7 +23,8 @@ describe('match result consensus UI contract', () => {
     expect(content).toContain('open={fullscreenOpen && !matchEnded}');
     expect(content).toContain('!reconnectGraceActive');
     expect(view).toContain("chat.opponentPresence === 'offline'");
-    expect(notices).toContain('Nessun risultato viene assegnato automaticamente');
+    expect(notices).toContain('il risultato è bloccato');
+    expect(notices).toContain('La partita resta aperta');
     expect(notices).toContain('Risposta sospesa durante la riconnessione');
     expect(notices).not.toContain('persa a tavolino');
     expect(notices).not.toContain('vincerai la partita a tavolino');
