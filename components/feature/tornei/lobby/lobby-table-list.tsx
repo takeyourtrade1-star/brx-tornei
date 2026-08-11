@@ -115,14 +115,11 @@ export function LobbyTableList({
         <section className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-                {formatName} · {modeName}
+                Sfida i tuoi amici
               </p>
               <h1 className="mt-1 font-sans text-xl font-black tracking-tight text-header-bg sm:text-2xl">
-                Sfida i tuoi amici
+                {formatName} · {modeName}
               </h1>
-              <p className="mt-1 text-sm font-semibold text-header-bg/55">
-                Gioca in P2P e divertiti.
-              </p>
             </div>
             <span className="rounded-full border border-header-bg/10 bg-slate-50/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-header-bg/65">
               Best of 3
