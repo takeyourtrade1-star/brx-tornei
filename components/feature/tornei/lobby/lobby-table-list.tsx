@@ -154,11 +154,11 @@ export function LobbyTableList({
   );
 }
 
-/** Indicatore a menù sopra i tavoli: ordina le informazioni mostrate nelle card. */
+/** Indicatore a menù sopra i tavoli: nomi delle categorie, ordinate come le card. */
 function TableIndicator() {
-  const items = ['0/2 Giocatori', 'BO3', 'BUY IN', 'FOR FUN', 'SIEDITI'];
+  const items = ['Giocatori', 'Best of', 'Buy in'];
   return (
-    <nav aria-label="Indicatori dei tavoli" className="mb-4">
+    <nav aria-label="Categorie dei tavoli" className="mb-4">
       <ul className="inline-flex flex-wrap items-center gap-1 rounded-full border border-slate-200/90 bg-white/80 p-1 shadow-sm">
         {items.map((item, index) => (
           <li

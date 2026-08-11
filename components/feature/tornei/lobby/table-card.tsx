@@ -109,10 +109,9 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
         <footer className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
             <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
-              <Users className="h-3.5 w-3.5 text-slate-500" aria-hidden /> 0/2 Giocatori
+              <Users className="h-3.5 w-3.5 text-slate-500" aria-hidden /> 0/2
             </span>
             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">{bestOf}</span>
-            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">BUY IN</span>
             <span className="truncate rounded-md bg-slate-100 px-2 py-0.5 uppercase text-slate-700">
               {price}
             </span>
@@ -195,10 +194,9 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
       <footer className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
         <div className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
           <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
-            <Users className="h-3.5 w-3.5 text-slate-500" aria-hidden /> {seatedCount}/2 Giocatori
+            <Users className="h-3.5 w-3.5 text-slate-500" aria-hidden /> {seatedCount}/2
           </span>
           <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">{bestOf}</span>
-          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">BUY IN</span>
           <span className="truncate rounded-md bg-slate-100 px-2 py-0.5 uppercase text-slate-700">
             {price}
           </span>
