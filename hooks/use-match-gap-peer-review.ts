@@ -49,7 +49,7 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
     let disposed = false;
     const run = () => {
       void refresh().catch(() => {
-        if (!disposed) setError('Impossibile aggiornare la verifica dei frammenti.');
+        if (!disposed) setError('Impossibile aggiornare la verifica video.');
       });
     };
     run();
@@ -79,7 +79,7 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
         signal: AbortSignal.timeout(15_000),
       });
       const detail = gapPeerDetailResponseSchema.safeParse(await jsonResponse(detailResponse));
-      if (!detailResponse.ok || !detail.success) throw new Error('Frammenti non disponibili.');
+      if (!detailResponse.ok || !detail.success) throw new Error('Video non disponibile.');
       const views = await Promise.all(detail.data.data.clips.map(async (clip) => {
         const response = await fetch(
           `${base}/clips/${encodeURIComponent(clip.clip_id)}/view-ticket`,
@@ -91,7 +91,7 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
           },
         );
         const ticket = gapViewTicketResponseSchema.safeParse(await jsonResponse(response));
-        if (!response.ok || !ticket.success) throw new Error('Accesso al frammento negato.');
+        if (!response.ok || !ticket.success) throw new Error('Accesso al video negato.');
         const mediaUrl = new URL(ticket.data.data.url);
         const isLoopbackDevelopment =
           process.env.NODE_ENV !== 'production' &&

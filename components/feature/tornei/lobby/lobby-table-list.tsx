@@ -137,6 +137,7 @@ export function LobbyTableList({
             {error}
           </p>
         )}
+        <TableLegend />
         <div className="flex flex-col gap-4" aria-label="Tavoli disponibili">
           {tables.map((table) => (
             <TableCard
@@ -153,5 +154,36 @@ export function LobbyTableList({
         </div>
       </main>
     </>
+  );
+}
+
+/** Guida alla lettura delle card dei tavoli. */
+function TableLegend() {
+  const items = [
+    { chip: '0/2 Giocatori', hint: 'Posti occupati su due disponibili' },
+    { chip: 'BO3', hint: 'Best of 3: vince chi vince 2 partite' },
+    { chip: 'BUY IN', hint: 'Quota di ingresso al tavolo' },
+    { chip: 'FOR FUN', hint: 'Nessuna quota: si gioca per divertimento' },
+    { chip: 'SIEDITI', hint: 'Prendi posto al tavolo libero' },
+  ];
+  return (
+    <section
+      aria-label="Guida alla lettura dei tavoli"
+      className="mb-4 rounded-2xl border border-slate-200/90 bg-white/70 p-4 shadow-sm"
+    >
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+        Come leggere un tavolo
+      </p>
+      <ul className="mt-2.5 flex flex-wrap gap-x-6 gap-y-2">
+        {items.map((item) => (
+          <li key={item.chip} className="flex items-center gap-2 text-[11px] font-semibold text-slate-500">
+            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">
+              {item.chip}
+            </span>
+            {item.hint}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

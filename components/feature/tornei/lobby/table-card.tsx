@@ -1,7 +1,8 @@
 'use client';
 
-import { Lock, LogOut, Play, UserPlus, Users } from 'lucide-react';
+import { LogOut, Play, UserPlus, Users } from 'lucide-react';
 import { getBuyInLabel } from '@/lib/data/buy-in';
+import type { BestOf } from '@/types/tournament';
 import type { LobbyTable } from '@/lib/lobby';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -64,46 +65,66 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
   };
 
   if (table.kind === 'empty') {
-    const EmptyIcon = createLocked ? Lock : UserPlus;
+    const bestOf: BestOf = table.tournament?.bestOf ?? 'BO3';
+    const buyInLabel = getBuyInLabel(table.tournament?.buyIn ?? 'for_fun');
     return (
       <button
         type="button"
         disabled={busy || createLocked}
         onClick={handlePrimary}
+        aria-label="Tavolo libero: siediti"
         className={cn(
-          'group relative flex w-full items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-slate-200/90 bg-slate-50/60 p-4 transition-all sm:p-5 text-left',
+          'group relative w-full rounded-2xl border-2 border-dashed border-slate-300/80 bg-white p-4.5 text-left shadow-sm transition-all sm:p-5',
           createLocked
             ? 'cursor-not-allowed opacity-70'
-            : 'hover:border-primary/50 hover:bg-white hover:shadow-md active:scale-[0.99]',
+            : 'hover:border-primary/50 hover:shadow-md active:scale-[0.99]',
         )}
       >
-        <div className="flex items-center gap-3.5">
-          <span
-            className={cn(
-              'grid h-10 w-10 shrink-0 place-items-center rounded-xl border transition-colors',
-              createLocked
-                ? 'border-slate-200 bg-slate-100 text-slate-400'
-                : 'border-primary/20 bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white',
-            )}
-          >
-            <EmptyIcon className="h-5 w-5" aria-hidden />
-          </span>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-              {createLocked ? 'Formato richiesto' : 'Crea Sfida'}
-            </p>
-            <h3 className="text-sm font-black text-header-bg sm:text-base">
-              {createLocked
-                ? 'Scegli un formato per creare un nuovo tavolo'
-                : 'Apri un nuovo tavolo da gioco'}
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Tavolo libero</p>
+            <h3 className="mt-0.5 font-sans text-base font-black leading-snug text-header-bg sm:text-lg">
+              {createLocked ? 'Scegli un formato per creare un tavolo' : 'Tavolo libero'}
             </h3>
           </div>
-        </div>
-        {!createLocked && (
-          <span className="hidden sm:inline-flex rounded-xl bg-header-bg px-3.5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-sm transition-transform group-hover:scale-105">
-            + Nuovo Tavolo
+          <span
+            className={cn(
+              'shrink-0 rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider',
+              createLocked
+                ? 'border-amber-200 bg-amber-50 text-amber-700'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+            )}
+          >
+            {createLocked ? 'Formato richiesto' : 'Libero'}
           </span>
-        )}
+        </header>
+
+        {/* Arena Giocatori */}
+        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
+          <LobbySeat occupied={false} username={null} isMe={false} label="Giocatore 1" compact light />
+          <VersusBadge light compact />
+          <LobbySeat occupied={false} username={null} isMe={false} label="Giocatore 2" compact light />
+        </div>
+
+        {/* Footer Dettagli e Azioni */}
+        <footer className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+            <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
+              <Users className="h-3.5 w-3.5 text-slate-500" aria-hidden /> 0/2 Giocatori
+            </span>
+            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">{bestOf}</span>
+            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">BUY IN</span>
+            <span className="truncate rounded-md bg-slate-100 px-2 py-0.5 uppercase text-slate-700">
+              {buyInLabel}
+            </span>
+          </div>
+
+          {!createLocked && (
+            <PrimaryButton busy={busy} onClick={handlePrimary}>
+              <UserPlus className="h-4 w-4" aria-hidden /> SIEDITI
+            </PrimaryButton>
+          )}
+        </footer>
       </button>
     );
   }

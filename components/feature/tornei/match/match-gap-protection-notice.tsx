@@ -36,12 +36,13 @@ export function MatchGapProtectionNotice({
           </span>
           <div className="space-y-3">
             <div>
-              <p className="font-sans text-sm font-black text-white">Decidi se condividere i frammenti mancanti</p>
+              <p className="font-sans text-sm font-black text-white">Vuoi inviare il video registrato durante la disconnessione?</p>
               <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">
-                I frammenti sono ancora soltanto su questo PC. Non salviamo la partita completa:
-                con il tuo consenso saranno caricati temporaneamente in uno spazio protetto,
-                visibili solo all’avversario per la verifica reciproca e cancellati alla chiusura.
-                Se contestati, scadono comunque entro 3 giorni.
+                Mentre eri disconnesso, il tuo PC ha continuato a registrare la webcam.
+                La registrazione è salvata solo su questo PC.
+                Se accetti, sarà inviata in modo sicuro al tuo avversario perché possa
+                verificare cosa è successo. Verrà cancellata automaticamente dopo la verifica
+                (o al massimo entro 3 giorni). Non salviamo mai la partita completa.
               </p>
             </div>
             <label className="flex cursor-pointer items-start gap-2.5 text-xs font-semibold text-slate-200">
@@ -53,8 +54,7 @@ export function MatchGapProtectionNotice({
                 disabled={busy}
               />
               <span>
-                Ho letto e acconsento al caricamento temporaneo dei soli frammenti mancanti
-                e alla loro visione da parte dell’avversario.
+                Acconsento all'invio della registrazione al mio avversario per la verifica.
               </span>
             </label>
             <div className="flex flex-wrap gap-2 pt-1">
@@ -64,7 +64,7 @@ export function MatchGapProtectionNotice({
                 disabled={!acknowledged || busy}
                 onClick={() => void act(onConsent)}
               >
-                Carica e condividi
+                Invia all'avversario
               </button>
               <button
                 type="button"
@@ -72,7 +72,7 @@ export function MatchGapProtectionNotice({
                 disabled={busy}
                 onClick={() => void act(onDecline)}
               >
-                Non caricare ed elimina dal PC
+                No, cancella la registrazione
               </button>
             </div>
           </div>
@@ -84,12 +84,12 @@ export function MatchGapProtectionNotice({
   const failed = snapshot.status === 'error';
   const Icon = failed ? TriangleAlert : ShieldCheck;
   const message = failed
-    ? snapshot.error ?? 'Protezione disconnessioni non disponibile.'
+    ? snapshot.error ?? 'Registrazione di sicurezza non disponibile.'
     : active
-      ? 'Connessione instabile: il tratto mancante resta protetto su questo PC.'
+      ? 'Connessione instabile: il PC sta registrando in automatico.'
       : snapshot.pendingIncidents > 0
-        ? `${snapshot.pendingIncidents} tratto${snapshot.pendingIncidents > 1 ? 'i' : ''} autorizzato${snapshot.pendingIncidents > 1 ? 'i' : ''} in caricamento protetto.`
-        : 'Protezione disconnessioni attiva. La partita completa non viene salvata.';
+        ? `${snapshot.pendingIncidents} registrazion${snapshot.pendingIncidents > 1 ? 'i' : 'e'} in invio all'avversario…`
+        : 'Registrazione di sicurezza attiva. La partita completa non viene salvata.';
 
   const toneStyle = failed
     ? { container: 'border-red-500/30 text-red-100', icon: 'border-red-500/30 bg-red-500/15 text-red-400' }

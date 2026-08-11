@@ -7,10 +7,10 @@ import type { GapPeerRecording } from '@/lib/validations/gap-recording';
 
 function OwnRecording({ recording, opponentName }: { recording: GapPeerRecording; opponentName: string }) {
   const copy = recording.status === 'ready'
-    ? `${opponentName} deve ancora verificare i tuoi frammenti.`
+    ? `${opponentName} non ha ancora visto la tua registrazione.`
     : recording.status === 'verified'
-      ? `Frammenti verificati da ${opponentName} e già eliminati.`
-      : `Frammenti contestati da ${opponentName}; restano protetti solo fino alla scadenza indicata.`;
+      ? `Registrazione verificata da ${opponentName} e già cancellata.`
+      : `Registrazione contestata da ${opponentName}; verrà cancellata alla scadenza indicata.`;
   return <p className="rounded-xl border border-white/15 bg-white/[0.05] px-3.5 py-2.5 text-xs text-slate-300">{copy}</p>;
 }
 
@@ -27,11 +27,11 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
           <Eye className="h-5 w-5 text-primary" aria-hidden="true" />
         </span>
         <div>
-          <p className="font-sans text-sm font-black text-white">Verifica reciproca delle disconnessioni</p>
+          <p className="font-sans text-sm font-black text-white">Verifica video della disconnessione</p>
           <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">
-            La partita completa non viene salvata. Solo i frammenti autorizzati sono temporaneamente
-            disponibili ai due giocatori e vengono cancellati alla chiusura; se contestati,
-            scadono comunque entro 3 giorni.
+            Non salviamo la partita completa. Qui puoi vedere solo il video registrato
+            durante la disconnessione, inviato col consenso dell'avversario.
+            Viene cancellato dopo la verifica (o al massimo entro 3 giorni).
           </p>
         </div>
       </div>
@@ -49,12 +49,12 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
         return (
           <article key={recording.recording_id} className="space-y-3 rounded-xl border border-white/15 bg-white/[0.05] p-3.5">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <strong className="font-black text-white">{recording.clip_count} framment{recording.clip_count === 1 ? 'o' : 'i'} di {opponentName}</strong>
+              <strong className="font-black text-white">{recording.clip_count} video di {opponentName}</strong>
               <span className="text-slate-400">Scadenza {new Date(recording.expires_at).toLocaleString('it-IT')}</span>
             </div>
             {recording.status === 'verified' ? (
               <p className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Verificati e cancellati.
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Verificato e cancellato.
               </p>
             ) : (
               <>
@@ -72,8 +72,8 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                         disabled={busy}
                       />
                       <span>
-                        Ho letto che vedrò solo i frammenti mancanti, caricati col consenso di {opponentName},
-                        conservati temporaneamente e non l’intera partita.
+                        Ho capito che vedrò solo il video della disconnessione, inviato col consenso
+                        di {opponentName}, e che non è la partita intera.
                       </span>
                     </label>
                     <button
@@ -82,7 +82,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                       disabled={busy || !(acknowledged[recording.recording_id] ?? recording.viewer_notice_acknowledged)}
                       onClick={() => void review.open(recording.recording_id)}
                     >
-                      {busy ? 'Apertura…' : recording.status === 'rejected' ? 'Rivedi i frammenti' : 'Prendi visione e apri'}
+                      {busy ? 'Apertura…' : recording.status === 'rejected' ? 'Rivedi il video' : 'Apri il video'}
                     </button>
                   </div>
                 )}
@@ -114,9 +114,9 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                         [recording.recording_id]: event.target.value as 'gap_incomplete' | 'gap_unusable' | 'gap_unexpected_content',
                       }))}
                     >
-                      <option value="gap_incomplete">Frammenti incompleti</option>
+                      <option value="gap_incomplete">Video incompleto</option>
                       <option value="gap_unusable">Video non utilizzabile</option>
-                      <option value="gap_unexpected_content">Contenuto inatteso</option>
+                      <option value="gap_unexpected_content">Contenuto non pertinente</option>
                     </select>
                     <button
                       type="button"
@@ -134,7 +134,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                 )}
                 {recording.status === 'rejected' && (
                   <div className="flex flex-wrap items-center gap-2 text-xs text-amber-200">
-                    <p>Contestazione registrata. I frammenti resteranno privati fino alla scadenza.</p>
+                    <p>Contestazione registrata. Il video resterà privato fino alla scadenza.</p>
                     {loaded && (
                       <button
                         type="button"
@@ -146,7 +146,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                           'dispute_resolved',
                         )}
                       >
-                        Disputa risolta: cancella ora
+                        Disputa risolta, cancella ora
                       </button>
                     )}
                   </div>
