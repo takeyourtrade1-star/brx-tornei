@@ -117,9 +117,9 @@ export function MatchIntroOverlay({
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed right-4 top-4 z-[1200] flex items-center gap-2 rounded-full border border-white/15 bg-header-bg/95 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white/90 shadow-lg backdrop-blur"
+        className="pointer-events-none fixed right-4 top-4 z-[1200] flex items-center gap-2.5 rounded-2xl border border-primary/35 bg-header-bg/95 px-4 py-2.5 text-[11px] font-black uppercase tracking-wider text-white shadow-xl backdrop-blur-md"
       >
-        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden />
         Riconnessione in corso
       </div>,
       document.body,

@@ -145,9 +145,17 @@ export function MatchCommentsPanel({
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {error && connectionState !== 'connected' && (
-          <div className="flex items-center justify-between gap-2 border-b border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-red-200">
+          <div className="flex items-center justify-between gap-2 border-b border-red-500/30 bg-red-500/15 px-3.5 py-2 text-xs text-red-200">
             <span>{error}</span>
-            {onRetry && <button type="button" onClick={onRetry} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase hover:bg-white/15"><RefreshCw className="h-3 w-3" /> Riprova</button>}
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-red-500/30 bg-red-500/20 px-2.5 py-1 text-[10px] font-black uppercase text-red-200 hover:bg-red-500/30"
+              >
+                <RefreshCw className="h-3 w-3" /> Riprova
+              </button>
+            )}
           </div>
         )}
 
