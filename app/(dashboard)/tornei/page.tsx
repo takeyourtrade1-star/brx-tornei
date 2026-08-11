@@ -31,8 +31,11 @@ export default async function TorneiPage({ searchParams }: PageProps) {
 
   const formatName = selection.format === 'all' ? 'Tutti i formati' : getFormat(selection.format)!.name;
   const modeName = getMode(selection.mode)!.name;
+  // Fetch aggregato (tutti i formati): i MIEI tavoli devono restare visibili
+  // anche quando sono in un altro formato, altrimenti il backend rifiuterebbe
+  // di sedermi altrove (ALREADY_SEATED) senza che io possa abbandonarli.
   const [tournaments, reputation] = await Promise.all([
-    getTournaments(selection),
+    getTournaments({ format: 'all', mode: selection.mode }),
     fetchMyReputation().catch(() => null),
   ]);
 

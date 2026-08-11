@@ -41,4 +41,28 @@ describe('buildLobbyTables', () => {
     expect(result.map((item) => item.key)).toEqual(['mine']);
     expect(result.some((item) => item.kind === 'empty')).toBe(false);
   });
+
+  it('filtra i tavoli altrui per formato selezionato', () => {
+    const result = buildLobbyTables({
+      tournaments: [
+        { ...table('modern-t', ['a']), format: 'modern' },
+        { ...table('legacy-t', ['b']), format: 'legacy' },
+      ],
+      userId: 'me',
+      format: 'modern',
+    });
+    expect(result.map((item) => [item.key, item.kind])).toEqual([
+      ['__empty-0', 'empty'],
+      ['modern-t', 'joinable'],
+    ]);
+  });
+
+  it('mostra il mio tavolo anche se è in un altro formato', () => {
+    const result = buildLobbyTables({
+      tournaments: [{ ...table('mine', ['me']), format: 'legacy' }],
+      userId: 'me',
+      format: 'modern',
+    });
+    expect(result.map((item) => [item.key, item.kind])).toEqual([['mine', 'mine']]);
+  });
 });

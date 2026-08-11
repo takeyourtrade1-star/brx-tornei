@@ -1,4 +1,5 @@
 import type { ConnectionQuality, Tournament } from '@/types/tournament';
+import type { FormatFilter } from '@/lib/validations/selection';
 
 /** Un posto al tavolo: libero oppure occupato da un giocatore. */
 export type Seat =
@@ -69,19 +70,26 @@ const EMPTY_SEATS: [Seat, Seat] = [{ occupied: false }, { occupied: false }];
  *   disponibili; non compare però un secondo invito alla creazione;
  * - in cima c'è sempre il singolo invito "Apri nuovo tavolo": se esiste già
  *   un tavolo vuoto lo riutilizzo, altrimenti è sintetico e ne crea uno nuovo;
- * - i tavoli altrui con un giocatore in attesa sono "siediti".
+ * - i tavoli altrui con un giocatore in attesa sono "siediti";
+ * - i MIEI tavoli compaiono sempre, anche se appartengono a un altro formato:
+ *   altrimenti un tavolo rimasto aperto altrove sarebbe invisibile ma il
+ *   backend rifiuterebbe di sedersi altrove con ALREADY_SEATED.
  */
 export function buildLobbyTables(params: {
   tournaments: Tournament[];
   userId: string;
+  /** Formato selezionato: filtra i tavoli altrui, mai i miei. */
+  format?: FormatFilter;
 }): LobbyTable[] {
-  const { tournaments, userId } = params;
+  const { tournaments, userId, format = 'all' } = params;
 
+  const matchesFormat = (t: Tournament): boolean => format === 'all' || t.format === format;
   const myTournaments = findMyTables(tournaments, userId);
 
   const available = tournaments
     .filter(
       (t) =>
+        matchesFormat(t) &&
         t.withFriend === true &&
         t.status === 'in_registrazione' &&
         t.participants.length > 0 &&
@@ -111,6 +119,7 @@ export function buildLobbyTables(params: {
   const emptyExisting: LobbyTable[] = [];
 
   for (const t of tournaments) {
+    if (!matchesFormat(t)) continue;
     if (t.withFriend !== true) continue;
     if (t.status !== 'in_registrazione') continue;
     if (t.participants.length >= t.maxPlayers) continue;

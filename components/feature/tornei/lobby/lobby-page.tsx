@@ -55,7 +55,7 @@ export function LobbyPage({
   const measuredQuality = useServerConnectionQuality(monitoredTable?.webcamSessionId);
   const tables = useMemo(
     () =>
-      buildLobbyTables({ tournaments, userId: user.id }).map((table) => ({
+      buildLobbyTables({ tournaments, userId: user.id, format: selection.format }).map((table) => ({
         ...table,
         seats: table.seats.map((seat) =>
           seat.occupied && seat.isMe && measuredQuality
@@ -63,7 +63,7 @@ export function LobbyPage({
             : seat,
         ) as LobbyTable['seats'],
       })),
-    [tournaments, user.id, measuredQuality],
+    [tournaments, user.id, measuredQuality, selection.format],
   );
 
   const goLiveTo = useCallback(

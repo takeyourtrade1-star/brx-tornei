@@ -134,7 +134,7 @@ export function LobbyTableList({
             {error}
           </p>
         )}
-        <TableLegend />
+        <TableIndicator />
         <div className="flex flex-col gap-4" aria-label="Tavoli disponibili">
           {tables.map((table) => (
             <TableCard
@@ -154,33 +154,22 @@ export function LobbyTableList({
   );
 }
 
-/** Guida alla lettura delle card dei tavoli. */
-function TableLegend() {
-  const items = [
-    { chip: '0/2 Giocatori', hint: 'Posti occupati su due disponibili' },
-    { chip: 'BO3', hint: 'Best of 3: vince chi vince 2 partite' },
-    { chip: 'BUY IN', hint: 'Quota di ingresso al tavolo' },
-    { chip: 'FOR FUN', hint: 'Nessuna quota: si gioca per divertimento' },
-    { chip: 'SIEDITI', hint: 'Prendi posto al tavolo libero' },
-  ];
+/** Indicatore a menù sopra i tavoli: ordina le informazioni mostrate nelle card. */
+function TableIndicator() {
+  const items = ['0/2 Giocatori', 'BO3', 'BUY IN', 'FOR FUN', 'SIEDITI'];
   return (
-    <section
-      aria-label="Guida alla lettura dei tavoli"
-      className="mb-4 rounded-2xl border border-slate-200/90 bg-white/70 p-4 shadow-sm"
-    >
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-        Come leggere un tavolo
-      </p>
-      <ul className="mt-2.5 flex flex-wrap gap-x-6 gap-y-2">
-        {items.map((item) => (
-          <li key={item.chip} className="flex items-center gap-2 text-[11px] font-semibold text-slate-500">
-            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">
-              {item.chip}
-            </span>
-            {item.hint}
+    <nav aria-label="Indicatori dei tavoli" className="mb-4">
+      <ul className="inline-flex flex-wrap items-center gap-1 rounded-full border border-slate-200/90 bg-white/80 p-1 shadow-sm">
+        {items.map((item, index) => (
+          <li
+            key={item}
+            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500"
+          >
+            {index > 0 && <span className="mr-1.5 h-3 w-px bg-slate-200" aria-hidden />}
+            {item}
           </li>
         ))}
       </ul>
-    </section>
+    </nav>
   );
 }
