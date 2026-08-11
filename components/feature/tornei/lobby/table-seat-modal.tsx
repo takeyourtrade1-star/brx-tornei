@@ -141,7 +141,7 @@ export function TableSeatModal({
           <TableSeatBoard
             myUsername={myUsername}
             opponentUsername={opponentUsername}
-            eyebrow={isHost ? 'Il tuo tavolo' : 'Passaggio 2'}
+            eyebrow={isHost ? 'STATO POSTI' : 'PASSAGGIO 2'}
           />
           {error && (
             <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-700">

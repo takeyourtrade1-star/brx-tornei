@@ -23,17 +23,38 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
   const seatedCount = table.seats.filter((seat) => seat.occupied).length;
   const price = getBuyInLabel(table.tournament?.buyIn ?? 'for_fun');
   const hostName = table.seats[0].occupied ? table.seats[0].username : null;
+  const opponentSeat = table.seats.find((seat) => seat.occupied && !seat.isMe);
+  const opponentName = opponentSeat?.occupied ? opponentSeat.username : null;
   const myConnection = table.seats.find((seat) => seat.occupied && seat.isMe);
-  const title = isMine
-    ? 'Il tuo tavolo'
-    : table.kind === 'joinable' && hostName
-      ? `Tavolo di ${hostName}`
-      : 'Apri un nuovo tavolo';
-  const eyebrow = isMine
-    ? 'La tua postazione'
-    : table.kind === 'joinable'
-      ? 'Sfida aperta'
-      : 'Nuovo tavolo';
+
+  // Risoluzione della ripetizione "La tua postazione / Il tuo tavolo":
+  // Definiamo eyebrow, titolo e badge di stato in base allo stato reale della partita.
+  let eyebrow: string;
+  let title: string;
+  let statusBadge: { label: string; style: string } | null = null;
+
+  if (isMine) {
+    if (table.started) {
+      eyebrow = 'PARTITA LIVE';
+      title = opponentName ? `Sfida vs ${opponentName}` : 'Partita in corso';
+      statusBadge = { label: 'In corso', style: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    } else if (opponentName) {
+      eyebrow = 'SFIDA PRONTA';
+      title = `Sfida vs ${opponentName}`;
+      statusBadge = { label: 'Sfidante pronto', style: 'bg-amber-50 text-amber-700 border-amber-200' };
+    } else {
+      eyebrow = 'IL TUO TAVOLO';
+      title = 'In attesa di sfidante';
+      statusBadge = { label: 'Aperto', style: 'bg-primary/10 text-primary border-primary/20' };
+    }
+  } else if (table.kind === 'joinable') {
+    eyebrow = 'SFIDA APERTA';
+    title = hostName ? `Tavolo di ${hostName}` : 'Tavolo disponibile';
+    statusBadge = { label: 'Disponibile', style: 'bg-blue-50 text-blue-700 border-blue-200' };
+  } else {
+    eyebrow = 'NUOVO TAVOLO';
+    title = 'Apri un nuovo tavolo';
+  }
 
   const handlePrimary = () => {
     if (busy) return;
@@ -50,12 +71,39 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
         disabled={busy || createLocked}
         onClick={handlePrimary}
         className={cn(
-          'flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-900/[0.14] bg-white/70 px-4 py-4 text-center text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 transition',
-          createLocked ? 'cursor-not-allowed opacity-70' : 'hover:border-slate-900/25 hover:bg-white hover:text-header-bg',
+          'group relative flex w-full items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-slate-200/90 bg-slate-50/60 p-4 transition-all sm:p-5 text-left',
+          createLocked
+            ? 'cursor-not-allowed opacity-70'
+            : 'hover:border-primary/50 hover:bg-white hover:shadow-md active:scale-[0.99]',
         )}
       >
-        <EmptyIcon className="h-4 w-4" aria-hidden />
-        {createLocked ? 'Scegli un formato oppure un tavolo disponibile' : 'Sfida i tuoi amici'}
+        <div className="flex items-center gap-3.5">
+          <span
+            className={cn(
+              'grid h-10 w-10 shrink-0 place-items-center rounded-xl border transition-colors',
+              createLocked
+                ? 'border-slate-200 bg-slate-100 text-slate-400'
+                : 'border-primary/20 bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white',
+            )}
+          >
+            <EmptyIcon className="h-5 w-5" aria-hidden />
+          </span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+              {createLocked ? 'Formato richiesto' : 'Crea Sfida'}
+            </p>
+            <h3 className="text-sm font-black text-header-bg sm:text-base">
+              {createLocked
+                ? 'Scegli un formato per creare un nuovo tavolo'
+                : 'Apri un nuovo tavolo da gioco'}
+            </h3>
+          </div>
+        </div>
+        {!createLocked && (
+          <span className="hidden sm:inline-flex rounded-xl bg-header-bg px-3.5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-sm transition-transform group-hover:scale-105">
+            + Nuovo Tavolo
+          </span>
+        )}
       </button>
     );
   }
@@ -63,26 +111,52 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
   return (
     <article
       className={cn(
-        'group rounded-2xl border bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition sm:px-5 sm:py-4',
-        isMine ? 'border-primary/15 ring-1 ring-primary/10' : 'border-slate-900/[0.08] hover:border-slate-900/15 hover:shadow-md',
+        'group relative overflow-hidden rounded-2xl border bg-white p-4.5 shadow-sm transition-all sm:p-5',
+        isMine
+          ? 'border-primary/30 ring-1 ring-primary/20 shadow-md'
+          : 'border-slate-200/90 hover:border-slate-300 hover:shadow-md',
       )}
     >
+      {/* Striscia di accento per il proprio tavolo */}
+      {isMine && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#FF7300] via-amber-500 to-[#e0564d]"
+        />
+      )}
+
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">{eyebrow}</p>
-          <h3 className="mt-0.5 truncate text-base font-black leading-tight text-header-bg">{title}</h3>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
+          <h3 className="mt-0.5 truncate font-sans text-base font-black leading-snug text-header-bg sm:text-lg">
+            {title}
+          </h3>
         </div>
-        {isMine && (
-          <ConnectionQualityBadge connection={myConnection?.occupied ? myConnection.connection : undefined} compact />
-        )}
+
+        <div className="flex shrink-0 items-center gap-2">
+          {statusBadge && (
+            <span
+              className={cn(
+                'rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider',
+                statusBadge.style,
+              )}
+            >
+              {statusBadge.label}
+            </span>
+          )}
+          {isMine && (
+            <ConnectionQualityBadge connection={myConnection?.occupied ? myConnection.connection : undefined} compact />
+          )}
+        </div>
       </header>
 
-      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2.5 sm:gap-3">
+      {/* Arena Giocatori */}
+      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
         <LobbySeat
           occupied={table.seats[0].occupied}
           username={table.seats[0].occupied ? table.seats[0].username : null}
           isMe={table.seats[0].occupied && table.seats[0].isMe}
-          label="Posto 1"
+          label="Giocatore 1"
           compact
           light
         />
@@ -91,38 +165,40 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
           occupied={table.seats[1].occupied}
           username={table.seats[1].occupied ? table.seats[1].username : null}
           isMe={table.seats[1].occupied && table.seats[1].isMe}
-          label="Posto 2"
+          label="Giocatore 2"
           compact
           light
         />
       </div>
 
-      <footer className="mt-4 flex items-center justify-between gap-3 border-t border-slate-900/[0.06] pt-3.5">
-        <div className="flex min-w-0 items-center gap-2 text-[11px] font-semibold text-slate-500">
-          <span className="inline-flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" aria-hidden /> {seatedCount}/2
+      {/* Footer Dettagli e Azioni */}
+      <footer className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+          <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
+            <Users className="h-3.5 w-3.5 text-slate-500" aria-hidden /> {seatedCount}/2
           </span>
-          <span className="h-1 w-1 rounded-full bg-slate-300" />
-          <span className="truncate">{price}</span>
+          <span className="truncate rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">{price}</span>
           {table.kind === 'joinable' && (
-            <>
-              <span className="h-1 w-1 rounded-full bg-slate-300" />
-              <span>P2P</span>
-            </>
+            <span className="rounded-md border border-slate-200 px-2 py-0.5 text-[10px] uppercase text-slate-600">
+              P2P
+            </span>
           )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           {table.kind === 'joinable' && (
             <PrimaryButton busy={busy} onClick={handlePrimary}>
-              <UserPlus className="h-3.5 w-3.5" aria-hidden /> Siediti
+              <UserPlus className="h-4 w-4" aria-hidden /> Siediti
             </PrimaryButton>
           )}
           {isMine && (
             <>
-              <PrimaryButton busy={busy} onClick={() => (table.started || table.seats[1].occupied ? onGoLive(table) : onOpen(table))}>
-                <Play className="h-3.5 w-3.5" aria-hidden />
-                {table.started ? 'Partita' : table.seats[1].occupied ? 'Vai' : 'Apri'}
+              <PrimaryButton
+                busy={busy}
+                onClick={() => (table.started || table.seats[1].occupied ? onGoLive(table) : onOpen(table))}
+              >
+                <Play className="h-4 w-4" aria-hidden />
+                {table.started ? 'Partita' : table.seats[1].occupied ? 'Vai al tavolo' : 'Gestisci tavolo'}
               </PrimaryButton>
               <LeaveButton busy={busy} onClick={() => onLeave(table)} label={table.started ? 'Abbandona' : 'Alzati'} />
             </>
@@ -135,7 +211,12 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
 
 function PrimaryButton({ children, busy, onClick }: { children: React.ReactNode; busy?: boolean; onClick: () => void }) {
   return (
-    <Button type="button" disabled={busy} onClick={onClick} className="h-9 min-h-9 gap-1.5 px-3.5 text-xs">
+    <Button
+      type="button"
+      disabled={busy}
+      onClick={onClick}
+      className="h-9.5 min-h-[2.375rem] gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black text-white shadow-sm hover:shadow-md transition-all hover:brightness-105 active:scale-[0.98]"
+    >
       {children}
     </Button>
   );
@@ -148,7 +229,7 @@ function LeaveButton({ busy, onClick, label }: { busy?: boolean; onClick: () => 
       disabled={busy}
       onClick={onClick}
       aria-label={`${label} dal tavolo`}
-      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-900/10 px-3 text-xs font-bold text-slate-500 transition hover:border-red-500/25 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+      className="inline-flex h-9.5 min-h-[2.375rem] items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/70 px-3.5 text-xs font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
     >
       <LogOut className="h-3.5 w-3.5" aria-hidden />
       <span className="hidden sm:inline">{label}</span>
