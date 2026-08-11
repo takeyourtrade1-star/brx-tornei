@@ -254,8 +254,8 @@
   body {
     @apply min-h-screen font-medium;
     font-family: var(--font-sans), system-ui, sans-serif;
-    background-color: #c9e1f5;
-    color: #0f172a;
+    background-color: #1d3160;
+    color: #fff;
   }
 
   input,
@@ -270,12 +270,16 @@
     position: fixed;
     inset: 0;
     z-index: -1;
+    /* Sfondo identico a ebartex.com: gradiente blu notte + pattern logo BRX
+       in tile + velo scuro di profondità (unico ::before fixed, nessun
+       repaint allo scroll). L'overlay scuro smorza il pattern esattamente
+       come sul sito principale. */
     background-image:
-      url('/brx-sfondo-logo-tile.svg'),
-      radial-gradient(1100px 540px at 82% -10%, rgba(255, 255, 255, 0.55), transparent 62%),
-      linear-gradient(168deg, #e9f4fd 0%, #d2e7f8 40%, #b5d6f1 76%, #a2cbee 100%);
-    background-size: 460px 460px, auto, auto;
-    background-repeat: repeat, no-repeat, no-repeat;
+      linear-gradient(rgba(61, 101, 198, 0.65), rgba(29, 49, 96, 0.65)),
+      url('/brx_bg.png'),
+      linear-gradient(180deg, #3d65c6 0%, #1d3160 100%);
+    background-size: cover, 80px 80px, cover;
+    background-repeat: no-repeat, repeat, no-repeat;
     transform: translateZ(0);
     pointer-events: none;
   }

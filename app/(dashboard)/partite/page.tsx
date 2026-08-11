@@ -24,10 +24,10 @@ export default async function PartitePage() {
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
             Storico
           </p>
-          <h1 className="mt-1 font-sans text-2xl font-black tracking-tight text-header-bg sm:text-3xl">
+          <h1 className="mt-1 font-sans text-2xl font-black tracking-tight text-white sm:text-3xl">
             Le mie partite
           </h1>
-          <p className="mt-1 text-sm font-semibold text-header-bg/55">
+          <p className="mt-1 text-sm font-semibold text-white/55">
             Vinte, perse, abbandonate e contestate: il tuo ledger completo.
           </p>
         </header>

@@ -60,12 +60,12 @@ export function LobbyTableList({
         <div className="relative z-30 my-4 flex flex-col gap-5">
           <section className="w-full">
             <div className="mb-2.5 flex items-center gap-2 px-1">
-              <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
+              <span className="grid h-5 w-5 place-items-center rounded-md bg-white/10 text-[9px] font-black text-primary">
                 1
               </span>
               <h2
                 id="tornei-format-label"
-                className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-slate-500"
+                className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/60"
               >
                 Formato
               </h2>
@@ -88,10 +88,10 @@ export function LobbyTableList({
 
           <section className="w-full">
             <div className="mb-2.5 flex items-center gap-2 px-1">
-              <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/[0.08] text-[9px] font-black text-primary">
+              <span className="grid h-5 w-5 place-items-center rounded-md bg-white/10 text-[9px] font-black text-primary">
                 2
               </span>
-              <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/60">
                 Modalità
               </h2>
             </div>
@@ -117,11 +117,11 @@ export function LobbyTableList({
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
                 Sfida i tuoi amici
               </p>
-              <h1 className="mt-1 font-sans text-xl font-black tracking-tight text-header-bg sm:text-2xl">
+              <h1 className="mt-1 font-sans text-xl font-black tracking-tight text-white sm:text-2xl">
                 {formatName} · {modeName}
               </h1>
             </div>
-            <span className="rounded-full border border-header-bg/10 bg-slate-50/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-header-bg/65">
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/75">
               Best of 3
             </span>
         </section>
@@ -154,18 +154,18 @@ export function LobbyTableList({
   );
 }
 
-/** Indicatore a menù sopra i tavoli: nomi delle categorie, ordinate come le card. */
+/** Indicatore a menù sopra i tavoli: nomi delle categorie, griglia identica
+ * a quella dei valori nelle card così le colonne restano allineate. */
 function TableIndicator() {
   const items = ['Giocatori', 'Best of', 'Buy in'];
   return (
     <nav aria-label="Categorie dei tavoli" className="mb-4">
-      <ul className="inline-flex flex-wrap items-center gap-1 rounded-full border border-slate-200/90 bg-white/80 p-1 shadow-sm">
-        {items.map((item, index) => (
+      <ul className="inline-grid grid-cols-[minmax(3rem,5rem)_minmax(3rem,4.5rem)_minmax(3.5rem,5rem)] items-center gap-2 rounded-full border border-slate-200/90 bg-white/80 p-1.5 shadow-sm">
+        {items.map((item) => (
           <li
             key={item}
-            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500"
+            className="grid h-6 place-items-center truncate px-1 text-[10px] font-black uppercase tracking-wider text-slate-500"
           >
-            {index > 0 && <span className="mr-1.5 h-3 w-px bg-slate-200" aria-hidden />}
             {item}
           </li>
         ))}
