@@ -11,11 +11,9 @@ const OUTCOME_TONE: Record<string, { dot: string; label: string }> = {
 };
 
 /**
- * Card "Le tue partite" (home lobby): un blocco a una banda, stile profilo
- * esports — emblema animato (spade che si scontrano) + identità + contatori
- * + winrate sottile + esito delle ultime sfide come pallini colore. Niente
- * doppioni: il winrate vive qui come barretta, i badge restano nel drawer
- * profilo.
+ * Card "Le tue partite" (home lobby): divisa a metà — a sinistra emblema
+ * animato + totale partite + ultime sfide, a destra contatori (vinte, perse,
+ * abbandonate) impilati in verticale.
  */
 export function ReputationSummary({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats: ReputationSummaryData = reputation ?? {
@@ -27,8 +25,6 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
     recent: [],
     history: [],
   };
-  const decided = stats.wins + stats.losses;
-  const winRate = decided > 0 ? Math.round((stats.wins / decided) * 100) : null;
   const recent = reputation?.recent ?? [];
 
   return (
@@ -36,90 +32,73 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
       aria-label="Le tue partite"
       className="overflow-hidden rounded-2xl border border-white/15 bg-white/10 text-white backdrop-blur-md shadow-md"
     >
-      {/* Banda identità: emblema + totale + esito delle ultime sfide. */}
-      <div className="flex items-center gap-3.5 bg-gradient-to-r from-white/10 via-white/5 to-transparent px-4 py-3.5 sm:px-5">
-        <span className="swords-emblem relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-sm">
-          <span
-            aria-hidden
-            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 via-transparent to-black/20"
-          />
-          <ClashingSwordsIcon className="relative h-[26px] w-[26px]" />
-        </span>
-
-        <p className="min-w-0">
-          <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/60">
-            Le tue partite
-          </span>
-          <span className="block text-xl font-black tabular-nums leading-tight text-white">
-            {stats.played}
-            <span className="ml-1.5 text-[11px] font-semibold text-white/50">
-              {stats.played === 1 ? 'partita' : 'partite'}
-            </span>
-          </span>
-        </p>
-
-        {recent.length > 0 ? (
-          <div
-            role="img"
-            aria-label={`Ultime sfide: ${recent.slice(0, 5).map((m) => OUTCOME_TONE[m.outcome]?.label ?? m.outcome).join(', ')}`}
-            className="ml-auto flex shrink-0 items-center gap-1.5"
-          >
-            <span className="hidden text-[8px] font-black uppercase tracking-[0.16em] text-white/50 sm:block">
-              Ultime
-            </span>
-            {recent.slice(0, 5).map((m, index) => (
+      <div className="flex">
+        {/* Metà sinistra: emblema + totale + ultime sfide. */}
+        <div className="flex flex-1 flex-col gap-2.5 bg-gradient-to-r from-white/10 via-white/5 to-transparent px-4 py-3.5 sm:px-5">
+          <div className="flex items-center gap-3.5">
+            <span className="swords-emblem relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-sm">
               <span
-                key={index}
                 aria-hidden
-                title={`${OUTCOME_TONE[m.outcome]?.label ?? m.outcome} vs ${m.opponentGamertag ?? 'avversario'}`}
-                className={cn('h-2.5 w-2.5 rounded-full', OUTCOME_TONE[m.outcome]?.dot ?? 'bg-slate-400')}
+                className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 via-transparent to-black/20"
               />
-            ))}
+              <ClashingSwordsIcon className="relative h-[26px] w-[26px]" />
+            </span>
+
+            <p className="min-w-0">
+              <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/60">
+                Le tue partite
+              </span>
+              <span className="block text-xl font-black tabular-nums leading-tight text-white">
+                {stats.played}
+                <span className="ml-1.5 text-[11px] font-semibold text-white/50">
+                  {stats.played === 1 ? 'partita' : 'partite'}
+                </span>
+              </span>
+            </p>
           </div>
-        ) : (
-          <span className="ml-auto hidden shrink-0 text-right text-[10px] font-bold leading-tight text-white/50 sm:block">
-            Nessuna sfida ancora:
-            <br />
-            siediti a un tavolo.
-          </span>
-        )}
-      </div>
 
-      {/* Banda contatori: tre voci con dividers sottili. */}
-      <dl className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 bg-black/10">
-        <Counter icon={Trophy} label="Vinte" value={stats.wins} tone="text-emerald-400" />
-        <Counter icon={Skull} label="Perse" value={stats.losses} tone="text-red-400" />
-        <Counter icon={LogOut} label="Abbandonate" value={stats.abandoned} tone="text-amber-400" />
-      </dl>
-
-      {/* Winrate: unica barra sottile sulle partite decise (vinte + perse). */}
-      {winRate !== null && (
-        <div
-          className="flex items-center gap-2.5 px-4 py-2.5 sm:px-5 border-t border-white/5 bg-black/5"
-          title={`${winRate}% di vittorie su ${decided} partite decise`}
-        >
-          <div className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+          {recent.length > 0 ? (
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
-              style={{ width: `${winRate}%` }}
-            />
-            <div className="h-full flex-1 bg-red-500/30" />
-          </div>
-          <span className="shrink-0 text-[10px] font-black tabular-nums leading-none text-white/70">
-            {winRate}%
-          </span>
+              role="img"
+              aria-label={`Ultime sfide: ${recent.slice(0, 5).map((m) => OUTCOME_TONE[m.outcome]?.label ?? m.outcome).join(', ')}`}
+              className="flex items-center gap-1.5"
+            >
+              <span className="hidden text-[8px] font-black uppercase tracking-[0.16em] text-white/50 sm:inline">
+                Ultime
+              </span>
+              {recent.slice(0, 5).map((m, index) => (
+                <span
+                  key={index}
+                  aria-hidden
+                  title={`${OUTCOME_TONE[m.outcome]?.label ?? m.outcome} vs ${m.opponentGamertag ?? 'avversario'}`}
+                  className={cn('h-2.5 w-2.5 rounded-full', OUTCOME_TONE[m.outcome]?.dot ?? 'bg-slate-400')}
+                />
+              ))}
+            </div>
+          ) : (
+            <span className="hidden text-[10px] font-bold leading-tight text-white/50 sm:block">
+              Nessuna sfida ancora: siediti a un tavolo.
+            </span>
+          )}
         </div>
-      )}
+
+        {/* Metà destra: contatori vinte / perse / abbandonate impilati. */}
+        <dl className="flex w-[140px] shrink-0 flex-col divide-y divide-white/10 border-l border-white/10 bg-black/10">
+          <StackedCounter icon={Trophy} label="Vinte" value={stats.wins} tone="text-emerald-400" />
+          <StackedCounter icon={Skull} label="Perse" value={stats.losses} tone="text-red-400" />
+          <StackedCounter icon={LogOut} label="Abbandonate" value={stats.abandoned} tone="text-amber-400" />
+        </dl>
+      </div>
     </section>
   );
 }
 
-function Counter({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: number; tone: string }) {
+function StackedCounter({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: number; tone: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 px-2 py-2.5">
+    <div className="flex items-center justify-between gap-2 px-3 py-1.5">
       <Icon className={cn('h-3.5 w-3.5 shrink-0', tone)} strokeWidth={2.2} aria-hidden="true" />
       <dt className="sr-only">{label}</dt>
-      <dd className={cn('text-base font-black tabular-nums leading-none', tone)}>{value}</dd>
+      <dd className={cn('text-sm font-black tabular-nums leading-none', tone)}>{value}</dd>
       <span className="text-[8px] font-bold uppercase tracking-wider text-white/50">{label}</span>
     </div>
   );
