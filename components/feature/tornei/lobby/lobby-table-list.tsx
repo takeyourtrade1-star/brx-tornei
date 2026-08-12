@@ -62,17 +62,6 @@ export function LobbyTableList({
             stesso contenitore glass, separati da un divider sottile. */}
         <div className="relative z-30 my-5 divide-y divide-white/10 rounded-2xl border border-white/15 bg-white/10 shadow-md backdrop-blur-md">
           <section className="w-full px-4 py-4 sm:px-5">
-            <div className="mb-2.5 flex items-center gap-2 px-1">
-              <span className="grid h-5 w-5 place-items-center rounded-md bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-[9px] font-black text-white shadow-xs">
-                1
-              </span>
-              <h2
-                id="tornei-format-label"
-                className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/80"
-              >
-                Formato
-              </h2>
-            </div>
             <div className="w-full md:hidden">
               <FormatSelectorGrid
                 selectedFormatId={formatId}
@@ -89,15 +78,7 @@ export function LobbyTableList({
             </div>
           </section>
 
-          <section className="w-full px-4 py-4 sm:px-5">
-            <div className="mb-2.5 flex items-center gap-2 px-1">
-              <span className="grid h-5 w-5 place-items-center rounded-md bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-[9px] font-black text-white shadow-xs">
-                2
-              </span>
-              <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/80">
-                Modalità
-              </h2>
-            </div>
+          <section className="w-full px-4 py-3 sm:px-5">
             <div className="w-full md:hidden">
               <ModeSelectorRow
                 selectedModeId={selection.mode}
