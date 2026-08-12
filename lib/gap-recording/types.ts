@@ -6,8 +6,31 @@ export type GapIncidentStatus =
   | 'closing'
   | 'awaiting-consent'
   | 'queued'
+  | 'preparing'
   | 'uploading'
+  | 'finalizing'
+  | 'retrying'
   | 'failed';
+
+export type GapUploadPhase =
+  | 'preparing'
+  | 'uploading'
+  | 'finalizing'
+  | 'retrying'
+  | 'failed'
+  | 'sent';
+
+export interface GapUploadProgress {
+  phase: GapUploadPhase;
+  incidentId: string;
+  uploadedBytes: number;
+  totalBytes: number;
+  completedClips: number;
+  totalClips: number;
+  error: string | null;
+  retryAt: number | null;
+  retryable: boolean;
+}
 
 export interface GapClipRecord {
   id: string;
@@ -44,6 +67,7 @@ export interface GapIncidentRecord {
   retryCount: number;
   nextRetryAt: number | null;
   lastError: string | null;
+  failureKind?: 'retryable' | 'terminal' | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -61,8 +85,13 @@ export interface GapProtectionSnapshot {
   status: GapProtectionStatus;
   pendingIncidents: number;
   consentRequiredIncidents: number;
+  retryingIncidents: number;
+  failedIncidents: number;
+  retryableFailedIncidents: number;
   retainedBytes: number;
   error: string | null;
+  uploadError: string | null;
+  upload: GapUploadProgress | null;
 }
 
 export const MATCH_GAP_NOTICE_VERSION = 'peer-gap-review-v1' as const;
@@ -81,6 +110,7 @@ export interface MatchGapRecorderController {
   snapshot: GapProtectionSnapshot;
   grantUploadConsent: () => Promise<void>;
   declineUpload: () => Promise<void>;
+  retryUpload: () => Promise<void>;
 }
 
 export interface GapRecorderOptions {

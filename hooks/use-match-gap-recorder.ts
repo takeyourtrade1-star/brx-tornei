@@ -16,8 +16,13 @@ const DISABLED: GapProtectionSnapshot = {
   status: 'disabled',
   pendingIncidents: 0,
   consentRequiredIncidents: 0,
+  retryingIncidents: 0,
+  failedIncidents: 0,
+  retryableFailedIncidents: 0,
   retainedBytes: 0,
   error: null,
+  uploadError: null,
+  upload: null,
 };
 
 const UNSUPPORTED: GapProtectionSnapshot = {
@@ -75,6 +80,7 @@ export function useMatchGapRecorder({
     const store = new IndexedDbGapRecordingStore();
     let uploadRunning = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let sentTimer: ReturnType<typeof setTimeout> | null = null;
     let localRefreshTimer: ReturnType<typeof setInterval> | null = null;
     let maybeUpload = () => {};
     const coordinator = new GapRecordingCoordinator({
@@ -83,7 +89,7 @@ export function useMatchGapRecorder({
       webcamSessionId,
       userId,
       onSnapshot: (next) => {
-        if (!disposed) setSnapshot(next);
+        if (!disposed) setSnapshot((current) => ({ ...next, upload: current.upload }));
         if (next.pendingIncidents > next.consentRequiredIncidents) queueMicrotask(maybeUpload);
       },
     });
@@ -92,11 +98,25 @@ export function useMatchGapRecorder({
       if (
         disposed ||
         uploadRunning ||
-        (active && peerStateRef.current !== 'connected') ||
         !navigator.onLine
       ) return;
       uploadRunning = true;
-      void uploadPendingGapRecordings(store, matchId, userId)
+      void uploadPendingGapRecordings(store, matchId, userId, Date.now(), {
+        onProgress: (progress) => {
+          if (disposed) return;
+          if (sentTimer) clearTimeout(sentTimer);
+          setSnapshot((current) => ({
+            ...current,
+            upload: progress,
+            uploadError: progress.error ?? current.uploadError,
+          }));
+          if (progress.phase === 'sent') {
+            sentTimer = setTimeout(() => {
+              if (!disposed) setSnapshot((current) => ({ ...current, upload: null }));
+            }, 5_000);
+          }
+        },
+      })
         .then(({ nextRetryAt }) => {
           if (disposed) return;
           void coordinator.refresh();
@@ -138,6 +158,7 @@ export function useMatchGapRecorder({
       disposed = true;
       window.removeEventListener('online', maybeUpload);
       if (retryTimer) clearTimeout(retryTimer);
+      if (sentTimer) clearTimeout(sentTimer);
       if (localRefreshTimer) clearInterval(localRefreshTimer);
       if (coordinatorRef.current === coordinator) coordinatorRef.current = null;
       uploadRef.current = () => {};
@@ -156,6 +177,10 @@ export function useMatchGapRecorder({
   const declineUpload = useCallback(async () => {
     await coordinatorRef.current?.declineUpload();
   }, []);
+  const retryUpload = useCallback(async () => {
+    await coordinatorRef.current?.retryUpload();
+    uploadRef.current();
+  }, []);
 
-  return { snapshot, grantUploadConsent, declineUpload };
+  return { snapshot, grantUploadConsent, declineUpload, retryUpload };
 }

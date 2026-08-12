@@ -14,6 +14,7 @@ import {
   declinePendingGapUploads,
   grantPendingGapConsent,
   persistGapClip,
+  retryFailedGapUploads,
 } from '@/lib/gap-recording/coordinator-storage';
 import {
   buildGapSnapshot,
@@ -127,6 +128,10 @@ export class GapRecordingCoordinator {
     });
   }
 
+  async retryUpload(): Promise<void> {
+    await retryFailedGapUploads(this.store, this.matchUserKey, this.now());
+    await this.refresh();
+  }
   private enqueue(operation: () => Promise<void>): Promise<void> {
     const next = this.work.then(operation, operation);
     this.work = next.catch((error: unknown) => {
@@ -232,12 +237,7 @@ export class GapRecordingCoordinator {
 
   private async publishSnapshot(): Promise<void> {
     this.onSnapshot(
-      await buildGapSnapshot(
-        this.store,
-        this.matchUserKey,
-        this.activeIncident,
-        this.lastError,
-      ),
+      await buildGapSnapshot(this.store, this.matchUserKey, this.activeIncident, this.lastError),
     );
   }
 

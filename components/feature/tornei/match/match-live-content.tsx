@@ -119,7 +119,8 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
       )}
       {isPlayer && started && tournament.matchId && (
         <MatchGapProtectionNotice snapshot={gapProtection.snapshot}
-          onConsent={gapProtection.grantUploadConsent} onDecline={gapProtection.declineUpload} />
+          onConsent={gapProtection.grantUploadConsent} onDecline={gapProtection.declineUpload}
+          onRetry={gapProtection.retryUpload} />
       )}
       {publicConfig.features.matchGapRecording && isPlayer && tournament.matchId && (
         <MatchGapPeerReview matchId={tournament.matchId} opponentName={remote.username} />
