@@ -161,7 +161,7 @@ function TableIndicator() {
   const items = ['Giocatori', 'Best of', 'Buy in'];
   return (
     <nav aria-label="Categorie dei tavoli" className="mx-4.5 mb-4 sm:mx-5">
-      <ul className="grid w-full grid-cols-[5rem_4rem_4.5rem] items-center gap-2 rounded-2xl border border-white/15 bg-white/10 py-2 shadow-sm backdrop-blur-sm">
+      <ul className="grid w-full grid-cols-[5rem_4rem_4.5rem] items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 py-2 shadow-sm backdrop-blur-sm">
         {items.map((item) => (
           <li
             key={item}
