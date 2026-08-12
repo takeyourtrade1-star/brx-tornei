@@ -6,6 +6,7 @@ import {
   type GapIncidentRecord,
   type RecordedClip,
 } from '@/lib/gap-recording/types';
+import { UNAUTHORIZED_UPLOAD_DESTINATION } from '@/lib/gap-recording/upload-transport';
 
 const CONSENTABLE_STATUSES = new Set(['awaiting-consent', 'queued']);
 
@@ -44,7 +45,8 @@ export async function retryFailedGapUploads(
   const incidents = await store.listIncidents(matchUserKey);
   for (const incident of incidents) {
     const retryableFailure = incident.status === 'failed' &&
-      incident.failureKind === 'retryable';
+      (incident.failureKind === 'retryable' ||
+        incident.lastError === UNAUTHORIZED_UPLOAD_DESTINATION);
     if (incident.status !== 'retrying' && !retryableFailure) continue;
     await store.putIncident({
       ...incident,

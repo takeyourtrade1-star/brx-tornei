@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { uploadPendingGapRecordings } from '@/lib/gap-recording/uploader';
+import { retryFailedGapUploads } from '@/lib/gap-recording/coordinator-storage';
+import { UNAUTHORIZED_UPLOAD_DESTINATION } from '@/lib/gap-recording/upload-transport';
 import {
   GAP_MATCH_ID,
   GAP_USER_ID,
@@ -37,6 +39,24 @@ afterEach(() => {
 });
 
 describe('gap upload retry authentication', () => {
+  it('recovers a destination mismatch saved by the previous release', async () => {
+    const store = new UploadMemoryStore();
+    store.current = {
+      ...store.current,
+      status: 'failed',
+      failureKind: 'terminal',
+      lastError: UNAUTHORIZED_UPLOAD_DESTINATION,
+      retryCount: 1,
+    };
+
+    await retryFailedGapUploads(store.asStore(), store.current.matchUserKey, 40_000);
+
+    expect(store.current).toMatchObject({
+      status: 'queued', retryCount: 0, nextRetryAt: null,
+      failureKind: null, lastError: null,
+    });
+  });
+
   it('keeps an init BFF 401 retryable without deleting IndexedDB evidence', async () => {
     const store = new UploadMemoryStore();
     vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 401 })));
