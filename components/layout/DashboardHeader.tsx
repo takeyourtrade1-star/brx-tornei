@@ -27,7 +27,9 @@ interface DashboardHeaderProps {
 /**
  * Header dashboard tornei — Mazzi e Partite sono le azioni primarie; profilo,
  * ritorno al minigioco e logout restano controlli secondari e più discreti.
- * Il widget profilo mostra l'avatar gaming personalizzabile con cerchio grado 1★.
+ * Il widget profilo mostra l'avatar gaming personalizzabile in un cerchio di
+ * grado, con stelline ad arco che partono dal basso a destra (1★ di base,
+ * +1★ ogni 5 vittorie).
  */
 export function DashboardHeader({
   user,
@@ -54,6 +56,8 @@ export function DashboardHeader({
 
   const activeAvatar = getAvatarById(avatarId);
   const AvatarIcon = activeAvatar.icon;
+  // Grado attuale: si parte da 1★; ogni 5 vittorie ne arriva una in più.
+  const rankStars = rankStarsForWins(reputation?.wins ?? 0);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-header-bg/85 font-sans text-white shadow-lg backdrop-blur-xl">
@@ -95,7 +99,8 @@ export function DashboardHeader({
             </button>
           )}
 
-          {/* Widget Profilo con Cerchio Grado contenente la stellina DENTRO, Avatar grande (64px) e Gamertag sovrapposto */}
+          {/* Widget Profilo con Cerchio Grado: stelline piccole disposte ad arco
+              sul bordo, partendo dal basso a destra — più vittorie, più stelline. */}
           <div className="relative flex items-center justify-center py-1 sm:py-1.5">
             <button
               type="button"
@@ -105,20 +110,13 @@ export function DashboardHeader({
               aria-label={`Apri il profilo di ${shownName}`}
               className="group relative flex flex-col items-center justify-center focus-visible:outline-none"
             >
-              {/* Cerchio del Grado (Rank Ring) che avvolge l'icona e contiene la stellina al suo interno */}
-              <div className="relative flex flex-col items-center justify-center rounded-full border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/25 via-slate-950/90 to-slate-950 p-2 shadow-[0_0_22px_rgba(255,115,0,0.4)] transition-transform group-hover:scale-105 group-hover:border-amber-300">
-                {/* Stellina di grado DENTRO la sommità del cerchio */}
-                <div
-                  className="absolute top-1 z-10 flex items-center justify-center gap-0.5 rounded-full border border-amber-400/70 bg-slate-950/95 px-2 py-0.5 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
-                  title="Grado 1★"
-                >
-                  <Star className="h-3 w-3 fill-amber-400 text-amber-400 animate-pulse" />
-                </div>
-
-                {/* Icona Avatar centrale più grande (h-14 sm:h-16) e dettagliata */}
+              {/* Cerchio del Grado (Rank Ring) che avvolge l'icona; le stelline
+                  poggiano sul bordo, in arco dal basso-destra verso l'alto. */}
+              <div className="relative grid place-items-center rounded-full border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/25 via-slate-950/90 to-slate-950 p-1.5 shadow-[0_0_22px_rgba(255,115,0,0.4)] transition-transform [--rank-ring:33px] group-hover:scale-105 group-hover:border-amber-300 sm:[--rank-ring:39px]">
+                {/* Icona Avatar centrale */}
                 <div
                   className={cn(
-                    'mt-3.5 grid h-13 w-13 place-items-center rounded-full border-2 border-white/30 bg-gradient-to-b from-slate-900 via-header-bg to-black p-2.5 shadow-2xl transition-all sm:h-16 sm:w-16 sm:p-3',
+                    'grid h-13 w-13 place-items-center rounded-full border-2 border-white/30 bg-gradient-to-b from-slate-900 via-header-bg to-black p-2.5 shadow-2xl transition-all sm:h-16 sm:w-16 sm:p-3',
                     activeAvatar.bgGradient,
                   )}
                 >
@@ -129,6 +127,8 @@ export function DashboardHeader({
                     )}
                   />
                 </div>
+
+                <RankStarsRing count={rankStars} />
               </div>
 
               {/* Gamertag sovrapposto in basso: mezzo dentro e mezzo fuori dal cerchio */}
@@ -158,6 +158,46 @@ export function DashboardHeader({
         initialReputation={reputation}
       />
     </header>
+  );
+}
+
+/**
+ * Stelline di grado sul bordo del cerchio profilo: partono dal basso a destra
+ * e risalgono l'arco destro del ring. Regola: si inizia da 1★ e ogni 5 vittorie
+ * se ne conquista una in più, fino a riempire l'arco (MAX_RANK_STARS).
+ */
+const MAX_RANK_STARS = 9;
+
+function rankStarsForWins(wins: number): number {
+  return Math.min(MAX_RANK_STARS, 1 + Math.floor(Math.max(0, wins) / 5));
+}
+
+function RankStarsRing({ count }: { count: number }) {
+  // Arco di 110° sul lato destro del cerchio: inizia a +55° (basso-destra,
+  // coordinate schermo con y verso il basso) e sale fino a -55° (alto-destra),
+  // contro-ruotando ogni stellina per mantenerla dritta.
+  return (
+    <>
+      <span className="sr-only">
+        Grado {count} {count === 1 ? 'stella' : 'stelle'}
+      </span>
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        {Array.from({ length: count }, (_, i) => {
+          const angle = 55 - (i * 110) / (MAX_RANK_STARS - 1);
+          return (
+            <span
+              key={i}
+              className="absolute left-1/2 top-1/2 -ml-1.25 -mt-1.25"
+              style={{
+                transform: `rotate(${angle}deg) translateX(var(--rank-ring)) rotate(${-angle}deg)`,
+              }}
+            >
+              <Star className="h-2.5 w-2.5 fill-amber-300 text-amber-300 drop-shadow-[0_0_3px_rgba(245,158,11,0.9)]" />
+            </span>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
