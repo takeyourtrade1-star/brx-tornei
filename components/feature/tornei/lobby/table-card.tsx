@@ -106,9 +106,9 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
         </div>
 
         {/* Footer Dettagli e Azioni */}
-        {/* Footer Dettagli e Azioni — griglia identica all'indicatore a menù */}
-        <footer className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
-          <div className="grid min-w-0 flex-1 grid-cols-[minmax(2.5rem,5rem)_minmax(2.5rem,4.5rem)_minmax(3rem,5rem)] items-center gap-2 text-[11px] font-bold text-slate-500">
+        {/* Footer Dettagli e Azioni — colonne fisse identiche all'indicatore a menù */}
+        <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
+          <div className="grid grid-cols-[5rem_4rem_4.5rem] items-center gap-2 text-[11px] font-bold text-slate-500">
             <span className="inline-flex min-w-0 items-center justify-center gap-1 overflow-hidden rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
               <Users className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden /> 0/2
             </span>
@@ -193,9 +193,9 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
         />
       </div>
 
-      {/* Footer Dettagli e Azioni — griglia identica all'indicatore a menù */}
-      <footer className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
-        <div className="grid min-w-0 flex-1 grid-cols-[minmax(2.5rem,5rem)_minmax(2.5rem,4.5rem)_minmax(3rem,5rem)] items-center gap-2 text-[11px] font-bold text-slate-500">
+      {/* Footer Dettagli e Azioni — colonne fisse identiche all'indicatore a menù */}
+      <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
+        <div className="grid grid-cols-[5rem_4rem_4.5rem] items-center gap-2 text-[11px] font-bold text-slate-500">
           <span className="inline-flex min-w-0 items-center justify-center gap-1 overflow-hidden rounded-md bg-slate-100 px-2 py-0.5 text-slate-700">
             <Users className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden /> {seatedCount}/2
           </span>

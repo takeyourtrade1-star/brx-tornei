@@ -154,17 +154,18 @@ export function LobbyTableList({
   );
 }
 
-/** Indicatore a menù sopra i tavoli: nomi delle categorie, griglia identica
- * a quella dei valori nelle card così le colonne restano allineate. */
+/** Indicatore a menù full-width sopra i tavoli: colonne a larghezza fissa
+ * identiche a quelle dei valori nelle card, così ogni valore cade esattamente
+ * sotto la propria categoria. */
 function TableIndicator() {
   const items = ['Giocatori', 'Best of', 'Buy in'];
   return (
-    <nav aria-label="Categorie dei tavoli" className="mb-4">
-      <ul className="inline-grid grid-cols-[minmax(3rem,5rem)_minmax(3rem,4.5rem)_minmax(3.5rem,5rem)] items-center gap-2 rounded-full border border-slate-200/90 bg-white/80 p-1.5 shadow-sm">
+    <nav aria-label="Categorie dei tavoli" className="mx-4.5 mb-4 sm:mx-5">
+      <ul className="grid w-full grid-cols-[5rem_4rem_4.5rem] items-center gap-2 rounded-2xl border border-white/15 bg-white/10 py-2 shadow-sm backdrop-blur-sm">
         {items.map((item) => (
           <li
             key={item}
-            className="grid h-6 place-items-center truncate px-1 text-[10px] font-black uppercase tracking-wider text-slate-500"
+            className="grid h-6 place-items-center truncate px-1 text-[10px] font-black uppercase tracking-wider text-white/75"
           >
             {item}
           </li>
