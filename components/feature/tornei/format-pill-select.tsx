@@ -26,7 +26,7 @@ const FORMAT_OPTIONS = FORMATS_WITH_MEDIA.map((f) => ({ value: f.id, label: f.na
 
 function PillShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative w-full rounded-full bg-white text-header-bg ring-1 ring-slate-900/[0.12] shadow-sm transition-shadow hover:ring-slate-900/20">
+    <div className="relative w-full rounded-full border border-white/15 bg-white/10 text-white ring-1 ring-white/10 shadow-sm backdrop-blur-md transition-all hover:border-white/25">
       {children}
     </div>
   );
@@ -34,7 +34,7 @@ function PillShell({ children }: { children: ReactNode }) {
 
 export function FormatPillSelect(props: FormatPillSelectProps) {
   const triggerClassName =
-    'h-14 w-full justify-between bg-transparent px-5 text-[13px] font-bold uppercase tracking-wide text-header-bg ring-0 hover:bg-slate-50/60';
+    'h-14 w-full justify-between bg-transparent px-5 text-[13px] font-bold uppercase tracking-wide text-white ring-0 hover:bg-white/10';
 
   if (props.includeAll) {
     const options: { value: FormatFilter; label: string }[] = [

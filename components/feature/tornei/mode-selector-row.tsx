@@ -20,7 +20,6 @@ interface ModeSelectorRowProps {
 export function ModeSelectorRow({
   selectedModeId,
   currentFormatId,
-  lightPanel = false,
 }: ModeSelectorRowProps) {
   const router = useRouter();
   const headsUp = MODES.find((mode) => mode.id === 'heads-up')!;
@@ -32,21 +31,13 @@ export function ModeSelectorRow({
   };
 
   return (
-    <div
-      className={cn(
-        'grid w-full grid-cols-2 gap-1 rounded-full p-1',
-        lightPanel
-          ? 'bg-white shadow-[0_2px_12px_-6px_rgba(15,23,42,0.22)] ring-1 ring-slate-900/[0.07]'
-          : 'bg-black/20 ring-1 ring-white/10',
-      )}
-    >
+    <div className="grid w-full grid-cols-2 gap-1 rounded-full border border-white/15 bg-white/10 p-1 backdrop-blur-md shadow-sm">
       <ModeCard
         title={headsUp.name}
         description={headsUp.description}
         icon={Swords}
         selected={selectedModeId === headsUp.id}
         available
-        lightPanel={lightPanel}
         onSelect={() => selectMode(headsUp.id, true)}
       />
       <ModeCard
@@ -56,7 +47,6 @@ export function ModeSelectorRow({
         selected={selectedModeId === multiplayer.id}
         available={multiplayer.available}
         badge={multiplayer.badge}
-        lightPanel={lightPanel}
         onSelect={() => selectMode(multiplayer.id, multiplayer.available)}
       />
     </div>
@@ -70,7 +60,6 @@ interface ModeCardProps {
   selected: boolean;
   available: boolean;
   badge?: string;
-  lightPanel: boolean;
   onSelect: () => void;
 }
 
@@ -81,7 +70,6 @@ function ModeCard({
   selected,
   available,
   badge,
-  lightPanel,
   onSelect,
 }: ModeCardProps) {
   return (
@@ -92,16 +80,12 @@ function ModeCard({
       aria-pressed={selected}
       title={description}
       className={cn(
-        'flex h-9 items-center justify-center gap-1.5 rounded-full border px-2.5 transition-colors duration-200 sm:px-3',
+        'flex h-9 items-center justify-center gap-1.5 rounded-full border px-2.5 transition-all duration-200 sm:px-3',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-inset',
         selected && available
-          ? lightPanel
-            ? 'border-primary/20 bg-white/70 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_16px_-8px_rgba(255,115,0,0.35)] ring-1 ring-primary/20 backdrop-blur-md'
-            : 'border-white/15 bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] ring-1 ring-inset ring-white/25 backdrop-blur-md'
-          : lightPanel
-            ? 'border-transparent text-slate-500 hover:border-slate-900/[0.08] hover:bg-slate-100 hover:text-header-bg'
-            : 'border-transparent bg-transparent text-white/55 hover:bg-white/[0.07] hover:text-white',
-        !available && 'cursor-not-allowed opacity-70',
+          ? 'border-white/25 bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-md ring-1 ring-white/30 backdrop-blur-md'
+          : 'border-transparent bg-transparent text-white/70 hover:bg-white/10 hover:text-white',
+        !available && 'cursor-not-allowed opacity-60',
       )}
     >
       <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -112,14 +96,7 @@ function ModeCard({
         <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={3.5} aria-hidden="true" />
       )}
       {badge && !selected && (
-        <span
-          className={cn(
-            'inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider sm:text-[8px]',
-            lightPanel
-              ? 'bg-amber-100 text-amber-700'
-              : 'bg-white/10 text-amber-300 ring-1 ring-white/15',
-          )}
-        >
+        <span className="inline-flex shrink-0 items-center rounded-full bg-white/10 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider text-amber-300 ring-1 ring-white/15 sm:text-[8px]">
           {badge}
         </span>
       )}

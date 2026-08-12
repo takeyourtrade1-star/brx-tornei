@@ -1,5 +1,6 @@
 'use client';
 
+import { Coins, Swords, Users } from 'lucide-react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { FormatSelectorGrid } from '@/components/feature/tornei/format-selector-grid';
 import { ModeSelectorRow } from '@/components/feature/tornei/mode-selector-row';
@@ -57,15 +58,15 @@ export function LobbyTableList({
       >
         <ReputationSummary reputation={reputation} />
 
-        <div className="relative z-30 my-4 flex flex-col gap-5">
+        <div className="relative z-30 my-5 flex flex-col gap-6">
           <section className="w-full">
             <div className="mb-2.5 flex items-center gap-2 px-1">
-              <span className="grid h-5 w-5 place-items-center rounded-md bg-white/10 text-[9px] font-black text-primary">
+              <span className="grid h-5 w-5 place-items-center rounded-md bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-[9px] font-black text-white shadow-xs">
                 1
               </span>
               <h2
                 id="tornei-format-label"
-                className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/60"
+                className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/80"
               >
                 Formato
               </h2>
@@ -88,10 +89,10 @@ export function LobbyTableList({
 
           <section className="w-full">
             <div className="mb-2.5 flex items-center gap-2 px-1">
-              <span className="grid h-5 w-5 place-items-center rounded-md bg-white/10 text-[9px] font-black text-primary">
+              <span className="grid h-5 w-5 place-items-center rounded-md bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-[9px] font-black text-white shadow-xs">
                 2
               </span>
-              <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/60">
+              <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/80">
                 Modalità
               </h2>
             </div>
@@ -106,24 +107,23 @@ export function LobbyTableList({
               <ModeSelectorRow
                 selectedModeId={selection.mode}
                 currentFormatId={formatId}
-                lightPanel
               />
             </div>
           </section>
         </div>
 
-        <section className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-                Sfida i tuoi amici
-              </p>
-              <h1 className="mt-1 font-sans text-xl font-black tracking-tight text-white sm:text-2xl">
-                {formatName} · {modeName}
-              </h1>
-            </div>
-            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/75">
-              Best of 3
-            </span>
+        <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 shadow-sm backdrop-blur-md sm:px-5">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+              Sfida i tuoi amici
+            </p>
+            <h1 className="mt-0.5 font-sans text-xl font-black tracking-tight text-white sm:text-2xl">
+              {formatName} · {modeName}
+            </h1>
+          </div>
+          <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-xs">
+            Best of 3
+          </span>
         </section>
 
         {error && (
@@ -154,23 +154,33 @@ export function LobbyTableList({
   );
 }
 
-/** Indicatore a menù full-width sopra i tavoli: colonne a larghezza fissa
- * identiche a quelle dei valori nelle card, così ogni valore cade esattamente
- * sotto la propria categoria. */
+/** Barra legenda e indicatore delle categorie dei tavoli. */
 function TableIndicator() {
-  const items = ['Giocatori', 'Best of', 'Buy in'];
   return (
-    <nav aria-label="Categorie dei tavoli" className="mx-4.5 mb-4 sm:mx-5">
-      <ul className="grid w-full grid-cols-[5rem_4rem_4.5rem] items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 py-2 shadow-sm backdrop-blur-sm">
-        {items.map((item) => (
-          <li
-            key={item}
-            className="grid h-6 place-items-center truncate px-1 text-[10px] font-black uppercase tracking-wider text-white/75"
-          >
-            {item}
+    <nav aria-label="Categorie dei tavoli" className="mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 shadow-sm backdrop-blur-sm sm:px-5">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
+          <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/80">
+            Tavoli disponibili
+          </h2>
+        </div>
+
+        <ul className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] font-black uppercase tracking-wider text-white/85">
+          <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
+            <Users className="h-3.5 w-3.5 text-blue-400 shrink-0" aria-hidden />
+            <span>Giocatori</span>
           </li>
-        ))}
-      </ul>
+          <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
+            <Swords className="h-3.5 w-3.5 text-amber-400 shrink-0" aria-hidden />
+            <span>Best of</span>
+          </li>
+          <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
+            <Coins className="h-3.5 w-3.5 text-emerald-400 shrink-0" aria-hidden />
+            <span>Buy in</span>
+          </li>
+        </ul>
+      </div>
     </nav>
   );
 }
