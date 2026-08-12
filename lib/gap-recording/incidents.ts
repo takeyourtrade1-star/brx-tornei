@@ -4,6 +4,7 @@ import type {
   GapIncidentRecord,
   GapProtectionSnapshot,
 } from '@/lib/gap-recording/types';
+import { UNAUTHORIZED_UPLOAD_DESTINATION } from '@/lib/gap-recording/upload-transport';
 
 interface NewIncidentInput {
   id: string;
@@ -124,7 +125,10 @@ export async function buildGapSnapshot(
   const failed = incidents.filter(
     (incident) => incident.status === 'failed' && incident.nextRetryAt === null,
   );
-  const retryableFailed = failed.filter((incident) => incident.failureKind === 'retryable');
+  const retryableFailed = failed.filter(
+    (incident) => incident.failureKind === 'retryable' ||
+      incident.lastError === UNAUTHORIZED_UPLOAD_DESTINATION,
+  );
   const uploadFailure = [...retrying, ...failed]
     .sort((left, right) => right.updatedAt - left.updatedAt)
     .find((incident) => incident.lastError)?.lastError ?? null;

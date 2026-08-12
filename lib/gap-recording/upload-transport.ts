@@ -2,6 +2,8 @@ import type { GapClipRecord } from '@/lib/gap-recording/types';
 import { publicConfig } from '@/lib/public-config';
 
 const UPLOAD_CONCURRENCY = 2;
+export const UNAUTHORIZED_UPLOAD_DESTINATION =
+  'Destinazione di upload non autorizzata.';
 
 export interface GapUploadTicket {
   url: string;
@@ -40,7 +42,9 @@ function authorizedUploadUrl(ticket: GapUploadTicket): {
     (uploadUrl.protocol !== 'https:' && !isLoopbackRawUpload) ||
     uploadUrl.username || uploadUrl.password
   ) {
-    throw new GapClipUploadError('Destinazione di upload non autorizzata.');
+    // Keep the request fail-closed, but allow a later init to obtain a
+    // corrected capability without discarding the local evidence.
+    throw new GapClipUploadError(UNAUTHORIZED_UPLOAD_DESTINATION, null, true);
   }
   return { uploadUrl, isLoopbackRawUpload };
 }
