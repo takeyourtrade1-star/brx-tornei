@@ -58,8 +58,10 @@ export function LobbyTableList({
       >
         <ReputationSummary reputation={reputation} />
 
-        <div className="relative z-30 my-5 flex flex-col gap-6">
-          <section className="w-full">
+        {/* Card unica dei selettori: Formato (1) e Modalità (2) vivono nello
+            stesso contenitore glass, separati da un divider sottile. */}
+        <div className="relative z-30 my-5 divide-y divide-white/10 rounded-2xl border border-white/15 bg-white/10 shadow-md backdrop-blur-md">
+          <section className="w-full px-4 py-4 sm:px-5">
             <div className="mb-2.5 flex items-center gap-2 px-1">
               <span className="grid h-5 w-5 place-items-center rounded-md bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-[9px] font-black text-white shadow-xs">
                 1
@@ -87,7 +89,7 @@ export function LobbyTableList({
             </div>
           </section>
 
-          <section className="w-full">
+          <section className="w-full px-4 py-4 sm:px-5">
             <div className="mb-2.5 flex items-center gap-2 px-1">
               <span className="grid h-5 w-5 place-items-center rounded-md bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-[9px] font-black text-white shadow-xs">
                 2
@@ -112,18 +114,52 @@ export function LobbyTableList({
           </section>
         </div>
 
-        <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3.5 shadow-sm backdrop-blur-md sm:px-5">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-              Sfida i tuoi amici
-            </p>
-            <h1 className="mt-0.5 font-sans text-xl font-black tracking-tight text-white sm:text-2xl">
-              {formatName} · {modeName}
-            </h1>
+        {/* Card unica contesto: titolo "Sfida i tuoi amici" + buy-in nella prima
+            banda, indicatore tavoli con legenda nella seconda. */}
+        <section
+          aria-label="Contesto sfide e categorie tavoli"
+          className="mb-4 overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-sm backdrop-blur-md"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                Sfida i tuoi amici
+              </p>
+              <h1 className="mt-0.5 font-sans text-xl font-black tracking-tight text-white sm:text-2xl">
+                {formatName} · {modeName}
+              </h1>
+            </div>
+            <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-xs">
+              Best of 3
+            </span>
           </div>
-          <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-xs">
-            Best of 3
-          </span>
+
+          <nav
+            aria-label="Categorie dei tavoli"
+            className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-2.5 sm:px-5"
+          >
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
+              <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/80">
+                Tavoli disponibili
+              </h2>
+            </div>
+
+            <ul className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/85 sm:gap-3">
+              <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
+                <Users className="h-3.5 w-3.5 text-blue-400 shrink-0" aria-hidden />
+                <span>Giocatori</span>
+              </li>
+              <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
+                <Swords className="h-3.5 w-3.5 text-amber-400 shrink-0" aria-hidden />
+                <span>Best of</span>
+              </li>
+              <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
+                <Coins className="h-3.5 w-3.5 text-emerald-400 shrink-0" aria-hidden />
+                <span>Buy in</span>
+              </li>
+            </ul>
+          </nav>
         </section>
 
         {error && (
@@ -134,7 +170,6 @@ export function LobbyTableList({
             {error}
           </p>
         )}
-        <TableIndicator />
         <div className="flex flex-col gap-4" aria-label="Tavoli disponibili">
           {tables.map((table) => (
             <TableCard
@@ -151,36 +186,5 @@ export function LobbyTableList({
         </div>
       </main>
     </>
-  );
-}
-
-/** Barra legenda e indicatore delle categorie dei tavoli. */
-function TableIndicator() {
-  return (
-    <nav aria-label="Categorie dei tavoli" className="mb-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 shadow-sm backdrop-blur-sm sm:px-5">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
-          <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/80">
-            Tavoli disponibili
-          </h2>
-        </div>
-
-        <ul className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] font-black uppercase tracking-wider text-white/85">
-          <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
-            <Users className="h-3.5 w-3.5 text-blue-400 shrink-0" aria-hidden />
-            <span>Giocatori</span>
-          </li>
-          <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
-            <Swords className="h-3.5 w-3.5 text-amber-400 shrink-0" aria-hidden />
-            <span>Best of</span>
-          </li>
-          <li className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 backdrop-blur-xs">
-            <Coins className="h-3.5 w-3.5 text-emerald-400 shrink-0" aria-hidden />
-            <span>Buy in</span>
-          </li>
-        </ul>
-      </div>
-    </nav>
   );
 }
