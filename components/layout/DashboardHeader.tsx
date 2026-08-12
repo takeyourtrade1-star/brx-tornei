@@ -60,7 +60,7 @@ export function DashboardHeader({
   const rankStars = rankStarsForWins(reputation?.wins ?? 0);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-header-bg/85 font-sans text-white shadow-lg backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-white/10 font-sans text-white shadow-lg backdrop-blur-xl">
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-2 sm:flex-nowrap sm:gap-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-visible py-0.5 sm:flex-none">
           <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" />
