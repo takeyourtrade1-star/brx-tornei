@@ -8,10 +8,12 @@ export function MatchGapProtectionNotice({
   snapshot,
   onConsent,
   onDecline,
+  onRetry,
 }: {
   snapshot: GapProtectionSnapshot;
   onConsent: () => Promise<void>;
   onDecline: () => Promise<void>;
+  onRetry: () => Promise<void>;
 }) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -81,19 +83,43 @@ export function MatchGapProtectionNotice({
     );
   }
   const active = snapshot.status === 'capturing' || snapshot.status === 'closing';
-  const failed = snapshot.status === 'error';
+  const progress = snapshot.upload;
+  const uploadPercent = progress?.phase === 'uploading' && progress.totalBytes > 0
+    ? Math.min(100, Math.round((progress.uploadedBytes / progress.totalBytes) * 100))
+    : null;
+  const failed = snapshot.status === 'error' || progress?.phase === 'failed' ||
+    snapshot.failedIncidents > 0;
+  const retrying = progress?.phase === 'retrying' || snapshot.retryingIncidents > 0;
+  const waitingForNetwork = snapshot.waitingForNetwork && snapshot.pendingIncidents > 0;
+  const canRetry = progress?.retryable === true || snapshot.retryableFailedIncidents > 0 ||
+    snapshot.retryingIncidents > 0;
   const Icon = failed ? TriangleAlert : ShieldCheck;
   const message = failed
-    ? snapshot.error ?? 'Registrazione di sicurezza non disponibile.'
+    ? snapshot.error ?? progress?.error ?? snapshot.uploadError ??
+      'Invio della registrazione non riuscito.'
     : active
       ? 'Connessione instabile: il PC sta registrando in automatico.'
+      : waitingForNetwork
+        ? 'Video pronto. In attesa della connessione per avviare l’invio.'
+      : progress?.phase === 'preparing'
+        ? 'Preparazione sicura del video…'
+        : progress?.phase === 'uploading'
+          ? `Caricamento video: ${uploadPercent ?? 0}% · ${progress.completedClips}/${progress.totalClips} clip`
+          : progress?.phase === 'finalizing'
+            ? 'Caricamento completato. Verifica finale in corso…'
+            : progress?.phase === 'sent'
+              ? 'Video inviato correttamente all’avversario.'
+              : retrying
+                ? snapshot.uploadError ?? progress?.error ??
+                  'Invio interrotto. Un nuovo tentativo è programmato.'
       : snapshot.pendingIncidents > 0
-        ? `${snapshot.pendingIncidents} registrazion${snapshot.pendingIncidents > 1 ? 'i' : 'e'} in invio all'avversario…`
+        ? 'Registrazione pronta: preparazione dell’invio in corso…'
         : 'Registrazione di sicurezza attiva. La partita completa non viene salvata.';
 
   const toneStyle = failed
     ? { container: 'border-red-500/30 text-red-100', icon: 'border-red-500/30 bg-red-500/15 text-red-400' }
-    : active
+    : active || retrying || waitingForNetwork || progress?.phase === 'preparing' ||
+        progress?.phase === 'uploading' || progress?.phase === 'finalizing'
       ? { container: 'border-amber-500/30 text-amber-100', icon: 'border-amber-500/30 bg-amber-500/15 text-amber-400' }
       : { container: 'border-emerald-500/30 text-emerald-100', icon: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400' };
 
@@ -102,7 +128,41 @@ export function MatchGapProtectionNotice({
       <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border ${toneStyle.icon}`}>
         <Icon className="h-4 w-4" aria-hidden="true" />
       </span>
-      <span>{message}</span>
+      <div className="min-w-0 flex-1">
+        <span>{message}</span>
+        {uploadPercent !== null && (
+          <div
+            className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"
+            role="progressbar"
+            aria-label="Avanzamento invio video"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={uploadPercent}
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-200"
+              style={{ width: `${uploadPercent}%` }}
+            />
+          </div>
+        )}
+      </div>
+      {(failed || retrying) && canRetry && (
+        <button
+          type="button"
+          className="shrink-0 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-white transition hover:bg-white/15 disabled:opacity-45"
+          disabled={busy}
+          onClick={() => void (async () => {
+            setBusy(true);
+            try {
+              await onRetry();
+            } finally {
+              setBusy(false);
+            }
+          })()}
+        >
+          Riprova ora
+        </button>
+      )}
     </div>
   );
 }

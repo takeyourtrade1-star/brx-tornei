@@ -37,9 +37,10 @@ Flusso di rinnovo locale:
 Utente su tournaments.ebartex.com
   └─ middleware.ts: access scaduto, refresh cookie locale presente
        └─ redirect a /auth/bridge?next=<url>
-            └─ route handler: POST /api/auth/refresh col refresh token
-                 ├─ OK  → set cookie sessione locale → redirect a <next>  (login invisibile)
-                 └─ KO  → redirect a /login (UI speculare a Ebartex)
+            └─ route valida un nonce HttpOnly e apre il bridge client
+                 └─ lock cross-tab condiviso con gli uploader → POST /api/auth/refresh
+                      ├─ OK  → BFF imposta cookie HttpOnly → redirect a <next>
+                      └─ KO  → redirect a /login (UI speculare a Ebartex)
 ```
 
 Nessun cookie di questo sito viene inviato a `ebartex.com` o ad altri sottodomini.

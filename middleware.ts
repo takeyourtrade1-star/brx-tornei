@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { config as appConfig } from '@/lib/config';
 import { buildLoginRedirectUrl } from '@/lib/auth/redirect';
-import { BRIDGE_NONCE_COOKIE } from '@/lib/auth/bridge-nonce';
+import {
+  BRIDGE_NONCE_COOKIE,
+  BRIDGE_NONCE_MAX_AGE_SECONDS,
+} from '@/lib/auth/bridge-nonce';
 import { isCanonicalRequestHost } from '@/lib/security/canonical-origin';
 
 /**
@@ -145,7 +148,7 @@ export function middleware(request: NextRequest) {
       secure: true,
       sameSite: 'strict',
       path: '/',
-      maxAge: 60,
+      maxAge: BRIDGE_NONCE_MAX_AGE_SECONDS,
     });
     return response;
   }

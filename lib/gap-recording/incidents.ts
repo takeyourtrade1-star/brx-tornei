@@ -30,6 +30,7 @@ export function newGapIncident(input: NewIncidentInput): GapIncidentRecord {
     retryCount: 0,
     nextRetryAt: null,
     lastError: null,
+    failureKind: null,
     createdAt: input.detectedAt,
     updatedAt: input.detectedAt,
   };
@@ -100,13 +101,33 @@ export async function buildGapSnapshot(
 ): Promise<GapProtectionSnapshot> {
   const incidents = await store.listIncidents(matchUserKey);
   const pending = incidents.filter((incident) =>
-    ['awaiting-consent', 'queued', 'uploading', 'failed'].includes(incident.status),
+    [
+      'awaiting-consent',
+      'queued',
+      'preparing',
+      'uploading',
+      'finalizing',
+      'retrying',
+    ].includes(incident.status) ||
+      (incident.status === 'failed' && incident.nextRetryAt !== null),
   );
-  const consentRequired = pending.filter(
+  const consentRequired = incidents.filter(
     (incident) =>
-      incident.uploadConsentVersion !== 'peer-gap-review-v1' ||
-      typeof incident.uploadConsentedAt !== 'number',
+      incident.status === 'awaiting-consent' &&
+      (incident.uploadConsentVersion !== 'peer-gap-review-v1' ||
+        typeof incident.uploadConsentedAt !== 'number'),
   );
+  const retrying = incidents.filter(
+    (incident) => incident.status === 'retrying' ||
+      (incident.status === 'failed' && incident.nextRetryAt !== null),
+  );
+  const failed = incidents.filter(
+    (incident) => incident.status === 'failed' && incident.nextRetryAt === null,
+  );
+  const retryableFailed = failed.filter((incident) => incident.failureKind === 'retryable');
+  const uploadFailure = [...retrying, ...failed]
+    .sort((left, right) => right.updatedAt - left.updatedAt)
+    .find((incident) => incident.lastError)?.lastError ?? null;
   const status = error
     ? 'error'
     : active?.status === 'closing'
@@ -120,7 +141,13 @@ export async function buildGapSnapshot(
     status,
     pendingIncidents: pending.length,
     consentRequiredIncidents: consentRequired.length,
+    retryingIncidents: retrying.length,
+    failedIncidents: failed.length,
+    retryableFailedIncidents: retryableFailed.length,
+    waitingForNetwork: false,
     retainedBytes: incidents.reduce((total, incident) => total + incident.byteLength, 0),
     error,
+    uploadError: uploadFailure,
+    upload: null,
   };
 }

@@ -7,7 +7,7 @@ import {
   type RecordedClip,
 } from '@/lib/gap-recording/types';
 
-const CONSENTABLE_STATUSES = new Set(['awaiting-consent', 'queued', 'failed']);
+const CONSENTABLE_STATUSES = new Set(['awaiting-consent', 'queued']);
 
 function consentMissing(incident: GapIncidentRecord): boolean {
   return incident.uploadConsentVersion !== MATCH_GAP_NOTICE_VERSION ||
@@ -30,7 +30,30 @@ export async function grantPendingGapConsent(
       retryCount: 0,
       nextRetryAt: null,
       lastError: null,
+      failureKind: null,
       updatedAt: consentedAt,
+    });
+  }
+}
+
+export async function retryFailedGapUploads(
+  store: GapRecordingStore,
+  matchUserKey: string,
+  retriedAt: number,
+): Promise<void> {
+  const incidents = await store.listIncidents(matchUserKey);
+  for (const incident of incidents) {
+    const retryableFailure = incident.status === 'failed' &&
+      incident.failureKind === 'retryable';
+    if (incident.status !== 'retrying' && !retryableFailure) continue;
+    await store.putIncident({
+      ...incident,
+      status: 'queued',
+      retryCount: 0,
+      nextRetryAt: null,
+      lastError: null,
+      failureKind: null,
+      updatedAt: retriedAt,
     });
   }
 }

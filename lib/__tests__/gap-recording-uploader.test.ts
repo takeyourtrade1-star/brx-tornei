@@ -13,6 +13,34 @@ const MATCH_ID = '6f069abc-a25d-4e99-b63c-473b507021af';
 const USER_ID = '32e82aef-1f0e-40db-9136-2e63e7b77346';
 const INCIDENT_ID = '00add584-fe7d-4766-9a97-b2e3f5b6152a';
 
+class SuccessfulUploadRequest {
+  static requests: SuccessfulUploadRequest[] = [];
+  readonly upload: { onprogress: ((event: ProgressEvent) => void) | null } = {
+    onprogress: null,
+  };
+  readonly headers = new Map<string, string>();
+  status = 204;
+  responseURL = '';
+  timeout = 0;
+  withCredentials = false;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  ontimeout: (() => void) | null = null;
+  onabort: (() => void) | null = null;
+  body: XMLHttpRequestBodyInit | null = null;
+
+  constructor() { SuccessfulUploadRequest.requests.push(this); }
+  open(_method: string, url: string) { this.responseURL = url; }
+  setRequestHeader(key: string, value: string) { this.headers.set(key, value); }
+  send(body: XMLHttpRequestBodyInit) {
+    this.body = body;
+    const total = body instanceof Blob ? body.size : 3;
+    this.upload.onprogress?.({ loaded: 1, total, lengthComputable: true } as ProgressEvent);
+    this.upload.onprogress?.({ loaded: total, total, lengthComputable: true } as ProgressEvent);
+    queueMicrotask(() => this.onload?.());
+  }
+}
+
 function incident(): GapIncidentRecord {
   return {
     id: INCIDENT_ID,
@@ -56,7 +84,10 @@ function clip(): GapClipRecord {
   };
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  SuccessfulUploadRequest.requests = [];
+  vi.unstubAllGlobals();
+});
 
 describe('gap recording uploader retention', () => {
   it('deletes expired local evidence instead of retrying forever', async () => {
@@ -64,6 +95,7 @@ describe('gap recording uploader retention', () => {
     const store = {
       listIncidents: async () => [incident()],
       listIncidentClips: async () => [clip()],
+      getIncident: async () => incident(),
       deleteIncidentData: async () => { deleted = true; },
       putIncident: async () => {},
     } as unknown as GapRecordingStore;
@@ -81,6 +113,7 @@ describe('gap recording uploader retention', () => {
   it('usa il trasporto raw soltanto verso lo storage loopback autorizzato', async () => {
     let deleted = false;
     const updates: GapIncidentRecord[] = [];
+    const progress: { phase: string; uploadedBytes: number }[] = [];
     const store = {
       listIncidents: async () => [incident()],
       listIncidentClips: async () => [clip()],
@@ -106,14 +139,6 @@ describe('gap recording uploader retention', () => {
           }],
         } });
       }
-      if (url.includes('/dev/match-gap-storage/upload')) {
-        expect(init?.credentials).toBe('omit');
-        expect(init?.body).toBeInstanceOf(Blob);
-        const headers = new Headers(init?.headers);
-        expect(headers.get('X-Ebartex-Gap-Ticket')).toBe('signed-ticket');
-        expect(headers.get('Content-Type')).toBe('video/webm');
-        return new Response(null, { status: 204 });
-      }
       if (url.endsWith('/complete')) {
         return Response.json({ data: {
           incident_id: INCIDENT_ID,
@@ -124,12 +149,70 @@ describe('gap recording uploader retention', () => {
       return new Response(null, { status: 500 });
     });
     vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('XMLHttpRequest', SuccessfulUploadRequest);
 
     await expect(uploadPendingGapRecordings(
-      store, MATCH_ID, USER_ID, 40_000,
+      store, MATCH_ID, USER_ID, 40_000, {
+        onProgress: (value) => progress.push(value),
+      },
     )).resolves.toEqual({ uploaded: 1, nextRetryAt: null });
-    expect(updates.at(-1)?.status).toBe('uploading');
+    expect(updates.map((value) => value.status)).toEqual([
+      'preparing', 'uploading', 'finalizing',
+    ]);
     expect(deleted).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [request] = SuccessfulUploadRequest.requests;
+    expect(request.withCredentials).toBe(false);
+    expect(request.body).toBeInstanceOf(Blob);
+    expect(request.headers.get('X-Ebartex-Gap-Ticket')).toBe('signed-ticket');
+    expect(request.headers.get('Content-Type')).toBe('video/webm');
+    expect(progress).toEqual(expect.arrayContaining([
+      expect.objectContaining({ phase: 'uploading', uploadedBytes: 1 }),
+      expect.objectContaining({ phase: 'uploading', uploadedBytes: 3 }),
+      expect.objectContaining({ phase: 'sent', uploadedBytes: 3 }),
+    ]));
+  });
+
+  it('ritenta i 5xx con backoff ed espone il fallimento senza fingere un invio', async () => {
+    let current = incident();
+    const progress: string[] = [];
+    const store = {
+      listIncidents: async () => [current],
+      listIncidentClips: async () => [clip()],
+      getIncident: async () => current,
+      putIncident: async (value: GapIncidentRecord) => { current = value; },
+      deleteIncidentData: async () => {},
+    } as unknown as GapRecordingStore;
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 503 })));
+
+    await expect(uploadPendingGapRecordings(store, MATCH_ID, USER_ID, 40_000, {
+      onProgress: (value) => progress.push(value.phase),
+    })).resolves.toEqual({ uploaded: 0, nextRetryAt: 45_000 });
+
+    expect(current).toMatchObject({
+      status: 'retrying', retryCount: 1, nextRetryAt: 45_000,
+      failureKind: 'retryable',
+    });
+    expect(progress).toEqual(['preparing', 'retrying']);
+  });
+
+  it('tratta il 409 come definitivo e non lo rimette in un loop automatico', async () => {
+    let current = incident();
+    const fetchMock = vi.fn(async () => new Response(null, { status: 409 }));
+    const store = {
+      listIncidents: async () => [current],
+      listIncidentClips: async () => [clip()],
+      getIncident: async () => current,
+      putIncident: async (value: GapIncidentRecord) => { current = value; },
+      deleteIncidentData: async () => {},
+    } as unknown as GapRecordingStore;
+    vi.stubGlobal('fetch', fetchMock);
+
+    await uploadPendingGapRecordings(store, MATCH_ID, USER_ID, 40_000);
+    expect(current).toMatchObject({
+      status: 'failed', nextRetryAt: null, failureKind: 'terminal',
+    });
+    await uploadPendingGapRecordings(store, MATCH_ID, USER_ID, 50_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

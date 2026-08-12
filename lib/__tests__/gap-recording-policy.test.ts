@@ -70,4 +70,27 @@ describe('gap recording policy', () => {
       'publicConfig.features.matchGapRecording && isPlayer && tournament.matchId',
     );
   });
+
+  it('non richiede che il peer P2P sia connected per caricare dopo il consenso', () => {
+    const hook = readFileSync(
+      new URL('../../hooks/use-match-gap-recorder.ts', import.meta.url),
+      'utf8',
+    );
+    expect(hook).toContain('!navigator.onLine');
+    expect(hook).not.toContain("peerStateRef.current !== 'connected'");
+  });
+
+  it('mostra progresso reale, retry e fallimento nella notice del match', () => {
+    const notice = readFileSync(
+      new URL(
+        '../../components/feature/tornei/match/match-gap-protection-notice.tsx',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    expect(notice).toContain('role="progressbar"');
+    expect(notice).toContain('snapshot.failedIncidents > 0');
+    expect(notice).toContain('Riprova ora');
+    expect(notice).not.toContain('in invio all\'avversario…');
+  });
 });

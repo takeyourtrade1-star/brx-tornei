@@ -130,6 +130,14 @@ export const gapViewTicketResponseSchema = z.object({
   }),
 });
 
+export const gapViewTicketsResponseSchema = z.object({
+  data: z.object({
+    tickets: z.array(gapViewTicketResponseSchema.shape.data.extend({
+      clip_id: z.string().uuid(),
+    })).min(1).max(32),
+  }),
+});
+
 export const gapPeerReviewInputSchema = z.object({
   decision: z.enum(['verified', 'rejected']),
   reason_code: z.enum([
