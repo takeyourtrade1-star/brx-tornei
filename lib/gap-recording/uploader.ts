@@ -75,6 +75,7 @@ async function manifest(
     upload_consent_version: MATCH_GAP_NOTICE_VERSION,
     temporary_storage_acknowledged: true,
     opponent_review_acknowledged: true,
+    upload_transport: 'conditional-put-v2',
     clips: items,
   };
 }

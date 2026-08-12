@@ -91,6 +91,19 @@ describe('match-gap recording BFF boundary', () => {
     );
   });
 
+  it('keeps manifests from already-open legacy tabs compatible', async () => {
+    const body = validManifest();
+    const response = await initialize(request(body), {
+      params: Promise.resolve({ matchId: MATCH_ID }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(mocks.proxy).toHaveBeenCalledWith(
+      `/api/v1/matches/${MATCH_ID}/gap-recordings`,
+      expect.not.objectContaining({ upload_transport: expect.anything() }),
+    );
+  });
+
   it('validates both path UUIDs and CSRF on finalize', async () => {
     const invalid = await complete(request(undefined), {
       params: Promise.resolve({ matchId: MATCH_ID, recordingId: 'not-a-uuid' }),

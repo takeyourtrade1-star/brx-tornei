@@ -14,7 +14,7 @@ export function isRetryableGapUploadError(error: unknown): boolean {
   if (error instanceof TerminalGapUploadError) return false;
   if (error instanceof GapClipUploadError) {
     if (error.status === null) return error.retryable;
-    return error.status === 401 || error.status === 403 ||
+    return error.status === 401 || error.status === 403 || error.status === 409 ||
       error.status === 408 || error.status === 429 || error.status >= 500;
   }
   return true;

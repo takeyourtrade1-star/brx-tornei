@@ -31,6 +31,7 @@ export const createGapRecordingSchema = z.object({
   upload_consent_version: z.literal('peer-gap-review-v1'),
   temporary_storage_acknowledged: z.literal(true),
   opponent_review_acknowledged: z.literal(true),
+  upload_transport: z.literal('conditional-put-v2').optional(),
   clips: z.array(gapClipManifestSchema).min(1).max(32),
 }).superRefine((value, context) => {
   const start = Date.parse(value.capture_started_at);
@@ -65,7 +66,7 @@ export const gapUploadInitResponseSchema = z.object({
       client_clip_id: z.string().uuid(),
       url: z.string().url().max(2_048),
       fields: z.record(z.string(), z.string()),
-      transport: z.enum(['multipart', 'raw']).default('multipart'),
+      transport: z.enum(['multipart', 'put', 'raw']).default('multipart'),
     })).max(32),
   }),
 });
