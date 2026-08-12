@@ -95,8 +95,8 @@ export function DashboardHeader({
             </button>
           )}
 
-          {/* Widget Profilo con Avatar, Cerchio Grado (1★) e Gamertag sovrapposto */}
-          <div className="relative flex items-center justify-center pt-1.5 pb-1 sm:pt-2 sm:pb-1.5">
+          {/* Widget Profilo con Cerchio Grado contenente la stellina DENTRO, Avatar grande (64px) e Gamertag sovrapposto */}
+          <div className="relative flex items-center justify-center py-1 sm:py-1.5">
             <button
               type="button"
               onClick={() => setProfileOpen(true)}
@@ -105,35 +105,34 @@ export function DashboardHeader({
               aria-label={`Apri il profilo di ${shownName}`}
               className="group relative flex flex-col items-center justify-center focus-visible:outline-none"
             >
-              {/* Stellina di grado sulla sommità dell'arco */}
-              <span
-                className="absolute -top-2 z-20 flex items-center justify-center gap-0.5 rounded-full border border-amber-300/80 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 px-1.5 py-0.2 text-[8px] font-black text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.7)]"
-                title="Grado 1★"
-              >
-                <Star className="h-2.5 w-2.5 fill-current text-slate-950" />
-                <span>1</span>
-              </span>
+              {/* Cerchio del Grado (Rank Ring) che avvolge l'icona e contiene la stellina al suo interno */}
+              <div className="relative flex flex-col items-center justify-center rounded-full border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/25 via-slate-950/90 to-slate-950 p-2 shadow-[0_0_22px_rgba(255,115,0,0.4)] transition-transform group-hover:scale-105 group-hover:border-amber-300">
+                {/* Stellina di grado DENTRO la sommità del cerchio */}
+                <div
+                  className="absolute top-1 z-10 flex items-center justify-center gap-0.5 rounded-full border border-amber-400/70 bg-slate-950/95 px-2 py-0.5 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
+                  title="Grado 1★"
+                >
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400 animate-pulse" />
+                </div>
 
-              {/* Cerchio / Arco del Grado attorno all'icona (esclusa la parte sotto) */}
-              <div className="relative grid place-items-center rounded-full p-[3px] bg-gradient-to-b from-amber-400 via-primary to-transparent shadow-[0_0_14px_rgba(255,115,0,0.35)] transition-transform group-hover:scale-105">
-                {/* Icona avatar centrale grande */}
+                {/* Icona Avatar centrale più grande (h-14 sm:h-16) e dettagliata */}
                 <div
                   className={cn(
-                    'grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-gradient-to-b from-header-bg/90 to-black/90 p-2 shadow-inner transition-colors sm:h-12 sm:w-12',
+                    'mt-3.5 grid h-13 w-13 place-items-center rounded-full border-2 border-white/30 bg-gradient-to-b from-slate-900 via-header-bg to-black p-2.5 shadow-2xl transition-all sm:h-16 sm:w-16 sm:p-3',
                     activeAvatar.bgGradient,
                   )}
                 >
                   <AvatarIcon
                     className={cn(
-                      'h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110',
+                      'h-6 w-6 transition-transform group-hover:scale-110 sm:h-8 sm:w-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]',
                       activeAvatar.color,
                     )}
                   />
                 </div>
               </div>
 
-              {/* Gamertag sovrapposto in basso: mezzo dentro e mezzo fuori dall'icona */}
-              <span className="absolute -bottom-2.5 z-20 inline-flex max-w-[5.5rem] items-center justify-center truncate rounded-full border border-white/20 bg-header-bg/95 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-md backdrop-blur-md transition-colors group-hover:border-primary/50 group-hover:text-primary sm:max-w-[7.5rem] sm:text-[10px]">
+              {/* Gamertag sovrapposto in basso: mezzo dentro e mezzo fuori dal cerchio */}
+              <span className="absolute -bottom-2.5 z-20 inline-flex max-w-[6rem] items-center justify-center truncate rounded-full border border-white/25 bg-slate-950/95 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-xl backdrop-blur-md transition-colors group-hover:border-primary/70 group-hover:text-primary sm:max-w-[8.5rem] sm:text-[10px]">
                 {shownName}
               </span>
             </button>

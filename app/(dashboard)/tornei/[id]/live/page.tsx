@@ -8,6 +8,7 @@ import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { MatchLiveView } from '@/components/feature/tornei/match/match-live-view';
 import { getDefaultPlaymatId } from '@/lib/playmat-preference';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Partita live' };
 
 interface PageProps {

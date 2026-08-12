@@ -81,9 +81,13 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
       >
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Tavolo libero</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+              {createLocked ? 'Nuovo tavolo' : 'Tavolo libero'}
+            </p>
             <h3 className="mt-0.5 font-sans text-base font-black leading-snug text-header-bg sm:text-lg">
-              {createLocked ? 'Scegli un formato per creare un tavolo' : 'Tavolo libero'}
+              {createLocked
+                ? 'Scegli un formato per sederti ad un tavolo nuovo, o sfida qualche avversario sotto'
+                : 'Tavolo libero'}
             </h3>
           </div>
           <span
@@ -107,7 +111,19 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
 
         {/* Footer Dettagli e Azioni */}
         <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+          {!createLocked ? (
+            <div className="flex items-center gap-2">
+              <PrimaryButton busy={busy} onClick={handlePrimary}>
+                <UserPlus className="h-4 w-4" aria-hidden /> SIEDITI
+              </PrimaryButton>
+            </div>
+          ) : (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Seleziona formato in alto
+            </span>
+          )}
+
+          <div className="ml-auto flex flex-wrap items-center gap-2 text-[11px] font-bold">
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-slate-700">
               <Users className="h-3.5 w-3.5 text-blue-600 shrink-0" aria-hidden />
               <span>0/2</span>
@@ -121,14 +137,6 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
               <span>{price}</span>
             </span>
           </div>
-
-          {!createLocked && (
-            <div className="flex items-center gap-2">
-              <PrimaryButton busy={busy} onClick={handlePrimary}>
-                <UserPlus className="h-4 w-4" aria-hidden /> SIEDITI
-              </PrimaryButton>
-            </div>
-          )}
         </footer>
       </button>
     );
@@ -199,21 +207,6 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
 
       {/* Footer Dettagli e Azioni */}
       <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3.5">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold">
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-slate-700">
-            <Users className="h-3.5 w-3.5 text-blue-600 shrink-0" aria-hidden />
-            <span>{seatedCount}/2</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-slate-700">
-            <Swords className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden />
-            <span>{bestOf}</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 uppercase text-slate-700">
-            <Coins className="h-3.5 w-3.5 text-emerald-600 shrink-0" aria-hidden />
-            <span>{price}</span>
-          </span>
-        </div>
-
         <div className="flex flex-wrap items-center gap-2">
           {table.kind === 'joinable' && (
             <PrimaryButton busy={busy} onClick={handlePrimary}>
@@ -232,6 +225,21 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
               <LeaveButton busy={busy} onClick={() => onLeave(table)} label={table.started ? 'Abbandona' : 'Alzati'} />
             </>
           )}
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center gap-2 text-[11px] font-bold">
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-slate-700">
+            <Users className="h-3.5 w-3.5 text-blue-600 shrink-0" aria-hidden />
+            <span>{seatedCount}/2</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-slate-700">
+            <Swords className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden />
+            <span>{bestOf}</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 uppercase text-slate-700">
+            <Coins className="h-3.5 w-3.5 text-emerald-600 shrink-0" aria-hidden />
+            <span>{price}</span>
+          </span>
         </div>
       </footer>
     </article>

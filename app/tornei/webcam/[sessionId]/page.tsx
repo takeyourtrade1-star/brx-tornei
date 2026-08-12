@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { WebcamPhonePublisher } from '@/components/feature/tornei/webcam-phone-publisher';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Webcam · Ebartex Tornei' };
 
 /** Public phone page. The one-use claim is read client-side from the fragment. */
