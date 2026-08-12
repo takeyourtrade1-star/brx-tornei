@@ -244,7 +244,7 @@ export function MatchResultPendingPanel({
             type="button"
             disabled={busy}
             onClick={() => onDeclare(true)}
-            className="inline-flex h-9.5 items-center rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black uppercase tracking-wider text-white shadow-sm transition hover:brightness-110 active:scale-95 disabled:opacity-50"
+            className="inline-flex h-[38px] items-center rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black uppercase tracking-wider text-white shadow-sm transition hover:brightness-110 active:scale-95 disabled:opacity-50"
           >
             Ha vinto {localName}
           </button>
@@ -252,7 +252,7 @@ export function MatchResultPendingPanel({
             type="button"
             disabled={busy}
             onClick={() => onDeclare(false)}
-            className="inline-flex h-9.5 items-center rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-black uppercase tracking-wider text-white transition hover:bg-white/15 active:scale-95 disabled:opacity-50"
+            className="inline-flex h-[38px] items-center rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-black uppercase tracking-wider text-white transition hover:bg-white/15 active:scale-95 disabled:opacity-50"
           >
             Ha vinto {opponentName}
           </button>

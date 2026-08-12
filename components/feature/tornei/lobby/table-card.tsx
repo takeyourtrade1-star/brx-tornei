@@ -141,7 +141,7 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-2xl border bg-white p-4.5 shadow-sm transition-all sm:p-5',
+        'group relative overflow-hidden rounded-2xl border bg-white p-[18px] shadow-sm transition-all sm:p-5',
         isMine
           ? 'border-primary/30 ring-1 ring-primary/20 shadow-md'
           : 'border-slate-200/90 hover:border-slate-300 hover:shadow-md',
@@ -248,7 +248,7 @@ function PrimaryButton({ children, busy, onClick }: { children: React.ReactNode;
       type="button"
       disabled={busy}
       onClick={onClick}
-      className="h-9.5 min-h-[2.375rem] gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black text-white shadow-sm hover:shadow-md transition-all hover:brightness-105 active:scale-[0.98]"
+      className="h-[38px] min-h-[2.375rem] gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black text-white shadow-sm hover:shadow-md transition-all hover:brightness-105 active:scale-[0.98]"
     >
       {children}
     </Button>
@@ -262,7 +262,7 @@ function LeaveButton({ busy, onClick, label }: { busy?: boolean; onClick: () => 
       disabled={busy}
       onClick={onClick}
       aria-label={`${label} dal tavolo`}
-      className="inline-flex h-9.5 min-h-[2.375rem] items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/70 px-3.5 text-xs font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
+      className="inline-flex h-[38px] min-h-[2.375rem] items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/70 px-3.5 text-xs font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
     >
       <LogOut className="h-3.5 w-3.5" aria-hidden />
       <span className="hidden sm:inline">{label}</span>

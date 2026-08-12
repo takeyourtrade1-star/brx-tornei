@@ -64,7 +64,7 @@ export function DashboardHeader({
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-2 sm:flex-nowrap sm:gap-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-visible py-0.5 sm:flex-none">
           <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" />
-          <span className="font-sans text-base font-black uppercase tracking-wide text-primary sm:text-lg">
+          <span className="font-sans text-xl font-black uppercase tracking-wide text-primary sm:text-2xl">
             Tournaments
           </span>
         </div>
@@ -118,7 +118,7 @@ export function DashboardHeader({
                 {/* Icona Avatar centrale */}
                 <div
                   className={cn(
-                    'grid h-13 w-13 place-items-center rounded-full border-2 border-white/30 bg-gradient-to-b from-slate-900 via-header-bg to-black p-2.5 shadow-2xl transition-all sm:h-16 sm:w-16 sm:p-3',
+                    'grid h-[52px] w-[52px] place-items-center rounded-full border-2 border-white/30 bg-gradient-to-b from-slate-900 via-header-bg to-black p-2.5 shadow-2xl transition-all sm:h-16 sm:w-16 sm:p-3',
                     activeAvatar.bgGradient,
                   )}
                 >
@@ -190,7 +190,7 @@ function RankStarsRing({ count }: { count: number }) {
           return (
             <span
               key={i}
-              className="absolute left-1/2 top-1/2 -ml-1.25 -mt-1.25"
+              className="absolute left-1/2 top-1/2 -ml-[5px] -mt-[5px]"
               style={{
                 transform: `rotate(${angle}deg) translateX(var(--rank-ring)) rotate(${-angle}deg)`,
               }}

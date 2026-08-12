@@ -85,7 +85,7 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
   return (
     <section
       aria-live="polite"
-      className="relative mb-4 overflow-hidden rounded-2xl border border-primary/35 bg-header-bg/95 p-4.5 shadow-xl backdrop-blur-md sm:p-5"
+      className="relative mb-4 overflow-hidden rounded-2xl border border-primary/35 bg-header-bg/95 p-[18px] shadow-xl backdrop-blur-md sm:p-5"
     >
       <div
         className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-primary/[0.14] blur-3xl"
@@ -179,7 +179,7 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
           type="button"
           disabled={pending}
           onClick={onDecline}
-          className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/15 px-4.5 text-xs font-black uppercase tracking-wider text-red-200 transition hover:bg-red-500/25 active:scale-95 disabled:opacity-50"
+          className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/15 px-[18px] text-xs font-black uppercase tracking-wider text-red-200 transition hover:bg-red-500/25 active:scale-95 disabled:opacity-50"
         >
           <X className="h-4 w-4" aria-hidden="true" />
           No, non ora

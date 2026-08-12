@@ -29,7 +29,7 @@ export function MatchGapProtectionNotice({
       }
     };
     return (
-      <section className="mb-4 space-y-3 rounded-2xl border border-primary/35 bg-header-bg/95 p-4.5 text-sm text-white shadow-xl backdrop-blur-md">
+      <section className="mb-4 space-y-3 rounded-2xl border border-primary/35 bg-header-bg/95 p-[18px] text-sm text-white shadow-xl backdrop-blur-md">
         <div className="flex gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
             <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
