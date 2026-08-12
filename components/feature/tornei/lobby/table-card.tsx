@@ -66,41 +66,41 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
   };
 
   if (table.kind === 'empty') {
+    // Tavolo bloccato (vista "Tutti i formati"): solo avviso testuale, senza
+    // arena posti né chip dati — non è interattivo, invita a una delle due vie.
+    if (createLocked) {
+      return (
+        <p
+          role="note"
+          className="rounded-2xl border-2 border-dashed border-white/25 bg-white/10 px-4 py-3 text-sm font-bold text-white/85 backdrop-blur-sm"
+        >
+          Aggiungiti a un tavolo già aperto, oppure scegli un formato in alto per aprirne uno nuovo.
+        </p>
+      );
+    }
+
     return (
       <button
         type="button"
-        disabled={busy || createLocked}
+        disabled={busy}
         onClick={handlePrimary}
         aria-label="Tavolo libero: siediti"
         className={cn(
           // Versione compatta (-20% circa): padding e tipografia ridotti rispetto
           // alle card degli altri tavoli. L'effetto "respirante" è in globals.css.
-          'group relative w-full rounded-2xl border-2 border-dashed border-slate-300/80 bg-white p-3.5 text-left shadow-sm transition-all sm:p-4',
-          createLocked
-            ? 'cursor-not-allowed opacity-70'
-            : 'table-empty-glow hover:-translate-y-0.5 hover:scale-[1.01] hover:border-primary hover:shadow-xl hover:shadow-primary/25 active:translate-y-0 active:scale-100',
+          'table-empty-glow group relative w-full rounded-2xl border-2 border-dashed border-slate-300/80 bg-white p-3.5 text-left shadow-sm transition-all sm:p-4',
+          'hover:-translate-y-0.5 hover:scale-[1.01] hover:border-primary hover:shadow-xl hover:shadow-primary/25 active:translate-y-0 active:scale-100',
         )}
       >
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-primary">
-              {createLocked ? 'Nuovo tavolo' : 'Tavolo libero'}
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-primary">Nuovo tavolo</p>
             <h3 className="mt-0.5 font-sans text-sm font-black leading-snug text-header-bg sm:text-base">
-              {createLocked
-                ? 'Scegli un formato per sederti ad un tavolo nuovo, o sfida qualche avversario sotto'
-                : 'Tavolo libero'}
+              Tavolo libero
             </h3>
           </div>
-          <span
-            className={cn(
-              'shrink-0 rounded-full border px-2 py-px text-[8px] font-black uppercase tracking-wider',
-              createLocked
-                ? 'border-amber-200 bg-amber-50 text-amber-700'
-                : 'border-emerald-200 bg-emerald-50 text-emerald-700',
-            )}
-          >
-            {createLocked ? 'Formato richiesto' : 'Libero'}
+          <span className="shrink-0 rounded-full border px-2 py-px text-[8px] font-black uppercase tracking-wider border-emerald-200 bg-emerald-50 text-emerald-700">
+            Libero
           </span>
         </header>
 
@@ -113,17 +113,11 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
 
         {/* Footer Dettagli e Azioni */}
         <footer className="mt-3 flex flex-wrap items-center justify-between gap-2.5 border-t border-slate-100 pt-2.5">
-          {!createLocked ? (
-            <div className="flex items-center gap-2">
-              <PrimaryButton busy={busy} onClick={handlePrimary}>
-                <UserPlus className="h-4 w-4" aria-hidden /> SIEDITI
-              </PrimaryButton>
-            </div>
-          ) : (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Seleziona formato in alto
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <PrimaryButton busy={busy} onClick={handlePrimary}>
+              <UserPlus className="h-4 w-4" aria-hidden /> SIEDITI
+            </PrimaryButton>
+          </div>
 
           <div className="ml-auto flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
             <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-50 px-2 py-0.5 text-slate-700">
