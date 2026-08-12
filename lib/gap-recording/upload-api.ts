@@ -13,6 +13,11 @@ export class TerminalGapUploadError extends Error {
 }
 
 function throwForUploadResponse(response: Response, operation: 'init' | 'complete'): void {
+  if (response.status === 426) {
+    throw new TerminalGapUploadError(
+      'Questa scheda usa una versione precedente: ricarica la pagina prima di inviare il video.',
+    );
+  }
   if (response.status === 410) {
     throw new TerminalGapUploadError('La finestra di conservazione è scaduta.', true);
   }

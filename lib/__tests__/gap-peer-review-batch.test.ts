@@ -69,4 +69,16 @@ describe('gap peer-review batch capabilities', () => {
       vi.fn(async () => Response.json(body)),
     )).rejects.toThrow('Capability video non coerente');
   });
+
+  it('orders clips by sequence even when the detail response is shuffled', async () => {
+    const clips = [clip(2), clip(0), clip(1)];
+
+    const views = await loadGapPeerClipViews(
+      '/review',
+      clips,
+      vi.fn(async () => responseFor(clips)),
+    );
+
+    expect(views.map((view) => view.sequence)).toEqual([0, 1, 2]);
+  });
 });

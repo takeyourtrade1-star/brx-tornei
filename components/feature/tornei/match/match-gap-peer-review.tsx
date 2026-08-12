@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Eye, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useMatchGapPeerReview } from '@/hooks/use-match-gap-peer-review';
 import type { GapPeerRecording } from '@/lib/validations/gap-recording';
+import { MatchGapVideoPlaylist } from './match-gap-video-playlist';
 
 function OwnRecording({ recording, opponentName }: { recording: GapPeerRecording; opponentName: string }) {
   const copy = recording.status === 'ready'
@@ -49,7 +50,7 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
         return (
           <article key={recording.recording_id} className="space-y-3 rounded-xl border border-white/15 bg-white/[0.05] p-3.5">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <strong className="font-black text-white">{recording.clip_count} video di {opponentName}</strong>
+              <strong className="font-black text-white">Video di {opponentName} · {recording.clip_count} frammenti</strong>
               <span className="text-slate-400">Scadenza {new Date(recording.expires_at).toLocaleString('it-IT')}</span>
             </div>
             {recording.status === 'verified' ? (
@@ -86,16 +87,13 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                     </button>
                   </div>
                 )}
-                {loaded?.map((clip) => (
-                  <video
-                    key={clip.clipId}
-                    className="aspect-video w-full rounded-xl bg-black"
-                    src={clip.url}
-                    controls
-                    playsInline
-                    preload="metadata"
+                {loaded && (
+                  <MatchGapVideoPlaylist
+                    recordingId={recording.recording_id}
+                    clips={loaded}
+                    onRenewTickets={() => review.reload(recording.recording_id)}
                   />
-                ))}
+                )}
                 {loaded && recording.status === 'ready' && (
                   <div className="flex flex-wrap items-center gap-2">
                     <button

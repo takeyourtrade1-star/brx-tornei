@@ -53,6 +53,20 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
     };
   }, [active, matchId, refresh]);
 
+  const loadViews = useCallback(async (recordingId: string) => {
+    if (!matchId) throw new Error('Video non disponibile.');
+    const base = `/api/tournaments/match/${encodeURIComponent(matchId)}/gap-recordings/${encodeURIComponent(recordingId)}`;
+    const detailResponse = await fetch(`${base}/peer-review`, {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      signal: AbortSignal.timeout(15_000),
+    });
+    const detail = gapPeerDetailResponseSchema.safeParse(await jsonResponse(detailResponse));
+    if (!detailResponse.ok || !detail.success) throw new Error('Video non disponibile.');
+    const views = await loadGapPeerClipViews(base, detail.data.data.clips);
+    setClips((current) => ({ ...current, [recordingId]: views }));
+  }, [matchId]);
+
   const open = useCallback(async (recordingId: string) => {
     if (!matchId) return;
     setBusyId(recordingId);
@@ -66,22 +80,28 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
         signal: AbortSignal.timeout(15_000),
       });
       if (!notice.ok) throw new Error('Presa visione non registrata.');
-      const detailResponse = await fetch(`${base}/peer-review`, {
-        cache: 'no-store',
-        credentials: 'same-origin',
-        signal: AbortSignal.timeout(15_000),
-      });
-      const detail = gapPeerDetailResponseSchema.safeParse(await jsonResponse(detailResponse));
-      if (!detailResponse.ok || !detail.success) throw new Error('Video non disponibile.');
-      const views = await loadGapPeerClipViews(base, detail.data.data.clips);
-      setClips((current) => ({ ...current, [recordingId]: views }));
+      await loadViews(recordingId);
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Verifica video non disponibile.');
     } finally {
       setBusyId(null);
     }
-  }, [matchId, refresh]);
+  }, [loadViews, matchId, refresh]);
+
+  const reload = useCallback(async (recordingId: string): Promise<boolean> => {
+    setBusyId(recordingId);
+    setError(null);
+    try {
+      await loadViews(recordingId);
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Video non disponibile.');
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  }, [loadViews]);
 
   const review = useCallback(async (
     recordingId: string,
@@ -124,5 +144,5 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
     }
   }, [matchId, refresh]);
 
-  return { recordings, clips, busyId, error, open, review };
+  return { recordings, clips, busyId, error, open, reload, review };
 }

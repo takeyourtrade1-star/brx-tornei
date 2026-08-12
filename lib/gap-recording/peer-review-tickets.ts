@@ -47,7 +47,7 @@ export async function loadGapPeerClipViews(
     batch.data.data.tickets.map((ticket) => [ticket.clip_id, ticket]),
   );
   if (tickets.size !== clips.length) throw new Error('Capability video incomplete.');
-  return clips.map((clip) => {
+  return [...clips].sort((left, right) => left.sequence - right.sequence).map((clip) => {
     const ticket = tickets.get(clip.clip_id);
     if (
       !ticket ||
