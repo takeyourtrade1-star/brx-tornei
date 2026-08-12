@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Gamepad2, Layers, LogOut, Swords } from 'lucide-react';
+import { Gamepad2, Layers, LogOut, Star, Swords } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 import { ProfileDrawer } from '@/components/feature/profile/profile-drawer';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
+import { getAvatarById, getSavedAvatarId } from '@/lib/avatars';
 import { cn } from '@/lib/utils';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { SessionUser } from '@/types/auth';
@@ -26,7 +27,7 @@ interface DashboardHeaderProps {
 /**
  * Header dashboard tornei — Mazzi e Partite sono le azioni primarie; profilo,
  * ritorno al minigioco e logout restano controlli secondari e più discreti.
- * Il chip profilo apre un drawer con badge achievement e statistiche.
+ * Il widget profilo mostra l'avatar gaming personalizzabile con cerchio grado 1★.
  */
 export function DashboardHeader({
   user,
@@ -37,12 +38,26 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const pathname = usePathname();
   const shownName = displayName ?? user.name ?? user.email;
-  const initial = (shownName[0] ?? '?').toUpperCase();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [avatarId, setAvatarId] = useState(() => getSavedAvatarId());
+
+  useEffect(() => {
+    const handleAvatarChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ avatarId: string }>;
+      if (customEvent.detail?.avatarId) {
+        setAvatarId(customEvent.detail.avatarId);
+      }
+    };
+    window.addEventListener('ebartex-avatar-changed', handleAvatarChange);
+    return () => window.removeEventListener('ebartex-avatar-changed', handleAvatarChange);
+  }, []);
+
+  const activeAvatar = getAvatarById(avatarId);
+  const AvatarIcon = activeAvatar.icon;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-header-bg/85 font-sans text-white shadow-lg backdrop-blur-xl">
-      <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-3 sm:flex-nowrap sm:gap-3 sm:px-6">
+      <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-2 sm:flex-nowrap sm:gap-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-visible py-0.5 sm:flex-none">
           <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" />
           <span className="font-sans text-base font-black uppercase tracking-wide text-primary sm:text-lg">
@@ -68,7 +83,7 @@ export function DashboardHeader({
           />
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5 sm:ml-0 sm:gap-2">
+        <div className="ml-auto flex shrink-0 items-center justify-end gap-2 sm:ml-0 sm:gap-3">
           {showMinigameBack && onBackToMinigame && (
             <button
               type="button"
@@ -80,27 +95,51 @@ export function DashboardHeader({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => setProfileOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={profileOpen}
-            aria-label={`Apri il profilo di ${shownName}`}
-            className={cn(
-              'flex h-9 items-center gap-2 rounded-full border border-white/15 bg-white/10 p-1 transition sm:pr-3',
-              'hover:border-white/30 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-              profileOpen && 'border-white/30 bg-white/20 shadow-sm',
-            )}
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-xs font-black text-white shadow-xs">
-              {initial}
-            </span>
-            <span className="hidden max-w-[7rem] truncate text-xs font-bold text-white/90 lg:block xl:max-w-[10rem]">
-              {shownName}
-            </span>
-          </button>
+          {/* Widget Profilo con Avatar, Cerchio Grado (1★) e Gamertag sovrapposto */}
+          <div className="relative flex items-center justify-center pt-1.5 pb-1 sm:pt-2 sm:pb-1.5">
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={profileOpen}
+              aria-label={`Apri il profilo di ${shownName}`}
+              className="group relative flex flex-col items-center justify-center focus-visible:outline-none"
+            >
+              {/* Stellina di grado sulla sommità dell'arco */}
+              <span
+                className="absolute -top-2 z-20 flex items-center justify-center gap-0.5 rounded-full border border-amber-300/80 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 px-1.5 py-0.2 text-[8px] font-black text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.7)]"
+                title="Grado 1★"
+              >
+                <Star className="h-2.5 w-2.5 fill-current text-slate-950" />
+                <span>1</span>
+              </span>
 
-          <form action={logoutAction}>
+              {/* Cerchio / Arco del Grado attorno all'icona (esclusa la parte sotto) */}
+              <div className="relative grid place-items-center rounded-full p-[3px] bg-gradient-to-b from-amber-400 via-primary to-transparent shadow-[0_0_14px_rgba(255,115,0,0.35)] transition-transform group-hover:scale-105">
+                {/* Icona avatar centrale grande */}
+                <div
+                  className={cn(
+                    'grid h-11 w-11 place-items-center rounded-full border border-white/25 bg-gradient-to-b from-header-bg/90 to-black/90 p-2 shadow-inner transition-colors sm:h-12 sm:w-12',
+                    activeAvatar.bgGradient,
+                  )}
+                >
+                  <AvatarIcon
+                    className={cn(
+                      'h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110',
+                      activeAvatar.color,
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Gamertag sovrapposto in basso: mezzo dentro e mezzo fuori dall'icona */}
+              <span className="absolute -bottom-2.5 z-20 inline-flex max-w-[5.5rem] items-center justify-center truncate rounded-full border border-white/20 bg-header-bg/95 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-md backdrop-blur-md transition-colors group-hover:border-primary/50 group-hover:text-primary sm:max-w-[7.5rem] sm:text-[10px]">
+                {shownName}
+              </span>
+            </button>
+          </div>
+
+          <form action={logoutAction} className="ml-1">
             <button
               type="submit"
               aria-label="Esci"

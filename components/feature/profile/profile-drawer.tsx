@@ -6,7 +6,9 @@ import { X } from 'lucide-react';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { evaluateAchievements } from '@/lib/data/achievements';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
+import { GAME_AVATARS, getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
+import { cn } from '@/lib/utils';
 import { AchievementCard, AchievementSummary } from './achievement-card';
 
 interface ProfileDrawerProps {
@@ -24,19 +26,25 @@ type FetchState =
   | { status: 'error'; message: string };
 
 /**
- * Drawer laterale con profilo + badge achievement. Lazy: se `initialReputation`
- * è null o assente fetcha via server action alla prima apertura — nessun dato
- * viene caricato al boot della pagina.
+ * Drawer laterale con profilo + selettore avatar 10 icone + badge achievement.
+ * Lazy: se `initialReputation` è null o assente fetcha via server action alla
+ * prima apertura.
  */
 export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: ProfileDrawerProps) {
   const [state, setState] = useState<FetchState>(() =>
     initialReputation ? { status: 'success', reputation: initialReputation } : { status: 'idle' },
   );
+  const [selectedAvatarId, setSelectedAvatarId] = useState(() => getSavedAvatarId());
   const [mounted, setMounted] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  const handleSelectAvatar = (id: string) => {
+    setSelectedAvatarId(id);
+    saveAvatarId(id);
+  };
 
   // Portal su document.body: l'header del padre ha backdrop-blur (crea un
   // containing block) che farebbe "agganciare" il drawer all'header invece
@@ -159,6 +167,39 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
 
         {/* Contenuto */}
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          {/* Sezione Selezione Avatar */}
+          <section className="mb-6 rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                Avatar di gioco
+              </h3>
+              <span className="text-[10px] font-bold text-slate-400">10 disponibili</span>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {GAME_AVATARS.map((avatar) => {
+                const Icon = avatar.icon;
+                const isSelected = avatar.id === selectedAvatarId;
+                return (
+                  <button
+                    key={avatar.id}
+                    type="button"
+                    onClick={() => handleSelectAvatar(avatar.id)}
+                    title={avatar.name}
+                    aria-label={`Seleziona avatar ${avatar.name}`}
+                    className={cn(
+                      'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all',
+                      isSelected
+                        ? 'border-primary bg-white shadow-md ring-2 ring-primary/40 scale-105'
+                        : 'border-slate-200 bg-white/70 hover:border-slate-300 hover:bg-white',
+                    )}
+                  >
+                    <Icon className={cn('h-5 w-5 transition-transform group-hover:scale-110', avatar.color)} />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {state.status === 'loading' && (
             <p className="rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-6 text-center text-sm font-semibold text-slate-500">
               Caricamento dei tuoi badge…
