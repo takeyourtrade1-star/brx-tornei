@@ -144,6 +144,7 @@ export async function buildGapSnapshot(
     retryingIncidents: retrying.length,
     failedIncidents: failed.length,
     retryableFailedIncidents: retryableFailed.length,
+    waitingForNetwork: false,
     retainedBytes: incidents.reduce((total, incident) => total + incident.byteLength, 0),
     error,
     uploadError: uploadFailure,

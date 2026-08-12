@@ -18,6 +18,7 @@ import {
 } from '../../app/api/tournaments/match/[matchId]/gap-recordings/[recordingId]/peer-review/route';
 import { POST as notice } from '../../app/api/tournaments/match/[matchId]/gap-recordings/[recordingId]/peer-review/notice/route';
 import { POST as ticket } from '../../app/api/tournaments/match/[matchId]/gap-recordings/[recordingId]/clips/[clipId]/view-ticket/route';
+import { POST as tickets } from '../../app/api/tournaments/match/[matchId]/gap-recordings/[recordingId]/clips/view-tickets/route';
 
 const MATCH_ID = '6f069abc-a25d-4e99-b63c-473b507021af';
 const RECORDING_ID = 'd19d2244-05d9-4308-9901-5d5593f0802c';
@@ -63,6 +64,10 @@ describe('player gap-review BFF boundary', () => {
     const context = { params: Promise.resolve({ matchId: MATCH_ID, recordingId: RECORDING_ID }) };
     expect((await review(mutationRequest({}, 'https://attacker.example'), context)).status).toBe(403);
     expect((await review(mutationRequest({ decision: 'verified' }), context)).status).toBe(400);
+    expect((await tickets(mutationRequest(undefined, 'https://attacker.example'), context)).status).toBe(403);
+    expect((await tickets(mutationRequest(), {
+      params: Promise.resolve({ matchId: 'not-a-uuid', recordingId: RECORDING_ID }),
+    })).status).toBe(400);
     expect(mocks.mutation).not.toHaveBeenCalled();
   });
 
@@ -74,6 +79,7 @@ describe('player gap-review BFF boundary', () => {
     await ticket(mutationRequest(), {
       params: Promise.resolve({ matchId: MATCH_ID, recordingId: RECORDING_ID, clipId: CLIP_ID }),
     });
+    await tickets(mutationRequest(), recordingContext);
     await review(mutationRequest({
       decision: 'verified',
       reason_code: 'gap_consistent',
@@ -91,6 +97,10 @@ describe('player gap-review BFF boundary', () => {
     );
     expect(mocks.mutation).toHaveBeenNthCalledWith(
       3,
+      `/api/v1/matches/${MATCH_ID}/gap-recordings/${RECORDING_ID}/clips/view-tickets`,
+    );
+    expect(mocks.mutation).toHaveBeenNthCalledWith(
+      4,
       `/api/v1/matches/${MATCH_ID}/gap-recordings/${RECORDING_ID}/peer-review`,
       {
         decision: 'verified',

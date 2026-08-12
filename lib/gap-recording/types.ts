@@ -88,6 +88,7 @@ export interface GapProtectionSnapshot {
   retryingIncidents: number;
   failedIncidents: number;
   retryableFailedIncidents: number;
+  waitingForNetwork: boolean;
   retainedBytes: number;
   error: string | null;
   uploadError: string | null;

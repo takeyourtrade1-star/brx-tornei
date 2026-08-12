@@ -2,6 +2,7 @@ import type {
   GapClipRecord,
   GapIncidentRecord,
 } from '@/lib/gap-recording/types';
+import { expiredGapIncidentIds } from '@/lib/gap-recording/retention';
 
 const DATABASE_NAME = 'ebartex-match-gap-v1';
 const DATABASE_VERSION = 1;
@@ -186,9 +187,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
     const incidents = await requestResult(
       incidentStore.getAll() as IDBRequest<GapIncidentRecord[]>,
     );
-    const expiredIds = new Set(
-      incidents.filter((incident) => incident.updatedAt < before).map((incident) => incident.id),
-    );
+    const expiredIds = expiredGapIncidentIds(incidents, before);
     if (expiredIds.size > 0) {
       const clipStore = transaction.objectStore(CLIPS_STORE);
       const clips = await requestResult(clipStore.getAll() as IDBRequest<GapClipRecord[]>);

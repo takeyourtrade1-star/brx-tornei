@@ -90,6 +90,7 @@ export function MatchGapProtectionNotice({
   const failed = snapshot.status === 'error' || progress?.phase === 'failed' ||
     snapshot.failedIncidents > 0;
   const retrying = progress?.phase === 'retrying' || snapshot.retryingIncidents > 0;
+  const waitingForNetwork = snapshot.waitingForNetwork && snapshot.pendingIncidents > 0;
   const canRetry = progress?.retryable === true || snapshot.retryableFailedIncidents > 0 ||
     snapshot.retryingIncidents > 0;
   const Icon = failed ? TriangleAlert : ShieldCheck;
@@ -98,6 +99,8 @@ export function MatchGapProtectionNotice({
       'Invio della registrazione non riuscito.'
     : active
       ? 'Connessione instabile: il PC sta registrando in automatico.'
+      : waitingForNetwork
+        ? 'Video pronto. In attesa della connessione per avviare l’invio.'
       : progress?.phase === 'preparing'
         ? 'Preparazione sicura del video…'
         : progress?.phase === 'uploading'
@@ -115,7 +118,7 @@ export function MatchGapProtectionNotice({
 
   const toneStyle = failed
     ? { container: 'border-red-500/30 text-red-100', icon: 'border-red-500/30 bg-red-500/15 text-red-400' }
-    : active || retrying || progress?.phase === 'preparing' ||
+    : active || retrying || waitingForNetwork || progress?.phase === 'preparing' ||
         progress?.phase === 'uploading' || progress?.phase === 'finalizing'
       ? { container: 'border-amber-500/30 text-amber-100', icon: 'border-amber-500/30 bg-amber-500/15 text-amber-400' }
       : { container: 'border-emerald-500/30 text-emerald-100', icon: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400' };

@@ -3,6 +3,7 @@ import {
   gapUploadInitResponseSchema,
   type CreateGapRecordingInput,
 } from '@/lib/validations/gap-recording';
+import { fetchGapUploadWithAuthRecovery } from '@/lib/gap-recording/upload-auth-recovery';
 
 export class TerminalGapUploadError extends Error {
   constructor(message: string, readonly discardLocal = false) {
@@ -17,6 +18,9 @@ function throwForUploadResponse(response: Response, operation: 'init' | 'complet
   }
   if (response.status === 409) {
     throw new TerminalGapUploadError('La finestra di upload non è più disponibile.');
+  }
+  if (response.status === 401) {
+    throw new Error('Sessione scaduta: il caricamento verrà ritentato.');
   }
   if (response.status >= 400 && response.status < 500 &&
     response.status !== 408 && response.status !== 429) {
@@ -36,17 +40,15 @@ function throwForUploadResponse(response: Response, operation: 'init' | 'complet
 }
 
 export async function initGapUpload(matchId: string, body: CreateGapRecordingInput) {
-  const response = await fetch(
-    `/api/tournaments/match/${encodeURIComponent(matchId)}/gap-recordings`,
-    {
+  const path = `/api/tournaments/match/${encodeURIComponent(matchId)}/gap-recordings`;
+  const response = await fetchGapUploadWithAuthRecovery(() => fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       cache: 'no-store',
       credentials: 'same-origin',
       signal: AbortSignal.timeout(30_000),
-    },
-  );
+    }));
   const json = await response.json().catch(() => ({}));
   throwForUploadResponse(response, 'init');
   const parsed = gapUploadInitResponseSchema.safeParse(json);
@@ -55,15 +57,14 @@ export async function initGapUpload(matchId: string, body: CreateGapRecordingInp
 }
 
 export async function completeGapUpload(matchId: string, recordingId: string): Promise<void> {
-  const response = await fetch(
-    `/api/tournaments/match/${encodeURIComponent(matchId)}/gap-recordings/${encodeURIComponent(recordingId)}/complete`,
-    {
+  const path = `/api/tournaments/match/${encodeURIComponent(matchId)}` +
+    `/gap-recordings/${encodeURIComponent(recordingId)}/complete`;
+  const response = await fetchGapUploadWithAuthRecovery(() => fetch(path, {
       method: 'POST',
       cache: 'no-store',
       credentials: 'same-origin',
       signal: AbortSignal.timeout(30_000),
-    },
-  );
+    }));
   const json = await response.json().catch(() => ({}));
   throwForUploadResponse(response, 'complete');
   if (!gapUploadCompleteResponseSchema.safeParse(json).success) {

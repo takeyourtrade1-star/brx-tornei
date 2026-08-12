@@ -1,22 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { publicConfig } from '@/lib/public-config';
+import {
+  loadGapPeerClipViews,
+  type GapPeerClipView,
+} from '@/lib/gap-recording/peer-review-tickets';
 import {
   gapPeerDetailResponseSchema,
   gapPeerListResponseSchema,
-  gapViewTicketResponseSchema,
   type GapPeerRecording,
 } from '@/lib/validations/gap-recording';
-
-export interface GapPeerClipView {
-  clipId: string;
-  sequence: number;
-  contentType: string;
-  byteLength: number;
-  url: string;
-  expiresAt: string;
-}
 
 async function jsonResponse(response: Response): Promise<unknown> {
   return response.json().catch(() => ({}));
@@ -80,38 +73,7 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
       });
       const detail = gapPeerDetailResponseSchema.safeParse(await jsonResponse(detailResponse));
       if (!detailResponse.ok || !detail.success) throw new Error('Video non disponibile.');
-      const views = await Promise.all(detail.data.data.clips.map(async (clip) => {
-        const response = await fetch(
-          `${base}/clips/${encodeURIComponent(clip.clip_id)}/view-ticket`,
-          {
-            method: 'POST',
-            cache: 'no-store',
-            credentials: 'same-origin',
-            signal: AbortSignal.timeout(15_000),
-          },
-        );
-        const ticket = gapViewTicketResponseSchema.safeParse(await jsonResponse(response));
-        if (!response.ok || !ticket.success) throw new Error('Accesso al video negato.');
-        const mediaUrl = new URL(ticket.data.data.url);
-        const isLoopbackDevelopment =
-          process.env.NODE_ENV !== 'production' &&
-          mediaUrl.protocol === 'http:' &&
-          ['localhost', '127.0.0.1', '[::1]'].includes(mediaUrl.hostname.toLowerCase());
-        if (
-          mediaUrl.origin !== publicConfig.storage.matchGapUploadOrigin ||
-          (mediaUrl.protocol !== 'https:' && !isLoopbackDevelopment) ||
-          mediaUrl.username ||
-          mediaUrl.password
-        ) throw new Error('Origine video non autorizzata.');
-        return {
-          clipId: clip.clip_id,
-          sequence: clip.sequence,
-          contentType: ticket.data.data.content_type,
-          byteLength: ticket.data.data.byte_length,
-          url: mediaUrl.toString(),
-          expiresAt: ticket.data.data.expires_at,
-        };
-      }));
+      const views = await loadGapPeerClipViews(base, detail.data.data.clips);
       setClips((current) => ({ ...current, [recordingId]: views }));
       await refresh();
     } catch (cause) {

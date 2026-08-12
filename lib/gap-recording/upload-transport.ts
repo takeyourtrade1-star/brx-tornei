@@ -77,11 +77,25 @@ function uploadClip(
   clip: GapClipRecord,
   ticket: GapUploadTicket,
   onProgress: (loaded: number, total: number) => void,
+  signal: AbortSignal,
 ): Promise<void> {
   const { uploadUrl, isLoopbackRawUpload } = authorizedUploadUrl(ticket);
   const { body, headers } = uploadBody(clip, ticket, isLoopbackRawUpload);
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
+    let settled = false;
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener('abort', abort);
+      callback();
+    };
+    const abort = () => {
+      request.abort();
+      finish(() => reject(
+        new GapClipUploadError('Upload della clip interrotto.', null, true),
+      ));
+    };
     request.open('POST', ticket.url, true);
     request.timeout = 60_000;
     request.withCredentials = false;
@@ -92,22 +106,29 @@ function uploadClip(
     };
     request.onload = () => {
       if (request.responseURL && new URL(request.responseURL).origin !== uploadUrl.origin) {
-        reject(new GapClipUploadError('Redirect di upload non autorizzato.'));
+        finish(() => reject(new GapClipUploadError('Redirect di upload non autorizzato.')));
       } else if (request.status >= 200 && request.status < 300) {
-        resolve();
+        finish(resolve);
       } else {
-        reject(new GapClipUploadError('Upload di una clip non riuscito.', request.status));
+        finish(() => reject(
+          new GapClipUploadError('Upload di una clip non riuscito.', request.status),
+        ));
       }
     };
-    request.onerror = () => reject(
+    request.onerror = () => finish(() => reject(
       new GapClipUploadError('Connessione allo storage interrotta.', null, true),
-    );
-    request.ontimeout = () => reject(
+    ));
+    request.ontimeout = () => finish(() => reject(
       new GapClipUploadError('Upload della clip scaduto.', null, true),
-    );
-    request.onabort = () => reject(
+    ));
+    request.onabort = () => finish(() => reject(
       new GapClipUploadError('Upload della clip interrotto.', null, true),
-    );
+    ));
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) {
+      abort();
+      return;
+    }
     request.send(body);
   });
 }
@@ -116,8 +137,17 @@ export async function uploadGapClipsWithLimit(
   clips: GapClipRecord[],
   tickets: Map<string, GapUploadTicket>,
   onProgress?: (progress: GapClipUploadProgress) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
+  for (const clip of clips) {
+    if (!tickets.has(clip.id)) throw new GapClipUploadError('Capability di upload mancante.');
+  }
   let index = 0;
+  let firstFailure: unknown;
+  const abortController = new AbortController();
+  const abortFromCaller = () => abortController.abort();
+  signal?.addEventListener('abort', abortFromCaller, { once: true });
+  if (signal?.aborted) abortController.abort();
   const progress = new Map(
     clips.map((clip) => [clip.id, { loaded: 0, total: clip.byteLength }]),
   );
@@ -131,22 +161,32 @@ export async function uploadGapClipsWithLimit(
   emit();
 
   async function worker() {
-    while (index < clips.length) {
+    while (!abortController.signal.aborted && index < clips.length) {
       const clip = clips[index];
       index += 1;
-      const ticket = tickets.get(clip.id);
-      if (!ticket) throw new GapClipUploadError('Capability di upload mancante.');
-      await uploadClip(clip, ticket, (loaded, total) => {
-        progress.set(clip.id, { loaded: Math.min(loaded, total), total });
-        emit();
-      });
+      const ticket = tickets.get(clip.id)!;
+      try {
+        await uploadClip(clip, ticket, (loaded, total) => {
+          progress.set(clip.id, { loaded: Math.min(loaded, total), total });
+          emit();
+        }, abortController.signal);
+      } catch (error) {
+        if (firstFailure === undefined) firstFailure = error;
+        abortController.abort();
+        throw error;
+      }
       const current = progress.get(clip.id) ?? { loaded: 0, total: clip.byteLength };
       progress.set(clip.id, { loaded: current.total, total: current.total });
       completed.add(clip.id);
       emit();
     }
   }
-  await Promise.all(
+  await Promise.allSettled(
     Array.from({ length: Math.min(UPLOAD_CONCURRENCY, clips.length) }, () => worker()),
   );
+  signal?.removeEventListener('abort', abortFromCaller);
+  if (firstFailure !== undefined) throw firstFailure;
+  if (abortController.signal.aborted) {
+    throw new GapClipUploadError('Upload delle clip interrotto.', null, true);
+  }
 }

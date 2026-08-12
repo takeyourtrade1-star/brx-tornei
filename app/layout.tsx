@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { config } from '@/lib/config';
 import { ScreenshotButton } from '@/components/feature/ScreenshotButton';
+import { AuthRefreshReconciler } from '@/components/feature/auth/auth-refresh-reconciler';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="it">
       <body className="font-sans antialiased">
         {children}
+        <AuthRefreshReconciler />
         <ScreenshotButton />
       </body>
     </html>

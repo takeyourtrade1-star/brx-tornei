@@ -1,24 +1,15 @@
 import type { GapRecordingStore } from '@/lib/gap-recording/indexed-db';
 import { makeMatchUserKey } from '@/lib/gap-recording/policy';
-import type {
-  GapClipRecord,
-  GapIncidentRecord,
-  GapUploadProgress,
-} from '@/lib/gap-recording/types';
+import type { GapClipRecord, GapIncidentRecord, GapUploadProgress } from '@/lib/gap-recording/types';
 import { MATCH_GAP_NOTICE_VERSION } from '@/lib/gap-recording/types';
+import { GapClipUploadError, uploadGapClipsWithLimit } from '@/lib/gap-recording/upload-transport';
+import { completeGapUpload, initGapUpload, TerminalGapUploadError } from '@/lib/gap-recording/upload-api';
 import {
-  GapClipUploadError,
-  uploadGapClipsWithLimit,
-} from '@/lib/gap-recording/upload-transport';
-import {
-  completeGapUpload,
-  initGapUpload,
-  TerminalGapUploadError,
-} from '@/lib/gap-recording/upload-api';
+  isRetryableGapUploadError,
+  MAX_GAP_UPLOAD_ATTEMPTS,
+  nextGapUploadRetryAt,
+} from '@/lib/gap-recording/upload-retry';
 import type { CreateGapRecordingInput } from '@/lib/validations/gap-recording';
-
-const MAX_RETRY_DELAY_MS = 5 * 60 * 1_000;
-const MAX_RETRY_ATTEMPTS = 5;
 
 export interface GapUploadRunResult {
   uploaded: number;
@@ -27,6 +18,13 @@ export interface GapUploadRunResult {
 
 export interface GapUploaderOptions {
   onProgress?: (progress: GapUploadProgress) => void;
+  signal?: AbortSignal;
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new GapClipUploadError('Coordinamento upload perso: nuovo tentativo necessario.', null, true);
+  }
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -81,17 +79,14 @@ async function manifest(
   };
 }
 
-function retryAt(incident: GapIncidentRecord, now: number): number {
-  const delay = Math.min(5_000 * 2 ** incident.retryCount, MAX_RETRY_DELAY_MS);
-  return now + delay;
-}
-
 async function uploadIncident(
   store: GapRecordingStore,
   incident: GapIncidentRecord,
   now: number,
   onProgress?: (progress: GapUploadProgress) => void,
+  signal?: AbortSignal,
 ): Promise<boolean> {
+  throwIfAborted(signal);
   const clips = await store.listIncidentClips(incident.id);
   if (clips.length === 0) {
     throw new TerminalGapUploadError('Nessuna clip locale disponibile.');
@@ -119,7 +114,9 @@ async function uploadIncident(
   });
   emit({ phase: 'preparing' });
   const body = await manifest(incident, clips);
+  throwIfAborted(signal);
   const initialized = await initGapUpload(incident.matchId, body);
+  throwIfAborted(signal);
   await store.putIncident({
     ...incident,
     status: 'uploading',
@@ -136,7 +133,8 @@ async function uploadIncident(
     await uploadGapClipsWithLimit(clips, tickets, (progress) => emit({
       phase: 'uploading',
       ...progress,
-    }));
+    }), signal);
+    throwIfAborted(signal);
     await store.putIncident({
       ...incident,
       status: 'finalizing',
@@ -152,6 +150,7 @@ async function uploadIncident(
       completedClips: clips.length,
     });
     await completeGapUpload(incident.matchId, initialized.incident_id);
+    throwIfAborted(signal);
   }
   await store.deleteIncidentData(incident.id);
   emit({
@@ -159,15 +158,6 @@ async function uploadIncident(
     uploadedBytes: totalBytes,
     completedClips: clips.length,
   });
-  return true;
-}
-
-function isRetryableUploadError(error: unknown): boolean {
-  if (error instanceof TerminalGapUploadError) return false;
-  if (error instanceof GapClipUploadError) {
-    if (error.status === null) return error.retryable;
-    return error.status === 408 || error.status === 429 || error.status >= 500;
-  }
   return true;
 }
 
@@ -182,6 +172,7 @@ export async function uploadPendingGapRecordings(
   let uploaded = 0;
   let nextRetryAt: number | null = null;
   for (const incident of incidents) {
+    if (options.signal?.aborted) break;
     const resumable = ['queued', 'preparing', 'uploading', 'finalizing', 'retrying']
       .includes(incident.status) ||
       (incident.status === 'failed' && incident.nextRetryAt !== null);
@@ -197,8 +188,11 @@ export async function uploadPendingGapRecordings(
       continue;
     }
     try {
-      if (await uploadIncident(store, incident, now, options.onProgress)) uploaded += 1;
+      if (await uploadIncident(
+        store, incident, now, options.onProgress, options.signal,
+      )) uploaded += 1;
     } catch (error) {
+      if (options.signal?.aborted) break;
       const current = await store.getIncident(incident.id) ?? incident;
       const message = error instanceof Error ? error.message : 'Upload non riuscito.';
       if (error instanceof TerminalGapUploadError && error.discardLocal) {
@@ -211,10 +205,12 @@ export async function uploadPendingGapRecordings(
         });
         continue;
       }
-      const retryable = isRetryableUploadError(error);
+      const retryable = isRetryableGapUploadError(error);
       const retryCount = current.retryCount + 1;
-      const exhausted = retryable && retryCount >= MAX_RETRY_ATTEMPTS;
-      const scheduled = retryable && !exhausted ? retryAt(current, now) : null;
+      const exhausted = retryable && retryCount >= MAX_GAP_UPLOAD_ATTEMPTS;
+      const scheduled = retryable && !exhausted
+        ? nextGapUploadRetryAt(current, now)
+        : null;
       await store.putIncident({
         ...current,
         status: scheduled === null ? 'failed' : 'retrying',
