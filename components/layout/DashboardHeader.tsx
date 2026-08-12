@@ -60,7 +60,7 @@ export function DashboardHeader({
   const rankStars = rankStarsForWins(reputation?.wins ?? 0);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/10 font-sans text-white shadow-lg">
+    <header className="sticky top-0 z-40 w-full font-sans text-white">
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-2 sm:flex-nowrap sm:gap-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-visible py-0.5 sm:flex-none">
           <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" />
@@ -112,7 +112,9 @@ export function DashboardHeader({
             >
               {/* Cerchio del Grado (Rank Ring) che avvolge l'icona; le stelline
                   poggiano sul bordo, in arco dal basso-destra verso l'alto. */}
-              <div className="relative grid place-items-center rounded-full border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/25 via-slate-950/90 to-slate-950 p-1.5 shadow-[0_0_22px_rgba(255,115,0,0.4)] transition-transform [--rank-ring:33px] group-hover:scale-105 group-hover:border-amber-300 sm:[--rank-ring:39px]">
+              {/* --rank-ring: raggio dell'arco stelline, DENTRO il bordo del
+                  cerchio (27px mobile / 33px sm) così restano interne al ring. */}
+              <div className="relative grid place-items-center rounded-full border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/25 via-slate-950/90 to-slate-950 p-1.5 shadow-[0_0_22px_rgba(255,115,0,0.4)] transition-transform [--rank-ring:27px] group-hover:scale-105 group-hover:border-amber-300 sm:[--rank-ring:33px]">
                 {/* Icona Avatar centrale */}
                 <div
                   className={cn(
@@ -173,9 +175,10 @@ function rankStarsForWins(wins: number): number {
 }
 
 function RankStarsRing({ count }: { count: number }) {
-  // Arco di 110° sul lato destro del cerchio: inizia a +55° (basso-destra,
-  // coordinate schermo con y verso il basso) e sale fino a -55° (alto-destra),
-  // contro-ruotando ogni stellina per mantenerla dritta.
+  // Arco di 90° sul lato destro del cerchio, "sollevato" dal basso: inizia a
+  // +45° (basso-destra, sopra la pill del gamertag che occupa il centro-basso)
+  // e sale fino a -45° (alto-destra). Ogni stellina resta dritta grazie alla
+  // contro-rotazione.
   return (
     <>
       <span className="sr-only">
@@ -183,7 +186,7 @@ function RankStarsRing({ count }: { count: number }) {
       </span>
       <div aria-hidden className="pointer-events-none absolute inset-0">
         {Array.from({ length: count }, (_, i) => {
-          const angle = 55 - (i * 110) / (MAX_RANK_STARS - 1);
+          const angle = 45 - (i * 90) / (MAX_RANK_STARS - 1);
           return (
             <span
               key={i}
