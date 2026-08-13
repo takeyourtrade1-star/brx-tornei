@@ -874,3 +874,328 @@
   .asso-eyes--active .asso-gaze,
   .table-empty-glow { animation: none; }
 }
+
+/* ------------------------------------------------------------------ */
+/* Arena "Le mie partite": registro del duellante.                     */
+/* Ogni icona SVG custom ha il suo loop CSS dedicato (niente JS).      */
+/* Le pose di riposo sono dichiarate sulle classi base così, con       */
+/* prefers-reduced-motion, le icone restano leggibili e ferme.         */
+/* ------------------------------------------------------------------ */
+
+/* Trasformazioni su gruppi SVG: origine al centro del viewBox. */
+.pt-rot {
+  transform-box: view-box;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* Corona (Vittorie): lieve ondeggiamento regale + scintilla periodica. */
+@keyframes pt-crown-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.6px); }
+}
+.pt-crown-body { animation: pt-crown-bob 2.8s ease-in-out infinite; }
+
+@keyframes pt-crown-spark {
+  0%, 66%, 100% { opacity: 0; transform: scale(0.3) rotate(-14deg); }
+  73% { opacity: 1; transform: scale(1.15) rotate(0deg); }
+  84% { opacity: 0; transform: scale(0.85) rotate(10deg); }
+}
+.pt-crown-spark {
+  opacity: 0.9;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pt-crown-spark 2.8s ease-out infinite;
+}
+
+/* Cristallo (Win Rate): il cuore pulsa come se si caricasse di energia. */
+@keyframes pt-crystal-fill {
+  0%, 100% { opacity: 0.25; transform: translateY(1.4px) scale(0.94); }
+  50% { opacity: 0.9; transform: translateY(0) scale(1); }
+}
+.pt-crystal-fill {
+  opacity: 0.6;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pt-crystal-fill 3s ease-in-out infinite;
+}
+
+@keyframes pt-crystal-glint {
+  0%, 88%, 100% { opacity: 0; }
+  93% { opacity: 1; }
+}
+.pt-crystal-glint { animation: pt-crystal-glint 3s linear infinite; }
+
+/* Fiamma (Striscia): doppio velo che ondeggia sfalsato. */
+@keyframes pt-flame-outer {
+  0%, 100% { transform: scaleY(1) skewX(0deg); }
+  30% { transform: scaleY(1.09) skewX(-3deg); }
+  60% { transform: scaleY(0.94) skewX(3deg); }
+}
+.pt-flame-outer {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: pt-flame-outer 1.6s ease-in-out infinite;
+}
+
+@keyframes pt-flame-inner {
+  0%, 100% { transform: scaleY(1) skewX(0deg); opacity: 1; }
+  35% { transform: scaleY(1.16) skewX(-4deg); opacity: 0.8; }
+  70% { transform: scaleY(0.88) skewX(4deg); opacity: 1; }
+}
+.pt-flame-inner {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: pt-flame-inner 1.6s ease-in-out infinite;
+}
+
+/* Clessidra (Tempo di gioco): si capovolge in loop — la sagoma è
+   simmetrica, quindi il giro risulta senza cuciture. La sabbia scende
+   in un flusso continuo al centro. */
+@keyframes pt-hourglass-flip {
+  0%, 10% { transform: rotate(0deg); }
+  46%, 54% { transform: rotate(180deg); }
+  90%, 100% { transform: rotate(360deg); }
+}
+.pt-hourglass-body { animation: pt-hourglass-flip 5s cubic-bezier(0.5, 0, 0.3, 1) infinite; }
+
+@keyframes pt-hourglass-sand {
+  0% { transform: translateY(0); opacity: 1; }
+  38% { transform: translateY(3.4px); opacity: 0.9; }
+  46% { transform: translateY(3.6px); opacity: 0; }
+  48%, 100% { opacity: 0; }
+}
+.pt-hourglass-sand { animation: pt-hourglass-sand 2.5s linear infinite; }
+
+/* Orologio da tasca (Durata media): la lancetta "ticchetta" con scatti secchi. */
+@keyframes pt-watch-tick {
+  0%, 7% { transform: rotate(-28deg); }
+  15% { transform: rotate(24deg); }
+  23%, 100% { transform: rotate(-28deg); }
+}
+.pt-watch-hand {
+  transform: rotate(-22deg);
+  animation: pt-watch-tick 3.6s cubic-bezier(0.3, 0.4, 0.4, 1) infinite;
+}
+
+/* Teschio (Sconfitte): dondola piano, le orbite si accendono a intermittenza. */
+@keyframes pt-skull-sway {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-2.5deg); }
+  75% { transform: rotate(2.5deg); }
+}
+.pt-skull-sway { animation: pt-skull-sway 3.2s ease-in-out infinite; }
+
+@keyframes pt-skull-eyes {
+  0%, 60%, 100% { opacity: 0.35; }
+  66%, 78% { opacity: 1; }
+  84% { opacity: 0.35; }
+}
+.pt-skull-eyes { opacity: 0.7; animation: pt-skull-eyes 3.2s ease-in-out infinite; }
+
+/* Scudo con timbro (Fair Play): il check scende e timbra, poi svanisce. */
+@keyframes pt-shield-pulse {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.035); }
+}
+.pt-shield-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pt-shield-pulse 3s ease-in-out infinite;
+}
+
+@keyframes pt-shield-stamp {
+  0%, 100% { opacity: 0; transform: translateY(-2.5px) scale(1.7); }
+  12%, 30% { opacity: 1; transform: translateY(0) scale(1); }
+  42% { opacity: 1; }
+  50% { opacity: 0; transform: translateY(1.6px) scale(0.92); }
+}
+.pt-shield-stamp {
+  opacity: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pt-shield-stamp 3s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* Emblema Vittoria: spade incrociate con riflesso che corre sulla lama. */
+.pt-win-blade-l,
+.pt-win-blade-r {
+  transform-box: view-box;
+  transform-origin: center;
+}
+.pt-win-blade-l { transform: rotate(-45deg); }
+.pt-win-blade-r { transform: rotate(45deg); }
+
+@keyframes pt-win-glint {
+  0%, 55%, 100% { opacity: 0; transform: translateY(-3.5px); }
+  63% { opacity: 0.9; transform: translateY(3px); }
+  74% { opacity: 0; transform: translateY(5.5px); }
+}
+.pt-win-glint { opacity: 0; animation: pt-win-glint 3.4s ease-out infinite; }
+
+@keyframes pt-win-glow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+.pt-win-glow { opacity: 0.7; animation: pt-win-glow 3.4s ease-in-out infinite; }
+
+/* Emblema Sconfitta: scudo spezzato che trema a scatti. */
+@keyframes pt-loss-shake {
+  0%, 86%, 100% { transform: rotate(0deg); }
+  88% { transform: rotate(-3.5deg); }
+  90% { transform: rotate(3deg); }
+  92% { transform: rotate(-2deg); }
+  94% { transform: rotate(0deg); }
+}
+.pt-loss-shake { animation: pt-loss-shake 4.2s ease-in-out infinite; }
+
+/* Emblema Abbandono: bandiera che sventola. */
+@keyframes pt-flag-wave {
+  0%, 100% { transform: skewY(0deg) scaleX(1); }
+  30% { transform: skewY(-3.5deg) scaleX(0.97); }
+  65% { transform: skewY(3deg) scaleX(1.02); }
+}
+.pt-flag-wave {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: pt-flag-wave 2.6s ease-in-out infinite;
+}
+
+/* Emblema Contestazione: bilancia che oscilla, piatti contro-bilanciati. */
+@keyframes pt-scales-rock {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(-7deg); }
+  75% { transform: rotate(6deg); }
+}
+.pt-scales-beam { animation: pt-scales-rock 3.6s ease-in-out infinite; }
+
+@keyframes pt-scales-pan-l {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(9deg); }
+  75% { transform: rotate(-8deg); }
+}
+.pt-scales-pan-l {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: pt-scales-pan-l 3.6s ease-in-out infinite;
+}
+
+@keyframes pt-scales-pan-r {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(-9deg); }
+  75% { transform: rotate(8deg); }
+}
+.pt-scales-pan-r {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: pt-scales-pan-r 3.6s ease-in-out infinite;
+}
+
+/* Anello di grado (hero): rotazione lenta in senso orario. */
+@keyframes pt-ring-spin { to { transform: rotate(360deg); } }
+.pt-ring-spin { animation: pt-ring-spin 16s linear infinite; }
+
+/* Cristallo hero: pulsazione con alone arancio. */
+@keyframes pt-hero-crystal {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(255, 115, 0, 0.35)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 14px rgba(255, 115, 0, 0.6)); }
+}
+.pt-hero-crystal {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pt-hero-crystal 3.2s ease-in-out infinite;
+}
+
+/* Brace dell'arena: sale dal basso e si spegne. Posizione e ritmo sono
+   inline per ciascuna particella. */
+@keyframes pt-ember-rise {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  12% { opacity: 0.85; }
+  100% { transform: translateY(-40vh) translateX(16px) scale(0.2); opacity: 0; }
+}
+.pt-ember {
+  position: absolute;
+  bottom: -10px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: pt-ember-rise 9s linear infinite;
+}
+
+/* Ingresso scalare delle righe del registro. */
+@keyframes pt-row-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pt-row-in { animation: pt-row-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Riflesso diagonale che attraversa le card al passaggio del mouse. */
+.pt-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.16) 50%,
+    transparent 58%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.group:hover .pt-shine { transform: translateX(120%); }
+
+/* Gemma superiore delle tile: bagliore secco e periodico. */
+@keyframes pt-gem-glint {
+  0%, 72%, 100% { opacity: 0; }
+  78% { opacity: 1; }
+  84% { opacity: 0; }
+}
+.pt-gem-glint { opacity: 0; animation: pt-gem-glint 4.2s ease-out infinite; }
+
+/* Scintille delle medaglie leggendarie. */
+@keyframes pt-medal-spark {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.1) rotate(24deg); }
+}
+.pt-medal-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pt-medal-spark 2.1s ease-in-out infinite;
+}
+
+/* Ingresso dell'intestazione di pagina. */
+@keyframes pt-title-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.pt-title-in { animation: pt-title-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-crown-body,
+  .pt-crown-spark,
+  .pt-crystal-fill,
+  .pt-crystal-glint,
+  .pt-flame-outer,
+  .pt-flame-inner,
+  .pt-hourglass-body,
+  .pt-hourglass-sand,
+  .pt-watch-hand,
+  .pt-skull-sway,
+  .pt-skull-eyes,
+  .pt-shield-pulse,
+  .pt-shield-stamp,
+  .pt-win-glint,
+  .pt-win-glow,
+  .pt-loss-shake,
+  .pt-flag-wave,
+  .pt-scales-beam,
+  .pt-scales-pan-l,
+  .pt-scales-pan-r,
+  .pt-ring-spin,
+  .pt-hero-crystal,
+  .pt-row-in,
+  .pt-gem-glint,
+  .pt-medal-spark,
+  .pt-title-in { animation: none; }
+  .pt-ember { display: none; }
+}
