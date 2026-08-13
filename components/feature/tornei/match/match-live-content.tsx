@@ -91,6 +91,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         canDeclare={showLiveNotices && !resultClaimPending && !resultReselectionRequired &&
           !reconnectGraceActive && tournament.matchStatus === 'ongoing'}
         declareBusy={declareResult.declaring} onDeclare={declareResult.declare} onLeave={leave.leave}
+        reportMatchId={tournament.matchId}
       />
       {tournament.status === 'in_registrazione' && !ready.tableFull && (
         <p className="mb-4 rounded-2xl border border-amber-400/30 bg-header-bg/95 px-4 py-3 text-sm text-amber-100 shadow-lg shadow-black/30">

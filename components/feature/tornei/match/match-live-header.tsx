@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Flag, Gamepad2, LogOut } from 'lucide-react';
+import { ArrowLeft, Flag, Gamepad2, LogOut, ShieldAlert } from 'lucide-react';
 import type { ConnectionQuality, Participant, TournamentStatus } from '@/types/tournament';
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import { ConnectionBadge } from './match-live-parts';
+import { MatchReportModal } from './match-report-modal';
 
 interface MatchLiveHeaderProps {
   players: [Participant, Participant];
@@ -27,6 +28,8 @@ interface MatchLiveHeaderProps {
   declareBusy?: boolean;
   onDeclare?: (iWon: boolean) => void;
   onLeave: () => void;
+  /** Match id per la segnalazione contro l'avversario (moderazione). */
+  reportMatchId?: string | null;
 }
 
 export function MatchLiveHeader({
@@ -47,9 +50,11 @@ export function MatchLiveHeader({
   declareBusy = false,
   onDeclare,
   onLeave,
+  reportMatchId = null,
 }: MatchLiveHeaderProps) {
   const [playerA, playerB] = players;
   const [declareOpen, setDeclareOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   useEffect(() => {
     if (!canDeclare) setDeclareOpen(false);
   }, [canDeclare]);
@@ -116,6 +121,16 @@ export function MatchLiveHeader({
         {isPlayer && status !== 'terminata' && (
           <button
             type="button"
+            onClick={() => setReportOpen(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 text-xs font-black uppercase tracking-wide text-white/70 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-200 active:scale-95"
+          >
+            <ShieldAlert className="h-4 w-4" />
+            Segnala
+          </button>
+        )}
+        {isPlayer && status !== 'terminata' && (
+          <button
+            type="button"
             disabled={leaving}
             onClick={onLeave}
             className="inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-b from-red-500 to-red-600 px-4 text-xs font-black uppercase tracking-wide text-white shadow-[0_10px_24px_-10px_rgba(239,68,68,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95 disabled:opacity-50 sm:px-5"
@@ -125,6 +140,14 @@ export function MatchLiveHeader({
           </button>
         )}
       </div>
+
+      {reportOpen && (
+        <MatchReportModal
+          matchId={reportMatchId}
+          opponentName={opponentName}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
 
       {declareOpen && (
         <div
