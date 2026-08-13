@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Gamepad2, Layers, LogOut, Star, Swords } from 'lucide-react';
-import { logoutAction } from '@/actions/auth';
+import { Gamepad2, Layers, Star, Swords } from 'lucide-react';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 import { ProfileDrawer } from '@/components/feature/profile/profile-drawer';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
@@ -139,17 +138,6 @@ export function DashboardHeader({
               </span>
             </button>
           </div>
-
-          <form action={logoutAction} className="ml-1">
-            <button
-              type="submit"
-              aria-label="Esci"
-              title="Esci"
-              className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/10 text-white/60 transition hover:border-red-500/40 hover:bg-red-500/15 hover:text-red-400"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </form>
         </div>
       </div>
 

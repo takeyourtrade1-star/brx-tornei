@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { logoutAction } from '@/actions/auth';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { evaluateAchievements } from '@/lib/data/achievements';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
@@ -58,18 +59,12 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
     const t = window.setTimeout(() => closeRef.current?.focus(), 20);
 
     const onKeyDown = (event: KeyboardEvent) => {
-      // Se il modal regolamento è aperto, Esc spetta a lui (chiude solo il modal).
       if (rulesOpen) return;
-      if (event.key === 'Escape') {
-        onClose();
-        return;
-      }
+      if (event.key === 'Escape') return void onClose();
       if (event.key !== 'Tab') return;
       const panel = panelRef.current;
       if (!panel) return;
-      const focusable = panel.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
+      const focusable = panel.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])');
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -91,7 +86,6 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
     };
   }, [open, onClose, rulesOpen]);
 
-  // Lazy fetch al primo accesso.
   useEffect(() => {
     if (!open || state.status !== 'idle') return;
     setState({ status: 'loading' });
@@ -99,20 +93,12 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
     fetchMyAchievementsAction()
       .then((res) => {
         if (cancelled) return;
-        setState(res.ok
-          ? { status: 'success', reputation: res.reputation }
-          : { status: 'error', message: res.error });
+        setState(res.ok ? { status: 'success', reputation: res.reputation } : { status: 'error', message: res.error });
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
-        setState({
-          status: 'error',
-          message: err instanceof Error ? err.message : 'Errore di rete',
-        });
+        if (!cancelled) setState({ status: 'error', message: err instanceof Error ? err.message : 'Errore di rete' });
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [open, state.status]);
 
   const achievements = useMemo(
@@ -240,6 +226,15 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
             Regolamento e informativa privacy dei tornei
           </button>
           <TournamentRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
+
+          <form action={logoutAction} className="mt-5 pb-2 text-center">
+            <button
+              type="submit"
+              className="text-xs font-bold text-red-600 transition hover:text-red-700 hover:underline"
+            >
+              Esci
+            </button>
+          </form>
         </div>
       </aside>
     </div>,
