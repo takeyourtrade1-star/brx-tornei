@@ -144,5 +144,33 @@ export function useMatchGapPeerReview(matchId: string | null, active: boolean) {
     }
   }, [matchId, refresh]);
 
-  return { recordings, clips, busyId, error, open, reload, review };
+  const consentStaffEscalation = useCallback(async (recordingId: string) => {
+    if (!matchId) return;
+    setBusyId(recordingId);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/tournaments/match/${encodeURIComponent(matchId)}/gap-recordings/${encodeURIComponent(recordingId)}/staff-escalation-consent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            consent_version: 'gap-staff-consent-v1',
+            escalation_acknowledged: true,
+          }),
+          cache: 'no-store',
+          credentials: 'same-origin',
+          signal: AbortSignal.timeout(15_000),
+        },
+      );
+      if (!response.ok) throw new Error('Consenso non registrato.');
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Consenso non registrato.');
+    } finally {
+      setBusyId(null);
+    }
+  }, [matchId, refresh]);
+
+  return { recordings, clips, busyId, error, open, reload, review, consentStaffEscalation };
 }

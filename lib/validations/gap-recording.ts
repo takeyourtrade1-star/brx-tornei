@@ -99,6 +99,19 @@ export const gapPeerRecordingSchema = z.object({
   reviewed_at: z.string().datetime({ offset: true }).nullable(),
   review_reason_code: z.string().max(64).nullable(),
   media_deleted: z.boolean(),
+  staff_consent_status: z.enum(['pending', 'granted']),
+  staff_consent_version: z.string().max(64).nullable(),
+  staff_escalation_complete: z.boolean(),
+  staff_resolution: z.object({
+    decision: z.string().max(16),
+    reason_code: z.string().max(64),
+    resolved_at: z.string().datetime({ offset: true }).nullable(),
+  }).nullable(),
+});
+
+export const gapStaffEscalationConsentInputSchema = z.object({
+  consent_version: z.literal('gap-staff-consent-v1'),
+  escalation_acknowledged: z.literal(true),
 });
 
 export const gapPeerListResponseSchema = z.object({

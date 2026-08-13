@@ -5,7 +5,14 @@
 Implementati dietro feature flag: recorder desktop, pre/post-roll, IndexedDB,
 consenso esplicito prima dell'upload, BFF same-origin, manifest idempotente,
 upload S3 firmato, verifica reciproca tra i due giocatori, cancellazione locale,
-pulizia applicativa a scadenza e lifecycle S3. Staff non partecipa al flusso.
+pulizia applicativa a scadenza e lifecycle S3.
+
+Escalation allo staff: quando un frammento viene contestato, entrambi i
+giocatori devono acconsentire all'invio dei PROPRI video allo staff. Soltanto
+col consenso di entrambi la retention dei media viene estesa e la disputa
+diventa visibile nella sezione Tornei del back office, dove lo staff può
+visionare i frammenti (ticket firmati monouso) e risolvere la disputa
+cancellando i media.
 
 La configurazione Terraform passa `fmt` e `validate` con i provider bloccati.
 Gli eventi operativi sono ora aggregati e privi di ID. Prima del rollout
@@ -244,3 +251,24 @@ JWT dei due giocatori già usato dalle API del match.
 - una contestazione conserva gli oggetti soltanto fino al TTL di 72 ore;
 - dopo 72 ore gli oggetti non verificati spariscono dallo storage;
 - l'upload non usa TURN e non degrada audio/video appena riconnessi.
+
+## Escalazione allo staff (verifica manuale)
+
+Contratto e regole:
+
+- `POST /api/v1/matches/{matchId}/gap-recordings/{recordingId}/staff-escalation-consent`
+  (body `{ consent_version: 'gap-staff-consent-v1', escalation_acknowledged: true }`)
+  — il PROPRIETARIO acconsente per il proprio video. Idempotente.
+- L'escalation si completa solo quando TUTTI i video della partita
+  (stato `ready`/`rejected`) hanno il consenso E almeno uno è contestato.
+  A quel punto `staff_escalated_at` viene impostato e `expires_at` esteso
+  di `STAFF_GAP_ESCALATION_RETENTION_HOURS` (default 720h).
+- Endpoint staff (back office Tornei), autenticati con token interno +
+  identità proiettata (`X-Staff-Subject` / `X-Staff-Capabilities`) e CIDR
+  ammessi (`STAFF_API_TOKEN` / `STAFF_ALLOWED_CIDRS`):
+  - `GET /api/v1/staff/gap-disputes` — coda delle dispute con escalation completa
+  - `GET /api/v1/staff/gap-disputes/{matchId}` — dettaglio con clip
+  - `POST .../{matchId}/recordings/{recordingId}/clips/view-tickets` — ticket firmati
+  - `POST .../{matchId}/resolve` — risoluzione (`upheld`/`dismissed`) che
+    revoca/cancella i media e chiude ogni video della partita
+- Capability staff: `tournament.gap.read`, `tournament.gap.resolve`.

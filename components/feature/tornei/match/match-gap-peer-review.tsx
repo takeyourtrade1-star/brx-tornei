@@ -5,6 +5,7 @@ import { Eye, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useMatchGapPeerReview } from '@/hooks/use-match-gap-peer-review';
 import type { GapPeerRecording } from '@/lib/validations/gap-recording';
 import { MatchGapVideoPlaylist } from './match-gap-video-playlist';
+import { MatchGapStaffEscalation } from './match-gap-staff-escalation';
 
 function OwnRecording({ recording, opponentName }: { recording: GapPeerRecording; opponentName: string }) {
   const copy = recording.status === 'ready'
@@ -21,8 +22,18 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
   const [rejectReason, setRejectReason] = useState<Record<string, 'gap_incomplete' | 'gap_unusable' | 'gap_unexpected_content'>>({});
   if (review.recordings.length === 0 && !review.error) return null;
 
+  const ownRecording = review.recordings.find((recording) => recording.relationship === 'own');
+  const opponentRecording = review.recordings.find((recording) => recording.relationship === 'opponent');
+
   return (
-    <section className="mb-4 space-y-3.5 rounded-2xl border border-primary/35 bg-header-bg/95 p-[18px] text-sm text-white shadow-xl backdrop-blur-md">
+    <>
+      <MatchGapStaffEscalation
+        own={ownRecording}
+        opponent={opponentRecording}
+        busy={ownRecording ? review.busyId === ownRecording.recording_id : false}
+        onConsent={review.consentStaffEscalation}
+      />
+      <section className="mb-4 space-y-3.5 rounded-2xl border border-primary/35 bg-header-bg/95 p-[18px] text-sm text-white shadow-xl backdrop-blur-md">
       <div className="flex items-start gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
           <Eye className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -155,5 +166,6 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
         );
       })}
     </section>
+    </>
   );
 }
