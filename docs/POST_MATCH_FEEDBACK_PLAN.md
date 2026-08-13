@@ -35,8 +35,9 @@ Risposta `200`:
 { "data": { "status": "ok" | "already_submitted" } }
 ```
 
-Errori: `404` match inesistente, `403` non partecipante, `409` match
-non chiuso con `endReason = leave`, `422` payload non valido.
+Errori: `401` non autenticato, `404` match inesistente, `403` non
+partecipante (o non vincitore: vedi regola 4), `409` match non chiuso
+con `endReason = leave`, `422` payload non valido.
 
 ### 2. `POST /api/v1/matches/{matchId}/opponent-badge`
 
@@ -46,8 +47,9 @@ Autenticato. Accessibile solo ai partecipanti del match.
 { "badge": "friendly" }
 ```
 
-Risposta `200` identica al punto 1. Errori: `422` badge sconosciuto
-(vincolare all'enum), `409` match non chiuso con `endReason = reported`.
+Risposta `200` identica al punto 1. Errori: `401` non autenticato,
+`422` badge sconosciuto (vincolare all'enum), `409` match non chiuso
+con `endReason = reported`.
 
 ### 3. `GET /api/v1/players/me/match-feedback`
 
@@ -68,6 +70,10 @@ Autenticato. Riepilogo del giocatore corrente.
 - `badges`: solo i badge con `count > 0`, aggregati per tipo.
 - `connection_reports`: i rapporti di connessione **inviati da me**
   (non quelli ricevuti), aggregati per livello.
+- **Contratto a zero righe**: senza dati la risposta resta identica nella
+  forma — `"badges": []` e `"connection_reports": { "smooth": 0,
+  "some_issues": 0, "poor": 0 }`. Mai `null` o chiavi mancanti.
+- Errori: `401` non autenticato.
 
 ## Enum badge (15)
 
@@ -90,6 +96,10 @@ CREATE TABLE match_feedback (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (match_id, from_user_id, kind)  -- idempotenza
 );
+
+-- Indici per le aggregazioni della GET riepilogo
+CREATE INDEX idx_match_feedback_received ON match_feedback (to_user_id, kind, badge);
+CREATE INDEX idx_match_feedback_sent     ON match_feedback (from_user_id, kind, connection);
 ```
 
 ## Regole di business
@@ -103,22 +113,37 @@ CREATE TABLE match_feedback (
 3. **Chiusura del match**: accettare `end_feedback` solo per match
    `endReason = leave` e `opponent_badge` solo per match
    `endReason = reported`, pena `409`. Il timeout chiuso (`timeout`)
-   non accetta feedback (scelta prodotto: nessuna domanda).
-4. **`to_user_id`**: per i badge è l'avversario del match; derivarlo
+   e la contestata (`disputed`) non accettano feedback (scelta
+   prodotto: nessuna domanda).
+4. **Chi invia il rapporto**: per `end_feedback` accettare solo il
+   giocatore **rimasto** al tavolo, cioè `from_user_id ==
+   winner_user_id` del match (il frontend lo mostra solo a lui; la
+   regola va comunque imposta lato server). Chi ha abbandonato non
+   può compilare il rapporto.
+5. **`to_user_id`**: per i badge è l'avversario del match; derivarlo
    sempre lato server dalla composizione del match, mai dal payload.
-5. **Aggregazione**: la GET riepilogo aggrega con GROUP BY, cache breve
-   (o nessuna), risposta snella (`cache: no-store` dal client).
-6. **Moderazione**: i badge negativi non sono mai visibili pubblicamente
+6. **Aggregazione**: la GET riepilogo aggrega con GROUP BY (indici in
+   sezione Modello dati), cache breve (o nessuna), risposta snella
+   (`cache: no-store` dal client).
+7. **Moderazione**: i badge negativi non sono mai visibili pubblicamente
    e non producono sanzioni automatiche. Il conteggio è esposto solo al
    giocatore che li ha ricevuti (già garantito: la GET è `/me`).
-7. **Segnalazioni spurie**: eventuali soglie/regole anti-abuso (es.
+8. **Nessun effetto sul ledger**: il feedback è consultivo e non
+   modifica mai `match_results` / reputazione, né l'esito del match.
+   Una conferma `disconnect_confirmed = false` è un segnale di disputa
+   che resta nel ledger grezzo per analisi e moderazione, senza alcuna
+   rivalutazione automatica dell'esito.
+9. **Segnalazioni spurie**: eventuali soglie/regole anti-abuso (es.
    minimo di durata match, cooldown) sono decisioni di prodotto future;
-   il ledger grezzo resta disponibile per l'analisi.
+   il ledger grezzo resta disponibile per l'analisi. Stessa cosa per la
+   retention dei dati grezzi: nessuna cancellazione automatica nel
+   piano iniziale.
 
 ## Note di sicurezza
 
 - Auth: stesso Bearer token SSO degli altri endpoint.
-- Verifica che `from_user_id` (dal token) sia un partecipante del match.
+- Verifica che `from_user_id` (dal token) sia un partecipante del match;
+  per `end_feedback` che sia anche il vincitore (regola 4).
 - Log minimale, nessun contenuto libero (niente testo utente: solo enum).
 
 ## Rollout

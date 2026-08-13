@@ -21,12 +21,6 @@ export interface MatchFeedbackSummary {
   connectionReports: Record<MatchConnectionLevel, number>;
 }
 
-const EMPTY_CONNECTION_REPORTS: Record<MatchConnectionLevel, number> = {
-  smooth: 0,
-  some_issues: 0,
-  poor: 0,
-};
-
 /**
  * POST /api/v1/matches/{matchId}/end-feedback
  * Rapporto di battaglia dopo una chiusura per abbandono/disconnessione.
@@ -113,9 +107,4 @@ export async function fetchMyMatchFeedback(): Promise<MatchFeedbackSummary> {
       poor: toCount(reportsRaw.poor),
     },
   };
-}
-
-/** Riepilogo vuoto, usato dalle UI quando il backend non risponde. */
-export function emptyMatchFeedback(): MatchFeedbackSummary {
-  return { badges: [], connectionReports: { ...EMPTY_CONNECTION_REPORTS } };
 }
