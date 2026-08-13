@@ -38,10 +38,10 @@ export function MatchGapProtectionNotice({
           </span>
           <div className="space-y-3">
             <div>
-              <p className="font-sans text-sm font-black text-white">Vuoi inviare il video registrato durante la disconnessione?</p>
+              <p className="font-sans text-sm font-black text-white">Vuoi inviare il video di sicurezza della disconnessione?</p>
               <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">
-                Mentre eri disconnesso, il tuo PC ha continuato a registrare la webcam.
-                La registrazione è salvata solo su questo PC.
+                Il video, senza audio, include i 10 secondi precedenti e i 5 successivi
+                alla disconnessione. La registrazione è salvata solo su questo PC.
                 Se accetti, sarà inviata in modo sicuro al tuo avversario perché possa
                 verificare cosa è successo. Verrà cancellata automaticamente dopo la verifica
                 (o al massimo entro 3 giorni). Non salviamo mai la partita completa.
@@ -98,7 +98,7 @@ export function MatchGapProtectionNotice({
     ? snapshot.error ?? progress?.error ?? snapshot.uploadError ??
       'Invio della registrazione non riuscito.'
     : active
-      ? 'Connessione instabile: il PC sta registrando in automatico.'
+      ? 'Connessione instabile: il PC sta salvando il video di sicurezza senza audio.'
       : waitingForNetwork
         ? 'Video pronto. In attesa della connessione per avviare l’invio.'
       : progress?.phase === 'preparing'
@@ -114,7 +114,7 @@ export function MatchGapProtectionNotice({
                   'Invio interrotto. Un nuovo tentativo è programmato.'
       : snapshot.pendingIncidents > 0
         ? 'Registrazione pronta: preparazione dell’invio in corso…'
-        : 'Registrazione di sicurezza attiva. La partita completa non viene salvata.';
+        : 'Protezione video senza audio attiva. La partita completa non viene salvata.';
 
   const toneStyle = failed
     ? { container: 'border-red-500/30 text-red-100', icon: 'border-red-500/30 bg-red-500/15 text-red-400' }

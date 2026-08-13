@@ -7,13 +7,12 @@ export const GAP_MAX_CAPTURE_MS = 120_000;
 export const GAP_MAX_BYTES = 32 * 1024 * 1024;
 export const GAP_LOCAL_TTL_MS = 72 * 60 * 60 * 1_000;
 export const GAP_VIDEO_BITS_PER_SECOND = 1_200_000;
-export const GAP_AUDIO_BITS_PER_SECOND = 64_000;
 
 const MIME_TYPE_PREFERENCE = [
-  'video/webm;codecs=vp8,opus',
-  'video/webm;codecs=vp9,opus',
+  'video/webm;codecs=vp8',
+  'video/webm;codecs=vp9',
   'video/webm',
-  'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+  'video/mp4;codecs=avc1.42E01E',
   'video/mp4',
 ] as const;
 

@@ -84,8 +84,9 @@ export function MatchGapPeerReview({ matchId, opponentName }: { matchId: string 
                         disabled={busy}
                       />
                       <span>
-                        Ho capito che vedrò solo il video della disconnessione, inviato col consenso
-                        di {opponentName}, e che non è la partita intera.
+                        Ho capito che vedrò solo il video senza audio dei 10 secondi precedenti e
+                        dei 5 successivi alla disconnessione, inviato col consenso di {opponentName},
+                        e che non è la partita intera.
                       </span>
                     </label>
                     <button

@@ -28,9 +28,10 @@ describe('middleware CSP', () => {
     expect(csp).not.toContain("'unsafe-eval'");
     expect(csp).not.toContain('connect-src https:');
     expect(csp).not.toContain('connect-src wss:');
-    expect(csp).toContain(
-      'https://tournaments-000876600482-eu-south-1-match-gaps.s3.eu-south-1.amazonaws.com',
-    );
+    // L'origine di upload entra nella CSP solo quando la feature e la relativa
+    // origin sono configurate esplicitamente; nessun bucket production implicito.
+    expect(csp).toContain("connect-src 'self'");
+    expect(csp).not.toContain('match-gaps.s3.eu-south-1.amazonaws.com');
     expect(csp).not.toContain('*.amazonaws.com');
     expect(csp).not.toContain('*.cloudfront.net');
     expect(csp).not.toContain('*.scryfall.io');

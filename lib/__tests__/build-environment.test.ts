@@ -173,6 +173,15 @@ describe('validazione ambiente di build', () => {
     expect(validateProductionEnvironment({ NODE_ENV: 'development' })).toBeNull();
   });
 
+  it('mantiene il gap recording opt-in e senza origin storage hardcoded', () => {
+    const source = readFileSync(new URL('../public-config.ts', import.meta.url), 'utf8');
+    expect(source).toContain(
+      "process.env.NEXT_PUBLIC_MATCH_GAP_RECORDING_ENABLED === 'true'",
+    );
+    expect(source).not.toContain("NEXT_PUBLIC_MATCH_GAP_RECORDING_ENABLED !== 'false'");
+    expect(source).not.toContain('match-gaps.s3.eu-south-1.amazonaws.com');
+  });
+
   it('rifiuta un digest modello mancante, maiuscolo o non SHA-256', () => {
     for (const value of [undefined, 'A'.repeat(64), 'a'.repeat(63)]) {
       expect(() =>

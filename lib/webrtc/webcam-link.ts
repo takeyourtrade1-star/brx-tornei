@@ -229,12 +229,13 @@ export function createWebcamReceiver(
   };
 
   pc.onicecandidate = (e) => {
-    if (e.candidate) void sig.send('candidate', e.candidate.toJSON());
+    if (e.candidate) void sig.send('candidate', e.candidate.toJSON()).catch(() => {});
   };
 
   pc.onconnectionstatechange = () => {
     const st = pc.connectionState;
     if (st === 'connected') {
+      sig.setConnected(true);
       clearConnectWatchdog();
       h.onState?.('connected');
       tryDeliverInbound();
@@ -307,7 +308,7 @@ export function createWebcamReceiver(
     clearConnectWatchdog();
     clearStreamWatchdog();
     if (statsTimer) clearInterval(statsTimer);
-    void sig.send('bye', null);
+    void sig.send('bye', null).catch(() => {});
     sig.stop();
     pc.getReceivers().forEach((r) => r.track?.stop());
     inboundStream = null;
@@ -345,9 +346,12 @@ export function createWebcamSender(
   };
 
   pc.onicecandidate = (e) => {
-    if (e.candidate) void sig.send('candidate', e.candidate.toJSON());
+    if (e.candidate) void sig.send('candidate', e.candidate.toJSON()).catch(() => {});
   };
-  pc.onconnectionstatechange = () => mapState(pc, h.onState);
+  pc.onconnectionstatechange = () => {
+    sig.setConnected(pc.connectionState === 'connected');
+    mapState(pc, h.onState);
+  };
 
   async function tuneSenders(): Promise<void> {
     for (const sender of pc.getSenders()) {
@@ -418,8 +422,9 @@ export function createWebcamSender(
   }
 
   function stop(): void {
-    void sig.send('bye', null);
+    void sig.send('bye', null).catch(() => {});
     sig.stop();
+    stream.getTracks().forEach((track) => track.stop());
     try {
       pc.close();
     } catch {

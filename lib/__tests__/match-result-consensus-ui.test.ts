@@ -30,3 +30,15 @@ describe('match result consensus UI contract', () => {
     expect(notices).not.toContain('vincerai la partita a tavolino');
   });
 });
+
+describe('authoritative WebSocket presence handshake', () => {
+  it('waits for an authenticated application acknowledgement', () => {
+    const chat = readFileSync(
+      new URL('../../hooks/use-match-chat.ts', import.meta.url),
+      'utf8',
+    );
+    expect(chat).toContain("data.event === 'authenticated'");
+    expect(chat).toContain('AUTH_ACK_TIMEOUT_MS');
+    expect(chat).toContain('MAX_RECONNECT_ATTEMPTS = 14');
+  });
+});

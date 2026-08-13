@@ -101,6 +101,7 @@ export class GapRecordingCoordinator {
         await this.finalizeActive();
       }
       this.clearTimers();
+      await this.store.deleteUnassigned(this.matchUserKey);
       await this.publishSnapshot();
     });
   }

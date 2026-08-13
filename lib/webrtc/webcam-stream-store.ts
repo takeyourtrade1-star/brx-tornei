@@ -29,9 +29,10 @@ export const webcamLink = {
 
   /** Registra sorgente, stream attivo e l'eventuale funzione di chiusura. */
   set(source: WebcamSource, stream: MediaStream | null, stop?: () => void): void {
+    if (current && current !== stream) current.getTracks().forEach((track) => track.stop());
+    stopFn = stop ?? null;
     currentSource = source;
     current = stream;
-    if (stop) stopFn = stop;
     notify();
   },
 
@@ -42,6 +43,7 @@ export const webcamLink = {
     } catch {
       /* già chiuso */
     }
+    current?.getTracks().forEach((track) => track.stop());
     stopFn = null;
     current = null;
     currentSource = null;

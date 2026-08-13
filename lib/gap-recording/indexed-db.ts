@@ -5,7 +5,8 @@ import type {
 import { expiredGapIncidentIds } from '@/lib/gap-recording/retention';
 
 const DATABASE_NAME = 'ebartex-match-gap-v1';
-const DATABASE_VERSION = 1;
+// La v2 elimina i buffer v1, che potevano contenere una traccia audio.
+const DATABASE_VERSION = 2;
 const CLIPS_STORE = 'clips';
 const INCIDENTS_STORE = 'incidents';
 
@@ -22,6 +23,7 @@ export interface GapRecordingStore {
     until: number | null,
   ) => Promise<GapClipRecord[]>;
   pruneRolling: (matchUserKey: string, cutoff: number) => Promise<void>;
+  deleteUnassigned: (matchUserKey: string) => Promise<void>;
   deleteIncidentData: (incidentId: string) => Promise<void>;
   deleteExpired: (before: number) => Promise<void>;
 }
@@ -47,16 +49,24 @@ function openDatabase(): Promise<IDBDatabase> {
   if (databasePromise) return databasePromise;
   databasePromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const database = request.result;
-      const clips = database.createObjectStore(CLIPS_STORE, { keyPath: 'id' });
-      clips.createIndex('matchUser', 'matchUserKey', { unique: false });
-      clips.createIndex('incident', 'incidentId', { unique: false });
-      clips.createIndex('endedAt', 'endedAt', { unique: false });
-      const incidents = database.createObjectStore(INCIDENTS_STORE, { keyPath: 'id' });
-      incidents.createIndex('matchUser', 'matchUserKey', { unique: false });
-      incidents.createIndex('status', 'status', { unique: false });
-      incidents.createIndex('updatedAt', 'updatedAt', { unique: false });
+      const oldVersion = (event as IDBVersionChangeEvent).oldVersion;
+      if (oldVersion === 0) {
+        const clips = database.createObjectStore(CLIPS_STORE, { keyPath: 'id' });
+        clips.createIndex('matchUser', 'matchUserKey', { unique: false });
+        clips.createIndex('incident', 'incidentId', { unique: false });
+        clips.createIndex('endedAt', 'endedAt', { unique: false });
+        const incidents = database.createObjectStore(INCIDENTS_STORE, { keyPath: 'id' });
+        incidents.createIndex('matchUser', 'matchUserKey', { unique: false });
+        incidents.createIndex('status', 'status', { unique: false });
+        incidents.createIndex('updatedAt', 'updatedAt', { unique: false });
+      } else if (oldVersion < 2) {
+        // Le registrazioni v1 non rispettano la policy video-only e non devono
+        // restare disponibili per un upload successivo all'aggiornamento.
+        request.transaction?.objectStore(CLIPS_STORE).clear();
+        request.transaction?.objectStore(INCIDENTS_STORE).clear();
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => {
@@ -168,6 +178,18 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
     await done;
   }
 
+  async deleteUnassigned(matchUserKey: string): Promise<void> {
+    const database = await openDatabase();
+    const transaction = database.transaction(CLIPS_STORE, 'readwrite');
+    const done = transactionDone(transaction);
+    const store = transaction.objectStore(CLIPS_STORE);
+    const clips = await getAllFromIndex<GapClipRecord>(store, 'matchUser', matchUserKey);
+    for (const clip of clips) {
+      if (clip.incidentId === null) store.delete(clip.id);
+    }
+    await done;
+  }
+
   async deleteIncidentData(incidentId: string): Promise<void> {
     const database = await openDatabase();
     const transaction = database.transaction([CLIPS_STORE, INCIDENTS_STORE], 'readwrite');
@@ -188,12 +210,15 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
       incidentStore.getAll() as IDBRequest<GapIncidentRecord[]>,
     );
     const expiredIds = expiredGapIncidentIds(incidents, before);
+    const clipStore = transaction.objectStore(CLIPS_STORE);
+    const clips = await requestResult(clipStore.getAll() as IDBRequest<GapClipRecord[]>);
+    for (const clip of clips) {
+      if (
+        (clip.incidentId === null && clip.endedAt < before) ||
+        (clip.incidentId !== null && expiredIds.has(clip.incidentId))
+      ) clipStore.delete(clip.id);
+    }
     if (expiredIds.size > 0) {
-      const clipStore = transaction.objectStore(CLIPS_STORE);
-      const clips = await requestResult(clipStore.getAll() as IDBRequest<GapClipRecord[]>);
-      for (const clip of clips) {
-        if (clip.incidentId && expiredIds.has(clip.incidentId)) clipStore.delete(clip.id);
-      }
       for (const incidentId of expiredIds) incidentStore.delete(incidentId);
     }
     await done;

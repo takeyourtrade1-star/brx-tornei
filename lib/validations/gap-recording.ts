@@ -3,9 +3,12 @@ import { z } from 'zod';
 const MAX_INCIDENT_BYTES = 32 * 1024 * 1024;
 const contentTypeSchema = z.enum([
   'video/webm',
+  'video/webm;codecs=vp8',
+  'video/webm;codecs=vp9',
   'video/webm;codecs=vp8,opus',
   'video/webm;codecs=vp9,opus',
   'video/mp4',
+  'video/mp4;codecs=avc1.42e01e',
   'video/mp4;codecs=avc1.42e01e,mp4a.40.2',
 ]);
 

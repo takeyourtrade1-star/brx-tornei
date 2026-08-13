@@ -24,11 +24,8 @@ const cdnUrl = normalizeOrigin(
   process.env.NEXT_PUBLIC_CDN_URL || '',
   isDevelopment ? 'https://di0y87a9s8da9.cloudfront.net' : '',
 );
-const productionMatchGapUploadOrigin =
-  'https://tournaments-000876600482-eu-south-1-match-gaps.s3.eu-south-1.amazonaws.com';
 const matchGapUploadOrigin = normalizeOrigin(
   process.env.NEXT_PUBLIC_MATCH_GAP_UPLOAD_ORIGIN || '',
-  isDevelopment ? '' : productionMatchGapUploadOrigin,
 );
 
 export const publicConfig = {
@@ -57,9 +54,7 @@ export const publicConfig = {
   },
   features: {
     matchGapRecording:
-      (isDevelopment
-        ? process.env.NEXT_PUBLIC_MATCH_GAP_RECORDING_ENABLED === 'true'
-        : process.env.NEXT_PUBLIC_MATCH_GAP_RECORDING_ENABLED !== 'false') &&
+      process.env.NEXT_PUBLIC_MATCH_GAP_RECORDING_ENABLED === 'true' &&
       Boolean(matchGapUploadOrigin),
   },
 } as const;

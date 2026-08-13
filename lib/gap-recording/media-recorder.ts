@@ -1,6 +1,5 @@
 import {
   chooseGapRecordingMimeType,
-  GAP_AUDIO_BITS_PER_SECOND,
   GAP_CLIP_DURATION_MS,
   GAP_VIDEO_BITS_PER_SECOND,
 } from '@/lib/gap-recording/policy';
@@ -45,6 +44,13 @@ export function startRotatingGapRecorder({
   now = Date.now,
   makeId = () => crypto.randomUUID(),
 }: StartRotatingRecorderOptions): RotatingRecorderController {
+  const videoTracks = stream.getVideoTracks().filter((track) => track.readyState !== 'ended');
+  if (videoTracks.length === 0) {
+    throw new DOMException('No active video track', 'NotFoundError');
+  }
+  // La chiamata usa ancora lo stream audio/video originale. Il buffer di
+  // sicurezza riceve una vista video-only: il microfono non può essere inciso.
+  const recordingStream = new MediaStream(videoTracks);
   const mimeType = chooseGapRecordingMimeType((value) =>
     MediaRecorder.isTypeSupported(value),
   );
@@ -66,10 +72,9 @@ export function startRotatingGapRecorder({
   const startSlot = (): RecorderSlot => {
     const options: MediaRecorderOptions = {
       videoBitsPerSecond: GAP_VIDEO_BITS_PER_SECOND,
-      audioBitsPerSecond: GAP_AUDIO_BITS_PER_SECOND,
       mimeType,
     };
-    const recorder = new MediaRecorder(stream, options);
+    const recorder = new MediaRecorder(recordingStream, options);
     const chunks: Blob[] = [];
     const startedAt = now();
     const slotSequence = sequence;

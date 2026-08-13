@@ -70,6 +70,14 @@ class MemoryGapStore implements GapRecordingStore {
     }
   }
 
+  async deleteUnassigned(matchUserKey: string) {
+    for (const [id, clip] of this.clips) {
+      if (clip.matchUserKey === matchUserKey && clip.incidentId === null) {
+        this.clips.delete(id);
+      }
+    }
+  }
+
   async deleteIncidentData(incidentId: string) {
     for (const [id, clip] of this.clips) {
       if (clip.incidentId === incidentId) this.clips.delete(id);
@@ -78,6 +86,9 @@ class MemoryGapStore implements GapRecordingStore {
   }
 
   async deleteExpired(before: number) {
+    for (const [id, clip] of this.clips) {
+      if (clip.incidentId === null && clip.endedAt < before) this.clips.delete(id);
+    }
     for (const incident of [...this.incidents.values()]) {
       if (incident.updatedAt < before) await this.deleteIncidentData(incident.id);
     }
@@ -121,6 +132,21 @@ describe('gap recording coordinator', () => {
     await coordinator.acceptClip(recordedClip('clip-1', 1, 15_000, 20_000));
     await coordinator.finish();
     expect(store.incidents.size).toBe(0);
+    expect(store.clips.size).toBe(0);
+  });
+
+  it('keeps the ten second pre-roll and five second post-roll policy', async () => {
+    const now = { value: 30_000 };
+    const { coordinator, store } = setup(now);
+    await coordinator.initialize();
+    await coordinator.observePeer('connected');
+    await coordinator.acceptClip(recordedClip('pre-roll', 1, 20_000, 25_000));
+    await coordinator.observePeer('reconnecting');
+    const [incident] = [...store.incidents.values()];
+    expect(incident.captureStartedAt).toBe(20_000);
+    now.value = 35_000;
+    await coordinator.observePeer('connected');
+    expect(store.incidents.get(incident.id)?.captureEndedAt).toBe(40_000);
   });
 
   it('retains pre-roll and gap clips only after a real connection loss', async () => {

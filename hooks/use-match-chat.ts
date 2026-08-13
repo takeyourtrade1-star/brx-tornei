@@ -18,8 +18,11 @@ interface UseMatchChatOptions {
 
 export type MatchChatConnectionState = 'idle' | 'connecting' | 'connected' | 'error';
 export type MatchPeerPresence = 'unknown' | 'online' | 'offline';
-const MAX_RECONNECT_ATTEMPTS = 4;
+// Il backoff copre almeno l'intera grace autorevole di 90 secondi.
+const MAX_RECONNECT_ATTEMPTS = 14;
 const PRESENCE_HEARTBEAT_MS = 3_000;
+const AUTH_ACK_TIMEOUT_MS = 10_000;
+const MAX_CHAT_MESSAGES = 200;
 
 export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
   const [messages, setMessages] = useState<MatchChatMessage[]>([]);
@@ -47,7 +50,7 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
     try {
       ws.send(JSON.stringify({ text: value }));
       setMessages((old) => [
-        ...old,
+        ...old.slice(-(MAX_CHAT_MESSAGES - 1)),
         { id: nextId(`${userId}:local`), userId, text: value, sentAt: Date.now() },
       ]);
       return true;
@@ -81,6 +84,7 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
     let cancelled = false;
     let reconnectTimer: number | null = null;
     let heartbeatTimer: number | null = null;
+    let authTimer: number | null = null;
     let ws: WebSocket | null = null;
     const reconnect = () => {
       if (cancelled || reconnectTimer || reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) return;
@@ -105,19 +109,29 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
         ws.onopen = () => {
           if (cancelled || !ws) return;
           ws.send(JSON.stringify({ ticket: capability.ticket }));
-          const heartbeat = () => {
-            if (ws?.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ event: 'presence' }));
-            }
-          };
-          heartbeat();
-          heartbeatTimer = window.setInterval(heartbeat, PRESENCE_HEARTBEAT_MS);
-          reconnectAttempts.current = 0;
-          setConnectionState('connected');
+          authTimer = window.setTimeout(() => {
+            if (ws?.readyState === WebSocket.OPEN) ws.close(4001, 'Authentication timeout');
+          }, AUTH_ACK_TIMEOUT_MS);
         };
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(String(event.data)) as Record<string, unknown>;
+            if (data.event === 'authenticated') {
+              if (authTimer) window.clearTimeout(authTimer);
+              authTimer = null;
+              reconnectAttempts.current = 0;
+              setConnectionState('connected');
+              setError(null);
+              if (heartbeatTimer) window.clearInterval(heartbeatTimer);
+              const heartbeat = () => {
+                if (ws?.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({ event: 'presence' }));
+                }
+              };
+              heartbeat();
+              heartbeatTimer = window.setInterval(heartbeat, PRESENCE_HEARTBEAT_MS);
+              return;
+            }
             if (
               data.event === 'presence' &&
               typeof data.user_id === 'string' &&
@@ -130,7 +144,7 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
             if (data.event !== 'chat' || typeof data.text !== 'string') return;
             const sender = typeof data.user_id === 'string' ? data.user_id : 'unknown';
             const sentAt = typeof data.sent_at === 'number' ? data.sent_at : Date.now();
-            setMessages((old) => [...old, {
+            setMessages((old) => [...old.slice(-(MAX_CHAT_MESSAGES - 1)), {
               id: nextId(`${sender}:remote`), userId: sender, text: data.text as string, sentAt,
             }]);
           } catch { /* Ignore malformed frames. */ }
@@ -139,6 +153,8 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
           if (!cancelled) setError('Connessione chat interrotta.');
         };
         ws.onclose = () => {
+          if (authTimer) window.clearTimeout(authTimer);
+          authTimer = null;
           if (heartbeatTimer) window.clearInterval(heartbeatTimer);
           heartbeatTimer = null;
           if (cancelled) return;
@@ -159,6 +175,7 @@ export function useMatchChat({ matchId, userId, active }: UseMatchChatOptions) {
       cancelled = true;
       if (reconnectTimer) window.clearTimeout(reconnectTimer);
       if (heartbeatTimer) window.clearInterval(heartbeatTimer);
+      if (authTimer) window.clearTimeout(authTimer);
       ws?.close();
       if (wsRef.current === ws) wsRef.current = null;
     };

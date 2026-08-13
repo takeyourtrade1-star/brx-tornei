@@ -222,7 +222,9 @@ export function createMatchPeerLink(
       };
     };
     nextPeer.onicecandidate = (e) => {
-      if (isCurrent(nextPeer) && e.candidate) void sendSignal('candidate', e.candidate.toJSON());
+      if (isCurrent(nextPeer) && e.candidate) {
+        void sendSignal('candidate', e.candidate.toJSON()).catch(() => {});
+      }
     };
     const handleConnectionState = () => {
       if (!isCurrent(nextPeer)) return;
