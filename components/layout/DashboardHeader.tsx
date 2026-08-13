@@ -71,15 +71,15 @@ export function DashboardHeader({
 
         <nav
           aria-label="Navigazione principale tornei"
-          className="order-3 grid w-full grid-cols-2 gap-2 sm:order-none sm:ml-auto sm:flex sm:w-auto"
+          className="order-3 grid w-full grid-cols-2 gap-1 rounded-full border border-white/20 bg-white/[0.08] p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_8px_25px_-6px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:order-none sm:ml-auto sm:flex sm:w-auto sm:gap-1.5"
         >
-          <HeaderPrimaryLink
+          <HeaderPrimarySegment
             href="/mazzi"
             label="I miei mazzi"
             icon={Layers}
             active={pathname.startsWith('/mazzi')}
           />
-          <HeaderPrimaryLink
+          <HeaderPrimarySegment
             href="/partite"
             label="Le mie partite"
             icon={Swords}
@@ -204,7 +204,7 @@ function RankStarsRing({ count }: { count: number }) {
   );
 }
 
-function HeaderPrimaryLink({
+function HeaderPrimarySegment({
   href,
   label,
   icon: Icon,
@@ -220,21 +220,21 @@ function HeaderPrimaryLink({
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group flex min-h-10 min-w-0 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-left transition sm:min-w-[8.75rem]',
+        'group flex min-h-[38px] min-w-0 items-center justify-center gap-2 rounded-full px-4 py-1.5 text-center transition-all duration-200 sm:min-w-[8.75rem]',
         active
-          ? 'border-primary/50 bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-[0_6px_20px_-6px_rgba(255,115,0,0.6)]'
-          : 'border-white/15 bg-white/10 text-white/85 hover:border-white/30 hover:bg-white/15 hover:text-white',
+          ? 'border border-white/30 bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.5),0_4px_16px_-2px_rgba(255,115,0,0.6)] font-black'
+          : 'text-white/75 hover:bg-white/10 hover:text-white font-bold',
       )}
     >
       <span
         className={cn(
-          'grid h-7 w-7 shrink-0 place-items-center rounded-lg transition',
-          active ? 'bg-white/20 text-white' : 'bg-white/10 text-white/90 group-hover:bg-primary group-hover:text-white',
+          'grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors',
+          active ? 'bg-white/25 text-white' : 'bg-white/10 text-white/80 group-hover:bg-white/20 group-hover:text-white',
         )}
       >
         <Icon className="h-3.5 w-3.5" strokeWidth={2.4} />
       </span>
-      <span className="min-w-0 truncate text-xs font-black uppercase tracking-wide">{label}</span>
+      <span className="min-w-0 truncate text-xs uppercase tracking-wide">{label}</span>
     </Link>
   );
 }

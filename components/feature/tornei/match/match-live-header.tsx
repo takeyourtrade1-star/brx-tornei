@@ -60,7 +60,7 @@ export function MatchLiveHeader({
   };
 
   return (
-    <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-3xl border border-white/10 bg-card2-end/90 px-4 py-3 text-white shadow-xl shadow-card2-end/20">
+    <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-3xl border border-white/10 bg-header-bg/90 px-4 py-3 text-white shadow-xl shadow-black/30">
       <div className="flex min-w-0 items-center gap-3">
         <Link
           href="/tornei"
@@ -133,7 +133,7 @@ export function MatchLiveHeader({
           aria-label="Termina partita: chi ha vinto?"
           className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-6 py-8 text-center text-white shadow-2xl shadow-card2-end/40">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-gradient-to-b from-[#151d38] via-[#0c1226] to-[#070a16] px-6 py-8 text-center text-white shadow-2xl shadow-black/60">
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-primary to-[#e0564d] shadow-[0_14px_36px_-10px_rgba(255,115,0,0.65)] ring-1 ring-white/20">
               <Flag className="h-6 w-6 text-white" aria-hidden />
             </span>

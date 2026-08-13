@@ -5,7 +5,7 @@ interface TournamentEmptyStateProps {
 
 export function TournamentEmptyState({ contextLabel, filtersActive = false }: TournamentEmptyStateProps) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end px-6 py-14 text-center text-white shadow-xl shadow-card2-end/20">
+    <div className="rounded-3xl border border-white/10 bg-header-bg/90 px-6 py-14 text-center text-white shadow-xl shadow-black/40">
       <p className="font-sans text-lg font-bold uppercase tracking-wide text-white/75 sm:text-xl">
         Nessun torneo per {contextLabel}
       </p>

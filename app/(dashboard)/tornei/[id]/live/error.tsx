@@ -16,7 +16,7 @@ export default function TournamentLiveError({
 
   return (
     <div className="mx-auto flex min-h-[60vh] w-full max-w-lg items-center px-4">
-      <div className="flex w-full flex-col items-center rounded-3xl border border-white/10 bg-card2-end/90 px-6 py-12 text-center text-white shadow-xl shadow-card2-end/20">
+      <div className="flex w-full flex-col items-center rounded-3xl border border-white/10 bg-header-bg/90 px-6 py-12 text-center text-white shadow-xl shadow-black/30">
       <h1 className="font-display text-xl font-black uppercase tracking-wide text-white">
         Errore caricamento partita
       </h1>

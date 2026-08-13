@@ -48,7 +48,7 @@ export function TournamentRequestSentModal({
         aria-modal="true"
         aria-labelledby="request-sent-title"
         aria-describedby="request-sent-description"
-        className={`${modalFont.uiSans} relative w-full max-w-md overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end text-center text-white shadow-2xl shadow-card2-end/50 sm:rounded-[2rem]`}
+        className={`${modalFont.uiSans} relative w-full max-w-md overflow-hidden rounded-t-[2rem] border border-white/10 bg-gradient-to-b from-[#151d38] via-[#0c1226] to-[#070a16] text-center text-white shadow-2xl shadow-black/80 sm:rounded-[2rem]`}
       >
         <button
           type="button"
@@ -77,7 +77,7 @@ export function TournamentRequestSentModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-full bg-gradient-to-r from-primary to-orange-500 px-6 py-3 text-sm font-black text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card2-end"
+            className="w-full rounded-full bg-gradient-to-r from-primary to-orange-500 px-6 py-3 text-sm font-black text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#070a16]"
           >
             Ho capito
           </button>

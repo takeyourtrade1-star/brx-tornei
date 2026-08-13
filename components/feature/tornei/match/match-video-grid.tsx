@@ -152,7 +152,7 @@ export function MatchVideoGrid({
               type="button"
               onClick={onFullscreen}
               aria-label="Apri la modalita tavolo in fullscreen"
-              className="absolute right-2 top-2 z-20 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-card2-end/70 px-3.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-md transition hover:border-white/30 hover:bg-footer-start/40"
+              className="absolute right-2 top-2 z-20 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-header-bg/80 px-3.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-md transition hover:border-white/30 hover:bg-white/15"
             >
               <Maximize2 className="h-3.5 w-3.5" />
               Fullscreen
@@ -190,7 +190,7 @@ function MediaButton({ on, kind, onClick }: { on: boolean; kind: 'mic' | 'cam'; 
       className={cn(
         'grid h-9 w-9 place-items-center rounded-full border backdrop-blur-md transition active:scale-95',
         on
-          ? 'border-white/15 bg-card2-end/70 text-white hover:border-white/30 hover:bg-footer-start/40'
+          ? 'border-white/15 bg-header-bg/80 text-white hover:border-white/30 hover:bg-white/15'
           : 'border-red-400/50 bg-gradient-to-b from-red-500 to-red-600 text-white hover:brightness-110',
       )}
     >

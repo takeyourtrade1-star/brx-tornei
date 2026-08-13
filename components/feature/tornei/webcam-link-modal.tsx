@@ -153,7 +153,7 @@ export function WebcamLinkModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="webcam-modal-title"
-        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-gradient-to-br from-footer-start via-card2-end to-card2-end text-white shadow-2xl shadow-card2-end/60 sm:max-h-[90vh] sm:rounded-[1.75rem]`}
+        className={`${modalFont.uiSans} relative flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-gradient-to-b from-[#151d38] via-[#0c1226] to-[#070a16] text-white shadow-2xl shadow-black/80 sm:max-h-[90vh] sm:rounded-[1.75rem]`}
         style={{ animation: 'wl-in 0.28s cubic-bezier(0.16,1,0.3,1)' }}
       >
         {/* Barra accento */}
