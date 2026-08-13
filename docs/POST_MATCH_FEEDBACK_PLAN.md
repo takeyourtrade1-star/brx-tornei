@@ -153,3 +153,31 @@ CREATE INDEX idx_match_feedback_sent     ON match_feedback (from_user_id, kind, 
 3. Switch automatico del frontend: nessun cambio codice, i client
    esistenti iniziano a funzionare appena gli endpoint rispondono
    (il fetch attuale fallisce in modo non bloccante fino ad allora).
+
+---
+
+## Segnalazioni partita (testo libero) — flusso staff
+
+`POST /api/v1/matches/{matchId}/reports` — body `{ "message": string }`
+(5-500 caratteri, caratteri di controllo rimossi al confine).
+
+Il service Tornei **non conserva nulla in locale**: inoltra la
+segnalazione al servizio Support (stesso sistema dei ticket dello
+staff Ebartex) come support case di **categoria `tournament_report`**,
+con il Bearer dell'utente inoltrato (il caso resta attribuito al
+giocatore reale) e `X-Idempotency-Key` deterministica per
+`(match, segnalatore)` — una segnalazione per giocatore per match,
+la seconda chiamata risponde `already_submitted`.
+
+- `subject`: "Segnalazione partita Tornei" · `description`: il testo
+  dell'utente · `reference_type: other` · `reference_id`: match id ·
+  `reported_user_id`: l'avversario, derivato lato server ·
+  `context`: `{ match_id, tournament_id }`.
+- Lo staff la vede in `/segnalazioni` **separata dalle segnalazioni
+  marketplace** (filtro categoria "Segnalazione torneo").
+- Fail-closed come il marketplace: l'invio risulta riuscito solo se il
+  servizio Support emette un case id; in caso di indisponibilità
+  l'utente riceve un errore non bloccante e può ritentare.
+- Configurazione: `SUPPORT_CASES_API_URL` nel service Tornei (origin
+  esplicito, HTTPS obbligatorio in staging/production). Vuoto =
+  segnalazioni disabilitate (503).
