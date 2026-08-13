@@ -2,13 +2,13 @@
 
 import {
   Clock,
+  Crown,
   Flame,
   ShieldAlert,
   ShieldCheck,
   Swords,
   Timer,
   TrendingUp,
-  Trophy,
   type LucideIcon,
 } from 'lucide-react';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
@@ -18,6 +18,9 @@ interface StatTile {
   label: string;
   value: string | number;
   icon: LucideIcon;
+  badgeStyle: string;
+  iconColor: string;
+  accentGlow: string;
 }
 
 function computeLongestStreak(rows: { outcome: string; createdAt: string }[]): number {
@@ -82,54 +85,78 @@ export function MatchStatsGrid({ stats }: { stats: ReputationSummaryData }) {
       id: 'wins',
       label: 'Vittorie',
       value: stats.wins,
-      icon: Trophy,
+      icon: Crown,
+      badgeStyle: 'border-emerald-500/30 bg-emerald-500/10',
+      iconColor: 'text-emerald-400',
+      accentGlow: 'rgba(16,185,129,0.12)',
     },
     {
       id: 'winrate',
       label: 'Win Rate',
       value: `${winRate}%`,
       icon: TrendingUp,
+      badgeStyle: 'border-primary/35 bg-primary/10',
+      iconColor: 'text-primary',
+      accentGlow: 'rgba(255,115,0,0.15)',
     },
     {
       id: 'streak',
       label: 'Striscia Record',
       value: longestStreak,
       icon: Flame,
+      badgeStyle: 'border-orange-500/30 bg-orange-500/10',
+      iconColor: 'text-orange-400',
+      accentGlow: 'rgba(249,115,22,0.14)',
     },
     {
       id: 'played',
       label: 'Partite Giocate',
       value: stats.played,
       icon: Swords,
+      badgeStyle: 'border-sky-500/30 bg-sky-500/10',
+      iconColor: 'text-sky-400',
+      accentGlow: 'rgba(56,189,248,0.12)',
     },
     {
       id: 'time',
       label: 'Tempo di Gioco',
       value: formatTotalTime(totalSeconds),
       icon: Clock,
+      badgeStyle: 'border-cyan-500/30 bg-cyan-500/10',
+      iconColor: 'text-cyan-400',
+      accentGlow: 'rgba(6,182,212,0.12)',
     },
     {
       id: 'avg_time',
       label: 'Durata Media',
       value: formatAvgTime(avgSeconds),
       icon: Timer,
+      badgeStyle: 'border-indigo-500/30 bg-indigo-500/10',
+      iconColor: 'text-indigo-400',
+      accentGlow: 'rgba(99,102,241,0.12)',
     },
     {
       id: 'losses',
       label: 'Sconfitte',
       value: stats.losses,
       icon: ShieldAlert,
+      badgeStyle: 'border-rose-500/30 bg-rose-500/10',
+      iconColor: 'text-rose-400',
+      accentGlow: 'rgba(244,63,94,0.12)',
     },
     {
       id: 'fairplay',
       label: 'Fair Play',
       value: `${fairPlayRate}%`,
       icon: ShieldCheck,
+      badgeStyle: 'border-teal-500/30 bg-teal-500/10',
+      iconColor: 'text-teal-400',
+      accentGlow: 'rgba(20,184,166,0.12)',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4.5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
       {tiles.map((tile) => (
         <StatBadgeCard key={tile.id} tile={tile} />
       ))}
@@ -140,29 +167,33 @@ export function MatchStatsGrid({ stats }: { stats: ReputationSummaryData }) {
 function StatBadgeCard({ tile }: { tile: StatTile }) {
   const Icon = tile.icon;
   return (
-    <div className="group relative flex min-h-[125px] flex-col items-center justify-between overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-b from-slate-900/90 via-header-bg/95 to-slate-950 p-4 text-center text-white shadow-xl shadow-slate-950/60 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/60 hover:shadow-2xl hover:shadow-amber-500/15">
-      {/* Texture e alone pergamena/carta Hearthstone */}
+    <div className="group relative flex min-h-[120px] flex-col items-center justify-between overflow-hidden rounded-2xl border border-white/10 bg-header-bg/90 p-4 text-center text-white shadow-xl shadow-black/40 backdrop-blur-md transition-colors duration-200 hover:border-white/20 hover:bg-header-bg">
+      {/* Soft radial glow accent on hover */}
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,180,50,0.14),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          background: `radial-gradient(ellipse at top, ${tile.accentGlow}, transparent 70%)`,
+        }}
         aria-hidden
       />
+      {/* Top subtle highlight line */}
       <div
-        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent"
+        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
         aria-hidden
       />
 
-      {/* Medaglione icona */}
-      <div className="relative mb-2 grid h-11 w-11 place-items-center rounded-2xl border border-amber-400/30 bg-gradient-to-b from-amber-500/20 via-amber-900/25 to-black/60 text-amber-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] transition-transform group-hover:scale-110">
-        <Icon className="h-5 w-5 text-amber-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]" />
+      {/* Icon medallion */}
+      <div className={`relative mb-2 grid h-10 w-10 place-items-center rounded-xl border ${tile.badgeStyle} backdrop-blur-sm`}>
+        <Icon className={`h-5 w-5 ${tile.iconColor}`} />
       </div>
 
-      {/* Valore numerico Hearthstone */}
-      <span className="font-display text-2xl font-black tabular-nums tracking-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] sm:text-3xl">
+      {/* Stat value */}
+      <span className="font-display text-2xl font-black tabular-nums tracking-tight text-white sm:text-3xl">
         {tile.value}
       </span>
 
-      {/* Etichetta */}
-      <span className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-amber-200/80">
+      {/* Stat label */}
+      <span className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/55 transition-colors duration-200 group-hover:text-white/80">
         {tile.label}
       </span>
     </div>
