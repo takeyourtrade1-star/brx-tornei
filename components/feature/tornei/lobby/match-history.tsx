@@ -1,18 +1,11 @@
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
-import { Swords, TrendingUp } from 'lucide-react';
+import { MatchStatsGrid } from './match-stats-grid';
 
 const OUTCOME_LABEL: Record<string, string> = {
   win: 'Vinta',
   loss: 'Persa',
   abandoned: 'Abbandonata',
   disputed: 'Contestata',
-};
-
-const OUTCOME_TONE: Record<string, string> = {
-  win: 'text-emerald-600',
-  loss: 'text-red-500',
-  abandoned: 'text-amber-600',
-  disputed: 'text-slate-500',
 };
 
 function formatDate(iso: string): string {
@@ -29,6 +22,17 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+function badgeTone(outcome: string): string {
+  switch (outcome) {
+    case 'win':
+      return 'bg-emerald-100 text-emerald-700';
+    case 'loss':
+      return 'bg-red-100 text-red-600';
+    default:
+      return 'bg-slate-100 text-slate-500';
+  }
+}
+
 /** Storico partite completo (pagina /partite). "Contestate" resta nel ledger interno. */
 export function MatchHistory({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats = reputation ?? {
@@ -41,62 +45,10 @@ export function MatchHistory({ reputation }: { reputation: ReputationSummaryData
     history: [],
   };
   const rows = stats.history.length > 0 ? stats.history : stats.recent;
-  const decided = stats.wins + stats.losses;
-  const winRate = decided > 0 ? Math.round((stats.wins / decided) * 100) : null;
 
   return (
-    <div className="flex flex-col gap-5">
-      <section className="relative overflow-hidden rounded-2xl border border-slate-900/[0.08] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4 px-5 py-5 sm:px-7">
-          <div className="flex min-w-44 items-center gap-3">
-            <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-header-bg text-white shadow-[0_10px_24px_-12px_rgba(15,23,42,0.55)]">
-              <Swords className="h-5 w-5" aria-hidden="true" />
-              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-white" aria-hidden />
-            </span>
-            <div>
-              <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                Riepilogo
-              </h2>
-              <p className="mt-0.5 flex items-baseline gap-1.5">
-                <span className="text-3xl font-black tabular-nums leading-none text-header-bg">
-                  {stats.played}
-                </span>
-                <span className="text-xs font-semibold text-slate-400">
-                  {stats.played === 1 ? 'partita' : 'partite'}
-                </span>
-              </p>
-            </div>
-          </div>
-
-          <dl className="flex flex-1 items-stretch justify-end gap-2 sm:gap-0 sm:divide-x sm:divide-slate-900/[0.08]">
-            <Counter label="Vinte" value={stats.wins} tone="text-emerald-600" />
-            <Counter label="Perse" value={stats.losses} tone="text-red-500" />
-            <Counter label="Abbandonate" value={stats.abandoned} tone="text-amber-600" />
-            <div className="flex items-center gap-2 pl-4">
-              <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
-              <div>
-                <p className="text-sm font-black tabular-nums leading-none text-header-bg">
-                  {winRate === null ? '—' : `${winRate}%`}
-                </p>
-                <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                  vittorie
-                </p>
-              </div>
-            </div>
-          </dl>
-        </div>
-
-        {decided > 0 && (
-          <div className="px-5 pb-5 sm:px-7" aria-hidden="true">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-[#ff9a3d] transition-all"
-                style={{ width: `${winRate ?? 0}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </section>
+    <div className="flex flex-col gap-6">
+      <MatchStatsGrid stats={stats} />
 
       <section className="overflow-hidden rounded-2xl border border-slate-900/[0.08] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
         <div className="flex items-center gap-2.5 border-b border-slate-900/[0.06] px-5 py-3.5 sm:px-7">
@@ -135,26 +87,6 @@ export function MatchHistory({ reputation }: { reputation: ReputationSummaryData
           </ul>
         )}
       </section>
-    </div>
-  );
-}
-
-function badgeTone(outcome: string): string {
-  switch (outcome) {
-    case 'win':
-      return 'bg-emerald-100 text-emerald-700';
-    case 'loss':
-      return 'bg-red-100 text-red-600';
-    default:
-      return 'bg-slate-100 text-slate-500';
-  }
-}
-
-function Counter({ label, value, tone }: { label: string; value: number; tone: string }) {
-  return (
-    <div className="min-w-16 px-2 py-1 text-center sm:px-4">
-      <dd className={`text-xl font-black tabular-nums leading-none ${tone}`}>{value}</dd>
-      <dt className="mt-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">{label}</dt>
     </div>
   );
 }
