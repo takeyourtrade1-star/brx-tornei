@@ -120,7 +120,6 @@ export function LobbyTableList({
             className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-2.5 sm:px-5"
           >
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
               <h2 className="font-sans text-[11px] font-black uppercase tracking-[0.16em] text-white/80">
                 Tavoli disponibili
               </h2>
