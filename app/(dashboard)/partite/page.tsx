@@ -5,9 +5,11 @@ import { PartiteHero } from '@/components/feature/tornei/partite/partite-hero';
 import { PartiteStatsGrid } from '@/components/feature/tornei/partite/partite-stats-grid';
 import { PartiteBattleLog } from '@/components/feature/tornei/partite/partite-battle-log';
 import { PartiteMedals } from '@/components/feature/tornei/partite/partite-medals';
+import { PartiteInGameRatings } from '@/components/feature/tornei/partite/partite-in-game-ratings';
 import { getSession } from '@/lib/auth/session';
 import { requireGamertag } from '@/lib/auth/require-gamertag';
 import { fetchMyReputationPage } from '@/lib/data/player-api-client';
+import { fetchMyMatchFeedback } from '@/lib/data/match-feedback';
 
 export const metadata: Metadata = { title: 'Le mie partite' };
 
@@ -33,6 +35,7 @@ export default async function PartitePage() {
   const gamertag = await requireGamertag('/partite');
 
   const reputation = await fetchMyReputationPage().catch(() => null);
+  const matchFeedback = await fetchMyMatchFeedback().catch(() => null);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-header-bg">
@@ -85,6 +88,7 @@ export default async function PartitePage() {
             <PartiteStatsGrid reputation={reputation} />
             <PartiteBattleLog reputation={reputation} />
             <PartiteMedals reputation={reputation} />
+            <PartiteInGameRatings feedback={matchFeedback} />
           </div>
         </main>
       </div>

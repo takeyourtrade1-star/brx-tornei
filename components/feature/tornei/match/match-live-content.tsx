@@ -15,6 +15,7 @@ import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
 import type { ConnectionQuality, Participant, Tournament } from '@/types/tournament';
 import { MatchCommentsPanel } from './match-comments-panel';
+import { MatchEndFeedback } from './match-end-feedback';
 import { MatchFullscreenArena } from './match-fullscreen-arena';
 import { MatchGapPeerReview } from './match-gap-peer-review';
 import { MatchGapProtectionNotice } from './match-gap-protection-notice';
@@ -140,8 +141,21 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         <MatchDeclinedPanel leaving={exit.exitFired} secondsLeft={exit.declinedLeftSeconds}
           onLeave={exit.fireExit} />
       ) : matchEnded ? (
-        <MatchEndedPanel opponentLeft={isPlayer && peerState === 'peer-left'}
-          didIWin={didIWin} endReason={tournament.endReason} />
+        <>
+          <MatchEndedPanel
+            opponentLeft={isPlayer && peerState === 'peer-left'}
+            didIWin={didIWin}
+            endReason={tournament.endReason}
+          />
+          {isPlayer && (
+            <MatchEndFeedback
+              matchId={tournament.matchId ?? null}
+              endReason={tournament.endReason}
+              didIWin={didIWin}
+              opponentName={remote.username}
+            />
+          )}
+        </>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="mx-auto w-full lg:max-w-[calc((100dvh-340px)*3.5556+0.75rem)]">
