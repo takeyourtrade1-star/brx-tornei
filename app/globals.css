@@ -1624,5 +1624,41 @@
 .av-anim-cyber { transform-box: fill-box; transform-origin: center; animation: av-cyber-blink 1.5s ease-in-out infinite; }
 .av-anim-trophy { transform-box: fill-box; transform-origin: center; animation: av-trophy-gleam 1.8s ease-in-out infinite; }
 
+/* Animazioni Drago Spettrale & Carte Olografiche */
+@keyframes av-dragon-flame {
+  0%, 100% {
+    transform: scaleY(1) skewX(0deg);
+    filter: drop-shadow(0 0 3px #818cf8);
+  }
+  50% {
+    transform: scaleY(1.15) skewX(-4deg) translateY(-1px);
+    filter: drop-shadow(0 0 8px #c084fc);
+  }
+}
+
+@keyframes av-card-holo-gleam {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px #fbbf24);
+    opacity: 0.9;
+  }
+  50% {
+    filter: drop-shadow(0 0 8px #f59e0b) drop-shadow(0 0 12px #38bdf8);
+    opacity: 1;
+  }
+}
+
+.av-anim-dragon {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: av-dragon-flame 1.4s ease-in-out infinite;
+}
+
+.av-anim-cards {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: av-card-holo-gleam 1.8s ease-in-out infinite;
+}
+
+
 
 

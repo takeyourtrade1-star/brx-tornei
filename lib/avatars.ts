@@ -74,11 +74,11 @@ export const GAME_AVATARS: ProfileAvatar[] = [
   },
   {
     id: 'ghost',
-    name: 'Spettro Ombra',
-    subtitle: 'Entità Astrale',
+    name: 'Drago Ombra',
+    subtitle: 'Furia delle Ombre',
     icon: GhostAvatarIcon,
     color: 'text-indigo-300',
-    bgGradient: 'from-indigo-900/30 to-slate-900/40',
+    bgGradient: 'from-indigo-950/50 via-slate-900 to-black',
   },
   {
     id: 'sparkles',
@@ -90,11 +90,11 @@ export const GAME_AVATARS: ProfileAvatar[] = [
   },
   {
     id: 'gamepad',
-    name: 'Cyber Deck',
-    subtitle: 'Arcade Pro',
+    name: 'Carte Duellante',
+    subtitle: 'Asso Olografico',
     icon: GamepadAvatarIcon,
-    color: 'text-violet-300',
-    bgGradient: 'from-violet-600/25 to-pink-600/20',
+    color: 'text-amber-300',
+    bgGradient: 'from-amber-950/40 via-slate-900 to-black',
   },
   {
     id: 'trophy',
