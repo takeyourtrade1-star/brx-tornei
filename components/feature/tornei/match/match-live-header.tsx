@@ -7,6 +7,7 @@ import type { ConnectionQuality, Participant, TournamentStatus } from '@/types/t
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import { ConnectionBadge } from './match-live-parts';
 import { MatchReportModal } from './match-report-modal';
+import { MatchDeclareModal } from './match-declare-modal';
 
 interface MatchLiveHeaderProps {
   players: [Participant, Participant];
@@ -150,63 +151,14 @@ export function MatchLiveHeader({
         />
       )}
 
-      {declareOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Termina partita: chi ha vinto?"
-          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-md"
-        >
-          <div className="w-full max-w-md rounded-3xl border border-white/15 bg-gradient-to-b from-[#151d38] via-[#0c1226] to-[#070a16] px-6 py-8 text-center text-white shadow-2xl shadow-black/80">
-            <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-400/20 via-primary/20 to-primary/10 border border-amber-400/40 text-amber-300 shadow-[0_0_24px_rgba(255,180,0,0.25)]">
-              <Trophy className="h-7 w-7" aria-hidden />
-            </span>
-            <h2 className="mt-4 font-display text-2xl font-black uppercase tracking-wide text-white">
-              Chi ha vinto?
-            </h2>
-            <p className="mt-2 text-xs font-medium leading-relaxed text-white/60">
-              Seleziona il vincitore del match. Anche <strong className="text-white">{opponentName}</strong> dovrà confermare lo stesso risultato.
-            </p>
-            <div className="mt-6 flex flex-col gap-3">
-              <button
-                type="button"
-                disabled={declareBusy}
-                onClick={() => confirmDeclare(true)}
-                className="group relative flex h-13 items-center justify-between rounded-2xl border border-white/15 bg-white/[0.07] px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur-md transition duration-150 hover:border-primary/60 hover:bg-white/[0.12] hover:shadow-[0_0_20px_rgba(255,115,0,0.25)] active:scale-[0.98] disabled:opacity-50"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/20 text-primary group-hover:bg-primary group-hover:text-white transition">
-                    <Trophy className="h-3.5 w-3.5" />
-                  </span>
-                  <span>Io <span className="text-xs font-normal normal-case text-white/50">({localName})</span></span>
-                </div>
-                <span className="text-[10px] font-bold text-primary tracking-wider uppercase">Vittoria mia</span>
-              </button>
-              <button
-                type="button"
-                disabled={declareBusy}
-                onClick={() => confirmDeclare(false)}
-                className="group relative flex h-13 items-center justify-between rounded-2xl border border-white/15 bg-white/[0.07] px-5 py-3 text-sm font-black uppercase tracking-wide text-white backdrop-blur-md transition duration-150 hover:border-primary/60 hover:bg-white/[0.12] hover:shadow-[0_0_20px_rgba(255,115,0,0.25)] active:scale-[0.98] disabled:opacity-50"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 group-hover:bg-primary group-hover:text-white transition">
-                    <Trophy className="h-3.5 w-3.5" />
-                  </span>
-                  <span>{opponentName}</span>
-                </div>
-                <span className="text-[10px] font-bold text-white/50 tracking-wider uppercase group-hover:text-primary transition">Vittoria avversario</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeclareOpen(false)}
-                className="mt-2 text-xs font-bold uppercase tracking-wider text-white/40 transition hover:text-white"
-              >
-                Annulla
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <MatchDeclareModal
+        open={declareOpen}
+        localName={localName}
+        opponentName={opponentName}
+        busy={declareBusy}
+        onDeclare={confirmDeclare}
+        onClose={() => setDeclareOpen(false)}
+      />
     </header>
   );
 }

@@ -7,6 +7,8 @@ export function useMatchMediaState(stream?: MediaStream | null) {
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [opponentMuted, setOpponentMuted] = useState(false);
+  const [mirroredLocal, setMirroredLocal] = useState(false);
+  const [mirroredRemote, setMirroredRemote] = useState(false);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
 
   useEffect(() => {
@@ -22,6 +24,10 @@ export function useMatchMediaState(stream?: MediaStream | null) {
     setMicOn,
     opponentMuted,
     setOpponentMuted,
+    mirroredLocal,
+    setMirroredLocal,
+    mirroredRemote,
+    setMirroredRemote,
     fullscreenOpen,
     setFullscreenOpen,
   };

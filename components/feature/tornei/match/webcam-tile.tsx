@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Loader2, VideoOff } from 'lucide-react';
+import { FlipHorizontal, Loader2, VideoOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WebcamTileProps {
@@ -15,17 +15,20 @@ interface WebcamTileProps {
   connecting?: boolean;
   /** false per sentire l'audio (solo tile remoto: il locale resta muto per l'eco). */
   muted?: boolean;
-  /** true quando il giocatore ha spento la camera (track disabilitata): il
-   *  video manda nero, qui si mostra un overlay esplicito. */
+  /** true quando il giocatore ha spento la camera (track disabilitata). */
   videoDisabled?: boolean;
   /** Nasconde il nome in basso quando l'identità è già mostrata da un overlay esterno. */
   hideUsername?: boolean;
   /** Messaggio esplicito quando il ruolo non riceve uno stream video. */
   emptyLabel?: string;
+  /** Specchia orizzontalmente il video (effetto specchio). */
+  mirrored?: boolean;
+  /** Callback per attivare/disattivare l'effetto specchio. */
+  onToggleMirror?: () => void;
 }
 
 /**
- * Riquadro webcam minimale: video reale o stato di attesa.
+ * Riquadro webcam: video con supporto orientamento/specchio e fallback di stato.
  */
 export function WebcamTile({
   stream,
@@ -37,6 +40,8 @@ export function WebcamTile({
   videoDisabled = false,
   hideUsername = false,
   emptyLabel,
+  mirrored = false,
+  onToggleMirror,
 }: WebcamTileProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 

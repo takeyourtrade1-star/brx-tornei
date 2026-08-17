@@ -131,3 +131,15 @@ export function saveAvatarId(id: string): void {
     /* localStorage non disponibile */
   }
 }
+
+/** Restituisce l'avatar impostato per l'utente, oppure un avatar stabile per l'avversario. */
+export function getAvatarForPlayer(username: string, isMe?: boolean): ProfileAvatar {
+  if (isMe) return getAvatarById(getSavedAvatarId());
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = (hash << 5) - hash + username.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % GAME_AVATARS.length;
+  return GAME_AVATARS[idx] ?? GAME_AVATARS[0];
+}
