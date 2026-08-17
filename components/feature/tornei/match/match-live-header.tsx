@@ -3,16 +3,18 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Flag, Gamepad2, LogOut, ShieldAlert, Trophy } from 'lucide-react';
-import type { ConnectionQuality, Participant, TournamentStatus } from '@/types/tournament';
+import type { BestOf, ConnectionQuality, Participant, TournamentStatus } from '@/types/tournament';
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import { ConnectionBadge } from './match-live-parts';
 import { MatchReportModal } from './match-report-modal';
 import { MatchDeclareModal } from './match-declare-modal';
+import { MatchSurrenderModal } from './match-surrender-modal';
 
 interface MatchLiveHeaderProps {
   players: [Participant, Participant];
   modeName: string;
   bestOfLabel: string;
+  bestOf: BestOf;
   status: TournamentStatus;
   isPlayer: boolean;
   leaving: boolean;
@@ -27,8 +29,8 @@ interface MatchLiveHeaderProps {
   /** true: ho una partita attiva da poter chiudere con una dichiarazione. */
   canDeclare?: boolean;
   declareBusy?: boolean;
-  onDeclare?: (iWon: boolean) => void;
-  onLeave: () => void;
+  onDeclare?: (iWon: boolean, loserScore: number) => void;
+  onLeave: (confirmedForfeit?: boolean) => void;
   /** Match id per la segnalazione contro l'avversario (moderazione). */
   reportMatchId?: string | null;
 }
@@ -37,6 +39,7 @@ export function MatchLiveHeader({
   players,
   modeName,
   bestOfLabel,
+  bestOf,
   status,
   isPlayer,
   leaving,
@@ -55,18 +58,24 @@ export function MatchLiveHeader({
 }: MatchLiveHeaderProps) {
   const [playerA, playerB] = players;
   const [declareOpen, setDeclareOpen] = useState(false);
+  const [surrenderOpen, setSurrenderOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   useEffect(() => {
     if (!canDeclare) setDeclareOpen(false);
   }, [canDeclare]);
 
-  const confirmDeclare = (iWon: boolean) => {
-    onDeclare?.(iWon);
+  const confirmDeclare = (iWon: boolean, loserScore: number) => {
+    onDeclare?.(iWon, loserScore);
     setDeclareOpen(false);
   };
 
+  const confirmSurrender = () => {
+    onLeave(true);
+    setSurrenderOpen(false);
+  };
+
   return (
-    <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-3xl border border-white/10 bg-header-bg/90 px-4 py-3 text-white shadow-xl shadow-black/30">
+    <header className="sticky top-0 z-40 mb-3 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-3xl border border-white/10 bg-header-bg/70 px-4 py-3 text-white shadow-xl shadow-black/30 backdrop-blur-2xl supports-[backdrop-filter]:bg-header-bg/55">
       <div className="flex min-w-0 items-center gap-3">
         <Link
           href="/tornei"
@@ -123,7 +132,7 @@ export function MatchLiveHeader({
           <button
             type="button"
             disabled={leaving}
-            onClick={onLeave}
+            onClick={() => status === 'iniziata' ? setSurrenderOpen(true) : onLeave()}
             className="inline-flex h-8 items-center gap-1.5 rounded-full bg-gradient-to-b from-red-500 to-red-600 px-3.5 text-xs font-black uppercase tracking-wide text-white shadow-[0_10px_24px_-10px_rgba(239,68,68,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95 disabled:opacity-50"
           >
             {status === 'iniziata' ? (
@@ -159,9 +168,18 @@ export function MatchLiveHeader({
         open={declareOpen}
         localName={localName}
         opponentName={opponentName}
+        bestOf={bestOf}
         busy={declareBusy}
         onDeclare={confirmDeclare}
         onClose={() => setDeclareOpen(false)}
+      />
+      <MatchSurrenderModal
+        open={surrenderOpen}
+        opponentName={opponentName}
+        bestOf={bestOf}
+        busy={leaving}
+        onConfirm={confirmSurrender}
+        onClose={() => setSurrenderOpen(false)}
       />
     </header>
   );

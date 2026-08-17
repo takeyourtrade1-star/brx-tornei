@@ -70,13 +70,15 @@ export interface DeclareResultActionState {
 export async function declareResultAction(
   matchId: string,
   winnerUserId: string,
+  winnerScore: number,
+  loserScore: number,
 ): Promise<DeclareResultActionState> {
   const session = await getSession();
   if (!session) {
     return { error: 'Sessione scaduta: effettua di nuovo il login.' };
   }
   try {
-    await postDeclareResult(matchId, winnerUserId);
+    await postDeclareResult(matchId, winnerUserId, winnerScore, loserScore);
     return {};
   } catch (err) {
     if (err instanceof TournamentApiError) {

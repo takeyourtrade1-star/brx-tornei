@@ -1,9 +1,10 @@
 import { Trophy } from 'lucide-react';
 import { getAvatarForPlayer } from '@/lib/avatars';
 import { cn } from '@/lib/utils';
+import type { BestOf } from '@/types/tournament';
 
 /**
- * Avviso non bloccante durante una proposta di risultato.
+ * Modale condiviso durante una proposta di risultato.
  * Stile liquid glass arancione coerente con MatchDeclareModal.
  */
 export function MatchResultPendingPanel({
@@ -14,6 +15,12 @@ export function MatchResultPendingPanel({
   busy,
   localName,
   opponentName,
+  localId,
+  opponentId,
+  bestOf,
+  claimedWinnerId,
+  scoreByPlayerId,
+  error,
   onDeclare,
 }: {
   awaitingMe: boolean;
@@ -23,68 +30,119 @@ export function MatchResultPendingPanel({
   busy: boolean;
   localName: string;
   opponentName: string;
-  onDeclare: (iWon: boolean) => void;
+  localId: string;
+  opponentId: string;
+  bestOf: BestOf;
+  claimedWinnerId?: string;
+  scoreByPlayerId?: Record<string, number>;
+  error?: string | null;
+  onDeclare: (iWon: boolean, loserScore: number) => void;
 }) {
   const countdown = remaining !== null ? ` (${remaining}s)` : '';
+  const winsNeeded = bestOf === 'BO5' ? 3 : bestOf === 'BO1' ? 1 : 2;
   const myAvatar = getAvatarForPlayer(localName, true);
   const oppAvatar = getAvatarForPlayer(opponentName, false);
+  const proposedWinnerName = claimedWinnerId === localId
+    ? localName
+    : claimedWinnerId === opponentId
+      ? opponentName
+      : null;
+  const proposedLoserId = claimedWinnerId === localId ? opponentId : localId;
+  const proposedWinnerScore = claimedWinnerId ? scoreByPlayerId?.[claimedWinnerId] : undefined;
+  const proposedLoserScore = scoreByPlayerId?.[proposedLoserId];
+  const proposedWinnerIsMe = claimedWinnerId === localId;
+  const proposal = proposedWinnerName && proposedWinnerScore !== undefined && proposedLoserScore !== undefined
+    ? `${proposedWinnerName} ${proposedWinnerScore} – ${proposedLoserScore}`
+    : null;
 
   return (
     <section
+      role="dialog"
+      aria-modal="true"
       aria-live="polite"
-      className="relative mb-4 overflow-hidden rounded-[22px] border border-white/15 bg-gradient-to-b from-[#161d36]/95 via-[#0c1226]/95 to-[#060a16]/98 p-5 text-white shadow-2xl shadow-black/60 backdrop-blur-2xl ring-1 ring-white/10 sm:p-6"
+      aria-label="Risultato proposto"
+      className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-black/80 p-4 backdrop-blur-md"
     >
-      {/* Glow ambientale arancione */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 h-32 w-64 rounded-full bg-primary/20 blur-3xl"
-      />
-
-      {/* Header: badge trofeo + testo */}
-      <div className="relative flex items-start gap-3.5">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-primary/40 bg-gradient-to-br from-primary/25 via-amber-500/15 to-transparent text-primary shadow-[0_0_20px_rgba(255,115,0,0.3)] backdrop-blur-md">
-          <Trophy className="h-5.5 w-5.5 drop-shadow-[0_2px_6px_rgba(255,115,0,0.8)]" />
+      <div className="relative my-auto w-full max-w-lg overflow-hidden rounded-[22px] border border-white/15 bg-gradient-to-b from-[#161d36]/95 via-[#0c1226]/95 to-[#060a16]/98 p-5 text-white shadow-2xl shadow-black/60 backdrop-blur-2xl ring-1 ring-white/10 sm:p-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-16 left-1/2 h-32 w-64 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl"
+        />
+        <div className="relative flex items-start gap-3.5">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-primary/40 bg-gradient-to-br from-primary/25 via-amber-500/15 to-transparent text-primary shadow-[0_0_20px_rgba(255,115,0,0.3)] backdrop-blur-md">
+            <Trophy className="h-5.5 w-5.5 drop-shadow-[0_2px_6px_rgba(255,115,0,0.8)]" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-display text-base font-black uppercase tracking-tight text-white sm:text-lg">
+              {reselection ? 'Scegliete di nuovo' : 'Risultato proposto'}
+            </h2>
+            <p className="mt-0.5 text-xs font-medium leading-relaxed text-white/60">
+              {reconnecting
+                ? 'Risposta sospesa durante la riconnessione. Avrai nuovamente tutto il tempo quando il collegamento torna.'
+                : reselection && awaitingMe
+                ? 'Le prime scelte erano diverse. Indicate entrambi il vincitore una seconda volta.'
+                : awaitingMe
+                ? `Indica il vincitore entro${countdown}. Se le dichiarazioni non coincidono, la partita resta aperta.`
+                : `In attesa della scelta di ${opponentName}${countdown}. Alla scadenza la proposta viene annullata.`}
+            </p>
+            {proposal && (
+              <p className="mt-2 inline-flex rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-xs font-black text-orange-100">
+                {proposal}
+              </p>
+            )}
+            {error && (
+              <p role="alert" className="mt-2 text-xs font-bold text-red-300">
+                {error}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="min-w-0">
-          <h2 className="font-display text-base font-black uppercase tracking-tight text-white sm:text-lg">
-            {reselection ? 'Scegliete di nuovo' : 'Risultato proposto'}
-          </h2>
-          <p className="mt-0.5 text-xs font-medium leading-relaxed text-white/60">
-            {reconnecting
-              ? 'Risposta sospesa durante la riconnessione. Avrai nuovamente tutto il tempo quando il collegamento torna.'
-              : reselection && awaitingMe
-              ? 'Le prime scelte erano diverse. Indicate entrambi il vincitore una seconda volta.'
-              : awaitingMe
-              ? `Indica il vincitore entro${countdown}. Se le dichiarazioni non coincidono, la partita resta aperta.`
-              : `In attesa della scelta di ${opponentName}${countdown}. Alla scadenza la proposta viene annullata.`}
+
+        {awaitingMe && !reconnecting && (
+          <div className="relative mt-4">
+          {proposal && proposedLoserScore !== undefined && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDeclare(proposedWinnerIsMe, proposedLoserScore)}
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-primary to-orange-600 px-5 text-xs font-black uppercase tracking-wider text-white shadow-md transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+            >
+              Conferma {proposal}
+            </button>
+          )}
+          <p className="mb-2 mt-4 text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+            {proposal ? 'Oppure indica il risultato corretto' : 'Indica il risultato'}
           </p>
-        </div>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {Array.from({ length: winsNeeded }, (_, loserScore) => (
+                <ResultPlayerCard
+                  key={`me-${loserScore}`}
+                  name={localName}
+                  label={`Vittoria mia · ${winsNeeded} – ${loserScore}`}
+                  avatar={myAvatar}
+                  disabled={busy}
+                  onSelect={() => onDeclare(true, loserScore)}
+                />
+              ))}
+              {Array.from({ length: winsNeeded }, (_, loserScore) => (
+                <ResultPlayerCard
+                  key={`opponent-${loserScore}`}
+                  name={opponentName}
+                  label={`Vittoria avversario · ${winsNeeded} – ${loserScore}`}
+                  avatar={oppAvatar}
+                  disabled={busy}
+                  onSelect={() => onDeclare(false, loserScore)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Card giocatori cliccabili con stile liquid glass */}
-      {awaitingMe && !reconnecting && (
-        <div className="relative mt-4 flex flex-col gap-2.5 sm:flex-row">
-          <ResultPlayerCard
-            name={localName}
-            label="Vittoria mia"
-            avatar={myAvatar}
-            disabled={busy}
-            onSelect={() => onDeclare(true)}
-          />
-          <ResultPlayerCard
-            name={opponentName}
-            label="Vittoria avversario"
-            avatar={oppAvatar}
-            disabled={busy}
-            onSelect={() => onDeclare(false)}
-          />
-        </div>
-      )}
     </section>
   );
 }
 
-/** Card giocatore per il pannello dichiarazione inline. */
+/** Card giocatore per la scelta nel modale. */
 function ResultPlayerCard({
   name,
   label,
