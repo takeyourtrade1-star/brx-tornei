@@ -145,15 +145,15 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
               className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-white shadow-sm ring-1 ring-slate-900/[0.08]">
-                  <SelectedIcon className={cn('h-4 w-4', activeAvatar.color)} />
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-950 p-1 shadow-sm ring-1 ring-slate-900/[0.08]">
+                  <SelectedIcon className="h-5 w-5" />
                 </span>
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
                     Avatar di gioco
                   </h3>
                   <p className="text-[10px] font-bold text-slate-400">
-                    Selezionato: <span className="text-slate-600">{activeAvatar.name}</span>
+                    Selezionato: <span className="text-slate-700 font-extrabold">{activeAvatar.name}</span>
                   </p>
                 </div>
               </div>
@@ -170,14 +170,16 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
                       key={avatar.id}
                       type="button"
                       onClick={() => handleSelectAvatar(avatar.id)}
-                      title={avatar.name}
+                      title={`${avatar.name} (${avatar.subtitle})`}
                       aria-label={`Seleziona avatar ${avatar.name}`}
                       className={cn(
-                        'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all',
-                        isSelected ? 'border-primary bg-white shadow-md ring-2 ring-primary/40 scale-105' : 'border-slate-200 bg-white/70 hover:border-slate-300 hover:bg-white',
+                        'group relative grid aspect-square place-items-center rounded-xl border p-1.5 transition-all bg-gradient-to-b from-slate-900 via-slate-950 to-black',
+                        isSelected
+                          ? 'border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-2 ring-amber-400/50 scale-105'
+                          : 'border-slate-800 hover:border-slate-600 hover:scale-105',
                       )}
                     >
-                      <Icon className={cn('h-5 w-5 transition-transform group-hover:scale-110', avatar.color)} />
+                      <Icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
                     </button>
                   );
                 })}

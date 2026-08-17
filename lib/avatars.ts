@@ -1,39 +1,112 @@
+import type { ComponentType } from 'react';
 import {
-  Crown,
-  Flame,
-  Gamepad2,
-  Ghost,
-  Shield,
-  Skull,
-  Sparkles,
-  Swords,
-  Trophy,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
+  CrownAvatarIcon,
+  ShieldAvatarIcon,
+  SwordsAvatarIcon,
+  TrophyAvatarIcon,
+} from '@/components/feature/profile/avatars/combat-avatars';
+import {
+  FlameAvatarIcon,
+  GamepadAvatarIcon,
+  GhostAvatarIcon,
+  SkullAvatarIcon,
+  SparklesAvatarIcon,
+  ZapAvatarIcon,
+} from '@/components/feature/profile/avatars/magic-avatars';
 
 export interface ProfileAvatar {
   id: string;
   name: string;
-  icon: LucideIcon;
+  subtitle: string;
+  icon: ComponentType<{ className?: string }>;
   color: string;
   bgGradient: string;
 }
 
 export const GAME_AVATARS: ProfileAvatar[] = [
-  { id: 'swords', name: 'Spade', icon: Swords, color: 'text-amber-400', bgGradient: 'from-amber-500/20 to-orange-500/20' },
-  { id: 'crown', name: 'Corona', icon: Crown, color: 'text-yellow-300', bgGradient: 'from-yellow-500/20 to-amber-500/20' },
-  { id: 'flame', name: 'Fiamma', icon: Flame, color: 'text-orange-400', bgGradient: 'from-orange-500/20 to-red-500/20' },
-  { id: 'zap', name: 'Fulmine', icon: Zap, color: 'text-cyan-400', bgGradient: 'from-cyan-500/20 to-blue-500/20' },
-  { id: 'skull', name: 'Teschio', icon: Skull, color: 'text-purple-400', bgGradient: 'from-purple-500/20 to-indigo-500/20' },
-  { id: 'shield', name: 'Scudo', icon: Shield, color: 'text-blue-400', bgGradient: 'from-blue-500/20 to-cyan-500/20' },
-  { id: 'ghost', name: 'Fantasma', icon: Ghost, color: 'text-emerald-400', bgGradient: 'from-emerald-500/20 to-teal-500/20' },
-  { id: 'sparkles', name: 'Magia', icon: Sparkles, color: 'text-pink-400', bgGradient: 'from-pink-500/20 to-rose-500/20' },
-  { id: 'gamepad', name: 'Joystick', icon: Gamepad2, color: 'text-amber-500', bgGradient: 'from-amber-500/20 to-red-500/20' },
-  { id: 'trophy', name: 'Coppa', icon: Trophy, color: 'text-yellow-400', bgGradient: 'from-yellow-500/20 to-amber-600/20' },
+  {
+    id: 'crown',
+    name: 'Corona Reale',
+    subtitle: 'Monarca dei Tornei',
+    icon: CrownAvatarIcon,
+    color: 'text-amber-300',
+    bgGradient: 'from-amber-500/25 to-yellow-600/20',
+  },
+  {
+    id: 'swords',
+    name: 'Lame Runiche',
+    subtitle: 'Maestro Duellante',
+    icon: SwordsAvatarIcon,
+    color: 'text-sky-300',
+    bgGradient: 'from-sky-500/25 to-slate-700/30',
+  },
+  {
+    id: 'flame',
+    name: 'Fenice Infuocata',
+    subtitle: 'Spirito Ardente',
+    icon: FlameAvatarIcon,
+    color: 'text-orange-400',
+    bgGradient: 'from-orange-600/30 to-red-700/25',
+  },
+  {
+    id: 'skull',
+    name: 'Teschio Spettrale',
+    subtitle: 'Negromante Runic',
+    icon: SkullAvatarIcon,
+    color: 'text-emerald-400',
+    bgGradient: 'from-emerald-950/40 to-slate-900/40',
+  },
+  {
+    id: 'zap',
+    name: 'Fulmine Plasma',
+    subtitle: 'Tempesta Ionica',
+    icon: ZapAvatarIcon,
+    color: 'text-cyan-300',
+    bgGradient: 'from-cyan-500/25 to-blue-600/20',
+  },
+  {
+    id: 'shield',
+    name: 'Egida Solare',
+    subtitle: 'Guardiano Divino',
+    icon: ShieldAvatarIcon,
+    color: 'text-amber-400',
+    bgGradient: 'from-amber-600/25 to-blue-900/30',
+  },
+  {
+    id: 'ghost',
+    name: 'Spettro Ombra',
+    subtitle: 'Entità Astrale',
+    icon: GhostAvatarIcon,
+    color: 'text-indigo-300',
+    bgGradient: 'from-indigo-900/30 to-slate-900/40',
+  },
+  {
+    id: 'sparkles',
+    name: 'Sfera Arcana',
+    subtitle: 'Mago Cosmico',
+    icon: SparklesAvatarIcon,
+    color: 'text-fuchsia-300',
+    bgGradient: 'from-fuchsia-600/25 to-purple-800/25',
+  },
+  {
+    id: 'gamepad',
+    name: 'Cyber Deck',
+    subtitle: 'Arcade Pro',
+    icon: GamepadAvatarIcon,
+    color: 'text-violet-300',
+    bgGradient: 'from-violet-600/25 to-pink-600/20',
+  },
+  {
+    id: 'trophy',
+    name: 'Calice Trionfale',
+    subtitle: 'Campione Supremo',
+    icon: TrophyAvatarIcon,
+    color: 'text-yellow-300',
+    bgGradient: 'from-yellow-500/25 to-amber-700/25',
+  },
 ];
 
-export const DEFAULT_AVATAR_ID = 'swords';
+export const DEFAULT_AVATAR_ID = 'crown';
 const STORAGE_KEY = 'ebartex_profile_avatar';
 
 export function getAvatarById(id?: string): ProfileAvatar {
@@ -55,6 +128,6 @@ export function saveAvatarId(id: string): void {
     localStorage.setItem(STORAGE_KEY, id);
     window.dispatchEvent(new CustomEvent('ebartex-avatar-changed', { detail: { avatarId: id } }));
   } catch {
-    /* localStorage bloccato o non disponibile */
+    /* localStorage non disponibile */
   }
 }
