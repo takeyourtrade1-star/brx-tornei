@@ -32,6 +32,19 @@ describe('server rate limit', () => {
     expect(statusForServerRateLimitError(error)).toBe(429);
   });
 
+  it('fails closed for sensitive auth limits when Upstash is absent in production', async () => {
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
+    const error = await enforceServerRateLimit({
+      scope: 'auth-login',
+      subject: 'user@example.test',
+      limit: 5,
+      requireDistributedStore: true,
+    }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ServerRateLimitUnavailable);
+    expect(statusForServerRateLimitError(error)).toBe(503);
+  });
+
   it('fails closed with 503 on partial or invalid Upstash configuration', async () => {
     vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://redis-test.upstash.io');
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');

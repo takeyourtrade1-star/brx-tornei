@@ -14,6 +14,10 @@ import {
 } from '@/lib/auth/pre-auth-cookie';
 import { sanitizeRedirect } from '@/lib/auth/redirect';
 import {
+  isValidAuthCookieToken,
+  isValidAuthTokenPair,
+} from '@/lib/auth/auth-token';
+import {
   authFetch,
   authRateLimitError,
   extractAuthError,
@@ -25,7 +29,7 @@ import {
   loginSchema,
   verifyMfaFormSchema,
 } from '@/lib/validations/auth';
-import type { AuthActionState, TokenResponse } from '@/types/auth';
+import type { AuthActionState } from '@/types/auth';
 
 /**
  * Login speculare a Ebartex (stesso backend FastAPI, stesso honeypot),
@@ -56,24 +60,22 @@ export async function loginAction(formData: FormData): Promise<AuthActionState> 
     return { error: extractAuthError(response, 'Credenziali non valide') };
   }
 
+  // Una nuova risposta login non deve ereditare un hand-off MFA obsoleto.
+  await clearPreAuthCookie();
+
   if (response.mfa_required === true) {
-    const preAuth =
-      typeof response.pre_auth_token === 'string' ? response.pre_auth_token : null;
-    if (!preAuth) {
+    if (!isValidAuthCookieToken(response.pre_auth_token)) {
       return { error: 'Risposta MFA non valida' };
     }
-    await setPreAuthCookie(preAuth);
+    await setPreAuthCookie(response.pre_auth_token);
     redirect(`/login/verify-mfa?redirect=${encodeURIComponent(destination)}`);
   }
 
-  if (
-    typeof response.access_token !== 'string' ||
-    typeof response.refresh_token !== 'string'
-  ) {
+  if (!isValidAuthTokenPair(response)) {
     return { error: 'Risposta login non valida' };
   }
 
-  await setSessionCookies(response as unknown as TokenResponse);
+  await setSessionCookies(response);
   redirect(destination);
 }
 
@@ -106,14 +108,11 @@ export async function verifyMfaAction(formData: FormData): Promise<AuthActionSta
     return { error: extractAuthError(response, 'Codice MFA non valido') };
   }
 
-  if (
-    typeof response.access_token !== 'string' ||
-    typeof response.refresh_token !== 'string'
-  ) {
+  if (!isValidAuthTokenPair(response)) {
     return { error: 'Risposta verifica MFA non valida' };
   }
 
-  await setSessionCookies(response as unknown as TokenResponse);
+  await setSessionCookies(response);
   await clearPreAuthCookie();
   redirect(destination);
 }
@@ -174,24 +173,22 @@ export async function verifyLoginCodeAction(formData: FormData): Promise<AuthAct
     return { error: extractAuthError(response, 'Codice non valido o scaduto') };
   }
 
+  // Il nuovo tentativo sostituisce sempre l'eventuale hand-off precedente.
+  await clearPreAuthCookie();
+
   if (response.mfa_required === true) {
-    const preAuth =
-      typeof response.pre_auth_token === 'string' ? response.pre_auth_token : null;
-    if (!preAuth) {
+    if (!isValidAuthCookieToken(response.pre_auth_token)) {
       return { error: 'Risposta MFA non valida' };
     }
-    await setPreAuthCookie(preAuth);
+    await setPreAuthCookie(response.pre_auth_token);
     redirect(`/login/verify-mfa?redirect=${encodeURIComponent(destination)}`);
   }
 
-  if (
-    typeof response.access_token !== 'string' ||
-    typeof response.refresh_token !== 'string'
-  ) {
+  if (!isValidAuthTokenPair(response)) {
     return { error: 'Risposta login codice non valida' };
   }
 
-  await setSessionCookies(response as unknown as TokenResponse);
+  await setSessionCookies(response);
   redirect(destination);
 }
 

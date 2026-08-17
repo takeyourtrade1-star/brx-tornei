@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition, type FormEvent } from 'react';
+import { useRef, useState, useTransition, type FormEvent } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { loginAction } from '@/actions/auth';
 import { AuthErrorAlert } from '@/components/ui/auth-error-alert';
@@ -38,15 +38,22 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const submitInFlightRef = useRef(false);
   const isLanding = variant === 'landing';
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitInFlightRef.current) return;
     const formData = new FormData(event.currentTarget);
     setError(null);
+    submitInFlightRef.current = true;
     startTransition(async () => {
-      const result = await loginAction(formData);
-      if (result?.error) setError(result.error);
+      try {
+        const result = await loginAction(formData);
+        if (result?.error) setError(result.error);
+      } finally {
+        submitInFlightRef.current = false;
+      }
     });
   }
 

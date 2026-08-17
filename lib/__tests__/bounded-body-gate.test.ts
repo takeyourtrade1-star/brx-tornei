@@ -17,7 +17,7 @@ describe('bounded request-body gate', () => {
       new URL(`../../${relativePath}`, import.meta.url),
       'utf8',
     );
-    expect(source).toMatch(/readBounded(?:Json|Text)\(/);
+    expect(source).toMatch(/(?:readBounded(?:Json|Text)|readAuthRequestBody)\(/);
     expect(source).not.toMatch(/\b(?:request|req)\.(?:text|json|arrayBuffer)\(/);
   });
 });
