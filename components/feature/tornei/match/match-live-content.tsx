@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { useDeclareResult } from '@/hooks/use-declare-result';
+import { useGraceCountdown } from '@/hooks/use-grace-countdown';
 import type { useLeaveMatch } from '@/hooks/use-leave-match';
 import type { useMatchChat } from '@/hooks/use-match-chat';
 import type { useMatchExitFlow } from '@/hooks/use-match-exit-flow';
@@ -22,14 +23,13 @@ import { MatchGapProtectionNotice } from './match-gap-protection-notice';
 import { MatchIntroOverlay } from './match-intro-overlay';
 import { MatchLiveHeader } from './match-live-header';
 import {
-  MatchConnectionNotice,
   MatchDeclinedPanel,
   MatchEndedPanel,
   MatchErrorNotice,
-  MatchResultPendingPanel,
 } from './match-live-notices';
 import { reconnectingLabel } from './match-live-parts';
 import { MatchReadyPanel } from './match-ready-panel';
+import { MatchResultPendingPanel } from './match-result-pending';
 import { MatchVideoGrid } from './match-video-grid';
 
 interface MatchLiveContentProps {
@@ -42,8 +42,10 @@ interface MatchLiveContentProps {
   leftPlayer: Participant; rightPlayer: Participant; playable: boolean;
   localStream: MediaStream | null; remoteStream: MediaStream | null; feedLabel?: string;
   webcamError: string | null; camOn: boolean; micOn: boolean; opponentMuted: boolean;
+  mirroredLocal?: boolean; mirroredRemote?: boolean;
   fullscreenOpen: boolean; setCamOn: Dispatch<SetStateAction<boolean>>;
   setMicOn: Dispatch<SetStateAction<boolean>>; setOpponentMuted: Dispatch<SetStateAction<boolean>>;
+  setMirroredLocal?: Dispatch<SetStateAction<boolean>>; setMirroredRemote?: Dispatch<SetStateAction<boolean>>;
   setFullscreenOpen: Dispatch<SetStateAction<boolean>>; peerState: PeerLinkState;
   peerError: string | null; peerTransport: PeerTransport; peerQuality?: ConnectionQuality;
   peerReconnecting: boolean; peerConnecting: boolean; retryPeer: () => void;
@@ -60,8 +62,9 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
     matchEnded, resultClaimPending, resultReselectionRequired, showResultPanel,
     iClaimedResult, resultCountdown, reconnectGraceActive, disconnectedIsMe, didIWin,
     local, remote, players, leftPlayer, rightPlayer, playable, localStream, remoteStream,
-    feedLabel, webcamError, camOn, micOn, opponentMuted, fullscreenOpen, setCamOn, setMicOn,
-    setOpponentMuted, setFullscreenOpen, peerState, peerError, peerTransport, peerQuality,
+    feedLabel, webcamError, camOn, micOn, opponentMuted, mirroredLocal, mirroredRemote,
+    fullscreenOpen, setCamOn, setMicOn, setOpponentMuted, setMirroredLocal, setMirroredRemote,
+    setFullscreenOpen, peerState, peerError, peerTransport, peerQuality,
     peerReconnecting, peerConnecting, retryPeer, ready, leave, declareResult, exit, chat,
     life, startCountdown, sticker, gapProtection,
   } = props;
@@ -78,6 +81,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
   const visiblePeerError = peerReconnecting || peerState === 'peer-left' ? null : peerError;
   const visibleError = leave.error ?? webcamError ?? visiblePeerError ?? declareResult.error;
   const showLiveNotices = !matchEnded;
+  const graceRemaining = useGraceCountdown(tournament.graceDeadline);
   const modeName = getMode(tournament.mode)?.name ?? tournament.mode;
   const formatName = getFormat(tournament.format)?.name ?? tournament.format;
 
@@ -115,11 +119,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
           La visione video per gli osservatori non è ancora disponibile.
         </p>
       )}
-      {showLiveNotices && isPlayer && started && (
-        <MatchConnectionNotice reconnecting={peerReconnecting} onRetry={retryPeer}
-          opponentName={remote.username} graceDeadline={tournament.graceDeadline}
-          disconnectedIsMe={disconnectedIsMe} />
-      )}
+
       {isPlayer && started && tournament.matchId && (
         <MatchGapProtectionNotice snapshot={gapProtection.snapshot}
           onConsent={gapProtection.grantUploadConsent} onDecline={gapProtection.declineUpload}
@@ -165,16 +165,21 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
               isObserver={isObserver} isPlayer={isPlayer} started={playable}
               leftPlayer={leftPlayer} rightPlayer={rightPlayer} formatName={formatName}
               localStream={localStream} remoteStream={remoteStream} feedLabel={feedLabel}
-              peerConnecting={peerConnecting} remoteEmptyLabel={remoteEmptyLabel}
+              peerConnecting={peerConnecting} peerReconnecting={peerReconnecting}
+              graceRemaining={graceRemaining} disconnectedIsMe={disconnectedIsMe}
+              remoteEmptyLabel={remoteEmptyLabel}
               camOn={camOn} micOn={micOn} opponentMuted={opponentMuted}
+              mirroredLocal={mirroredLocal} mirroredRemote={mirroredRemote}
               lifeByPlayerId={life.lifeByPlayerId} startingLife={life.startingLife}
               lifeConnected={chat.connectionState === 'connected' && life.synced}
               stickerShot={sticker.stickerShot} participantNames={participantNames}
               userId={userId} me={me} onToggleMic={() => setMicOn((value) => !value)}
               onToggleCam={() => setCamOn((value) => !value)}
               onToggleOpponentMute={() => setOpponentMuted((v) => !v)}
+              onToggleMirrorLocal={setMirroredLocal ? () => setMirroredLocal((v) => !v) : undefined}
+              onToggleMirrorRemote={setMirroredRemote ? () => setMirroredRemote((v) => !v) : undefined}
               onFullscreen={() => setFullscreenOpen(true)} onLifeChange={life.changeLife}
-              onLifeReset={life.resetLife}
+              onLifeReset={life.resetLife} onRetryPeer={retryPeer}
             />
           </div>
           <div className="min-h-[220px] flex-1 lg:min-h-[150px]">
@@ -186,16 +191,21 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         open={fullscreenOpen && !matchEnded} localStream={localStream} remoteStream={remoteStream}
         localUsername={local.username} remoteUsername={remote.username}
         localPlayerId={local.id} remotePlayerId={remote.id} localFeedLabel={feedLabel}
-        connecting={peerConnecting} remoteEmptyLabel={remoteEmptyLabel} camOn={camOn} micOn={micOn}
-        opponentMuted={opponentMuted}
+        connecting={peerConnecting} peerReconnecting={peerReconnecting}
+        graceRemaining={graceRemaining}
+        remoteEmptyLabel={remoteEmptyLabel} camOn={camOn} micOn={micOn}
+        opponentMuted={opponentMuted} mirroredLocal={mirroredLocal} mirroredRemote={mirroredRemote}
         startingLife={life.startingLife} lifeByPlayerId={life.lifeByPlayerId}
         lifeConnected={chat.connectionState === 'connected' && life.synced}
         playmatId={defaultPlaymatId} chat={chatPanelProps}
         onToggleCam={() => setCamOn((value) => !value)}
         onToggleMic={() => setMicOn((value) => !value)}
         onToggleOpponentMute={() => setOpponentMuted((v) => !v)}
+        onToggleMirrorLocal={setMirroredLocal ? () => setMirroredLocal((v) => !v) : undefined}
+        onToggleMirrorRemote={setMirroredRemote ? () => setMirroredRemote((v) => !v) : undefined}
         onLifeChange={life.changeLife}
-        onLifeReset={life.resetLife} onClose={() => setFullscreenOpen(false)}
+        onLifeReset={life.resetLife} onRetryPeer={retryPeer}
+        onClose={() => setFullscreenOpen(false)}
       />
       <MatchIntroOverlay active={isPlayer && started} matchId={tournament.matchId}
         players={players} remainingSeconds={startCountdown.remainingSeconds} />

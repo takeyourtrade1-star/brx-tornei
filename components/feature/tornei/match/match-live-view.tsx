@@ -53,6 +53,10 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     setMicOn,
     opponentMuted,
     setOpponentMuted,
+    mirroredLocal,
+    setMirroredLocal,
+    mirroredRemote,
+    setMirroredRemote,
     fullscreenOpen,
     setFullscreenOpen,
   } = useMatchMediaState(localStream);
@@ -197,8 +201,10 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
       leftPlayer={leftPlayer} rightPlayer={rightPlayer} playable={playable}
       localStream={localStream} remoteStream={remoteStream} feedLabel={feedLabel}
       webcamError={webcamError} camOn={camOn} micOn={micOn} opponentMuted={opponentMuted}
+      mirroredLocal={mirroredLocal} mirroredRemote={mirroredRemote}
       fullscreenOpen={fullscreenOpen} setCamOn={setCamOn} setMicOn={setMicOn}
-      setOpponentMuted={setOpponentMuted} setFullscreenOpen={setFullscreenOpen}
+      setOpponentMuted={setOpponentMuted} setMirroredLocal={setMirroredLocal}
+      setMirroredRemote={setMirroredRemote} setFullscreenOpen={setFullscreenOpen}
       peerState={peerState} peerError={peerError} peerTransport={peerTransport}
       peerQuality={visiblePeerQuality} peerReconnecting={peerReconnecting}
       peerConnecting={peerConnecting} retryPeer={retryPeer} ready={ready} leave={leave}

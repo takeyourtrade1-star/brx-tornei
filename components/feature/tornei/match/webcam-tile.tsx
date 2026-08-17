@@ -65,12 +65,14 @@ export function WebcamTile({
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/15 bg-black/70">
-      {/* object-contain: il frame della camera non va MAI ritagliato — ogni
-          centimetro di tavolo inquadrato deve restare visibile (al massimo
-          compaiono bande scure ai lati). */}
+      {/* object-contain: il frame della camera non va MAI ritagliato. */}
       <video
         ref={videoRef}
-        className={cn('h-full w-full object-contain', !hasVideo && 'opacity-0')}
+        className={cn(
+          'h-full w-full object-contain transition-transform duration-200',
+          mirrored && '-scale-x-100',
+          !hasVideo && 'opacity-0',
+        )}
         muted={muted}
         playsInline
         autoPlay
@@ -102,12 +104,29 @@ export function WebcamTile({
         </div>
       )}
 
-
+      {onToggleMirror && hasVideo && (
+        <button
+          type="button"
+          onClick={onToggleMirror}
+          title={mirrored ? 'Visuale specchiata attiva (clicca per disattivare)' : 'Visuale normale (clicca per specchiare)'}
+          aria-label={mirrored ? 'Disattiva specchio webcam' : 'Attiva specchio webcam'}
+          className={cn(
+            'absolute top-2.5 z-20 grid place-items-center rounded-full border transition backdrop-blur-md active:scale-95',
+            feedLabel ? 'right-12 sm:right-14' : 'right-2.5',
+            compact ? 'h-6 w-6' : 'h-7 w-7',
+            mirrored
+              ? 'border-primary/60 bg-primary/25 text-primary shadow-[0_0_10px_rgba(255,115,0,0.3)]'
+              : 'border-white/20 bg-black/60 text-white/75 hover:bg-black/80 hover:text-white',
+          )}
+        >
+          <FlipHorizontal className={cn(compact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
+        </button>
+      )}
 
       {feedLabel && hasVideo && (
         <div
           className={cn(
-            'absolute right-2 top-2 rounded-full border border-white/20 bg-black/55 font-bold text-white/85 backdrop-blur-sm',
+            'absolute right-2.5 top-2.5 rounded-full border border-white/20 bg-black/55 font-bold text-white/85 backdrop-blur-sm',
             compact ? 'px-1.5 py-0.5 text-[8px]' : 'px-2 py-0.5 text-[10px]',
           )}
         >

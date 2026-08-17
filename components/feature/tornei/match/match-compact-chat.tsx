@@ -6,6 +6,7 @@ import type { MatchChatConnectionState, MatchChatMessage } from '@/hooks/use-mat
 import { isMatchLifeMessage } from '@/lib/match-life-protocol';
 import { isMatchStartMessage } from '@/lib/match-start-protocol';
 import { MATCH_STICKERS, stickerFromText, stickerToText } from './match-stickers';
+import { MatchStickerIcon } from './match-sticker-icons';
 
 export interface MatchCompactChatProps {
   me: string;
@@ -71,13 +72,32 @@ export function MatchCompactChat({
             {visibleMessages.length ? visibleMessages.map((message) => {
               const name = message.userId === userId ? me : (participantNames[message.userId] ?? 'Avversario');
               const messageSticker = stickerFromText(message.text);
-              return <li key={message.id} className="break-words"><strong className="text-white">{name}:</strong> {messageSticker ? messageSticker.emoji + ' ' + messageSticker.label : message.text}</li>;
+              return (
+                <li key={message.id} className="flex items-center gap-1.5 break-words">
+                  <strong className="text-white">{name}:</strong>{' '}
+                  {messageSticker ? (
+                    <span className="inline-flex items-center gap-1 font-sans font-bold text-primary">
+                      <span className="grid h-4 w-4 shrink-0 place-items-center"><MatchStickerIcon id={messageSticker.id} /></span>
+                      {messageSticker.label}
+                    </span>
+                  ) : (
+                    message.text
+                  )}
+                </li>
+              );
             }) : <li className="grid h-full min-h-12 place-items-center text-white/35">{error ?? 'Nessun messaggio'}</li>}
           </ul>
         ) : lastMessage ? (
-          <p className="truncate text-[10px] text-white/70">
+          <p className="flex items-center gap-1 truncate text-[10px] text-white/70">
             <strong className="text-white">{sender}:</strong>{' '}
-            {sticker ? sticker.emoji + ' ' + sticker.label : lastMessage.text}
+            {sticker ? (
+              <span className="inline-flex items-center gap-1 font-sans font-bold text-primary">
+                <span className="grid h-4 w-4 shrink-0 place-items-center"><MatchStickerIcon id={sticker.id} /></span>
+                {sticker.label}
+              </span>
+            ) : (
+              lastMessage.text
+            )}
           </p>
         ) : (
           <p className="truncate text-[10px] text-white/35">{error ?? 'Nessun messaggio'}</p>
@@ -93,9 +113,11 @@ export function MatchCompactChat({
             aria-label={`Invia sticker ${s.label}`}
             disabled={!connected}
             onClick={() => send(stickerToText(s.id))}
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.05] text-xs transition hover:border-primary/50 hover:bg-primary/20 active:scale-95 disabled:opacity-35"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.05] p-1 transition hover:border-primary/50 hover:bg-primary/20 active:scale-95 disabled:opacity-35"
           >
-            <span className="select-none">{s.emoji}</span>
+            <div className="h-4 w-4">
+              <MatchStickerIcon id={s.id} />
+            </div>
           </button>
         ))}
       </div>

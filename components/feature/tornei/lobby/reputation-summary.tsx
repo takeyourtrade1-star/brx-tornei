@@ -31,11 +31,11 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
   return (
     <section
       aria-label="Le tue partite"
-      className="overflow-hidden rounded-2xl border border-white/15 bg-white/10 text-white backdrop-blur-md shadow-md"
+      className="overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-b from-global-bg-start/55 via-global-bg-end/85 to-header-bg text-white shadow-lg shadow-black/25 backdrop-blur-md sm:bg-gradient-to-r"
     >
       <div className="flex flex-col sm:flex-row">
         {/* Metà sinistra: emblema + totale + ultime sfide. */}
-        <div className="flex flex-1 flex-col gap-2.5 bg-gradient-to-r from-white/10 via-white/5 to-transparent px-4 py-3.5 sm:px-5">
+        <div className="flex flex-1 flex-col gap-2.5 bg-gradient-to-r from-white/[0.07] via-global-bg-end/20 to-header-bg/70 px-4 py-3.5 sm:px-5">
           <div className="flex items-center gap-3.5">
             <span className="swords-emblem relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-sm">
               <span
@@ -86,7 +86,7 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
         {/* Esiti compatti con la stessa estetica delle statistiche in /partite. */}
         <div
           aria-label="Esiti delle tue partite"
-          className="grid grid-cols-3 gap-2 border-t border-white/10 bg-black/10 p-2 sm:w-[340px] sm:shrink-0 sm:border-l sm:border-t-0"
+          className="grid grid-cols-3 gap-2 border-t border-white/10 bg-header-bg/70 p-2 sm:w-[340px] sm:shrink-0 sm:border-l sm:border-t-0"
         >
           <StatBadgeCard
             label="Vinte"

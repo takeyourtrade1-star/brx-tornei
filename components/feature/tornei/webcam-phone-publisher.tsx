@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
+  FlipHorizontal,
   Loader2,
   RefreshCw,
   Video,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { createWebcamSender, type LinkController, type LinkState } from '@/lib/webrtc/webcam-link';
 
 const CONSTRAINTS: MediaStreamConstraints = {
@@ -43,6 +45,7 @@ export function WebcamPhonePublisher({
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [relayReady, setRelayReady] = useState(false);
+  const [mirrored, setMirrored] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -151,11 +154,12 @@ export function WebcamPhonePublisher({
       </div>
 
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-white/15 bg-black/60 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]">
-        {/* object-contain: l'anteprima mostra ESATTAMENTE il frame trasmesso,
-            così il tavolo si inquadra senza sorprese di ritaglio. */}
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-contain"
+          className={cn(
+            'absolute inset-0 h-full w-full object-contain transition-transform duration-200',
+            mirrored && '-scale-x-100',
+          )}
           muted
           playsInline
           autoPlay
@@ -177,19 +181,35 @@ export function WebcamPhonePublisher({
             </button>
           </div>
         ) : (
-          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
-            {connected ? (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
-                Collegato al PC
-              </>
-            ) : (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7300]" />
-                Collegamento…
-              </>
-            )}
-          </div>
+          <>
+            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+              {connected ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  Collegato al PC
+                </>
+              ) : (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF7300]" />
+                  Collegamento…
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMirrored((m) => !m)}
+              title={mirrored ? 'Visuale specchiata attiva' : 'Visuale normale (clicca per specchiare)'}
+              aria-label="Specchia anteprima webcam"
+              className={cn(
+                'absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border backdrop-blur-md transition active:scale-95',
+                mirrored
+                  ? 'border-[#FF7300]/60 bg-[#FF7300]/25 text-[#FF7300]'
+                  : 'border-white/20 bg-black/55 text-white/80 hover:bg-black/75 hover:text-white',
+              )}
+            >
+              <FlipHorizontal className="h-4 w-4" />
+            </button>
+          </>
         )}
       </div>
 

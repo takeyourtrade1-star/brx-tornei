@@ -9,106 +9,104 @@
 
 export interface MatchSticker {
   id: string;
-  emoji: string;
-  /** Scritta breve sotto l'emoji (tono da taunt). */
+  /** Scritta breve sotto l'icona (tono da taunt competitivo). */
   label: string;
   /** Tooltip del pulsante nel picker. */
   title: string;
-  /** Classe keyframe applicata all'emoji nell'overlay (vedi globals.css). */
+  /** Classe keyframe applicata allo sticker nell'overlay. */
   animation: string;
+  /** Emoji di fallback testuale per notifiche di testo / accessibility. */
+  emoji: string;
 }
 
 export const MATCH_STICKERS: MatchSticker[] = [
   {
     id: 'fire',
-    emoji: '🔥',
-    label: 'FIRE!',
-    title: 'A fuoco!',
+    label: 'ON FIRE!',
+    title: 'A fuoco! Combo devastante',
     animation: 'sticker-anim-fire',
+    emoji: '🔥',
   },
   {
     id: 'brain',
-    emoji: '🧠',
     label: '500 IQ',
-    title: 'Grande giocata!',
+    title: 'Grande giocata calcolata!',
     animation: 'sticker-anim-brain',
+    emoji: '🧠',
   },
   {
-    id: 'gg',
-    emoji: '👏',
-    label: 'GG WP',
-    title: 'Bella partita!',
-    animation: 'sticker-anim-gg',
-  },
-  {
-    id: 'lucky',
-    emoji: '🍀',
-    label: 'LUCKY',
-    title: 'Topdeck fortunato',
-    animation: 'sticker-anim-lucky',
-  },
-  {
-    id: 'shock',
-    emoji: '🤯',
-    label: 'BOOM!',
-    title: 'Incredibile!',
-    animation: 'sticker-anim-shock',
-  },
-  {
-    id: 'skull',
-    emoji: '💀',
-    label: 'RIP',
-    title: 'Sono spacciato',
+    id: 'rip',
+    label: 'R.I.P.',
+    title: 'Spacciato / KO totale',
     animation: 'sticker-anim-skull',
+    emoji: '💀',
   },
   {
-    id: 'chill',
-    emoji: '☕',
-    label: 'CHILL',
-    title: 'Calma e gesso',
-    animation: 'sticker-anim-chill',
-  },
-  {
-    id: 'ez',
-    emoji: '😎',
-    label: 'EZ',
-    title: 'Troppo facile',
-    animation: 'sticker-anim-cool',
-  },
-  {
-    id: 'lol',
-    emoji: '🤣',
-    label: 'LOL',
-    title: 'Ridigli in faccia',
-    animation: 'sticker-anim-bounce',
-  },
-  {
-    id: 'rage',
-    emoji: '😡',
-    label: 'TILT!',
-    title: 'Fallo arrabbiare',
-    animation: 'sticker-anim-shake',
-  },
-  {
-    id: 'cry',
-    emoji: '😭',
-    label: 'NOOO',
-    title: 'Lacrime amare',
-    animation: 'sticker-anim-cry',
+    id: 'clown',
+    label: 'CLOWN PLAY',
+    title: 'Che misplay madornale!',
+    animation: 'sticker-anim-clown',
+    emoji: '🤡',
   },
   {
     id: 'salt',
-    emoji: '🧂',
-    label: 'SALTY',
-    title: 'Giù di sale',
+    label: 'SO SALTY',
+    title: 'Sei troppo salato',
     animation: 'sticker-anim-salt',
+    emoji: '🧂',
+  },
+  {
+    id: 'topdeck',
+    label: 'TOPDECK GOD',
+    title: 'Pescata miracolosa!',
+    animation: 'sticker-anim-topdeck',
+    emoji: '🍀',
+  },
+  {
+    id: 'ez',
+    label: 'TOO EZ',
+    title: 'Troppo facile, sorseggio tè',
+    animation: 'sticker-anim-ez',
+    emoji: '☕',
+  },
+  {
+    id: 'tilt',
+    label: 'TILTED!',
+    title: 'Esplosione / Rabbia e tilt',
+    animation: 'sticker-anim-tilt',
+    emoji: '💣',
+  },
+  {
+    id: 'crown',
+    label: 'BOW DOWN',
+    title: 'Inchinatevi al Re',
+    animation: 'sticker-anim-crown',
+    emoji: '👑',
+  },
+  {
+    id: 'freeze',
+    label: 'FREEZE!',
+    title: 'Calma e sangue freddo',
+    animation: 'sticker-anim-freeze',
+    emoji: '🧊',
   },
 ];
 
-/** Anti-spam lato mittente: uno sticker ogni 4s (il backend ha comunque l'anti-flood). */
+/** Anti-spam lato mittente: uno sticker ogni 4s. */
 export const STICKER_COOLDOWN_MS = 4000;
 
 const STICKER_TEXT_RE = /^\[sticker:([a-z]+)\]$/;
+
+const STICKER_ALIASES: Record<string, string> = {
+  skull: 'rip',
+  lucky: 'topdeck',
+  rage: 'tilt',
+  shock: 'tilt',
+  chill: 'freeze',
+  gg: 'crown',
+  lol: 'clown',
+  cry: 'salt',
+};
 
 export function stickerToText(id: string): string {
   return `[sticker:${id}]`;
@@ -118,5 +116,7 @@ export function stickerToText(id: string): string {
 export function stickerFromText(text: string): MatchSticker | null {
   const match = STICKER_TEXT_RE.exec(text.trim());
   if (!match) return null;
-  return MATCH_STICKERS.find((s) => s.id === match[1]) ?? null;
+  const rawId = match[1];
+  const canonicalId = STICKER_ALIASES[rawId] ?? rawId;
+  return MATCH_STICKERS.find((s) => s.id === canonicalId) ?? null;
 }
