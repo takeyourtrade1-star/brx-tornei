@@ -97,16 +97,7 @@ export function WebcamTile({
         </div>
       )}
 
-      {hasVideo && !videoDisabled && (
-        <div
-          className={cn(
-            'absolute left-2 top-2 rounded-full bg-emerald-500/90 font-black uppercase text-white',
-            compact ? 'px-1.5 py-0.5 text-[8px]' : 'px-2 py-0.5 text-[10px]',
-          )}
-        >
-          Live
-        </div>
-      )}
+
 
       {feedLabel && hasVideo && (
         <div

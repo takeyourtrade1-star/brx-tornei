@@ -23,6 +23,7 @@ interface MatchFullscreenArenaProps {
   remoteEmptyLabel?: string;
   camOn: boolean;
   micOn: boolean;
+  opponentMuted?: boolean;
   startingLife: number;
   lifeByPlayerId: Record<string, number>;
   lifeConnected: boolean;
@@ -30,6 +31,7 @@ interface MatchFullscreenArenaProps {
   chat: MatchCompactChatProps;
   onToggleCam: () => void;
   onToggleMic: () => void;
+  onToggleOpponentMute?: () => void;
   onLifeChange: (playerId: string, delta: number) => void;
   onLifeReset?: () => void;
   onClose: () => void;
@@ -48,6 +50,7 @@ export function MatchFullscreenArena({
   remoteEmptyLabel,
   camOn,
   micOn,
+  opponentMuted = false,
   startingLife,
   lifeByPlayerId,
   lifeConnected,
@@ -55,6 +58,7 @@ export function MatchFullscreenArena({
   chat,
   onToggleCam,
   onToggleMic,
+  onToggleOpponentMute,
   onLifeChange,
   onLifeReset,
   onClose,
@@ -147,6 +151,9 @@ export function MatchFullscreenArena({
           </button>
           <MatchMediaButton on={micOn} label="microfono" onClick={onToggleMic} />
           <MatchMediaButton on={camOn} label="camera" onClick={onToggleCam} />
+          {onToggleOpponentMute && (
+            <MatchMediaButton on={!opponentMuted} label="audio avversario" onClick={onToggleOpponentMute} />
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -167,17 +174,17 @@ export function MatchFullscreenArena({
         </aside>
 
         <div className="grid min-h-0 place-items-center">
-          <div className="relative w-[min(91vw,138vh)] max-w-full overflow-hidden rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] ring-1 ring-primary/35 [aspect-ratio:16/9] sm:rounded-[2rem] sm:p-2.5 md:w-[min(100%,calc((100dvh-12rem)*16/9))]">
+          <div className="relative w-[min(91vw,138vh)] max-w-full overflow-hidden rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] border border-sky-400/30 ring-1 ring-sky-400/35 [aspect-ratio:16/9] sm:rounded-[2rem] sm:p-2.5 md:w-[min(100%,calc((100dvh-12rem)*16/9))]">
             <div className="absolute inset-1.5 sm:inset-2.5">
               <WebcamTile
                 stream={remoteStream}
                 username={remoteUsername}
                 connecting={connecting}
-                muted={false}
+                muted={opponentMuted}
                 emptyLabel={remoteEmptyLabel}
               />
             </div>
-            <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-sky-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
+            <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-sky-500/90 border border-sky-400/30 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg backdrop-blur-md">
               Webcam avversario
             </span>
           </div>
@@ -190,18 +197,19 @@ export function MatchFullscreenArena({
         </aside>
       )}
 
-      {/* La tua preview e i punti vita dell'avversario restano in basso a destra. */}
+      {/* La tua preview e i tuoi punti vita (interattivi) in basso a destra. */}
       <div className="absolute bottom-5 right-4 z-40 flex items-end gap-2">
         <div className="min-w-0">
           <MatchLifeBadge
-            username={remoteUsername}
-            life={lifeByPlayerId[remotePlayerId] ?? startingLife}
-            playerId={remotePlayerId}
+            username={localUsername}
+            life={lifeByPlayerId[localPlayerId] ?? startingLife}
+            playerId={localPlayerId}
             connected={lifeConnected}
-            variant="remote"
-            roleLabel="Avversario"
-            interactive={false}
+            variant="local"
+            roleLabel="Tu"
+            startingLife={startingLife}
             onChange={onLifeChange}
+            onReset={onLifeReset}
           />
         </div>
         <div className="w-[min(28vw,300px)] rounded-2xl border border-primary/30 bg-black/75 p-1.5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:min-w-[240px]">
@@ -224,17 +232,17 @@ export function MatchFullscreenArena({
         </div>
       </div>
 
+      {/* Punti vita dell'avversario al centro, sotto il suo riquadro video principale. */}
       <div className="absolute bottom-5 left-1/2 z-40 -translate-x-1/2">
         <MatchLifeBadge
-          username={localUsername}
-          life={lifeByPlayerId[localPlayerId] ?? startingLife}
-          playerId={localPlayerId}
+          username={remoteUsername}
+          life={lifeByPlayerId[remotePlayerId] ?? startingLife}
+          playerId={remotePlayerId}
           connected={lifeConnected}
-          variant="local"
-          roleLabel="Tu"
-          startingLife={startingLife}
+          variant="remote"
+          roleLabel="Avversario"
+          interactive={false}
           onChange={onLifeChange}
-          onReset={onLifeReset}
         />
       </div>
     </section>,

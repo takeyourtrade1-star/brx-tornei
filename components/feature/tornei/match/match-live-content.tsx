@@ -41,8 +41,9 @@ interface MatchLiveContentProps {
   local: Participant; remote: Participant; players: [Participant, Participant];
   leftPlayer: Participant; rightPlayer: Participant; playable: boolean;
   localStream: MediaStream | null; remoteStream: MediaStream | null; feedLabel?: string;
-  webcamError: string | null; camOn: boolean; micOn: boolean; fullscreenOpen: boolean;
-  setCamOn: Dispatch<SetStateAction<boolean>>; setMicOn: Dispatch<SetStateAction<boolean>>;
+  webcamError: string | null; camOn: boolean; micOn: boolean; opponentMuted: boolean;
+  fullscreenOpen: boolean; setCamOn: Dispatch<SetStateAction<boolean>>;
+  setMicOn: Dispatch<SetStateAction<boolean>>; setOpponentMuted: Dispatch<SetStateAction<boolean>>;
   setFullscreenOpen: Dispatch<SetStateAction<boolean>>; peerState: PeerLinkState;
   peerError: string | null; peerTransport: PeerTransport; peerQuality?: ConnectionQuality;
   peerReconnecting: boolean; peerConnecting: boolean; retryPeer: () => void;
@@ -59,10 +60,10 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
     matchEnded, resultClaimPending, resultReselectionRequired, showResultPanel,
     iClaimedResult, resultCountdown, reconnectGraceActive, disconnectedIsMe, didIWin,
     local, remote, players, leftPlayer, rightPlayer, playable, localStream, remoteStream,
-    feedLabel, webcamError, camOn, micOn, fullscreenOpen, setCamOn, setMicOn,
-    setFullscreenOpen, peerState, peerError, peerTransport, peerQuality, peerReconnecting,
-    peerConnecting, retryPeer, ready, leave, declareResult, exit, chat, life,
-    startCountdown, sticker, gapProtection,
+    feedLabel, webcamError, camOn, micOn, opponentMuted, fullscreenOpen, setCamOn, setMicOn,
+    setOpponentMuted, setFullscreenOpen, peerState, peerError, peerTransport, peerQuality,
+    peerReconnecting, peerConnecting, retryPeer, ready, leave, declareResult, exit, chat,
+    life, startCountdown, sticker, gapProtection,
   } = props;
   const participantNames = Object.fromEntries(
     tournament.participants.map((participant) => [participant.id, participant.username]),
@@ -165,12 +166,13 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
               leftPlayer={leftPlayer} rightPlayer={rightPlayer} formatName={formatName}
               localStream={localStream} remoteStream={remoteStream} feedLabel={feedLabel}
               peerConnecting={peerConnecting} remoteEmptyLabel={remoteEmptyLabel}
-              camOn={camOn} micOn={micOn} lifeByPlayerId={life.lifeByPlayerId}
-              startingLife={life.startingLife}
+              camOn={camOn} micOn={micOn} opponentMuted={opponentMuted}
+              lifeByPlayerId={life.lifeByPlayerId} startingLife={life.startingLife}
               lifeConnected={chat.connectionState === 'connected' && life.synced}
               stickerShot={sticker.stickerShot} participantNames={participantNames}
               userId={userId} me={me} onToggleMic={() => setMicOn((value) => !value)}
               onToggleCam={() => setCamOn((value) => !value)}
+              onToggleOpponentMute={() => setOpponentMuted((v) => !v)}
               onFullscreen={() => setFullscreenOpen(true)} onLifeChange={life.changeLife}
               onLifeReset={life.resetLife}
             />
@@ -185,11 +187,14 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         localUsername={local.username} remoteUsername={remote.username}
         localPlayerId={local.id} remotePlayerId={remote.id} localFeedLabel={feedLabel}
         connecting={peerConnecting} remoteEmptyLabel={remoteEmptyLabel} camOn={camOn} micOn={micOn}
+        opponentMuted={opponentMuted}
         startingLife={life.startingLife} lifeByPlayerId={life.lifeByPlayerId}
         lifeConnected={chat.connectionState === 'connected' && life.synced}
         playmatId={defaultPlaymatId} chat={chatPanelProps}
         onToggleCam={() => setCamOn((value) => !value)}
-        onToggleMic={() => setMicOn((value) => !value)} onLifeChange={life.changeLife}
+        onToggleMic={() => setMicOn((value) => !value)}
+        onToggleOpponentMute={() => setOpponentMuted((v) => !v)}
+        onLifeChange={life.changeLife}
         onLifeReset={life.resetLife} onClose={() => setFullscreenOpen(false)}
       />
       <MatchIntroOverlay active={isPlayer && started} matchId={tournament.matchId}

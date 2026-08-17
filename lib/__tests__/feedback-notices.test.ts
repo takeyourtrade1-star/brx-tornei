@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  tournamentFetch: vi.fn(),
-}));
+const mocks = vi.hoisted(() => ({ tournamentFetch: vi.fn() }));
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/data/tournament-api-client', () => ({
@@ -13,7 +11,7 @@ vi.mock('@/lib/data/tournament-api-client', () => ({
 
 import { fetchMyReputation } from '@/lib/data/player-api-client';
 
-function reputationBody(negativeFeedbackNotice: unknown) {
+function reputationBody(positiveFeedbackNotice: unknown, negativeFeedbackNotice: unknown) {
   return {
     data: {
       played: 1,
@@ -22,37 +20,45 @@ function reputationBody(negativeFeedbackNotice: unknown) {
       abandoned: 0,
       disputed: 0,
       recent: [],
+      positive_feedback_notice: positiveFeedbackNotice,
       negative_feedback_notice: negativeFeedbackNotice,
     },
   };
 }
 
-describe('negative feedback notice mapping', () => {
+describe('feedback notice mapping', () => {
   beforeEach(() => mocks.tournamentFetch.mockReset());
 
-  it('mappa il timestamp valido restituito dal backend', async () => {
+  it('mappa i timestamp validi restituiti dal backend', async () => {
     mocks.tournamentFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      body: reputationBody({ received_at: '2026-08-17T10:00:00+00:00' }),
+      body: reputationBody(
+        { received_at: '2026-08-17T09:00:00+00:00' },
+        { received_at: '2026-08-17T10:00:00+00:00' },
+      ),
     });
 
     const reputation = await fetchMyReputation();
 
+    expect(reputation.positiveFeedbackNotice).toEqual({
+      receivedAt: '2026-08-17T09:00:00+00:00',
+    });
     expect(reputation.negativeFeedbackNotice).toEqual({
       receivedAt: '2026-08-17T10:00:00+00:00',
     });
   });
 
-  it('ignora in modo sicuro un avviso malformato', async () => {
+  it('ignora in modo sicuro gli avvisi malformati', async () => {
     mocks.tournamentFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      body: reputationBody({ received_at: 'non-una-data' }),
+      body: reputationBody({ received_at: 123 }, { received_at: 'non-una-data' }),
     });
 
     const reputation = await fetchMyReputation();
 
+    expect(reputation.positiveFeedbackNotice).toBeNull();
     expect(reputation.negativeFeedbackNotice).toBeNull();
   });
 });

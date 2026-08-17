@@ -104,16 +104,13 @@ export function buildLobbyTables(params: {
       started: false,
     }));
 
-  if (myTournaments.length > 0) {
-    const mine = myTournaments.map((t): LobbyTable => ({
-      key: t.id,
-      kind: 'mine',
-      tournament: t,
-      seats: toSeats(t, userId),
-      started: t.status === 'iniziata',
-    }));
-    return [...mine, ...available];
-  }
+  const mine: LobbyTable[] = myTournaments.map((t): LobbyTable => ({
+    key: t.id,
+    kind: 'mine',
+    tournament: t,
+    seats: toSeats(t, userId),
+    started: t.status === 'iniziata',
+  }));
 
   const joinable: LobbyTable[] = [];
   const emptyExisting: LobbyTable[] = [];
@@ -123,11 +120,9 @@ export function buildLobbyTables(params: {
     if (t.withFriend !== true) continue;
     if (t.status !== 'in_registrazione') continue;
     if (t.participants.length >= t.maxPlayers) continue;
-    // Un mio eventuale doppione (seduto ma non rilevato come "mine"): lo salto.
     if (t.participants.some((p) => p.id === userId)) continue;
 
     if (t.participants.length === 0) {
-      // Tavolo reale ma vuoto: riutilizzabile, non se ne crea uno nuovo.
       emptyExisting.push({
         key: t.id,
         kind: 'empty',
@@ -146,11 +141,10 @@ export function buildLobbyTables(params: {
     }
   }
 
-  // Sempre un unico tasto "Apri nuovo tavolo" in cima: se esiste un vuoto reale
-  // lo riutilizzo (host ci si siede), altrimenti sintetico che ne crea uno nuovo.
+  // C'è sempre un tavolo libero in cima alla lista
   const primaryEmpty: LobbyTable =
     emptyExisting[0] ??
     { key: '__empty-0', kind: 'empty', tournament: null, seats: EMPTY_SEATS, started: false };
 
-  return [primaryEmpty, ...joinable];
+  return [primaryEmpty, ...mine, ...joinable];
 }

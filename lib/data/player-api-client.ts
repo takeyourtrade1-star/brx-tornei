@@ -57,8 +57,8 @@ export interface RecentMatchResult {
   createdAt: string;
 }
 
-export interface NegativeFeedbackNotice {
-  /** Timestamp ISO della prima valutazione negativa ricevuta. */
+export interface FeedbackNotice {
+  /** Timestamp ISO della prima valutazione di questo tipo ricevuta. */
   receivedAt: string;
 }
 
@@ -72,7 +72,9 @@ export interface ReputationSummary {
   /** Storico completo (pagina /partite); oggi ricade sulla coda recent. */
   history: RecentMatchResult[];
   /** Presente solo entro 24 ore dalla prima valutazione negativa ricevuta. */
-  negativeFeedbackNotice?: NegativeFeedbackNotice | null;
+  negativeFeedbackNotice?: FeedbackNotice | null;
+  /** Presente solo entro 24 ore dalla prima valutazione positiva ricevuta. */
+  positiveFeedbackNotice?: FeedbackNotice | null;
 }
 
 const VALID_OUTCOMES: MatchOutcome[] = ['win', 'loss', 'abandoned', 'disputed'];
@@ -111,15 +113,15 @@ export async function fetchMyReputationPage(): Promise<ReputationSummary> {
   // Se il backend espone una lista lunga separata (storico completo) la
   // preferiamo; altrimenti la pagina usera' la coda recente.
   const historyRaw = Array.isArray(data.history) ? data.history : recentRaw;
-  const noticeRaw =
-    data.negative_feedback_notice && typeof data.negative_feedback_notice === 'object'
-      ? (data.negative_feedback_notice as Record<string, unknown>)
+  const mapNotice = (raw: unknown): FeedbackNotice | null => {
+    const notice = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
+    const receivedAt = notice?.received_at;
+    return typeof receivedAt === 'string' && Number.isFinite(Date.parse(receivedAt))
+      ? { receivedAt }
       : null;
-  const noticeReceivedAt = noticeRaw?.received_at;
-  const negativeFeedbackNotice =
-    typeof noticeReceivedAt === 'string' && Number.isFinite(Date.parse(noticeReceivedAt))
-      ? { receivedAt: noticeReceivedAt }
-      : null;
+  };
+  const negativeFeedbackNotice = mapNotice(data.negative_feedback_notice);
+  const positiveFeedbackNotice = mapNotice(data.positive_feedback_notice);
   const mapRow = (entry: unknown) => {
     const row = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
     const outcome =
@@ -143,6 +145,7 @@ export async function fetchMyReputationPage(): Promise<ReputationSummary> {
     recent: recentRaw.map(mapRow),
     history: historyRaw.map(mapRow),
     negativeFeedbackNotice,
+    positiveFeedbackNotice,
   };
 }
 

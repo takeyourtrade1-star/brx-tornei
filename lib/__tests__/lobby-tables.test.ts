@@ -22,24 +22,16 @@ function table(id: string, participantIds: string[], withFriend = true): Tournam
 }
 
 describe('buildLobbyTables', () => {
-  it('mantiene visibili le altre sfide P2P quando ho già creato un tavolo', () => {
+  it('mostra sempre un tavolo libero in cima anche quando sono seduto a un mio tavolo', () => {
     const result = buildLobbyTables({
       tournaments: [table('mine', ['me']), table('other', ['friend'])],
       userId: 'me',
     });
     expect(result.map((item) => [item.key, item.kind])).toEqual([
+      ['__empty-0', 'empty'],
       ['mine', 'mine'],
       ['other', 'joinable'],
     ]);
-  });
-
-  it('non propone tavoli normali e non mostra un secondo tasto crea se sono seduto', () => {
-    const result = buildLobbyTables({
-      tournaments: [table('mine', ['me']), table('legacy', ['player'], false)],
-      userId: 'me',
-    });
-    expect(result.map((item) => item.key)).toEqual(['mine']);
-    expect(result.some((item) => item.kind === 'empty')).toBe(false);
   });
 
   it('filtra i tavoli altrui per formato selezionato', () => {
@@ -57,12 +49,15 @@ describe('buildLobbyTables', () => {
     ]);
   });
 
-  it('mostra il mio tavolo anche se è in un altro formato', () => {
+  it('mostra il mio tavolo anche se è in un altro formato con tavolo libero in cima', () => {
     const result = buildLobbyTables({
       tournaments: [{ ...table('mine', ['me']), format: 'legacy' }],
       userId: 'me',
       format: 'modern',
     });
-    expect(result.map((item) => [item.key, item.kind])).toEqual([['mine', 'mine']]);
+    expect(result.map((item) => [item.key, item.kind])).toEqual([
+      ['__empty-0', 'empty'],
+      ['mine', 'mine'],
+    ]);
   });
 });

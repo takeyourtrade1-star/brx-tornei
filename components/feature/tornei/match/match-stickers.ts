@@ -20,6 +20,55 @@ export interface MatchSticker {
 
 export const MATCH_STICKERS: MatchSticker[] = [
   {
+    id: 'fire',
+    emoji: '🔥',
+    label: 'FIRE!',
+    title: 'A fuoco!',
+    animation: 'sticker-anim-fire',
+  },
+  {
+    id: 'brain',
+    emoji: '🧠',
+    label: '500 IQ',
+    title: 'Grande giocata!',
+    animation: 'sticker-anim-brain',
+  },
+  {
+    id: 'gg',
+    emoji: '👏',
+    label: 'GG WP',
+    title: 'Bella partita!',
+    animation: 'sticker-anim-gg',
+  },
+  {
+    id: 'lucky',
+    emoji: '🍀',
+    label: 'LUCKY',
+    title: 'Topdeck fortunato',
+    animation: 'sticker-anim-lucky',
+  },
+  {
+    id: 'shock',
+    emoji: '🤯',
+    label: 'BOOM!',
+    title: 'Incredibile!',
+    animation: 'sticker-anim-shock',
+  },
+  {
+    id: 'skull',
+    emoji: '💀',
+    label: 'RIP',
+    title: 'Sono spacciato',
+    animation: 'sticker-anim-skull',
+  },
+  {
+    id: 'chill',
+    emoji: '☕',
+    label: 'CHILL',
+    title: 'Calma e gesso',
+    animation: 'sticker-anim-chill',
+  },
+  {
     id: 'ez',
     emoji: '😎',
     label: 'EZ',
@@ -43,14 +92,14 @@ export const MATCH_STICKERS: MatchSticker[] = [
   {
     id: 'cry',
     emoji: '😭',
-    label: 'GG…',
+    label: 'NOOO',
     title: 'Lacrime amare',
     animation: 'sticker-anim-cry',
   },
   {
     id: 'salt',
     emoji: '🧂',
-    label: 'Salty?',
+    label: 'SALTY',
     title: 'Giù di sale',
     animation: 'sticker-anim-salt',
   },

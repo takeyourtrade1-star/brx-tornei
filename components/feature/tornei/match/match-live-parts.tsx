@@ -1,3 +1,4 @@
+import { Wifi, WifiOff } from 'lucide-react';
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import type { ConnectionQuality } from '@/types/tournament';
 import { connectionQualityLabel } from '@/lib/webrtc/connection-quality';
@@ -30,37 +31,64 @@ export function ConnectionBadge({
 }) {
   const live = state === 'connected';
   const failed = state === 'failed';
+  const level = quality?.level ?? 'good';
   const transportLabel =
     transport === 'direct'
       ? 'Partita tra amici'
       : transport === 'relay'
         ? 'Video protetto'
         : 'Video connesso';
+
+  const fullLabel = live
+    ? `${transportLabel} · ${connectionQualityLabel(quality)}`
+    : reconnecting || error
+      ? 'Riconnessione…'
+      : 'Connessione…';
+
+  const msLabel =
+    live && quality?.rttMs !== undefined
+      ? `${quality.rttMs} ms`
+      : live
+        ? '40 ms'
+        : failed
+          ? 'OFF'
+          : '… ms';
+
+  const colorClass = failed
+    ? 'border-red-400/30 bg-red-500/10 text-red-300'
+    : live && level === 'poor'
+      ? 'border-rose-400/30 bg-rose-500/10 text-rose-300'
+      : live && level === 'fair'
+        ? 'border-amber-400/30 bg-amber-500/10 text-amber-300'
+        : live
+          ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300'
+          : 'border-white/10 bg-white/5 text-white/60';
+
+  const iconColor = failed
+    ? 'text-red-400'
+    : live && level === 'poor'
+      ? 'text-rose-400'
+      : live && level === 'fair'
+        ? 'text-amber-400'
+        : live
+          ? 'text-emerald-400'
+          : 'text-amber-300 animate-pulse';
+
   return (
     <span
       className={cn(
-        'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-[10px] font-black uppercase tracking-wider',
-        live
-          ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-300'
-          : failed
-            ? 'border-red-400/30 bg-red-500/10 text-red-300'
-            : 'border-white/10 bg-white/5 text-white/60',
+        'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-bold font-mono tracking-tight select-none shadow-sm backdrop-blur-md transition',
+        colorClass,
       )}
+      title={fullLabel}
+      aria-label={fullLabel}
     >
-      <span
-        aria-hidden
-        className={cn(
-          'h-1.5 w-1.5 rounded-full',
-          live
-            ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]'
-            : failed
-              ? 'bg-red-400'
-              : 'animate-pulse bg-amber-300',
-        )}
-      />
-      {live
-        ? `${transportLabel} · ${connectionQualityLabel(quality)}`
-        : reconnecting || error ? 'Riconnessione…' : 'Connessione…'}
+      {failed ? (
+        <WifiOff className={cn('h-3.5 w-3.5', iconColor)} aria-hidden />
+      ) : (
+        <Wifi className={cn('h-3.5 w-3.5', iconColor)} aria-hidden />
+      )}
+      <span>{msLabel}</span>
     </span>
   );
 }

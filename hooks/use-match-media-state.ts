@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 export function useMatchMediaState(stream?: MediaStream | null) {
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
+  const [opponentMuted, setOpponentMuted] = useState(false);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
 
   useEffect(() => {
@@ -14,5 +15,14 @@ export function useMatchMediaState(stream?: MediaStream | null) {
     for (const track of stream.getAudioTracks()) track.enabled = micOn;
   }, [stream, camOn, micOn]);
 
-  return { camOn, setCamOn, micOn, setMicOn, fullscreenOpen, setFullscreenOpen };
+  return {
+    camOn,
+    setCamOn,
+    micOn,
+    setMicOn,
+    opponentMuted,
+    setOpponentMuted,
+    fullscreenOpen,
+    setFullscreenOpen,
+  };
 }

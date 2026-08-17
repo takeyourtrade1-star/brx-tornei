@@ -38,15 +38,14 @@ export function MatchDeckChip({ player, formatName }: MatchDeckChipProps) {
         aria-expanded={open}
         aria-label={'Dettagli mazzo di ' + player.username}
         className={cn(
-          'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[10px] font-black uppercase tracking-wider backdrop-blur-md transition',
+          'inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[10px] font-black uppercase tracking-wider backdrop-blur-md transition',
           open
             ? 'border-primary/60 bg-primary/25 text-white'
             : 'border-white/15 bg-header-bg/80 text-white/80 hover:border-white/30 hover:bg-white/15 hover:text-white',
         )}
       >
         <Layers className="h-3.5 w-3.5 text-primary" />
-        Mazzo
-        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('h-3 w-3 transition-transform text-white/60', open && 'rotate-180 text-white')} />
       </button>
 
       {open && (

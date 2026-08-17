@@ -1,11 +1,11 @@
 'use client';
 
 import { useId, useMemo, useState } from 'react';
-import { MessageSquare, RefreshCw, Send } from 'lucide-react';
+import { RefreshCw, Send, Shield } from 'lucide-react';
 import type { MatchChatConnectionState, MatchChatMessage } from '@/hooks/use-match-chat';
 import { isMatchLifeMessage } from '@/lib/match-life-protocol';
 import { isMatchStartMessage } from '@/lib/match-start-protocol';
-import { stickerFromText } from './match-stickers';
+import { MATCH_STICKERS, stickerFromText, stickerToText } from './match-stickers';
 
 export interface MatchCompactChatProps {
   me: string;
@@ -54,9 +54,9 @@ export function MatchCompactChat({
 
   return (
     <section className={'rounded-2xl border border-white/15 bg-header-bg/85 p-2 text-white shadow-2xl shadow-black/40 backdrop-blur-xl' + (fullHeight ? ' flex h-full min-h-0 flex-col' : '')}>
-      <div className="mb-1.5 flex items-center gap-2 px-1">
-        <MessageSquare className="h-3.5 w-3.5 text-primary" />
-        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/65">Chat</span>
+      <div className="mb-1.5 flex items-center gap-1.5 px-1">
+        <Shield className="h-3 w-3 text-amber-400" />
+        <span className="text-[9px] font-bold text-white/60">Fair Play</span>
         <span className={connected ? 'ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400' : 'ml-auto h-1.5 w-1.5 rounded-full bg-red-400'} />
         {!connected && onRetry && (
           <button type="button" onClick={onRetry} className="grid h-6 w-6 place-items-center rounded-md hover:bg-white/10" aria-label="Riconnetti la chat">
@@ -82,6 +82,22 @@ export function MatchCompactChat({
         ) : (
           <p className="truncate text-[10px] text-white/35">{error ?? 'Nessun messaggio'}</p>
         )}
+      </div>
+
+      <div className="scrollbar-none mb-1.5 flex items-center gap-1 overflow-x-auto py-0.5">
+        {MATCH_STICKERS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            title={`${s.title} (${s.label})`}
+            aria-label={`Invia sticker ${s.label}`}
+            disabled={!connected}
+            onClick={() => send(stickerToText(s.id))}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.05] text-xs transition hover:border-primary/50 hover:bg-primary/20 active:scale-95 disabled:opacity-35"
+          >
+            <span className="select-none">{s.emoji}</span>
+          </button>
+        ))}
       </div>
 
       <form onSubmit={submit} className="flex gap-1.5">

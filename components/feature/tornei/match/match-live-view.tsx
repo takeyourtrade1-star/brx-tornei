@@ -46,8 +46,16 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
   const { stream: localStream, feedLabel, error: webcamError } = usePlayerWebcam(
     isPlayer && tournament.status !== 'terminata',
   );
-  const { camOn, setCamOn, micOn, setMicOn, fullscreenOpen, setFullscreenOpen } =
-    useMatchMediaState(localStream);
+  const {
+    camOn,
+    setCamOn,
+    micOn,
+    setMicOn,
+    opponentMuted,
+    setOpponentMuted,
+    fullscreenOpen,
+    setFullscreenOpen,
+  } = useMatchMediaState(localStream);
   const peerSessionId = tournament.matchWebcamSessionId ?? tournament.matchId ?? null;
   const {
     state: peerState,
@@ -188,8 +196,9 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
       didIWin={didIWin} local={local} remote={remote} players={players}
       leftPlayer={leftPlayer} rightPlayer={rightPlayer} playable={playable}
       localStream={localStream} remoteStream={remoteStream} feedLabel={feedLabel}
-      webcamError={webcamError} camOn={camOn} micOn={micOn} fullscreenOpen={fullscreenOpen}
-      setCamOn={setCamOn} setMicOn={setMicOn} setFullscreenOpen={setFullscreenOpen}
+      webcamError={webcamError} camOn={camOn} micOn={micOn} opponentMuted={opponentMuted}
+      fullscreenOpen={fullscreenOpen} setCamOn={setCamOn} setMicOn={setMicOn}
+      setOpponentMuted={setOpponentMuted} setFullscreenOpen={setFullscreenOpen}
       peerState={peerState} peerError={peerError} peerTransport={peerTransport}
       peerQuality={visiblePeerQuality} peerReconnecting={peerReconnecting}
       peerConnecting={peerConnecting} retryPeer={retryPeer} ready={ready} leave={leave}
