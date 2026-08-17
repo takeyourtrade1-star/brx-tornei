@@ -14,8 +14,7 @@ const OUTCOME_DOT: Record<string, string> = {
 };
 
 /**
- * Banner del duellante: profilo compatto con emblema, gamertag, grado e
- * le tre gemme di battaglia (Vittorie / Win Rate / Sconfitte).
+ * Banner del duellante pulito e arioso: identità con chip orizzontali e gemme di battaglia.
  */
 export function PartiteHero({
   gamertag,
@@ -53,98 +52,83 @@ export function PartiteHero({
         className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-marquee/40 to-transparent"
       />
 
-      <div className="relative grid gap-5 p-4 sm:p-5 sm:py-5 lg:grid-cols-[auto_1fr_auto] lg:items-center">
-        {/* Emblema con anello di grado rotante e dimensioni bilanciate */}
-        <div className="mx-auto lg:mx-0">
-          <div className="relative grid h-20 w-20 place-items-center sm:h-22 sm:w-22">
+      <div className="relative flex flex-col gap-5 p-4 sm:p-5 sm:flex-row sm:items-center sm:justify-between">
+        {/* Blocco Identità: Emblema + Gamertag + Chip orizzontali */}
+        <div className="flex flex-col sm:flex-row items-center gap-3.5 sm:gap-4 text-center sm:text-left min-w-0">
+          <div className="relative grid h-16 w-16 place-items-center shrink-0 sm:h-18 sm:w-18">
             <span
               aria-hidden
               className="pt-ring-spin absolute inset-0 rounded-full border border-dashed border-marquee/35"
             />
-            <span aria-hidden className="absolute inset-1.5 rounded-full border border-marquee/15" />
-            <span className="swords-emblem relative grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-lg shadow-orange-950/50">
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 via-transparent to-black/30"
-              />
-              <ClashingSwordsIcon className="relative h-8 w-8" />
+            <span aria-hidden className="absolute inset-1 rounded-full border border-marquee/15" />
+            <span className="swords-emblem relative grid h-12 w-12 sm:h-14 sm:w-14 place-items-center rounded-full bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-lg shadow-orange-950/50">
+              <ClashingSwordsIcon className="h-6 w-6 sm:h-7 sm:w-7" />
             </span>
           </div>
-        </div>
 
-        {/* Identità: gamertag, stelle, partite concluse */}
-        <div className="min-w-0 text-center lg:text-left">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-            Duellante della fucina
-          </p>
-          <h2 className="mt-0.5 truncate font-display text-xl font-black tracking-tight text-white sm:text-2xl">
-            {gamertag}
-          </h2>
+          <div className="min-w-0 flex flex-col items-center sm:items-start gap-1.5">
+            <h2 className="truncate font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+              {gamertag}
+            </h2>
 
-          <div
-            className="mt-1 flex items-center justify-center gap-1 lg:justify-start"
-            aria-label={`Grado ${stars} ${stars === 1 ? 'stella' : 'stelle'}`}
-          >
-            {Array.from({ length: stars }, (_, i) => (
-              <Star
-                key={i}
-                aria-hidden
-                className="h-3 w-3 fill-amber-300 text-amber-300 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]"
-              />
-            ))}
-          </div>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              {/* Chip Grado Stelle */}
+              <div
+                className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1"
+                title={`Grado: ${stars} stelle`}
+              >
+                {Array.from({ length: Math.max(1, stars) }, (_, i) => (
+                  <Star
+                    key={i}
+                    aria-hidden
+                    className="h-3 w-3 fill-amber-300 text-amber-300 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]"
+                  />
+                ))}
+              </div>
 
-          <p className="mt-1.5 text-xs font-semibold text-slate-400">
-            {stats.played === 0 ? (
-              'Nessuna battaglia ancora: siediti a un tavolo e combatti.'
-            ) : (
-              <>
-                <span className="font-bold tabular-nums text-white">{stats.played}</span>{' '}
-                {stats.played === 1 ? 'battaglia' : 'battaglie'}
-                <span className="mx-1.5 text-white/20">·</span>
-                <span className="font-bold tabular-nums text-white">{decided}</span> concluse
-              </>
-            )}
-          </p>
-
-          {recent.length > 0 && (
-            <div className="mt-2.5 flex items-center justify-center gap-1.5 lg:justify-start">
-              <span className="text-[8px] font-black uppercase tracking-[0.16em] text-slate-500">
-                Ultime:
-              </span>
-              {recent.map((m, index) => (
-                <span
-                  key={index}
-                  aria-hidden
-                  title={`${m.outcome} vs ${m.opponentGamertag ?? 'avversario'}`}
-                  className={cn('h-2 w-2 rounded-full ring-1 ring-black/40', OUTCOME_DOT[m.outcome] ?? OUTCOME_DOT.disputed)}
-                />
-              ))}
+              {/* Chip Forma Recente (Dot LED) */}
+              {recent.length > 0 && (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                    Forma:
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {recent.map((m, index) => (
+                      <span
+                        key={index}
+                        aria-hidden
+                        title={`${m.outcome} vs ${m.opponentGamertag ?? 'avversario'}`}
+                        className={cn('h-2 w-2 rounded-full ring-1 ring-black/40', OUTCOME_DOT[m.outcome] ?? OUTCOME_DOT.disputed)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Gemme di battaglia compatte */}
-        <div className="mx-auto grid w-full max-w-xs grid-cols-3 gap-2 sm:gap-2.5 lg:w-auto lg:max-w-none">
+        <div className="grid grid-cols-3 gap-2 sm:gap-2.5 shrink-0 self-center sm:self-auto">
           <HeroGem
             label="Vittorie"
             value={stats.wins}
             gemClass="from-marquee/20 to-marquee/5 border-marquee/20"
-            icon={<WinEmblem className="h-6 w-6 text-marquee" />}
+            icon={<WinEmblem className="h-5 w-5 sm:h-6 sm:w-6 text-marquee" />}
             valueClass="text-marquee"
           />
           <HeroGem
             label="Win Rate"
             value={`${winRate}%`}
             gemClass="from-primary/20 to-primary/5 border-primary/20"
-            icon={<CrystalStatIcon className="pt-hero-crystal h-6 w-6 text-primary" />}
+            icon={<CrystalStatIcon className="pt-hero-crystal h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
             valueClass="text-primary"
           />
           <HeroGem
             label="Sconfitte"
             value={stats.losses}
             gemClass="from-rose-500/20 to-rose-500/5 border-rose-500/20"
-            icon={<SkullStatIcon className="h-6 w-6 text-rose-400" />}
+            icon={<SkullStatIcon className="h-5 w-5 sm:h-6 sm:w-6 text-rose-400" />}
             valueClass="text-rose-300"
           />
         </div>
@@ -169,7 +153,7 @@ function HeroGem({
   return (
     <div
       className={cn(
-        'relative flex min-w-[76px] flex-col items-center gap-1 rounded-xl border bg-gradient-to-b px-3 py-2.5 shadow-md shadow-black/30 backdrop-blur-sm sm:min-w-[84px]',
+        'relative flex min-w-[72px] sm:min-w-[80px] flex-col items-center gap-1 rounded-xl border bg-gradient-to-b px-2.5 py-2 sm:px-3 sm:py-2.5 shadow-md shadow-black/30 backdrop-blur-sm',
         gemClass,
       )}
     >
@@ -178,7 +162,7 @@ function HeroGem({
         className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
       />
       {icon}
-      <span className={cn('font-display text-xl font-black tabular-nums leading-none sm:text-2xl', valueClass)}>
+      <span className={cn('font-display text-lg sm:text-xl font-black tabular-nums leading-none', valueClass)}>
         {value}
       </span>
       <span className="text-[8px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
