@@ -30,13 +30,16 @@ export function ProfileRankBadge({
   className,
   interactive = true,
   hidePill = false,
-  onFire = false,
-  winStreak = 0,
+  onFire,
+  winStreak,
 }: ProfileRankBadgeProps) {
   const activeAvatar = getAvatarById(avatarId);
   const AvatarIcon = activeAvatar.icon;
   const stars = typeof starCount === 'number' ? starCount : rankStarsForWins(wins);
-  const isBurning = onFire || winStreak >= 3;
+  
+  // "ON FIRE" si attiva SOLO ed ESCLUSIVAMENTE a partire dalla terza vittoria consecutiva (streak >= 3)
+  const streak = typeof winStreak === 'number' ? winStreak : (onFire === true ? 3 : 0);
+  const isBurning = streak >= 3;
   const angles = getStarAngles(stars);
   const uid = useId().replace(/:/g, '');
 

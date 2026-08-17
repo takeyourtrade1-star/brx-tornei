@@ -81,14 +81,21 @@ export function calculateDailyWins(reputation?: ReputationSummary | null): numbe
   return dailyCount;
 }
 
-/** Calcola la serie di vittorie consecutive attuale (Win Streak). */
+/** Calcola la serie di vittorie consecutive attuale (Win Streak), partendo dal match più recente. */
 export function calculateWinStreak(reputation?: ReputationSummary | null): number {
   if (!reputation) return 0;
-  const matches = reputation.recent ?? [];
-  if (!matches.length) return 0;
+  const matches = reputation.history?.length ? reputation.history : (reputation.recent ?? []);
+  if (!matches || matches.length === 0) return 0;
+
+  // Ordina rigorosamente dal match più recente al più vecchio
+  const sorted = [...matches].sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
 
   let streak = 0;
-  for (const match of matches) {
+  for (const match of sorted) {
     if (match.outcome === 'win') {
       streak++;
     } else {
