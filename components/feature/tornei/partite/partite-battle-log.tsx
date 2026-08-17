@@ -1,4 +1,8 @@
+'use client';
+
+import { useState } from 'react';
 import type { ComponentType } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 import { cn } from '@/lib/utils';
 import { ClashingSwordsIcon } from '@/components/feature/tornei/lobby/clashing-swords-icon';
@@ -68,9 +72,12 @@ function formatDuration(seconds: number): string {
 }
 
 /**
- * Registro delle battaglie con righe compatte, contrasto elevato e micro-animazioni.
+ * Registro delle battaglie compatto: mostra l'ultima per impostazione predefinita
+ * ed è espandibile per visualizzare lo storico completo.
  */
 export function PartiteBattleLog({ reputation }: { reputation: ReputationSummaryData | null }) {
+  const [expanded, setExpanded] = useState(false);
+
   const stats: ReputationSummaryData = reputation ?? {
     played: 0,
     wins: 0,
@@ -81,6 +88,7 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
     history: [],
   };
   const rows = stats.history.length > 0 ? stats.history : stats.recent;
+  const displayedRows = expanded ? rows : rows.slice(0, 1);
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 shadow-lg shadow-black/40 backdrop-blur-md">
@@ -112,48 +120,73 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-white/[0.06]">
-          {rows.map((m, index) => {
-            const tone = OUTCOME_TONE[m.outcome] ?? OUTCOME_TONE.disputed;
-            const Icon = tone.icon;
-            return (
-              <li
-                key={index}
-                className="pt-row-in relative flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03] sm:flex-nowrap sm:px-5 sm:py-3"
-                style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
+        <>
+          <ul className="divide-y divide-white/[0.06]">
+            {displayedRows.map((m, index) => {
+              const tone = OUTCOME_TONE[m.outcome] ?? OUTCOME_TONE.disputed;
+              const Icon = tone.icon;
+              return (
+                <li
+                  key={index}
+                  className="pt-row-in relative flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03] sm:flex-nowrap sm:px-5 sm:py-3"
+                  style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
+                >
+                  <span
+                    className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${tone.badge}`}
+                  >
+                    <Icon className={`h-5 w-5 ${tone.iconColor}`} />
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-bold text-white sm:text-sm">
+                      vs {m.opponentGamertag ?? 'Avversario'}
+                    </span>
+                    <span className="block text-[10px] font-medium text-slate-400">
+                      {tone.flavor}
+                    </span>
+                  </span>
+
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em]',
+                      tone.badge,
+                      tone.text,
+                    )}
+                  >
+                    {tone.label}
+                  </span>
+
+                  <span className="shrink-0 text-right text-[11px] font-medium tabular-nums text-slate-400">
+                    {formatDuration(m.durationSeconds)} · {formatDate(m.createdAt)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {rows.length > 1 && (
+            <div className="border-t border-white/[0.06] p-2 text-center bg-white/[0.01]">
+              <button
+                type="button"
+                onClick={() => setExpanded((prev) => !prev)}
+                aria-expanded={expanded}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors focus-visible:outline-none"
               >
-                <span
-                  className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${tone.badge}`}
-                >
-                  <Icon className={`h-5 w-5 ${tone.iconColor}`} />
+                <span>
+                  {expanded
+                    ? 'Mostra solo ultima battaglia'
+                    : `Mostra tutte le battaglie (${rows.length - 1} altre)`}
                 </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-bold text-white sm:text-sm">
-                    vs {m.opponentGamertag ?? 'Avversario'}
-                  </span>
-                  <span className="block text-[10px] font-medium text-slate-400">
-                    {tone.flavor}
-                  </span>
-                </span>
-
-                <span
+                <ChevronDown
                   className={cn(
-                    'shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em]',
-                    tone.badge,
-                    tone.text,
+                    'h-3.5 w-3.5 text-slate-400 transition-transform duration-200',
+                    expanded && 'rotate-180',
                   )}
-                >
-                  {tone.label}
-                </span>
-
-                <span className="shrink-0 text-right text-[11px] font-medium tabular-nums text-slate-400">
-                  {formatDuration(m.durationSeconds)} · {formatDate(m.createdAt)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+                />
+              </button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
