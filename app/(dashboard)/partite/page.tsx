@@ -56,24 +56,8 @@ export default async function PartitePage() {
       <div className="relative">
         <DashboardHeader user={session.user} displayName={gamertag} reputation={reputation} />
 
-        <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-          <header className="pt-title-in mb-6">
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rotate-45 bg-primary shadow-[0_0_6px_rgba(255,115,0,0.9)]" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                Sala dei trofei · Registro del duellante
-              </p>
-            </div>
-            <h1 className="mt-1.5 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Le mie{' '}
-              <span className="bg-gradient-to-r from-primary via-marquee to-primary bg-clip-text text-transparent">
-                partite
-              </span>
-            </h1>
-            <p className="mt-1 text-xs font-semibold text-slate-400">
-              Vinte, perse, abbandonate e contestate: la tua cronaca di battaglia completa.
-            </p>
-          </header>
+        <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-6">
+          <h1 className="sr-only">Le mie partite</h1>
 
           <div className="flex flex-col gap-5 sm:gap-6">
             <PartiteHero gamertag={gamertag} reputation={reputation} />
