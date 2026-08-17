@@ -1141,6 +1141,93 @@
 }
 .pt-title-in { animation: pt-title-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* Badge & Obiettivi: emblemi a piena card con un movimento distintivo. */
+@keyframes achievement-first-burst {
+  0%, 100% { transform: scale(0.94) rotate(-3deg); filter: drop-shadow(0 0 2px currentColor); }
+  50% { transform: scale(1.06) rotate(3deg); filter: drop-shadow(0 0 8px currentColor); }
+}
+.achievement-first-burst {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: achievement-first-burst 2.4s ease-in-out infinite;
+}
+
+@keyframes achievement-first-drop {
+  0%, 58%, 100% { transform: translateY(-1px); opacity: 0.35; }
+  72% { transform: translateY(1.5px); opacity: 1; }
+}
+.achievement-first-drop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: achievement-first-drop 2.4s ease-in-out infinite;
+}
+
+@keyframes achievement-comeback-ring {
+  0%, 72%, 100% { transform: rotate(0deg); }
+  84% { transform: rotate(-18deg); }
+}
+.achievement-comeback-ring {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: achievement-comeback-ring 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes achievement-comeback-rise {
+  0%, 100% { transform: translateY(1px) scale(0.96); opacity: 0.72; }
+  50% { transform: translateY(-1px) scale(1.04); opacity: 1; }
+}
+.achievement-comeback-rise {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: achievement-comeback-rise 2.1s ease-in-out infinite;
+}
+
+@keyframes achievement-target-rings {
+  0%, 100% { transform: scale(0.96); opacity: 0.72; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+.achievement-target-rings {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: achievement-target-rings 2.2s ease-in-out infinite;
+}
+
+@keyframes achievement-target-arrow {
+  0%, 64%, 100% { transform: translate(3px, -3px); opacity: 0.45; }
+  76%, 88% { transform: translate(0, 0); opacity: 1; }
+}
+.achievement-target-arrow {
+  animation: achievement-target-arrow 2.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes achievement-beacon-rays { to { transform: rotate(360deg); } }
+.achievement-beacon-rays {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: achievement-beacon-rays 12s linear infinite;
+}
+
+@keyframes achievement-beacon-star {
+  0%, 100% { transform: scale(0.95); filter: drop-shadow(0 0 3px currentColor); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 9px currentColor); }
+}
+.achievement-beacon-star {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: achievement-beacon-star 2.2s ease-in-out infinite;
+}
+
+/* Riflesso breve sul vetro; si attiva solo sulle card già conquistate. */
+.achievement-card-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(108deg, transparent 38%, rgba(255,255,255,0.14) 49%, transparent 60%);
+  transform: translateX(-125%);
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.group:hover > .achievement-card-shine { transform: translateX(125%); }
+
 @media (prefers-reduced-motion: reduce) {
   .pt-crown-body,
   .pt-crown-spark,
@@ -1167,7 +1254,16 @@
   .pt-row-in,
   .pt-gem-glint,
   .pt-medal-spark,
-  .pt-title-in { animation: none; }
+  .pt-title-in,
+  .achievement-first-burst,
+  .achievement-first-drop,
+  .achievement-comeback-ring,
+  .achievement-comeback-rise,
+  .achievement-target-rings,
+  .achievement-target-arrow,
+  .achievement-beacon-rays,
+  .achievement-beacon-star { animation: none; }
+  .achievement-card-shine { display: none; }
   .pt-ember { display: none; }
 }
 
@@ -1642,7 +1738,6 @@
   transform-origin: center;
   animation: av-card-holo-gleam 1.8s ease-in-out infinite;
 }
-
 
 
 
