@@ -19,6 +19,19 @@ describe('tournament mapper activity timestamp', () => {
     expect(tournament?.updatedAt).toBe('2026-07-22T09:59:00+00:00');
   });
 
+  it('maps the server clock and synchronized match deadlines', () => {
+    const tournament = mapTournamentFromApi({
+      ...base,
+      server_time: '2026-08-17T10:00:00+00:00',
+      ready_deadline: '2026-08-17T10:00:30+00:00',
+      starts_at: '2026-08-17T10:00:45+00:00',
+    });
+
+    expect(tournament?.serverTime).toBe('2026-08-17T10:00:00+00:00');
+    expect(tournament?.readyDeadline).toBe('2026-08-17T10:00:30+00:00');
+    expect(tournament?.startsAt).toBe('2026-08-17T10:00:45+00:00');
+  });
+
   it('falls back to created_at during a rolling backend deploy', () => {
     const tournament = mapTournamentFromApi(base);
 

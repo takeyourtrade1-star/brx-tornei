@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowLeft, Check, Hourglass, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ClashingSwordsIcon } from './clashing-swords-icon';
 import type { ConnectionQuality } from '@/types/tournament';
+import { useSynchronizedCountdown } from '@/hooks/use-synchronized-countdown';
 import { AcceptPlayerChip, CornerMarks } from './accept-match-parts';
 
 const ACCEPT_WINDOW_SECONDS = 30;
@@ -18,6 +19,8 @@ interface AcceptMatchModalProps {
   error: string | null;
   myReady: boolean;
   opponentReady: boolean;
+  readyDeadline?: string;
+  serverTime?: string;
   myConnection?: ConnectionQuality;
   opponentConnection?: ConnectionQuality;
   onAccept: () => void;
@@ -39,32 +42,31 @@ export function AcceptMatchModal({
   error,
   myReady,
   opponentReady,
+  readyDeadline,
+  serverTime,
   myConnection,
   opponentConnection,
   onAccept,
   onLeave,
   onOpponentTimeout,
 }: AcceptMatchModalProps) {
-  const [acceptLeft, setAcceptLeft] = useState(ACCEPT_WINDOW_SECONDS);
   const [declinedLeft, setDeclinedLeft] = useState(DECLINED_LEAVE_SECONDS);
-  // Deadline valida solo finché la modale è davvero in fase active: il
-  // componente resta montato (renderizza null quando chiuso), quindi la
-  // deadline va (ri)settata OGNI volta che si entra in 'accepting', non al
-  // primo load della pagina — altrimenti dopo un minuto in lobby la finestra
-  // schiatterebbe già scaduta.
-  const [deadline, setDeadline] = useState(() => Date.now() + ACCEPT_WINDOW_SECONDS * 1000);
+  const acceptLeft = useSynchronizedCountdown({
+    active: phase === 'accepting',
+    deadline: readyDeadline,
+    serverTime,
+    fallbackSeconds: ACCEPT_WINDOW_SECONDS,
+  });
   const prevPhaseRef = useRef<AcceptMatchModalProps['phase']>(null);
+  const firedRef = useRef(false);
   useEffect(() => {
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
     if (phase === 'accepting' && prev !== 'accepting') {
       firedRef.current = false;
-      setAcceptLeft(ACCEPT_WINDOW_SECONDS);
-      setDeadline(Date.now() + ACCEPT_WINDOW_SECONDS * 1000);
     }
   }, [phase]);
   const myReadyRef = useRef(myReady);
-  const firedRef = useRef(false);
   useEffect(() => {
     myReadyRef.current = myReady;
   }, [myReady]);
@@ -72,28 +74,11 @@ export function AcceptMatchModal({
   // Countdown globale: a zero, se ho confermato segnalo il rifiuto
   // dell'avversario, altrimenti esco direttamente (non ho risposto).
   useEffect(() => {
-    if (!phase || phase !== 'accepting' || firedRef.current) return;
-    const interval = setInterval(() => {
-      if (firedRef.current) {
-        clearInterval(interval);
-        return;
-      }
-      const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-      setAcceptLeft(left);
-      if (left <= 0) {
-        clearInterval(interval);
-        if (firedRef.current) return;
-        firedRef.current = true;
-        if (myReadyRef.current) {
-          onOpponentTimeout();
-        } else {
-          onLeave();
-        }
-      }
-    }, 250);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, deadline, onLeave, onOpponentTimeout]);
+    if (phase !== 'accepting' || acceptLeft > 0 || firedRef.current) return;
+    firedRef.current = true;
+    if (myReadyRef.current) onOpponentTimeout();
+    else onLeave();
+  }, [acceptLeft, onLeave, onOpponentTimeout, phase]);
 
   // Stato "rifiutato": pochi secondi e si torna in lobby chiudendo il tavolo.
   useEffect(() => {

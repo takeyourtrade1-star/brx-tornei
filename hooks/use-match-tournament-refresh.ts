@@ -8,7 +8,7 @@ interface MatchTournamentRefreshOptions {
   status: TournamentStatus;
   tableFull: boolean;
   peerLeft: boolean;
-  /** Una scadenza P2P o una proposta risultato è attiva: stringe il poll. */
+  /** Una scadenza o una proposta risultato è attiva: stringe il poll fallback. */
   graceCountdownActive?: boolean;
 }
 
@@ -24,7 +24,7 @@ export function useMatchTournamentRefresh({
   useEffect(() => {
     if (status === 'terminata') return;
     const intervalMs =
-      status === 'in_registrazione' ? (tableFull ? 1_000 : 5_000) : graceCountdownActive ? 3_000 : 12_000;
+      status === 'in_registrazione' ? (tableFull ? 1_000 : 3_000) : graceCountdownActive ? 2_000 : 5_000;
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
     }, intervalMs);

@@ -7,6 +7,7 @@ import {
   MATCH_START_COUNTDOWN_MS,
   parseMatchStartCommand,
 } from '@/lib/match-start-protocol';
+import { synchronizedRemainingMs } from '@/lib/synchronized-deadline';
 
 const STORAGE_PREFIX = 'match-start:';
 
@@ -34,6 +35,8 @@ interface UseMatchStartCountdownOptions {
   connected: boolean;
   messages: MatchChatMessage[];
   send: (text: string) => boolean;
+  authoritativeStartsAt?: string;
+  serverTime?: string;
 }
 
 export function useMatchStartCountdown({
@@ -44,6 +47,8 @@ export function useMatchStartCountdown({
   connected,
   messages,
   send,
+  authoritativeStartsAt,
+  serverTime,
 }: UseMatchStartCountdownOptions) {
   const [startsAt, setStartsAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -51,6 +56,11 @@ export function useMatchStartCountdown({
   const skipStaleMessages = useRef(true);
   const announcedForMatch = useRef<string | null>(null);
   const requestedForMatch = useRef<string | null>(null);
+  const authoritativeRemainingMs = useMemo(
+    () => synchronizedRemainingMs(authoritativeStartsAt, serverTime),
+    [authoritativeStartsAt, serverTime],
+  );
+  const hasAuthoritativeStart = authoritativeRemainingMs !== null;
 
   useEffect(() => {
     setStartsAt(null);
@@ -62,14 +72,21 @@ export function useMatchStartCountdown({
   }, [active, matchId]);
 
   useEffect(() => {
-    if (!active || !matchId || startsAt !== null) return;
+    if (!active || !matchId || authoritativeRemainingMs === null) return;
+    const localDeadline = Date.now() + authoritativeRemainingMs;
+    setStartsAt(localDeadline);
+    writeStoredStartsAt(matchId, localDeadline);
+  }, [active, authoritativeRemainingMs, matchId]);
+
+  useEffect(() => {
+    if (!active || !matchId || hasAuthoritativeStart || startsAt !== null) return;
     const stored = readStoredStartsAt(matchId);
     const synchronizationGraceMs = userId === authorityPlayerId ? 0 : 1_000;
     const nextStartsAt =
       stored > 0 ? stored : Date.now() + MATCH_START_COUNTDOWN_MS + synchronizationGraceMs;
     setStartsAt(nextStartsAt);
     writeStoredStartsAt(matchId, nextStartsAt);
-  }, [active, authorityPlayerId, matchId, startsAt, userId]);
+  }, [active, authorityPlayerId, hasAuthoritativeStart, matchId, startsAt, userId]);
 
   useEffect(() => {
     if (connected) return;
@@ -85,6 +102,7 @@ export function useMatchStartCountdown({
   }, [active, startsAt]);
 
   useEffect(() => {
+    if (hasAuthoritativeStart) return;
     if (skipStaleMessages.current) {
       skipStaleMessages.current = false;
       return;
@@ -107,11 +125,12 @@ export function useMatchStartCountdown({
         send(encodeMatchStartCommand({ type: 'announce', startsAt, senderId: userId }));
       }
     }
-  }, [authorityPlayerId, matchId, messages, send, startsAt, userId]);
+  }, [authorityPlayerId, hasAuthoritativeStart, matchId, messages, send, startsAt, userId]);
 
   useEffect(() => {
     if (
       !active ||
+      hasAuthoritativeStart ||
       !connected ||
       !matchId ||
       startsAt === null ||
@@ -122,11 +141,12 @@ export function useMatchStartCountdown({
     }
     const sent = send(encodeMatchStartCommand({ type: 'announce', startsAt, senderId: userId }));
     if (sent) announcedForMatch.current = matchId;
-  }, [active, authorityPlayerId, connected, matchId, send, startsAt, userId]);
+  }, [active, authorityPlayerId, connected, hasAuthoritativeStart, matchId, send, startsAt, userId]);
 
   useEffect(() => {
     if (
       !active ||
+      hasAuthoritativeStart ||
       !connected ||
       !matchId ||
       userId === authorityPlayerId ||
@@ -136,12 +156,11 @@ export function useMatchStartCountdown({
     }
     const sent = send(encodeMatchStartCommand({ type: 'sync-request', senderId: userId }));
     if (sent) requestedForMatch.current = matchId;
-  }, [active, authorityPlayerId, connected, matchId, send, userId]);
+  }, [active, authorityPlayerId, connected, hasAuthoritativeStart, matchId, send, userId]);
 
   const remainingSeconds = useMemo(() => {
     if (!active || startsAt === null) return null;
-    const rawSeconds = Math.max(0, Math.ceil((startsAt - now) / 1_000));
-    return Math.min(MATCH_START_COUNTDOWN_MS / 1_000, rawSeconds);
+    return Math.max(0, Math.ceil((startsAt - now) / 1_000));
   }, [active, now, startsAt]);
 
   return {

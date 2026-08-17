@@ -52,6 +52,12 @@ export interface Tournament {
   createdAt: string;
   /** Ultima attività autorevole registrata dal Tournament Service. */
   updatedAt: string;
+  /** Ora del Tournament Service associata a questo snapshot. */
+  serverTime?: string;
+  /** Deadline condivisa del modale Accetta partita. */
+  readyDeadline?: string;
+  /** Istante condiviso in cui termina il countdown di avvio. */
+  startsAt?: string;
   isPrivate?: boolean;
   /** true: P2P diretto consentito; l'IP pubblico pu\u00f2 essere visibile al peer. */
   withFriend?: boolean;

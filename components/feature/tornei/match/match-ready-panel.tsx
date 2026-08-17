@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { CheckCircle2, Heart, Hourglass, Swords, X } from 'lucide-react';
 import type { Participant } from '@/types/tournament';
 import { STARTING_LIFE_OPTIONS } from '@/lib/match-life-protocol';
 import { cn } from '@/lib/utils';
+import { useSynchronizedCountdown } from '@/hooks/use-synchronized-countdown';
 import { ConnectionQualityBadge } from '../connection-quality-badge';
 
 /** Finestra globale di accettazione (stile League): parte con il tavolo pieno. */
@@ -15,6 +16,8 @@ interface MatchReadyPanelProps {
   remote: Participant;
   myReady: boolean;
   opponentReady: boolean;
+  readyDeadline?: string;
+  serverTime?: string;
   pending: boolean;
   startingLife: number;
   lifeConnected: boolean;
@@ -32,6 +35,8 @@ export function MatchReadyPanel({
   remote,
   myReady,
   opponentReady,
+  readyDeadline,
+  serverTime,
   pending,
   startingLife,
   lifeConnected,
@@ -41,10 +46,12 @@ export function MatchReadyPanel({
   onDecline,
   onOpponentDeclined,
 }: MatchReadyPanelProps) {
-const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
-  // Deadline fissa al mount: i riavvii dell'effect (es. pending) NON devono
-  // riavviare la finestra, altrimenti un accettazione lenta la prolunga.
-  const [deadline] = useState(() => Date.now() + ACCEPT_WINDOW_SECONDS * 1000);
+  const remaining = useSynchronizedCountdown({
+    active: true,
+    deadline: readyDeadline,
+    serverTime,
+    fallbackSeconds: ACCEPT_WINDOW_SECONDS,
+  });
   const myReadyRef = useRef(myReady);
   const finishedRef = useRef(false);
 
@@ -59,28 +66,11 @@ const [remaining, setRemaining] = useState(ACCEPT_WINDOW_SECONDS);
   // La deadline globale (non riavviata dalla mia conferma) copre anche il
   // caso "l'avversario ha la tab chiusa" — nessun client li a rispondere.
   useEffect(() => {
-    if (finishedRef.current) return;
-    const interval = setInterval(() => {
-      if (finishedRef.current) {
-        clearInterval(interval);
-        return;
-      }
-      const left = Math.ceil((deadline - Date.now()) / 1000);
-      setRemaining(Math.max(0, left));
-      if (left <= 0) {
-        clearInterval(interval);
-        if (finishedRef.current) return;
-        finishedRef.current = true;
-        if (myReadyRef.current) {
-          onOpponentDeclined();
-        } else {
-          onDecline();
-        }
-      }
-    }, 250);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, onDecline, onOpponentDeclined, deadline]);
+    if (remaining > 0 || finishedRef.current) return;
+    finishedRef.current = true;
+    if (myReadyRef.current) onOpponentDeclined();
+    else onDecline();
+  }, [onDecline, onOpponentDeclined, remaining]);
 
   return (
     <section

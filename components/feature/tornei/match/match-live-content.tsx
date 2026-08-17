@@ -106,6 +106,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
       {ready.readyPhase && isPlayer && (
         <MatchReadyPanel
           local={local} remote={remote} myReady={ready.myReady} opponentReady={ready.opponentReady}
+          readyDeadline={tournament.readyDeadline} serverTime={tournament.serverTime}
           pending={ready.pending} startingLife={life.startingLife}
           lifeConnected={chat.connectionState === 'connected' && life.synced}
           canSetStartingLife={isHost} onStartingLifeChange={life.setStartingLife}

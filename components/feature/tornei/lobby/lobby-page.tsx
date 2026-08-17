@@ -18,6 +18,7 @@ import { LobbyTableList } from './lobby-table-list';
 import { AcceptMatchModal } from './accept-match-modal';
 import { FeedbackNotices } from './feedback-notices';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
+import { useTournamentRealtimeRefresh } from '@/hooks/use-tournament-realtime-refresh';
 
 interface LobbyPageProps {
   tournaments: Tournament[];
@@ -53,6 +54,10 @@ export function LobbyPage({
     () => findMyTables(tournaments, user.id).find((table) => table.status === 'in_registrazione'),
     [tournaments, user.id],
   );
+  const realtimeServerTime = useTournamentRealtimeRefresh({
+    tournamentId: monitoredTable?.id,
+    active: Boolean(monitoredTable),
+  });
   const measuredQuality = useServerConnectionQuality(monitoredTable?.webcamSessionId);
   const tables = useMemo(
     () =>
@@ -88,15 +93,15 @@ export function LobbyPage({
         return;
       }
     }
-    // Poll sempre attivo (anche senza tavoli miei): un nuovo tavolo creato
-    // da altri deve comparire senza reload manuale. Il margine di 10 secondi,
-    // insieme alla lista aggregata in una sola chiamata, resta ben sotto la
-    // quota per utente anche con più tab aperte.
+    // Poll fallback sempre attivo: 5s sul proprio ready check, 10s sulla
+    // lobby generica. Gli eventi WebSocket coprono il percorso normale e la
+    // lista aggregata evita di moltiplicare le quote per formato.
+    const intervalMs = monitoredTable ? 5_000 : 10_000;
     const iv = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
-    }, 10_000);
+    }, intervalMs);
     return () => clearInterval(iv);
-  }, [tournaments, user.id, router, goLiveTo, selection.format, selection.mode]);
+  }, [tournaments, user.id, router, goLiveTo, monitoredTable, selection.format, selection.mode]);
 
   // Accettazione stile LoL in LOBBY: tavolo pieno e partita non ancora
   // iniziata → modale "Avversario trovato". Il tavolo resta in lobby.
@@ -375,6 +380,8 @@ export function LobbyPage({
         error={error}
         myReady={myReady}
         opponentReady={opponentReady}
+        readyDeadline={approvalTarget?.readyDeadline}
+        serverTime={realtimeServerTime ?? approvalTarget?.serverTime}
         myConnection={
           measuredQuality ??
           approvalTarget?.participants.find((participant) => participant.id === user.id)?.connection

@@ -19,6 +19,7 @@ import { usePlayerWebcam } from '@/hooks/use-player-webcam';
 import { useMatchGapRecorder } from '@/hooks/use-match-gap-recorder';
 import { useMatchExitFlow } from '@/hooks/use-match-exit-flow';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
+import { useTournamentRealtimeRefresh } from '@/hooks/use-tournament-realtime-refresh';
 import type { PlaymatId } from '@/lib/playmats';
 import { clearActiveMatch } from '@/lib/active-match-storage';
 import { publicConfig } from '@/lib/public-config';
@@ -42,6 +43,10 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
   const leftPlayer = isObserver ? playerA : local;
   const rightPlayer = isObserver ? playerB : remote;
   const started = tournament.status === 'iniziata';
+  const realtimeServerTime = useTournamentRealtimeRefresh({
+    tournamentId: tournament.id,
+    active: isPlayer && tournament.status !== 'terminata',
+  });
   const authorityPlayerId = isHost ? local.id : remote.id;
   const { stream: localStream, feedLabel, error: webcamError } = usePlayerWebcam(
     isPlayer && tournament.status !== 'terminata',
@@ -167,6 +172,8 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
     connected: chat.connectionState === 'connected',
     messages: chat.messages,
     send: chat.send,
+    authoritativeStartsAt: tournament.startsAt,
+    serverTime: realtimeServerTime ?? tournament.serverTime,
   });
   const playable = started && (!isPlayer || startCountdown.readyToPlay);
 

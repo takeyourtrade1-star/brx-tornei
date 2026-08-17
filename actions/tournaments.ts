@@ -35,6 +35,7 @@ function mapApiError(err: unknown, fallback: string): TournamentActionState {
       GAMERTAG_REQUIRED: 'Imposta un gamertag prima di giocare, dalla pagina del tuo profilo tornei.',
       API_NOT_CONFIGURED: 'Servizio tornei non configurato.',
       API_UNAVAILABLE: 'Il servizio tornei non è raggiungibile. Riprova tra poco.',
+      READY_CHECK_EXPIRED: 'Il tempo per accettare la partita è scaduto.',
     };
     return {
       error: (err.code && messages[err.code]) || err.message || fallback,
