@@ -3,8 +3,8 @@ import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/play
 import { rankStarsForWins } from '@/lib/rank';
 import { cn } from '@/lib/utils';
 import { ClashingSwordsIcon } from '@/components/feature/tornei/lobby/clashing-swords-icon';
-import { CrystalStatIcon, SkullStatIcon } from './partite-stats-icons';
-import { WinEmblem } from './partite-outcome-icons';
+import { CrownStatIcon, CrystalStatIcon, SkullStatIcon } from './partite-stats-icons';
+import { StatBadgeCard } from './stat-badge-card';
 
 const OUTCOME_DOT: Record<string, string> = {
   win: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]',
@@ -108,66 +108,37 @@ export function PartiteHero({
           </div>
         </div>
 
-        {/* Gemme di battaglia compatte */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-2.5 shrink-0 self-center sm:self-auto">
-          <HeroGem
+        {/* Statistiche compatte nello stesso stile della griglia principale. */}
+        <div className="grid w-full grid-cols-3 gap-2 sm:w-auto sm:shrink-0 sm:self-auto sm:gap-2.5">
+          <StatBadgeCard
             label="Vittorie"
             value={stats.wins}
-            gemClass="from-marquee/20 to-marquee/5 border-marquee/20"
-            icon={<WinEmblem className="h-5 w-5 sm:h-6 sm:w-6 text-marquee" />}
-            valueClass="text-marquee"
+            Icon={CrownStatIcon}
+            iconColor="text-amber-400"
+            bgGlow="rgba(251,191,36,0.22)"
+            variant="compact"
+            className="sm:w-[104px]"
           />
-          <HeroGem
+          <StatBadgeCard
             label="Win Rate"
             value={`${winRate}%`}
-            gemClass="from-primary/20 to-primary/5 border-primary/20"
-            icon={<CrystalStatIcon className="pt-hero-crystal h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
-            valueClass="text-primary"
+            Icon={CrystalStatIcon}
+            iconColor="text-primary"
+            bgGlow="rgba(255,115,0,0.22)"
+            variant="compact"
+            className="sm:w-[104px]"
           />
-          <HeroGem
+          <StatBadgeCard
             label="Sconfitte"
             value={stats.losses}
-            gemClass="from-rose-500/20 to-rose-500/5 border-rose-500/20"
-            icon={<SkullStatIcon className="h-5 w-5 sm:h-6 sm:w-6 text-rose-400" />}
-            valueClass="text-rose-300"
+            Icon={SkullStatIcon}
+            iconColor="text-rose-400"
+            bgGlow="rgba(251,113,133,0.20)"
+            variant="compact"
+            className="sm:w-[104px]"
           />
         </div>
       </div>
     </section>
-  );
-}
-
-function HeroGem({
-  label,
-  value,
-  gemClass,
-  icon,
-  valueClass,
-}: {
-  label: string;
-  value: string | number;
-  gemClass: string;
-  icon: React.ReactNode;
-  valueClass: string;
-}) {
-  return (
-    <div
-      className={cn(
-        'relative flex min-w-[72px] sm:min-w-[80px] flex-col items-center gap-1 rounded-xl border bg-gradient-to-b px-2.5 py-2 sm:px-3 sm:py-2.5 shadow-md shadow-black/30 backdrop-blur-sm',
-        gemClass,
-      )}
-    >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
-      />
-      {icon}
-      <span className={cn('font-display text-lg sm:text-xl font-black tabular-nums leading-none', valueClass)}>
-        {value}
-      </span>
-      <span className="text-[8px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
-        {label}
-      </span>
-    </div>
   );
 }

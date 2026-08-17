@@ -1,6 +1,8 @@
-import { LogOut, Skull, Trophy, type LucideIcon } from 'lucide-react';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 import { cn } from '@/lib/utils';
+import { AbandonedEmblem } from '@/components/feature/tornei/partite/partite-outcome-icons';
+import { CrownStatIcon, SkullStatIcon } from '@/components/feature/tornei/partite/partite-stats-icons';
+import { StatBadgeCard } from '@/components/feature/tornei/partite/stat-badge-card';
 import { ClashingSwordsIcon } from './clashing-swords-icon';
 
 const OUTCOME_TONE: Record<string, { dot: string; label: string }> = {
@@ -12,8 +14,7 @@ const OUTCOME_TONE: Record<string, { dot: string; label: string }> = {
 
 /**
  * Card "Le tue partite" (home lobby): divisa a metà — a sinistra emblema
- * animato + totale partite + ultime sfide, a destra contatori (vinte, perse,
- * abbandonate) impilati in verticale.
+ * animato + totale partite + ultime sfide, a destra le statistiche di esito.
  */
 export function ReputationSummary({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats: ReputationSummaryData = reputation ?? {
@@ -32,7 +33,7 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
       aria-label="Le tue partite"
       className="overflow-hidden rounded-2xl border border-white/15 bg-white/10 text-white backdrop-blur-md shadow-md"
     >
-      <div className="flex">
+      <div className="flex flex-col sm:flex-row">
         {/* Metà sinistra: emblema + totale + ultime sfide. */}
         <div className="flex flex-1 flex-col gap-2.5 bg-gradient-to-r from-white/10 via-white/5 to-transparent px-4 py-3.5 sm:px-5">
           <div className="flex items-center gap-3.5">
@@ -82,24 +83,40 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
           )}
         </div>
 
-        {/* Metà destra: contatori vinte / perse / abbandonate impilati. */}
-        <dl className="flex w-[140px] shrink-0 flex-col divide-y divide-white/10 border-l border-white/10 bg-black/10">
-          <StackedCounter icon={Trophy} label="Vinte" value={stats.wins} tone="text-emerald-400" />
-          <StackedCounter icon={Skull} label="Perse" value={stats.losses} tone="text-red-400" />
-          <StackedCounter icon={LogOut} label="Abbandonate" value={stats.abandoned} tone="text-amber-400" />
-        </dl>
+        {/* Esiti compatti con la stessa estetica delle statistiche in /partite. */}
+        <div
+          aria-label="Esiti delle tue partite"
+          className="grid grid-cols-3 gap-2 border-t border-white/10 bg-black/10 p-2 sm:w-[340px] sm:shrink-0 sm:border-l sm:border-t-0"
+        >
+          <StatBadgeCard
+            label="Vinte"
+            value={stats.wins}
+            Icon={CrownStatIcon}
+            iconColor="text-amber-400"
+            bgGlow="rgba(251,191,36,0.22)"
+            variant="compact"
+            className="min-w-0"
+          />
+          <StatBadgeCard
+            label="Perse"
+            value={stats.losses}
+            Icon={SkullStatIcon}
+            iconColor="text-rose-400"
+            bgGlow="rgba(251,113,133,0.20)"
+            variant="compact"
+            className="min-w-0"
+          />
+          <StatBadgeCard
+            label="Abbandonate"
+            value={stats.abandoned}
+            Icon={AbandonedEmblem}
+            iconColor="text-orange-400"
+            bgGlow="rgba(251,146,60,0.20)"
+            variant="compact"
+            className="min-w-0"
+          />
+        </div>
       </div>
     </section>
-  );
-}
-
-function StackedCounter({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: number; tone: string }) {
-  return (
-    <div className="flex items-center justify-between gap-2 px-3 py-1.5">
-      <Icon className={cn('h-3.5 w-3.5 shrink-0', tone)} strokeWidth={2.2} aria-hidden="true" />
-      <dt className="sr-only">{label}</dt>
-      <dd className={cn('text-sm font-black tabular-nums leading-none', tone)}>{value}</dd>
-      <span className="text-[8px] font-bold uppercase tracking-wider text-white/50">{label}</span>
-    </div>
   );
 }

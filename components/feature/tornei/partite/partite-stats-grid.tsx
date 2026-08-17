@@ -1,7 +1,6 @@
 import type { ComponentType } from 'react';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 import { ClashingSwordsIcon } from '@/components/feature/tornei/lobby/clashing-swords-icon';
-import { cn } from '@/lib/utils';
 import {
   CrownStatIcon,
   CrystalStatIcon,
@@ -11,6 +10,7 @@ import {
   SkullStatIcon,
   WatchStatIcon,
 } from './partite-stats-icons';
+import { StatBadgeCard } from './stat-badge-card';
 
 interface StatTile {
   id: string;
@@ -163,50 +163,15 @@ export function PartiteStatsGrid({
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
       {tiles.map((tile) => (
-        <StatBadgeCard key={tile.id} tile={tile} />
+        <StatBadgeCard
+          key={tile.id}
+          label={tile.label}
+          value={tile.value}
+          Icon={tile.Icon}
+          iconColor={tile.iconColor}
+          bgGlow={tile.bgGlow}
+        />
       ))}
-    </div>
-  );
-}
-
-function StatBadgeCard({ tile }: { tile: StatTile }) {
-  const Icon = tile.Icon;
-  return (
-    <div className="group relative flex min-h-[96px] sm:min-h-[104px] flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 p-3.5 sm:p-4 shadow-lg shadow-black/40 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-slate-900/90">
-      {/* Riflesso superiore sottile */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
-      />
-
-      {/* Bagliore cromatico morbido sul fondo */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-40 transition-opacity duration-300 group-hover:opacity-75"
-        style={{ background: `radial-gradient(circle at 85% 85%, ${tile.bgGlow}, transparent 70%)` }}
-      />
-
-      {/* Icona Full-Card sfumata e ben visibile in filigrana */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-2 -right-2 h-20 w-20 sm:h-24 sm:w-24 opacity-30 transition-all duration-300 group-hover:scale-110 group-hover:opacity-45 [mask-image:radial-gradient(circle_at_center,black_50%,transparent_90%)]"
-      >
-        <Icon className={cn('h-full w-full', tile.iconColor)} />
-      </div>
-
-      {/* Intestazione tile: solo etichetta in alto */}
-      <div className="relative flex items-center justify-between">
-        <span className={cn('text-[9px] sm:text-[10px] font-black uppercase tracking-wider', tile.iconColor)}>
-          {tile.label}
-        </span>
-      </div>
-
-      {/* Valore numerico in primo piano */}
-      <div className="relative mt-2">
-        <span className="font-display text-2xl font-black tabular-nums tracking-tight text-white sm:text-3xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-          {tile.value}
-        </span>
-      </div>
     </div>
   );
 }
