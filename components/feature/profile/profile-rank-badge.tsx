@@ -122,8 +122,8 @@ export function ProfileRankBadge({
         </svg>
 
         <div className="absolute inset-[13px] grid place-items-center rounded-full overflow-hidden sm:inset-[15px]">
-          <div className={cn('grid h-full w-full place-items-center rounded-full bg-gradient-to-b from-slate-900 via-header-bg to-black p-1 shadow-inner transition-colors', isBurning && 'from-amber-950/60 via-slate-950 to-black', activeAvatar.bgGradient)}>
-            <AvatarIcon className={cn('h-6 w-6 transition-transform duration-200 sm:h-7 sm:w-7 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]', interactive && 'group-hover:scale-110')} />
+          <div className={cn('grid h-full w-full place-items-center rounded-full bg-gradient-to-b from-slate-900 via-header-bg to-black p-0.5 shadow-inner transition-colors', isBurning && 'from-amber-950/60 via-slate-950 to-black', activeAvatar.bgGradient)}>
+            <AvatarIcon className={cn('h-[30px] w-[30px] transition-transform duration-200 sm:h-[36px] sm:w-[36px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]', interactive && 'group-hover:scale-110')} />
           </div>
         </div>
       </div>

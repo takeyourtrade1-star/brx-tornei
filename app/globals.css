@@ -1566,4 +1566,63 @@
   animation: flame-ring-glow 1.8s ease-in-out infinite;
 }
 
+/* Micro-animazioni per le 10 Icone Avatar */
+@keyframes av-ruby-heartbeat {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px #f43f5e); }
+  50% { transform: scale(1.18); filter: drop-shadow(0 0 6px #e11d48); }
+}
+
+@keyframes av-swords-spark {
+  0%, 100% { transform: scale(0.6) rotate(0deg); opacity: 0.3; }
+  50% { transform: scale(1.25) rotate(45deg); opacity: 1; filter: drop-shadow(0 0 6px #38bdf8); }
+}
+
+@keyframes av-phoenix-swirl {
+  0%, 100% { transform: scaleY(1) skewX(0deg); }
+  35% { transform: scaleY(1.08) skewX(-3deg); }
+  70% { transform: scaleY(0.96) skewX(3deg); }
+}
+
+@keyframes av-skull-souls {
+  0%, 100% { opacity: 0.7; transform: scale(1); filter: drop-shadow(0 0 3px #10b981); }
+  50% { opacity: 1; transform: scale(1.2); filter: drop-shadow(0 0 8px #34d399); }
+}
+
+@keyframes av-zap-plasma {
+  0%, 100% { filter: drop-shadow(0 0 3px #06b6d4); transform: scale(1); }
+  25% { filter: drop-shadow(0 0 7px #22d3ee); transform: scale(1.04) rotate(-1deg); }
+  75% { filter: drop-shadow(0 0 9px #67e8f9); transform: scale(0.98) rotate(1deg); }
+}
+
+@keyframes av-ghost-hover {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes av-cosmic-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes av-cyber-blink {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes av-trophy-gleam {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 3px #f59e0b); }
+  50% { transform: scale(1.25); filter: drop-shadow(0 0 8px #fef08a); }
+}
+
+.av-anim-ruby { transform-box: fill-box; transform-origin: center; animation: av-ruby-heartbeat 1.6s ease-in-out infinite; }
+.av-anim-spark { transform-box: fill-box; transform-origin: center; animation: av-swords-spark 1.4s ease-in-out infinite; }
+.av-anim-flame { transform-box: fill-box; transform-origin: center bottom; animation: av-phoenix-swirl 1.2s ease-in-out infinite; }
+.av-anim-souls { transform-box: fill-box; transform-origin: center; animation: av-skull-souls 1.8s ease-in-out infinite; }
+.av-anim-zap { transform-box: fill-box; transform-origin: center; animation: av-zap-plasma 0.9s ease-in-out infinite; }
+.av-anim-ghost { transform-box: fill-box; transform-origin: center; animation: av-ghost-hover 2.2s ease-in-out infinite; }
+.av-anim-orbit { transform-box: fill-box; transform-origin: center; animation: av-cosmic-spin 12s linear infinite; }
+.av-anim-cyber { transform-box: fill-box; transform-origin: center; animation: av-cyber-blink 1.5s ease-in-out infinite; }
+.av-anim-trophy { transform-box: fill-box; transform-origin: center; animation: av-trophy-gleam 1.8s ease-in-out infinite; }
+
+
 
