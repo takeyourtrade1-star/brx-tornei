@@ -214,9 +214,9 @@ function StatBadgeCard({ tile }: { tile: StatTile }) {
       />
 
       <span
-        className={`relative mb-1.5 grid h-8 w-8 rotate-45 place-items-center rounded-lg border bg-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${tile.badge}`}
+        className={`relative mb-1.5 grid h-9 w-9 rotate-45 place-items-center rounded-lg border bg-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${tile.badge}`}
       >
-        <Icon className={`h-4 w-4 -rotate-45 ${tile.iconColor}`} />
+        <Icon className={`h-5 w-5 -rotate-45 ${tile.iconColor}`} />
       </span>
 
       <span className="relative font-display text-xl font-black tabular-nums tracking-tight text-white sm:text-2xl">

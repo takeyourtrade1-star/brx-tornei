@@ -132,9 +132,9 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
                   style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
                 >
                   <span
-                    className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${tone.badge}`}
+                    className={`relative grid h-10 w-10 shrink-0 place-items-center rounded-lg border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${tone.badge}`}
                   >
-                    <Icon className={`h-5 w-5 ${tone.iconColor}`} />
+                    <Icon className={`h-6 w-6 ${tone.iconColor}`} />
                   </span>
 
                   <span className="min-w-0 flex-1">

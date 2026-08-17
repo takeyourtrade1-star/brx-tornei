@@ -5,88 +5,100 @@ interface IconProps {
 }
 
 /**
- * Emblemi animati degli esiti di battaglia (registro /partite).
- * Come le icone stats: SVG puri + loop CSS in globals.css (prefisso `pt-`).
+ * Emblemi animati degli esiti di battaglia per il registro partite.
+ * Grafica vettoriale rifinita ad alto contrasto.
  */
 
-function Sword() {
+function SwordBlade() {
   return (
     <g>
-      <path d="M11.2 3.6h1.6l-.2 11-0.6 1.6-.6-1.6z" className="fill-current" />
-      <rect x="9.6" y="14.8" width="4.8" height="1.5" rx="0.75" className="fill-marquee" />
-      <rect x="11.35" y="16.3" width="1.3" height="2.9" rx="0.65" className="fill-current opacity-55" />
-      <circle cx="12" cy="19.9" r="0.85" className="fill-marquee" />
+      <polygon points="11,2 13,2 13.5,13 12,15 10.5,13" className="fill-current" stroke="currentColor" strokeWidth="0.4" />
+      <line x1="12" y1="2" x2="12" y2="13" stroke="white" strokeWidth="0.6" />
+      <rect x="9" y="14" width="6" height="1.8" rx="0.9" className="fill-marquee" />
+      <rect x="11.2" y="15.8" width="1.6" height="3.2" rx="0.6" className="fill-current opacity-60" />
+      <circle cx="12" cy="19.8" r="1.1" className="fill-marquee" />
     </g>
   );
 }
 
-/** Vittoria: spade incrociate d'oro con bagliore e riflesso che corre sulla lama. */
+/** Vittoria: spade incrociate d'oro con clash scintillante. */
 export function WinEmblem({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn('h-5 w-5', className)}>
-      <circle cx="12" cy="12" r="8.2" className="pt-win-glow fill-current opacity-10" />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn('h-6 w-6 overflow-visible', className)}>
+      <circle cx="12" cy="12" r="9" className="pt-win-glow fill-current opacity-15" />
       <g className="pt-win-blade-l">
-        <Sword />
-        <path className="pt-win-glint" d="M11.7 5.8 12.3 10.2" stroke="white" strokeWidth="0.8" strokeLinecap="round" />
+        <SwordBlade />
+        <path className="pt-win-glint" d="M11.5 4.5 L12.5 9.5" stroke="white" strokeWidth="1" strokeLinecap="round" />
       </g>
       <g className="pt-win-blade-r">
-        <Sword />
+        <SwordBlade />
       </g>
+      <polygon points="12,9 13.5,11.5 16,12 13.5,12.5 12,15 10.5,12.5 8,12 10.5,11.5" fill="#FEF08A" className="animate-spin" style={{ animationDuration: '8s' }} />
     </svg>
   );
 }
 
-/** Sconfitta: scudo spezzato che trema a scatti. */
+/** Sconfitta: scudo da battaglia spezzato con frattura cremisi. */
 export function LossEmblem({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn('h-5 w-5', className)}>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn('h-6 w-6 overflow-visible', className)}>
       <g className="pt-rot pt-loss-shake">
         <path
-          d="M12 2.2l7.4 2.9v5.9c0 4.7-3.2 8-7.4 10.6-4.2-2.6-7.4-5.9-7.4-10.6V5.1z"
+          d="M12 2 L20 5.5 V12 C20 17 16.5 20.5 12 22.5 C7.5 20.5 4 17 4 12 V5.5 Z"
           className="fill-current"
+          stroke="currentColor"
+          strokeWidth="0.8"
         />
+        <path
+          d="M7 6.5 L11 10.5 L9 13.5 L12.5 17.5"
+          stroke="#080d1a"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <circle cx="12" cy="12" r="1" fill="#F43F5E" className="animate-ping" />
       </g>
-      <path
-        d="M7.6 7.4 10.4 9.8 9.2 12.6l2.4 3"
-        stroke="header-bg"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
     </svg>
   );
 }
 
-/** Abbandonata: bandiera bianca che sventola. */
+/** Abbandonata: stendardo araldico su lancia che sventola al vento. */
 export function AbandonedEmblem({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn('h-5 w-5', className)}>
-      <path d="M5.6 3.2v17.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn('h-6 w-6 overflow-visible', className)}>
+      <line x1="4.5" y1="2" x2="4.5" y2="22" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <polygon points="4.5,1 6,3 3,3" className="fill-current" />
       <g className="pt-flag-wave">
-        <path d="M5.6 4.4h9.7l-1.7 2.8 1.7 2.8H5.6z" className="fill-current" />
+        <path
+          d="M4.5 3.5 H17.5 L14.5 7.5 L17.5 11.5 H4.5 Z"
+          className="fill-current"
+          stroke="currentColor"
+          strokeWidth="0.6"
+        />
+        <circle cx="10" cy="7.5" r="1.3" fill="#FFFBEB" />
       </g>
     </svg>
   );
 }
 
-/** Contestata: bilancia che oscilla con piatti contro-bilanciati. */
+/** Contestata: bilancia della giustizia con piatti oscillanti in contrapposizione. */
 export function DisputedEmblem({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn('h-5 w-5', className)}>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={cn('h-6 w-6 overflow-visible', className)}>
       <g className="pt-rot pt-scales-beam">
-        <path d="M3.2 12.4h17.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M12 4.4v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M9.2 4.4h5.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M12 12.4 10.6 9.8M12 12.4l1.4-2.6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.7" />
+        <line x1="2.5" y1="11.5" x2="21.5" y2="11.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <line x1="12" y1="3.5" x2="12" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <line x1="9" y1="3.5" x2="15" y2="3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <polygon points="12,10 13.5,12.5 10.5,12.5" className="fill-current" />
       </g>
       <g className="pt-scales-pan-l">
-        <path d="M5.6 12.4v2.2" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M3.5 16.4a2.1 1.6 0 0 1 4.2 0z" className="fill-current opacity-55" />
+        <line x1="5.5" y1="11.5" x2="5.5" y2="14.5" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M2.5 17 A3 2 0 0 0 8.5 17 Z" className="fill-current opacity-70" stroke="currentColor" strokeWidth="0.8" />
       </g>
       <g className="pt-scales-pan-r">
-        <path d="M18.4 12.4v2.2" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M16.3 16.4a2.1 1.6 0 0 1 4.2 0z" className="fill-current opacity-55" />
+        <line x1="18.5" y1="11.5" x2="18.5" y2="14.5" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M15.5 17 A3 2 0 0 0 21.5 17 Z" className="fill-current opacity-70" stroke="currentColor" strokeWidth="0.8" />
       </g>
     </svg>
   );

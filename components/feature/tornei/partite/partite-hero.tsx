@@ -130,21 +130,21 @@ export function PartiteHero({
             label="Vittorie"
             value={stats.wins}
             gemClass="from-marquee/20 to-marquee/5 border-marquee/20"
-            icon={<WinEmblem className="h-5 w-5 text-marquee" />}
+            icon={<WinEmblem className="h-6 w-6 text-marquee" />}
             valueClass="text-marquee"
           />
           <HeroGem
             label="Win Rate"
             value={`${winRate}%`}
             gemClass="from-primary/20 to-primary/5 border-primary/20"
-            icon={<CrystalStatIcon className="pt-hero-crystal h-5 w-5 text-primary" />}
+            icon={<CrystalStatIcon className="pt-hero-crystal h-6 w-6 text-primary" />}
             valueClass="text-primary"
           />
           <HeroGem
             label="Sconfitte"
             value={stats.losses}
             gemClass="from-rose-500/20 to-rose-500/5 border-rose-500/20"
-            icon={<SkullStatIcon className="h-5 w-5 text-rose-400" />}
+            icon={<SkullStatIcon className="h-6 w-6 text-rose-400" />}
             valueClass="text-rose-300"
           />
         </div>
