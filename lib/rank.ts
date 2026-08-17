@@ -138,3 +138,12 @@ export function getStarAngles(count: number): number[] {
   if (safeCount === 4) return [-8, 9, 26, 44];
   return [-14, 0, 15, 30, 45];
 }
+
+/** Genera i path SVG delle fiamme che avvolgono direttamente la singola stella. */
+export function getStarFlamePaths(sx: number, sy: number): { outer: string; inner: string } {
+  const outer = `M ${(sx - 3.8).toFixed(2)} ${(sy + 1.8).toFixed(2)} C ${(sx - 5.2).toFixed(2)} ${(sy - 2).toFixed(2)} ${(sx - 4.5).toFixed(2)} ${(sy - 5).toFixed(2)} ${(sx - 2).toFixed(2)} ${(sy - 5.8).toFixed(2)} C ${(sx - 2.5).toFixed(2)} ${(sy - 4.2).toFixed(2)} ${(sx - 0.8).toFixed(2)} ${(sy - 5.2).toFixed(2)} ${sx.toFixed(2)} ${(sy - 8).toFixed(2)} C ${(sx + 0.8).toFixed(2)} ${(sy - 5.2).toFixed(2)} ${(sx + 2.5).toFixed(2)} ${(sy - 4.2).toFixed(2)} ${(sx + 2).toFixed(2)} ${(sy - 5.8).toFixed(2)} C ${(sx + 4.5).toFixed(2)} ${(sy - 5).toFixed(2)} ${(sx + 5.2).toFixed(2)} ${(sy - 2).toFixed(2)} ${(sx + 3.8).toFixed(2)} ${(sy + 1.8).toFixed(2)} C ${(sx + 2.5).toFixed(2)} ${(sy + 3.8).toFixed(2)} ${(sx - 2.5).toFixed(2)} ${(sy + 3.8).toFixed(2)} ${(sx - 3.8).toFixed(2)} ${(sy + 1.8).toFixed(2)} Z`;
+
+  const inner = `M ${(sx - 2.2).toFixed(2)} ${(sy + 1.2).toFixed(2)} C ${(sx - 3.2).toFixed(2)} ${(sy - 1.5).toFixed(2)} ${(sx - 2.4).toFixed(2)} ${(sy - 3.4).toFixed(2)} ${(sx - 1).toFixed(2)} ${(sy - 4.2).toFixed(2)} C ${(sx - 1.2).toFixed(2)} ${(sy - 3.2).toFixed(2)} ${(sx - 0.4).toFixed(2)} ${(sy - 3.8).toFixed(2)} ${sx.toFixed(2)} ${(sy - 5.6).toFixed(2)} C ${(sx + 0.4).toFixed(2)} ${(sy - 3.8).toFixed(2)} ${(sx + 1.2).toFixed(2)} ${(sy - 3.2).toFixed(2)} ${(sx + 1).toFixed(2)} ${(sy - 4.2).toFixed(2)} C ${(sx + 2.4).toFixed(2)} ${(sy - 3.4).toFixed(2)} ${(sx + 3.2).toFixed(2)} ${(sy - 1.5).toFixed(2)} ${(sx + 2.2).toFixed(2)} ${(sy + 1.2).toFixed(2)} C ${(sx + 1.5).toFixed(2)} ${(sy + 2.6).toFixed(2)} ${(sx - 1.5).toFixed(2)} ${(sy + 2.6).toFixed(2)} ${(sx - 2.2).toFixed(2)} ${(sy + 1.2).toFixed(2)} Z`;
+
+  return { outer, inner };
+}
