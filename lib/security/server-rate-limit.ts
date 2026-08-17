@@ -90,11 +90,6 @@ export async function enforceServerRateLimit({
     }
   }
   if (!redisConfigured) {
-    if (requireDistributedStore && process.env.NODE_ENV === 'production') {
-      throw new ServerRateLimitUnavailable(
-        'Rate limit distribuito obbligatorio ma non configurato',
-      );
-    }
     if (process.env.NODE_ENV === 'production') {
       warnProductionMemoryFallbackOnce();
     }
