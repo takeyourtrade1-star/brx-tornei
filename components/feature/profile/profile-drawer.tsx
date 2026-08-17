@@ -2,16 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Sparkles, X } from 'lucide-react';
+import { ChevronDown, Pencil, Sparkles, X } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { evaluateAchievements } from '@/lib/data/achievements';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
-import { GAME_AVATARS, getAvatarById, getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
+import { getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
 import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import { cn } from '@/lib/utils';
 import { AchievementCard, AchievementSummary } from './achievement-card';
+import { ProfileAvatarPicker } from './profile-avatar-picker';
 import { ProfileRankBadge } from './profile-rank-badge';
 import { RankLeagueInfo } from './rank-league-info';
 
@@ -28,7 +29,7 @@ type FetchState =
   | { status: 'success'; reputation: ReputationSummary }
   | { status: 'error'; message: string };
 
-/** Drawer laterale con sezioni avatar/badge comprimibili, box leghe e rank badge. */
+/** Drawer laterale con modifica gamertag, avatar, badge e leghe. */
 export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: ProfileDrawerProps) {
   const [state, setState] = useState<FetchState>(() =>
     initialReputation ? { status: 'success', reputation: initialReputation } : { status: 'idle' },
@@ -38,45 +39,57 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
   const [badgesOpen, setBadgesOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const previouslyFocused = useRef<HTMLElement | null>(null);
-  const activeAvatar = getAvatarById(selectedAvatarId);
-  const SelectedIcon = activeAvatar.icon;
-  const handleSelectAvatar = (id: string) => { setSelectedAvatarId(id); saveAvatarId(id); };
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
-    previouslyFocused.current = document.activeElement as HTMLElement;
-    const t = window.setTimeout(() => closeRef.current?.focus(), 20);
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (rulesOpen) return;
-      if (event.key === 'Escape') return void onClose();
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
     };
-    document.addEventListener('keydown', onKeyDown);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = '';
-      window.clearTimeout(t);
-      previouslyFocused.current?.focus?.();
-    };
-  }, [open, onClose, rulesOpen]);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
 
   useEffect(() => {
-    if (!open || state.status !== 'idle') return;
-    setState({ status: 'loading' });
+    if (open) closeRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    const handleAvatarChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<{ avatarId: string }>;
+      if (customEvent.detail?.avatarId) setSelectedAvatarId(customEvent.detail.avatarId);
+    };
+    window.addEventListener('ebartex-avatar-changed', handleAvatarChanged);
+    return () => window.removeEventListener('ebartex-avatar-changed', handleAvatarChanged);
+  }, []);
+
+  const handleSelectAvatar = (id: string) => {
+    setSelectedAvatarId(id);
+    saveAvatarId(id);
+  };
+
+  useEffect(() => {
+    if (!open || state.status === 'success' || state.status === 'loading') return;
     let cancelled = false;
-    fetchMyAchievementsAction()
-      .then((res) => {
-        if (!cancelled) setState(res.ok ? { status: 'success', reputation: res.reputation } : { status: 'error', message: res.error });
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setState({ status: 'error', message: err instanceof Error ? err.message : 'Errore di rete' });
-      });
-    return () => { cancelled = true; };
+    setState({ status: 'loading' });
+    fetchMyAchievementsAction().then((res) => {
+      if (cancelled) return;
+      if (res && 'error' in res) {
+        setState({ status: 'error', message: res.error });
+      } else if (res && 'reputation' in res && res.reputation) {
+        setState({ status: 'success', reputation: res.reputation });
+      } else {
+        setState({ status: 'error', message: 'Dati non disponibili' });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [open, state.status]);
 
   const rep = state.status === 'success' ? state.reputation : null;
@@ -110,12 +123,8 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
               hidePill
             />
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                Profilo torneo
-              </p>
-              <h2 className="mt-0.5 truncate text-lg font-black tracking-tight text-header-bg sm:text-xl">
-                {gamertag}
-              </h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Profilo torneo</p>
+              <h2 className="mt-0.5 truncate text-lg font-black tracking-tight text-header-bg sm:text-xl">{gamertag}</h2>
               {state.status === 'success' && (
                 <p className="mt-0.5 text-xs font-semibold text-slate-500">
                   {state.reputation.played} partite · {state.reputation.wins} vinte · {state.reputation.losses} perse
@@ -136,56 +145,24 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
 
         {/* Contenuto */}
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          {/* Sezione Avatar Collassabile */}
-          <section className="mb-4 rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-3.5 transition-all">
-            <button
-              type="button"
-              onClick={() => setAvatarOpen((prev) => !prev)}
-              aria-expanded={avatarOpen}
-              className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-900/[0.08]">
-                  <SelectedIcon className="h-6 w-6" />
-                </span>
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                    Avatar di gioco
-                  </h3>
-                  <p className="text-[10px] font-bold text-slate-400">
-                    Selezionato: <span className="text-slate-700 font-extrabold">{activeAvatar.name}</span>
-                  </p>
-                </div>
-              </div>
-              <ChevronDown className={cn('h-4 w-4 text-slate-400 transition-transform duration-200', avatarOpen && 'rotate-180')} />
-            </button>
+          {/* Modifica Gamertag (Presto in arrivo) */}
+          <div className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-slate-900/[0.08] bg-slate-50/80 px-3.5 py-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <Pencil className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <span className="text-xs font-bold text-slate-700 truncate">Modifica gamertag</span>
+            </div>
+            <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-600">
+              Presto in arrivo
+            </span>
+          </div>
 
-            {avatarOpen && (
-              <div className="mt-3.5 grid grid-cols-5 gap-2 border-t border-slate-900/[0.06] pt-3 animate-in fade-in-50 duration-200">
-                {GAME_AVATARS.map((avatar) => {
-                  const Icon = avatar.icon;
-                  const isSelected = avatar.id === selectedAvatarId;
-                  return (
-                    <button
-                      key={avatar.id}
-                      type="button"
-                      onClick={() => handleSelectAvatar(avatar.id)}
-                      title={`${avatar.name} (${avatar.subtitle})`}
-                      aria-label={`Seleziona avatar ${avatar.name}`}
-                      className={cn(
-                        'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all bg-white shadow-sm',
-                        isSelected
-                          ? 'border-amber-500 bg-amber-50/60 shadow-[0_0_12px_rgba(245,158,11,0.25)] ring-2 ring-amber-400/60 scale-105'
-                          : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50 hover:scale-105',
-                      )}
-                    >
-                      <Icon className="h-7 w-7 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+          {/* Sezione Avatar Collassabile */}
+          <ProfileAvatarPicker
+            selectedAvatarId={selectedAvatarId}
+            onSelectAvatar={handleSelectAvatar}
+            open={avatarOpen}
+            onToggle={() => setAvatarOpen((prev) => !prev)}
+          />
 
           {/* Sezione Badge Collassabile */}
           <section className="mb-4 rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-3.5 transition-all">
@@ -200,9 +177,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
                   <Sparkles className="h-4 w-4 text-amber-500" />
                 </span>
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                    Badge & Obiettivi
-                  </h3>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">Badge & Obiettivi</h3>
                   <p className="text-[10px] font-bold text-slate-400">
                     {achievements.filter((a) => a.unlockedNow).length} di {achievements.length} sbloccati
                   </p>
