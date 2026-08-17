@@ -2,8 +2,9 @@ import 'server-only';
 
 import { cookies } from 'next/headers';
 import { config } from '@/lib/config';
+import { isValidAuthCookieToken } from '@/lib/auth/auth-token';
 
-const PRE_AUTH_MAX_AGE = 600; // 10 minuti
+export const PRE_AUTH_MAX_AGE = 300; // allineato al PRE_AUTH Auth (5 minuti)
 
 function preAuthCookieOptions(maxAge = PRE_AUTH_MAX_AGE) {
   return {
@@ -16,13 +17,17 @@ function preAuthCookieOptions(maxAge = PRE_AUTH_MAX_AGE) {
 }
 
 export async function setPreAuthCookie(token: string): Promise<void> {
+  if (!isValidAuthCookieToken(token)) {
+    throw new TypeError('Invalid pre-auth token');
+  }
   const store = await cookies();
   store.set(config.auth.preAuthCookie, token, preAuthCookieOptions());
 }
 
 export async function getPreAuthCookie(): Promise<string | null> {
   const store = await cookies();
-  return store.get(config.auth.preAuthCookie)?.value ?? null;
+  const token = store.get(config.auth.preAuthCookie)?.value;
+  return isValidAuthCookieToken(token) ? token : null;
 }
 
 export async function clearPreAuthCookie(): Promise<void> {
