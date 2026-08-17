@@ -19,7 +19,7 @@ export interface ProfileRankBadgeProps {
 }
 
 /**
- * Badge profilo vettoriale pixel-perfect con sistema fiamme animate sulle stelline.
+ * Badge profilo vettoriale con stelle di grado grandi, nitide e fiamme scolpite ad alta definizione.
  */
 export function ProfileRankBadge({
   avatarId,
@@ -46,14 +46,14 @@ export function ProfileRankBadge({
   const flameInnerGradId = `flame-inner-${uid}`;
   const glowFilterId = `glow-${uid}`;
 
-  const trackRadius = 32.5;
-  const starOuterR = stars >= 4 ? 3.2 : 3.5;
-  const starInnerR = starOuterR * 0.45;
+  const trackRadius = 32.8;
+  const starOuterR = stars >= 4 ? 4.3 : 4.8;
+  const starInnerR = starOuterR * 0.44;
 
   const content = (
     <>
       <div className={cn('relative h-16 w-16 transition-transform duration-200 group-hover:scale-105 sm:h-20 sm:w-20', isBurning && 'flame-ring-aura rounded-full')}>
-        <svg viewBox="0 0 80 80" className={cn('absolute inset-0 h-full w-full pointer-events-none transition-all duration-300', isBurning ? 'drop-shadow-[0_0_20px_rgba(255,80,0,0.9)]' : 'drop-shadow-[0_0_14px_rgba(245,158,11,0.35)]')} aria-hidden="true">
+        <svg viewBox="0 0 80 80" className={cn('absolute inset-0 h-full w-full pointer-events-none transition-all duration-300', isBurning ? 'drop-shadow-[0_0_16px_rgba(255,80,0,0.8)]' : 'drop-shadow-[0_0_12px_rgba(245,158,11,0.35)]')} aria-hidden="true">
           <defs>
             <linearGradient id={ringGradId} x1="0%" y1="0%" x2="100%" y2="100%">
               {isBurning ? (
@@ -78,24 +78,24 @@ export function ProfileRankBadge({
             <linearGradient id={starGradId} x1="0%" y1="0%" x2="100%" y2="100%">
               {isBurning ? (
                 <>
-                  <stop offset="0%" stopColor="#FFFFFF" /><stop offset="40%" stopColor="#FEF08A" /><stop offset="75%" stopColor="#FBBF24" /><stop offset="100%" stopColor="#EA580C" />
+                  <stop offset="0%" stopColor="#FFFFFF" /><stop offset="35%" stopColor="#FEF08A" /><stop offset="70%" stopColor="#FBBF24" /><stop offset="100%" stopColor="#EA580C" />
                 </>
               ) : (
                 <>
-                  <stop offset="0%" stopColor="#FEF08A" /><stop offset="50%" stopColor="#FBBF24" /><stop offset="100%" stopColor="#F59E0B" />
+                  <stop offset="0%" stopColor="#FFFBEB" /><stop offset="40%" stopColor="#FBBF24" /><stop offset="100%" stopColor="#D97706" />
                 </>
               )}
             </linearGradient>
 
-            <filter id={glowFilterId} x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="0" dy="0" stdDeviation={isBurning ? '1.5' : '0.8'} floodColor={isBurning ? '#FF3300' : '#F59E0B'} floodOpacity={isBurning ? '1' : '0.9'} />
+            <filter id={glowFilterId} x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="0" stdDeviation={isBurning ? '0.8' : '0.6'} floodColor={isBurning ? '#FF3300' : '#F59E0B'} floodOpacity="0.9" />
             </filter>
           </defs>
 
           <circle cx="40" cy="40" r="37" fill="#080d1a" />
-          <circle cx="40" cy="40" r={trackRadius} fill="none" stroke={isBurning ? '#180a06' : '#0f172a'} strokeWidth="8" />
+          <circle cx="40" cy="40" r={trackRadius} fill="none" stroke={isBurning ? '#180a06' : '#0f172a'} strokeWidth="9.5" />
           <circle cx="40" cy="40" r="37" fill="none" stroke={`url(#${ringGradId})`} strokeWidth={isBurning ? '2.8' : '2.4'} />
-          <circle cx="40" cy="40" r="28" fill="none" stroke={isBurning ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.22)'} strokeWidth="1.8" />
+          <circle cx="40" cy="40" r="27.5" fill="none" stroke={isBurning ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.22)'} strokeWidth="1.8" />
 
           {angles.map((angle, idx) => {
             const rad = (angle * Math.PI) / 180;
@@ -109,15 +109,14 @@ export function ProfileRankBadge({
                 <g key={idx}>
                   <path d={outer} fill={`url(#${flameOuterGradId})`} className="flame-tongue-outer" style={{ animationDelay: `${(idx * 0.18).toFixed(2)}s` }} />
                   <path d={inner} fill={`url(#${flameInnerGradId})`} className="flame-tongue-inner" style={{ animationDelay: `${(idx * 0.22 + 0.1).toFixed(2)}s` }} />
-                  <polygon points={points} fill={`url(#${starGradId})`} stroke="#DC2626" strokeWidth="0.4" filter={`url(#${glowFilterId})`} className="flame-star-core" style={{ animationDelay: `${(idx * 0.15).toFixed(2)}s` }} />
-                  <circle cx={sx - 1.2} cy={sy - 4.5} r={0.65} fill="#FEF08A" className="flame-ember-1" style={{ animationDelay: `${(idx * 0.25).toFixed(2)}s` }} />
-                  <circle cx={sx + 1.4} cy={sy - 5.2} r={0.55} fill="#F97316" className="flame-ember-2" style={{ animationDelay: `${(idx * 0.25 + 0.3).toFixed(2)}s` }} />
+                  <polygon points={points} fill={`url(#${starGradId})`} stroke="#7F1D1D" strokeWidth="0.5" filter={`url(#${glowFilterId})`} className="flame-star-core" style={{ animationDelay: `${(idx * 0.15).toFixed(2)}s` }} />
+                  <circle cx={sx} cy={sy - 5.5} r={0.65} fill="#FEF08A" className="flame-ember-1" style={{ animationDelay: `${(idx * 0.25).toFixed(2)}s` }} />
                 </g>
               );
             }
 
             return (
-              <polygon key={idx} points={points} fill={`url(#${starGradId})`} stroke="#B45309" strokeWidth="0.4" filter={`url(#${glowFilterId})`} />
+              <polygon key={idx} points={points} fill={`url(#${starGradId})`} stroke="#78350F" strokeWidth="0.5" filter={`url(#${glowFilterId})`} />
             );
           })}
         </svg>

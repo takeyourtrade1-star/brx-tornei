@@ -129,21 +129,24 @@ export function getStarPoints(
   return points.join(' ');
 }
 
-/** Calcola gli angoli delle stelle lungo l'arco destro (-14°..45°). */
+/** Calcola gli angoli delle stelle con spaziatura proporzionale e anti-sovrapposizione. */
 export function getStarAngles(count: number): number[] {
   const safeCount = Math.max(1, Math.min(count, MAX_RANK_STARS));
-  if (safeCount === 1) return [24];
-  if (safeCount === 2) return [12, 36];
-  if (safeCount === 3) return [2, 23, 44];
-  if (safeCount === 4) return [-8, 9, 26, 44];
-  return [-14, 0, 15, 30, 45];
+  if (safeCount === 1) return [20];
+  if (safeCount === 2) return [6, 34];
+  if (safeCount === 3) return [-6, 18, 42];
+  if (safeCount === 4) return [-14, 4, 23, 42];
+  return [-16, -1, 14, 29, 44];
 }
 
-/** Genera i path SVG delle fiamme che avvolgono direttamente la singola stella. */
+/**
+ * Corona di fiamme stilizzata, affilata e non sbavata, scolpita verticalmente sopra la stella.
+ * Mantiene i contorni puliti e definiti senza fondersi con le stelle adiacenti.
+ */
 export function getStarFlamePaths(sx: number, sy: number): { outer: string; inner: string } {
-  const outer = `M ${(sx - 3.8).toFixed(2)} ${(sy + 1.8).toFixed(2)} C ${(sx - 5.2).toFixed(2)} ${(sy - 2).toFixed(2)} ${(sx - 4.5).toFixed(2)} ${(sy - 5).toFixed(2)} ${(sx - 2).toFixed(2)} ${(sy - 5.8).toFixed(2)} C ${(sx - 2.5).toFixed(2)} ${(sy - 4.2).toFixed(2)} ${(sx - 0.8).toFixed(2)} ${(sy - 5.2).toFixed(2)} ${sx.toFixed(2)} ${(sy - 8).toFixed(2)} C ${(sx + 0.8).toFixed(2)} ${(sy - 5.2).toFixed(2)} ${(sx + 2.5).toFixed(2)} ${(sy - 4.2).toFixed(2)} ${(sx + 2).toFixed(2)} ${(sy - 5.8).toFixed(2)} C ${(sx + 4.5).toFixed(2)} ${(sy - 5).toFixed(2)} ${(sx + 5.2).toFixed(2)} ${(sy - 2).toFixed(2)} ${(sx + 3.8).toFixed(2)} ${(sy + 1.8).toFixed(2)} C ${(sx + 2.5).toFixed(2)} ${(sy + 3.8).toFixed(2)} ${(sx - 2.5).toFixed(2)} ${(sy + 3.8).toFixed(2)} ${(sx - 3.8).toFixed(2)} ${(sy + 1.8).toFixed(2)} Z`;
+  const outer = `M ${(sx - 2.8).toFixed(2)} ${(sy + 1.2).toFixed(2)} C ${(sx - 3.4).toFixed(2)} ${(sy - 1.2).toFixed(2)} ${(sx - 2.6).toFixed(2)} ${(sy - 3.8).toFixed(2)} ${(sx - 1.2).toFixed(2)} ${(sy - 4.4).toFixed(2)} C ${(sx - 1.6).toFixed(2)} ${(sy - 3.2).toFixed(2)} ${(sx - 0.6).toFixed(2)} ${(sy - 4.2).toFixed(2)} ${sx.toFixed(2)} ${(sy - 6.8).toFixed(2)} C ${(sx + 0.6).toFixed(2)} ${(sy - 4.2).toFixed(2)} ${(sx + 1.6).toFixed(2)} ${(sy - 3.2).toFixed(2)} ${(sx + 1.2).toFixed(2)} ${(sy - 4.4).toFixed(2)} C ${(sx + 2.6).toFixed(2)} ${(sy - 3.8).toFixed(2)} ${(sx + 3.4).toFixed(2)} ${(sy - 1.2).toFixed(2)} ${(sx + 2.8).toFixed(2)} ${(sy + 1.2).toFixed(2)} C ${(sx + 1.8).toFixed(2)} ${(sy + 2.2).toFixed(2)} ${(sx - 1.8).toFixed(2)} ${(sy + 2.2).toFixed(2)} ${(sx - 2.8).toFixed(2)} ${(sy + 1.2).toFixed(2)} Z`;
 
-  const inner = `M ${(sx - 2.2).toFixed(2)} ${(sy + 1.2).toFixed(2)} C ${(sx - 3.2).toFixed(2)} ${(sy - 1.5).toFixed(2)} ${(sx - 2.4).toFixed(2)} ${(sy - 3.4).toFixed(2)} ${(sx - 1).toFixed(2)} ${(sy - 4.2).toFixed(2)} C ${(sx - 1.2).toFixed(2)} ${(sy - 3.2).toFixed(2)} ${(sx - 0.4).toFixed(2)} ${(sy - 3.8).toFixed(2)} ${sx.toFixed(2)} ${(sy - 5.6).toFixed(2)} C ${(sx + 0.4).toFixed(2)} ${(sy - 3.8).toFixed(2)} ${(sx + 1.2).toFixed(2)} ${(sy - 3.2).toFixed(2)} ${(sx + 1).toFixed(2)} ${(sy - 4.2).toFixed(2)} C ${(sx + 2.4).toFixed(2)} ${(sy - 3.4).toFixed(2)} ${(sx + 3.2).toFixed(2)} ${(sy - 1.5).toFixed(2)} ${(sx + 2.2).toFixed(2)} ${(sy + 1.2).toFixed(2)} C ${(sx + 1.5).toFixed(2)} ${(sy + 2.6).toFixed(2)} ${(sx - 1.5).toFixed(2)} ${(sy + 2.6).toFixed(2)} ${(sx - 2.2).toFixed(2)} ${(sy + 1.2).toFixed(2)} Z`;
+  const inner = `M ${(sx - 1.6).toFixed(2)} ${(sy + 0.8).toFixed(2)} C ${(sx - 2.0).toFixed(2)} ${(sy - 0.8).toFixed(2)} ${(sx - 1.4).toFixed(2)} ${(sy - 2.4).toFixed(2)} ${(sx - 0.6).toFixed(2)} ${(sy - 2.8).toFixed(2)} C ${(sx - 0.9).toFixed(2)} ${(sy - 2.0).toFixed(2)} ${(sx - 0.3).toFixed(2)} ${(sy - 2.6).toFixed(2)} ${sx.toFixed(2)} ${(sy - 4.6).toFixed(2)} C ${(sx + 0.3).toFixed(2)} ${(sy - 2.6).toFixed(2)} ${(sx + 0.9).toFixed(2)} ${(sy - 2.0).toFixed(2)} ${(sx + 0.6).toFixed(2)} ${(sy - 2.8).toFixed(2)} C ${(sx + 1.4).toFixed(2)} ${(sy - 2.4).toFixed(2)} ${(sx + 2.0).toFixed(2)} ${(sy - 0.8).toFixed(2)} ${(sx + 1.6).toFixed(2)} ${(sy + 0.8).toFixed(2)} Z`;
 
   return { outer, inner };
 }
