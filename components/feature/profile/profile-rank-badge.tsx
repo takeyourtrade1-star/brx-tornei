@@ -41,16 +41,16 @@ function getStarPoints(
 }
 
 /**
- * Calcola gli angoli delle stelle lungo l'arco inferiore destro (18°..62°),
- * perfettamente centrate e distanziate sopra la pillola del gamertag.
+ * Calcola gli angoli delle stelle lungo l'arco destro (-14°..45°),
+ * posizionate a debita distanza di sicurezza sopra la pillola del gamertag.
  */
 function getStarAngles(count: number): number[] {
   const safeCount = Math.max(1, Math.min(count, MAX_RANK_STARS));
-  if (safeCount === 1) return [40];
-  if (safeCount === 2) return [26, 54];
-  if (safeCount === 3) return [18, 39, 60];
-  if (safeCount === 4) return [16, 31, 46, 61];
-  return [14, 26, 38, 50, 62];
+  if (safeCount === 1) return [24];
+  if (safeCount === 2) return [12, 36];
+  if (safeCount === 3) return [2, 23, 44];
+  if (safeCount === 4) return [-8, 9, 26, 44];
+  return [-14, 0, 15, 30, 45];
 }
 
 /**
