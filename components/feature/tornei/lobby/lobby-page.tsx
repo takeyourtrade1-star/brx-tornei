@@ -16,6 +16,7 @@ import type { Tournament } from '@/types/tournament';
 import { TableSeatModal } from './table-seat-modal';
 import { LobbyTableList } from './lobby-table-list';
 import { AcceptMatchModal } from './accept-match-modal';
+import { NegativeFeedbackNotice } from './negative-feedback-notice';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
 
 interface LobbyPageProps {
@@ -384,6 +385,10 @@ export function LobbyPage({
         onAccept={handleApprovalAccept}
         onLeave={handleApprovalLeave}
         onOpponentTimeout={() => setApprovalPhase('declined')}
+      />
+      <NegativeFeedbackNotice
+        userId={user.id}
+        notice={reputation?.negativeFeedbackNotice ?? null}
       />
     </>
   );
