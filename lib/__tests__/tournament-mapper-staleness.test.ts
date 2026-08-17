@@ -95,6 +95,7 @@ describe('tournament mapper dichiarazione risultato concorde', () => {
       result_claimed_by: 'user-1',
       result_claimed_winner: 'user-1',
       result_claim_deadline: '2026-07-22T10:00:45+00:00',
+      player_scores: { 'user-1': 2, 'user-2': 1 },
     });
 
     expect(tournament?.matchStatus).toBe('ongoing');
@@ -102,6 +103,7 @@ describe('tournament mapper dichiarazione risultato concorde', () => {
     expect(tournament?.resultClaimedBy).toBe('user-1');
     expect(tournament?.resultClaimedWinner).toBe('user-1');
     expect(tournament?.resultClaimDeadline).toBe('2026-07-22T10:00:45+00:00');
+    expect(tournament?.scoreByPlayerId).toEqual({ 'user-1': 2, 'user-2': 1 });
   });
 
   it('keeps legacy disputed outcomes readable without a winner', () => {

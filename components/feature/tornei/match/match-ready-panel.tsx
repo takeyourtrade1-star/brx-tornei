@@ -164,6 +164,11 @@ export function MatchReadyPanel({
         )}
       </div>
 
+      <p className="relative mt-3 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] px-3 py-2 text-[10px] font-semibold leading-relaxed text-amber-100/75">
+        <Hourglass className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden />
+        Le partite troppo brevi o incomplete non vengono conteggiate.
+      </p>
+
       <div className="relative mt-4 flex flex-wrap items-center justify-end gap-2.5">
         <button
           type="button"

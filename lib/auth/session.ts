@@ -5,6 +5,11 @@ import { cookies } from 'next/headers';
 import { config } from '@/lib/config';
 import type { Session, SessionUser, TokenResponse } from '@/types/auth';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+import {
+  clampAuthCookieMaxAge,
+  isValidAuthCookieToken,
+  isValidAuthTokenPair,
+} from '@/lib/auth/auth-token';
 
 /**
  * Sessione cookie-first (server-only).
@@ -14,12 +19,14 @@ import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 
 export async function getAccessToken(): Promise<string | null> {
   const store = await cookies();
-  return store.get(config.auth.accessCookie)?.value ?? null;
+  const token = store.get(config.auth.accessCookie)?.value;
+  return isValidAuthCookieToken(token) ? token : null;
 }
 
 export async function getRefreshToken(): Promise<string | null> {
   const store = await cookies();
-  return store.get(config.auth.refreshCookie)?.value ?? null;
+  const token = store.get(config.auth.refreshCookie)?.value;
+  return isValidAuthCookieToken(token) ? token : null;
 }
 
 function cookieOptions(maxAge: number) {
@@ -34,20 +41,22 @@ function cookieOptions(maxAge: number) {
 
 /** Imposta i cookie di sessione (chiamabile da Server Action o Route Handler). */
 export async function setSessionCookies(tokens: TokenResponse): Promise<void> {
+  if (!isValidAuthTokenPair(tokens)) {
+    throw new TypeError('Invalid auth token pair');
+  }
   const store = await cookies();
-  const accessMaxAge =
-    tokens.expires_in && tokens.expires_in > 0
-      ? Math.floor(tokens.expires_in)
-      : config.auth.accessMaxAge;
+  const accessMaxAge = clampAuthCookieMaxAge(
+    tokens.expires_in,
+    config.auth.accessMaxAge,
+    config.auth.accessMaxAge,
+  );
 
   store.set(config.auth.accessCookie, tokens.access_token, cookieOptions(accessMaxAge));
-  if (tokens.refresh_token) {
-    store.set(
-      config.auth.refreshCookie,
-      tokens.refresh_token,
-      cookieOptions(config.auth.refreshMaxAge)
-    );
-  }
+  store.set(
+    config.auth.refreshCookie,
+    tokens.refresh_token,
+    cookieOptions(config.auth.refreshMaxAge)
+  );
 }
 
 export async function clearSessionCookies(): Promise<void> {

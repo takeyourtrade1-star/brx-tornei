@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition, type FormEvent } from 'react';
+import { useRef, useState, useTransition, type FormEvent } from 'react';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { verifyMfaAction } from '@/actions/auth';
 import { AuthErrorAlert } from '@/components/ui/auth-error-alert';
@@ -32,10 +32,12 @@ export function VerifyMfaForm({
   const [rememberDevice, setRememberDevice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const submitInFlightRef = useRef(false);
   const isSplit = variant === 'split';
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitInFlightRef.current) return;
     if (mfaCode.length !== 6) {
       setError('Il codice MFA deve essere di 6 cifre');
       return;
@@ -44,10 +46,15 @@ export function VerifyMfaForm({
     const formData = new FormData(event.currentTarget);
     formData.set('mfa_code', mfaCode);
     setError(null);
+    submitInFlightRef.current = true;
 
     startTransition(async () => {
-      const result = await verifyMfaAction(formData);
-      if (result?.error) setError(result.error);
+      try {
+        const result = await verifyMfaAction(formData);
+        if (result?.error) setError(result.error);
+      } finally {
+        submitInFlightRef.current = false;
+      }
     });
   }
 

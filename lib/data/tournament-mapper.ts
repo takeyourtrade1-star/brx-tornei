@@ -92,6 +92,16 @@ function mapParticipants(raw: unknown): Participant[] {
   return raw.map(mapParticipant).filter((p): p is Participant => p !== null);
 }
 
+function mapPlayerScores(raw: unknown): Record<string, number> | undefined {
+  const scores = asRecord(raw);
+  if (!scores) return undefined;
+  const validScores = Object.entries(scores).filter(
+    (entry): entry is [string, number] =>
+      typeof entry[1] === 'number' && Number.isInteger(entry[1]) && entry[1] >= 0,
+  );
+  return validScores.length > 0 ? Object.fromEntries(validScores) : undefined;
+}
+
 function mapStatus(raw: unknown): TournamentStatus {
   if (typeof raw === 'string' && VALID_STATUS.includes(raw as TournamentStatus)) {
     return raw as TournamentStatus;
@@ -168,6 +178,7 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     matchStatus: pickEnum(obj, VALID_MATCH_STATUS, 'match_status', 'matchStatus'),
     endReason: pickEnum(obj, VALID_END_REASON, 'end_reason', 'endReason'),
     winnerUserId: pickString(obj, 'winner_user_id', 'winnerUserId'),
+    scoreByPlayerId: mapPlayerScores(obj.player_scores ?? obj.scoreByPlayerId),
     disconnectedUserId: pickString(obj, 'disconnected_user_id', 'disconnectedUserId'),
     graceDeadline: pickString(obj, 'grace_deadline', 'graceDeadline'),
     resultStatus: pickEnum(obj, VALID_RESULT_STATUS, 'result_status', 'resultStatus'),

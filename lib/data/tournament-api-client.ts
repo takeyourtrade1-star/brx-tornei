@@ -276,10 +276,22 @@ export async function postConnectionQuality(
 
 /** "Chi ha vinto?": proposta simmetrica; solo due scelte concordi chiudono.
  * È identificata dal match id, non dalla webcam_session_id. */
-export async function postDeclareResult(matchId: string, winnerUserId: string): Promise<void> {
+export async function postDeclareResult(
+  matchId: string,
+  winnerUserId: string,
+  winnerScore: number,
+  loserScore: number,
+): Promise<void> {
   const { ok, status, body } = await tournamentFetch(
     `/api/v1/matches/${encodeURIComponent(matchId)}/result`,
-    { method: 'POST', body: JSON.stringify({ winner_user_id: winnerUserId }) },
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        winner_user_id: winnerUserId,
+        winner_score: winnerScore,
+        loser_score: loserScore,
+      }),
+    },
   );
   if (!ok) {
     throw extractApiError(body, status, 'Impossibile dichiarare il risultato');

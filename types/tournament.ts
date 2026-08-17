@@ -76,6 +76,8 @@ export interface Tournament {
   /** Causa di chiusura: forfeit volontario, cleanup neutro, dichiarazione concorde. */
   endReason?: 'leave' | 'timeout' | 'reported' | 'disputed';
   winnerUserId?: string;
+  /** Punteggio game per giocatore, concordato insieme al vincitore. */
+  scoreByPlayerId?: Record<string, number>;
   /** Solo per il viewer: il suo client ha registrato una perdita del peer P2P. */
   disconnectedUserId?: string;
   /** ISO: istante oltre il quale il segnale P2P locale viene rimosso. */

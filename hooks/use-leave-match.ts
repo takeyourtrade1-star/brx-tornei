@@ -13,12 +13,9 @@ export function useLeaveMatch(
   const [error, setError] = useState<string | null>(null);
   const [leaving, startTransition] = useTransition();
 
-  const leave = () => {
-    const message =
-      tournament.status === 'iniziata'
-        ? 'Vuoi abbandonare la partita? La partita verrà chiusa per entrambi.'
-        : 'Vuoi alzarti dal tavolo?';
-    if (!window.confirm(message)) return;
+  const leave = (confirmedForfeit = false) => {
+    if (tournament.status === 'iniziata' && !confirmedForfeit) return;
+    if (tournament.status !== 'iniziata' && !window.confirm('Vuoi alzarti dal tavolo?')) return;
     startTransition(async () => {
       const result = await leaveTournamentAction(tournament.id);
       if (result.error) {
@@ -26,6 +23,10 @@ export function useLeaveMatch(
         return;
       }
       await onLeaveSuccess?.();
+      if (tournament.status === 'iniziata') {
+        router.refresh();
+        return;
+      }
       router.push('/tornei');
       router.refresh();
     });

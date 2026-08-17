@@ -14,6 +14,7 @@ interface RateLimitOptions {
   subject: string;
   limit: number;
   windowSeconds?: number;
+  requireDistributedStore?: boolean;
 }
 
 interface MemoryCounter {
@@ -76,6 +77,7 @@ export async function enforceServerRateLimit({
   subject,
   limit,
   windowSeconds = 60,
+  requireDistributedStore = false,
 }: RateLimitOptions): Promise<void> {
   const key = rateKey(scope, subject, windowSeconds);
   let redisConfigured = false;
@@ -88,6 +90,11 @@ export async function enforceServerRateLimit({
     }
   }
   if (!redisConfigured) {
+    if (requireDistributedStore && process.env.NODE_ENV === 'production') {
+      throw new ServerRateLimitUnavailable(
+        'Rate limit distribuito obbligatorio ma non configurato',
+      );
+    }
     if (process.env.NODE_ENV === 'production') {
       warnProductionMemoryFallbackOnce();
     }

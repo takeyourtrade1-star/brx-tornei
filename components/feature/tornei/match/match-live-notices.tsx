@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { ArrowLeft, Flag, RefreshCw, UserX } from 'lucide-react';
 import { useGraceCountdown } from '@/hooks/use-grace-countdown';
 import { reconnectingLabel } from './match-live-parts';
@@ -48,7 +49,7 @@ function endedMessage(
     return 'Hai vinto a tavolino: l’avversario ha abbandonato il tavolo.';
   }
   if (abandonment && didIWin === false) {
-    return 'Hai perso per abbandono: non sei rientrato in tempo.';
+    return 'Ti sei arreso: la sconfitta è stata registrata.';
   }
   if (endReason === 'reported' && didIWin === true) {
     return 'Hai vinto la partita!';
@@ -71,32 +72,50 @@ export function MatchEndedPanel({
   opponentLeft,
   didIWin,
   endReason,
+  resultScore,
+  children,
 }: {
   opponentLeft: boolean;
   didIWin?: boolean;
   endReason?: string;
+  resultScore?: string;
+  children?: ReactNode;
 }) {
   return (
-    <section aria-live="polite" className="grid min-h-0 flex-1 place-items-center py-6">
-      <div className="flex w-full max-w-xl flex-col items-center gap-5 rounded-3xl border border-white/15 bg-header-bg/95 p-8 text-center text-white shadow-2xl backdrop-blur-md sm:p-10">
-        <span className="grid h-16 w-16 place-items-center rounded-2xl border border-primary/40 bg-primary/15 text-primary shadow-[0_0_24px_rgba(255,115,0,0.3)]">
-          <Flag className="h-8 w-8 text-primary" aria-hidden />
-        </span>
-        <div>
-          <h2 className="font-sans text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
-            Partita terminata
-          </h2>
-          <p className="mt-2 text-sm font-semibold text-slate-300 sm:text-base">
-            {endedMessage(opponentLeft, didIWin, endReason)}
-          </p>
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-live="polite"
+      aria-label="Partita terminata"
+      className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-black/80 p-4 backdrop-blur-md"
+    >
+      <div className="my-auto w-full max-w-xl">
+        <div className="flex flex-col items-center gap-5 rounded-3xl border border-white/15 bg-header-bg/95 p-8 text-center text-white shadow-2xl backdrop-blur-md sm:p-10">
+          <span className="grid h-16 w-16 place-items-center rounded-2xl border border-primary/40 bg-primary/15 text-primary shadow-[0_0_24px_rgba(255,115,0,0.3)]">
+            <Flag className="h-8 w-8 text-primary" aria-hidden />
+          </span>
+          <div>
+            <h2 className="font-sans text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
+              Partita terminata
+            </h2>
+            <p className="mt-2 text-sm font-semibold text-slate-300 sm:text-base">
+              {endedMessage(opponentLeft, didIWin, endReason)}
+            </p>
+            {resultScore && endReason !== 'disputed' && endReason !== 'timeout' && (
+              <p className="mt-4 font-display text-4xl font-black tracking-tight text-white sm:text-5xl">
+                {resultScore}
+              </p>
+            )}
+          </div>
+          <Link
+            href="/tornei"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-7 text-xs font-black uppercase tracking-wider text-white shadow-md transition hover:brightness-110 active:scale-95"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Torna in lobby
+          </Link>
         </div>
-        <Link
-          href="/tornei"
-          className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-7 text-xs font-black uppercase tracking-wider text-white shadow-md transition hover:brightness-110 active:scale-95"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Torna in lobby
-        </Link>
+        {children}
       </div>
     </section>
   );

@@ -1,15 +1,18 @@
 'use client';
 
-import { Trophy, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, Trophy, X } from 'lucide-react';
 import { getAvatarForPlayer, type ProfileAvatar } from '@/lib/avatars';
 import { cn } from '@/lib/utils';
+import type { BestOf } from '@/types/tournament';
 
 export interface MatchDeclareModalProps {
   open: boolean;
   localName: string;
   opponentName: string;
+  bestOf: BestOf;
   busy?: boolean;
-  onDeclare: (iWon: boolean) => void;
+  onDeclare: (iWon: boolean, loserScore: number) => void;
   onClose: () => void;
 }
 
@@ -20,12 +23,21 @@ export function MatchDeclareModal({
   open,
   localName,
   opponentName,
+  bestOf,
   busy = false,
   onDeclare,
   onClose,
 }: MatchDeclareModalProps) {
+  const [iWon, setIWon] = useState<boolean | null>(null);
+  const [loserScore, setLoserScore] = useState<number | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    setIWon(null);
+    setLoserScore(null);
+  }, [open]);
   if (!open) return null;
 
+  const winsNeeded = bestOf === 'BO5' ? 3 : bestOf === 'BO1' ? 1 : 2;
   const myAvatar = getAvatarForPlayer(localName, true);
   const oppAvatar = getAvatarForPlayer(opponentName, false);
 
@@ -63,7 +75,7 @@ export function MatchDeclareModal({
           Chi ha vinto?
         </h2>
         <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-white/70">
-          Seleziona il vincitore del match. Anche <strong className="text-white font-bold">{opponentName}</strong> dovrà confermare lo stesso risultato.
+          Indica vincitore e punteggio. Anche <strong className="font-bold text-white">{opponentName}</strong> dovrà confermare lo stesso risultato.
         </p>
 
         {/* 2 Card Giocatori Liquid Glass Arancione */}
@@ -74,8 +86,9 @@ export function MatchDeclareModal({
             subtitle={`(${localName})`}
             badge="Vittoria mia"
             avatar={myAvatar}
+            selected={iWon === true}
             disabled={busy}
-            onSelect={() => onDeclare(true)}
+            onSelect={() => setIWon(true)}
           />
 
           <PlayerWinnerCard
@@ -83,13 +96,48 @@ export function MatchDeclareModal({
             title={opponentName}
             badge="Vittoria avversario"
             avatar={oppAvatar}
+            selected={iWon === false}
             disabled={busy}
-            onSelect={() => onDeclare(false)}
+            onSelect={() => setIWon(false)}
           />
         </div>
 
-        {/* Tasto Annulla */}
         <div className="mt-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+            Risultato {bestOf}
+          </p>
+          <div className="mt-2 flex justify-center gap-2">
+            {Array.from({ length: winsNeeded }, (_, score) => (
+              <button
+                key={score}
+                type="button"
+                disabled={busy || iWon === null}
+                aria-pressed={loserScore === score}
+                onClick={() => setLoserScore(score)}
+                className={cn(
+                  'h-10 min-w-20 rounded-xl border px-4 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-35',
+                  loserScore === score
+                    ? 'border-primary bg-primary text-white shadow-[0_0_20px_rgba(255,115,0,0.35)]'
+                    : 'border-white/15 bg-white/[0.06] text-white/70 hover:border-primary/50 hover:text-white',
+                )}
+              >
+                {winsNeeded} – {score}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={busy || iWon === null || loserScore === null}
+          onClick={() => iWon !== null && loserScore !== null && onDeclare(iWon, loserScore)}
+          className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-600 text-xs font-black uppercase tracking-wider text-white shadow-md transition hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
+        >
+          <Check className="h-4 w-4" aria-hidden />
+          Proponi risultato
+        </button>
+
+        <div className="mt-3">
           <button
             type="button"
             onClick={onClose}
@@ -109,6 +157,7 @@ interface PlayerWinnerCardProps {
   subtitle?: string;
   badge: string;
   avatar: ProfileAvatar;
+  selected: boolean;
   disabled?: boolean;
   onSelect: () => void;
 }
@@ -119,6 +168,7 @@ function PlayerWinnerCard({
   subtitle,
   badge,
   avatar,
+  selected,
   disabled,
   onSelect,
 }: PlayerWinnerCardProps) {
@@ -131,7 +181,9 @@ function PlayerWinnerCard({
       onClick={onSelect}
       className={cn(
         'group relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left backdrop-blur-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50',
-        'border-white/15 bg-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.25)]',
+        selected
+          ? 'border-primary/70 bg-primary/[0.16] shadow-[0_0_25px_rgba(255,115,0,0.25)]'
+          : 'border-white/15 bg-white/[0.05] shadow-[0_4px_20px_rgba(0,0,0,0.25)]',
         'hover:border-primary/60 hover:bg-gradient-to-r hover:from-primary/[0.18] hover:via-amber-500/[0.08] hover:to-white/[0.05] hover:shadow-[0_0_25px_rgba(255,115,0,0.3)] hover:-translate-y-0.5',
       )}
     >

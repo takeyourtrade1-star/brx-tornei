@@ -84,11 +84,19 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
   const graceRemaining = useGraceCountdown(tournament.graceDeadline);
   const modeName = getMode(tournament.mode)?.name ?? tournament.mode;
   const formatName = getFormat(tournament.format)?.name ?? tournament.format;
+  const winnerId = tournament.winnerUserId;
+  const loserId = winnerId ? players.find((player) => player.id !== winnerId)?.id : undefined;
+  const winnerScore = winnerId ? tournament.scoreByPlayerId?.[winnerId] : undefined;
+  const loserScore = loserId ? tournament.scoreByPlayerId?.[loserId] : undefined;
+  const resultScore = winnerScore !== undefined && loserScore !== undefined
+    ? `${winnerScore} – ${loserScore}`
+    : undefined;
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-content-2xl flex-1 flex-col overflow-y-auto px-4 py-3 sm:px-6">
       <MatchLiveHeader
-        players={players} modeName={modeName} bestOfLabel="Best of 3"
+        players={players} modeName={modeName}
+        bestOfLabel={`Best of ${tournament.bestOf.slice(2)}`} bestOf={tournament.bestOf}
         status={tournament.status} isPlayer={isPlayer} leaving={leave.leaving}
         peerState={peerState} peerError={peerError} peerTransport={peerTransport}
         peerQuality={peerQuality} localName={local.username} opponentName={remote.username}
@@ -137,7 +145,11 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
           awaitingMe={resultReselectionRequired && !resultClaimPending ? true : !iClaimedResult}
           reselection={resultReselectionRequired} remaining={resultCountdown}
           reconnecting={reconnectGraceActive} busy={declareResult.declaring}
-          localName={local.username} opponentName={remote.username} onDeclare={declareResult.declare}
+          localName={local.username} opponentName={remote.username}
+          localId={local.id} opponentId={remote.id} bestOf={tournament.bestOf}
+          claimedWinnerId={tournament.resultClaimedWinner}
+          scoreByPlayerId={tournament.scoreByPlayerId} error={declareResult.error}
+          onDeclare={declareResult.declare}
         />
       )}
       {exit.opponentDeclined ? (
@@ -149,15 +161,17 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
             opponentLeft={isPlayer && peerState === 'peer-left'}
             didIWin={didIWin}
             endReason={tournament.endReason}
-          />
-          {isPlayer && (
-            <MatchEndFeedback
-              matchId={tournament.matchId ?? null}
-              endReason={tournament.endReason}
-              didIWin={didIWin}
-              opponentName={remote.username}
-            />
-          )}
+            resultScore={resultScore}
+          >
+            {isPlayer && (
+              <MatchEndFeedback
+                matchId={tournament.matchId ?? null}
+                endReason={tournament.endReason}
+                didIWin={didIWin}
+                opponentName={remote.username}
+              />
+            )}
+          </MatchEndedPanel>
         </>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-3">

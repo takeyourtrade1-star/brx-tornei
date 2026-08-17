@@ -18,8 +18,7 @@ interface MatchEndFeedbackProps {
  * - fine per abbandono/disconnessione → rapporto di battaglia (due
  *   domande rapide: esito + connessione);
  * - fine regolare → titolo (badge) da consegnare all'avversario.
- * Chi ha abbandonato viene già reindirizzato in lobby: il rapporto
- * compare solo a chi è rimasto al tavolo.
+ * Il rapporto compare solo a chi è rimasto al tavolo.
  */
 export function MatchEndFeedback({ matchId, endReason, didIWin, opponentName }: MatchEndFeedbackProps) {
   if (endReason === 'leave' && didIWin === true) {

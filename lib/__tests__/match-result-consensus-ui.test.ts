@@ -30,8 +30,38 @@ describe('match result consensus UI contract', () => {
     expect(notices).toContain('il risultato è bloccato');
     expect(notices).toContain('La partita resta aperta');
     expect(resultPending).toContain('Risposta sospesa durante la riconnessione');
+    expect(resultPending).toContain('role="dialog"');
+    expect(resultPending).toContain('aria-modal="true"');
+    expect(notices).toContain('aria-label="Partita terminata"');
     expect(notices).not.toContain('persa a tavolino');
     expect(notices).not.toContain('vincerai la partita a tavolino');
+  });
+
+  it('shows explicit surrender, BO score choices, modal outcomes and scroll blur', () => {
+    const surrender = readFileSync(
+      new URL('../../components/feature/tornei/match/match-surrender-modal.tsx', import.meta.url),
+      'utf8',
+    );
+    const declare = readFileSync(
+      new URL('../../components/feature/tornei/match/match-declare-modal.tsx', import.meta.url),
+      'utf8',
+    );
+    const header = readFileSync(
+      new URL('../../components/feature/tornei/match/match-live-header.tsx', import.meta.url),
+      'utf8',
+    );
+    const accept = readFileSync(
+      new URL('../../components/feature/tornei/lobby/accept-match-modal.tsx', import.meta.url),
+      'utf8',
+    );
+
+    expect(surrender).toContain('Arrendendoti perdi');
+    expect(surrender).toContain('Conferma resa e sconfitta');
+    expect(declare).toContain('Proponi risultato');
+    expect(declare).toContain('{winsNeeded} – {score}');
+    expect(header).toContain('sticky top-0');
+    expect(header).toContain('backdrop-blur-2xl');
+    expect(accept).toContain('Le partite troppo brevi o incomplete non vengono conteggiate.');
   });
 });
 

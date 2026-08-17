@@ -192,12 +192,17 @@ export function AcceptMatchModal({
               </p>
             )}
 
+            <p className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] px-3 py-2 text-left text-[10px] font-semibold leading-relaxed text-amber-100/75">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden />
+              Le partite troppo brevi o incomplete non vengono conteggiate.
+            </p>
+
             <button
               type="button"
               disabled={busy || myReady}
               onClick={onAccept}
               className={cn(
-                'mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl text-base font-black uppercase tracking-[0.14em] text-white transition active:scale-[0.98]',
+                'mt-4 inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl text-base font-black uppercase tracking-[0.14em] text-white transition active:scale-[0.98]',
                 myReady
                   ? 'cursor-default border border-white/10 bg-white/[0.06] text-white/50'
                   : 'ready-pulse bg-gradient-to-b from-primary to-orange-600 shadow-[0_18px_40px_-14px_rgba(255,115,0,0.85)] ring-1 ring-white/20 hover:brightness-110 disabled:opacity-60',
