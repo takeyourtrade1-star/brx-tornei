@@ -1453,5 +1453,41 @@
   .pt-smug-tilt,
   .pt-smug-glint,
   .pt-conn-top,
-  .pt-stamp-in { animation: none; }
+  .pt-stamp-in,
+  .rank-fire-star,
+  .rank-fire-ring { animation: none; }
 }
+
+/* Effetto ON FIRE per Rank Badge (3+ Win Streak) */
+@keyframes rank-flame-flicker {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px #ff4500) drop-shadow(0 0 8px #ff7300);
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 6px #ff2200) drop-shadow(0 0 14px #ffaa00);
+    transform: scale(1.12);
+  }
+}
+
+@keyframes rank-fire-ring-pulse {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(255, 69, 0, 0.5), inset 0 0 8px rgba(255, 140, 0, 0.4);
+    border-color: rgba(255, 115, 0, 0.85);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(255, 34, 0, 0.85), inset 0 0 14px rgba(255, 200, 0, 0.6);
+    border-color: rgba(255, 215, 0, 1);
+  }
+}
+
+.rank-fire-star {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rank-flame-flicker 1.4s ease-in-out infinite;
+}
+
+.rank-fire-ring {
+  animation: rank-fire-ring-pulse 1.8s ease-in-out infinite;
+}
+

@@ -1,77 +1,140 @@
+import type { ReputationSummary } from '@/lib/data/player-api-client';
+
 /**
- * Gestione dei gradi (Rank) e delle stelle di reputazione per i tornei.
- * Si parte da 1★ (Recluta) e si guadagna +1★ ogni 5 vittorie, fino al grado massimo.
+ * Gestione dei gradi (Rank), leghe e stelle di reputazione per i tornei.
+ * Le stelline riflettono le vittorie giornaliere (reset ogni 24h).
+ * Con 3+ vittorie consecutive si attiva la modalità "ON FIRE" 🔥.
  */
 
 export const MAX_RANK_STARS = 5;
 
-/** Calcola il numero di stelle di grado in base alle vittorie complessive (1..5). */
-export function rankStarsForWins(wins: number, maxStars = MAX_RANK_STARS): number {
-  return Math.min(maxStars, 1 + Math.floor(Math.max(0, wins) / 5));
-}
-
-export type RankTierId = 'rookie' | 'fighter' | 'champion' | 'master' | 'legend';
-
-export interface RankTierInfo {
-  id: RankTierId;
-  name: string;
-  minWins: number;
+export interface LeagueTier {
   stars: number;
-  ringBorderColor: string;
-  ringGlowColor: string;
+  name: string;
+  badgeColor: string;
+  borderColor: string;
+  glowColor: string;
+  description: string;
 }
 
-/** Informazioni di tiering per styling e presentazioni grafiche. */
-export function getRankTierInfo(wins: number): RankTierInfo {
-  const safeWins = Math.max(0, wins);
-  const stars = rankStarsForWins(safeWins);
+export const LEAGUES: LeagueTier[] = [
+  {
+    stars: 1,
+    name: 'Bronzo',
+    badgeColor: 'text-amber-600',
+    borderColor: 'border-amber-700/60',
+    glowColor: 'shadow-[0_0_12px_rgba(180,83,9,0.3)]',
+    description: 'Grado base: inizia a duellare e conquista la prima vittoria.',
+  },
+  {
+    stars: 2,
+    name: 'Argento',
+    badgeColor: 'text-slate-300',
+    borderColor: 'border-slate-300/80',
+    glowColor: 'shadow-[0_0_14px_rgba(203,213,225,0.4)]',
+    description: 'Combattente: 1 vittoria giornaliera conquistata.',
+  },
+  {
+    stars: 3,
+    name: 'Oro',
+    badgeColor: 'text-amber-300',
+    borderColor: 'border-amber-400',
+    glowColor: 'shadow-[0_0_18px_rgba(245,158,11,0.45)]',
+    description: 'Campione: 2 vittorie giornaliere.',
+  },
+  {
+    stars: 4,
+    name: 'Platino',
+    badgeColor: 'text-cyan-300',
+    borderColor: 'border-cyan-400',
+    glowColor: 'shadow-[0_0_20px_rgba(34,211,238,0.5)]',
+    description: 'Maestro: 3 vittorie giornaliere. Streak elevata.',
+  },
+  {
+    stars: 5,
+    name: 'Diamante',
+    badgeColor: 'text-violet-300',
+    borderColor: 'border-violet-400',
+    glowColor: 'shadow-[0_0_24px_rgba(168,85,247,0.6)]',
+    description: 'Leggenda: 4+ vittorie giornaliere. Vertice della classifica.',
+  },
+];
 
-  if (safeWins >= 50) {
-    return {
-      id: 'legend',
-      name: 'Leggenda',
-      minWins: 50,
-      stars,
-      ringBorderColor: 'border-amber-400',
-      ringGlowColor: 'shadow-[0_0_24px_rgba(251,191,36,0.55)]',
-    };
+/** Calcola le vittorie nelle ultime 24 ore dal registro partite. */
+export function calculateDailyWins(reputation?: ReputationSummary | null): number {
+  if (!reputation) return 0;
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const matches = reputation.history?.length ? reputation.history : reputation.recent;
+
+  if (!matches || matches.length === 0) {
+    return Math.min(reputation.wins, 5);
   }
-  if (safeWins >= 25) {
-    return {
-      id: 'master',
-      name: 'Maestro',
-      minWins: 25,
-      stars,
-      ringBorderColor: 'border-amber-400/90',
-      ringGlowColor: 'shadow-[0_0_20px_rgba(245,158,11,0.45)]',
-    };
+
+  const dailyCount = matches.filter((m) => {
+    if (m.outcome !== 'win') return false;
+    if (!m.createdAt) return true;
+    const matchTime = new Date(m.createdAt).getTime();
+    return !isNaN(matchTime) && now - matchTime < oneDayMs;
+  }).length;
+
+  return dailyCount;
+}
+
+/** Calcola la serie di vittorie consecutive attuale (Win Streak). */
+export function calculateWinStreak(reputation?: ReputationSummary | null): number {
+  if (!reputation) return 0;
+  const matches = reputation.recent ?? [];
+  if (!matches.length) return 0;
+
+  let streak = 0;
+  for (const match of matches) {
+    if (match.outcome === 'win') {
+      streak++;
+    } else {
+      break;
+    }
   }
-  if (safeWins >= 10) {
-    return {
-      id: 'champion',
-      name: 'Campione',
-      minWins: 10,
-      stars,
-      ringBorderColor: 'border-amber-400/80',
-      ringGlowColor: 'shadow-[0_0_18px_rgba(245,158,11,0.35)]',
-    };
+  return streak;
+}
+
+/** Calcola il numero di stelle (1..5) in base alle vittorie giornaliere. */
+export function rankStarsForWins(dailyWins: number, maxStars = MAX_RANK_STARS): number {
+  return Math.max(1, Math.min(maxStars, 1 + Math.max(0, dailyWins)));
+}
+
+/** Informazioni sulla Lega di appartenenza per stelle attuali. */
+export function getLeagueByStars(stars: number): LeagueTier {
+  const safeStars = Math.max(1, Math.min(stars, MAX_RANK_STARS));
+  return LEAGUES[safeStars - 1] ?? LEAGUES[0];
+}
+
+/** Calcola i punti di un poligono a stella a 5 punte con precisione SVG. */
+export function getStarPoints(
+  cx: number,
+  cy: number,
+  rOuter: number,
+  rInner: number,
+  rotationDeg: number = 0,
+): string {
+  const points: string[] = [];
+  const rotRad = (rotationDeg - 90) * (Math.PI / 180);
+  for (let i = 0; i < 10; i++) {
+    const angle = rotRad + (i * Math.PI) / 5;
+    const r = i % 2 === 0 ? rOuter : rInner;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
   }
-  if (safeWins >= 5) {
-    return {
-      id: 'fighter',
-      name: 'Combattente',
-      minWins: 5,
-      stars,
-      ringBorderColor: 'border-amber-400/70',
-      ringGlowColor: 'shadow-[0_0_16px_rgba(245,158,11,0.3)]',
-    };
-  }
-  return {
-    id: 'rookie',
-    name: 'Recluta',
-    minWins: 0,
-    stars,
-    ringBorderColor: 'border-amber-400/60',
-    ringGlowColor: 'shadow-[0_0_14px_rgba(245,158,11,0.25)]',
-  };
+  return points.join(' ');
+}
+
+/** Calcola gli angoli delle stelle lungo l'arco destro (-14°..45°). */
+export function getStarAngles(count: number): number[] {
+  const safeCount = Math.max(1, Math.min(count, MAX_RANK_STARS));
+  if (safeCount === 1) return [24];
+  if (safeCount === 2) return [12, 36];
+  if (safeCount === 3) return [2, 23, 44];
+  if (safeCount === 4) return [-8, 9, 26, 44];
+  return [-14, 0, 15, 30, 45];
 }

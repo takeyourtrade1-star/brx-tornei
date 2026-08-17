@@ -10,6 +10,7 @@ import { ProfileRankBadge } from '@/components/feature/profile/profile-rank-badg
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { getSavedAvatarId } from '@/lib/avatars';
+import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import { cn } from '@/lib/utils';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { SessionUser } from '@/types/auth';
@@ -90,6 +91,9 @@ export function DashboardHeader({
     return () => window.removeEventListener('ebartex-reputation-updated', handleReputationUpdate);
   }, []);
 
+  const dailyWins = calculateDailyWins(currentReputation);
+  const winStreak = calculateWinStreak(currentReputation);
+
   return (
     <header className="sticky top-0 z-40 w-full font-sans text-white">
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-2 sm:flex-nowrap sm:gap-3 sm:px-6">
@@ -135,7 +139,9 @@ export function DashboardHeader({
             <ProfileRankBadge
               avatarId={avatarId}
               gamertag={shownName}
-              wins={currentReputation?.wins ?? 0}
+              wins={dailyWins}
+              winStreak={winStreak}
+              onFire={winStreak >= 3}
               onClick={() => setProfileOpen(true)}
             />
           </div>

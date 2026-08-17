@@ -2,22 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { ChevronDown, Sparkles, X } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { evaluateAchievements } from '@/lib/data/achievements';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
-import { GAME_AVATARS, getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
+import { GAME_AVATARS, getAvatarById, getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
+import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import { cn } from '@/lib/utils';
 import { AchievementCard, AchievementSummary } from './achievement-card';
 import { ProfileRankBadge } from './profile-rank-badge';
+import { RankLeagueInfo } from './rank-league-info';
 
 interface ProfileDrawerProps {
   open: boolean;
   onClose: () => void;
   gamertag: string;
-  /** Reputazione già nota: evita una fetch se ce l'hai in pagina. */
   initialReputation?: ReputationSummary | null;
 }
 
@@ -27,55 +28,32 @@ type FetchState =
   | { status: 'success'; reputation: ReputationSummary }
   | { status: 'error'; message: string };
 
-/**
- * Drawer laterale con profilo + selettore avatar 10 icone + badge achievement.
- * Lazy: se `initialReputation` è null o assente fetcha via server action alla
- * prima apertura.
- */
+/** Drawer laterale con sezioni avatar/badge comprimibili, box leghe e rank badge. */
 export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: ProfileDrawerProps) {
   const [state, setState] = useState<FetchState>(() =>
     initialReputation ? { status: 'success', reputation: initialReputation } : { status: 'idle' },
   );
   const [selectedAvatarId, setSelectedAvatarId] = useState(() => getSavedAvatarId());
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [badgesOpen, setBadgesOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const activeAvatar = getAvatarById(selectedAvatarId);
+  const SelectedIcon = activeAvatar.icon;
+  const handleSelectAvatar = (id: string) => { setSelectedAvatarId(id); saveAvatarId(id); };
 
-  const handleSelectAvatar = (id: string) => {
-    setSelectedAvatarId(id);
-    saveAvatarId(id);
-  };
-
-  // Portal su document.body: l'header del padre ha backdrop-blur (crea un
-  // containing block) che farebbe "agganciare" il drawer all'header invece
-  // che al viewport. Con il portal il fixed lavora sempre sul viewport.
   useEffect(() => setMounted(true), []);
 
-  // Focus trap minimale + chiusura su Esc.
   useEffect(() => {
     if (!open) return;
     previouslyFocused.current = document.activeElement as HTMLElement;
     const t = window.setTimeout(() => closeRef.current?.focus(), 20);
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (rulesOpen) return;
       if (event.key === 'Escape') return void onClose();
-      if (event.key !== 'Tab') return;
-      const panel = panelRef.current;
-      if (!panel) return;
-      const focusable = panel.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
     };
     document.addEventListener('keydown', onKeyDown);
     document.body.style.overflow = 'hidden';
@@ -101,20 +79,15 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
     return () => { cancelled = true; };
   }, [open, state.status]);
 
-  const achievements = useMemo(
-    () => (state.status === 'success' ? evaluateAchievements(state.reputation) : []),
-    [state],
-  );
+  const rep = state.status === 'success' ? state.reputation : null;
+  const dailyWins = calculateDailyWins(rep);
+  const winStreak = calculateWinStreak(rep);
+  const achievements = useMemo(() => (rep ? evaluateAchievements(rep) : []), [rep]);
 
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div
-      role="presentation"
-      className="fixed inset-0 z-[900]"
-      onClick={onClose}
-      aria-hidden="false"
-    >
+    <div role="presentation" className="fixed inset-0 z-[900]" onClick={onClose}>
       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
       <aside
         ref={panelRef}
@@ -130,7 +103,9 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
             <ProfileRankBadge
               avatarId={selectedAvatarId}
               gamertag={gamertag}
-              wins={state.status === 'success' ? state.reputation.wins : 0}
+              wins={dailyWins}
+              winStreak={winStreak}
+              onFire={winStreak >= 3}
               interactive={false}
               hidePill
             />
@@ -143,8 +118,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
               </h2>
               {state.status === 'success' && (
                 <p className="mt-0.5 text-xs font-semibold text-slate-500">
-                  {state.reputation.played} partite · {state.reputation.wins} vinte ·{' '}
-                  {state.reputation.losses} perse
+                  {state.reputation.played} partite · {state.reputation.wins} vinte · {state.reputation.losses} perse
                 </p>
               )}
             </div>
@@ -162,80 +136,105 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
 
         {/* Contenuto */}
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          {/* Sezione Selezione Avatar */}
-          <section className="mb-6 rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Avatar di gioco
-              </h3>
-              <span className="text-[10px] font-bold text-slate-400">10 disponibili</span>
-            </div>
-            <div className="grid grid-cols-5 gap-2">
-              {GAME_AVATARS.map((avatar) => {
-                const Icon = avatar.icon;
-                const isSelected = avatar.id === selectedAvatarId;
-                return (
-                  <button
-                    key={avatar.id}
-                    type="button"
-                    onClick={() => handleSelectAvatar(avatar.id)}
-                    title={avatar.name}
-                    aria-label={`Seleziona avatar ${avatar.name}`}
-                    className={cn(
-                      'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all',
-                      isSelected
-                        ? 'border-primary bg-white shadow-md ring-2 ring-primary/40 scale-105'
-                        : 'border-slate-200 bg-white/70 hover:border-slate-300 hover:bg-white',
-                    )}
-                  >
-                    <Icon className={cn('h-5 w-5 transition-transform group-hover:scale-110', avatar.color)} />
-                  </button>
-                );
-              })}
-            </div>
+          {/* Sezione Avatar Collassabile */}
+          <section className="mb-4 rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-3.5 transition-all">
+            <button
+              type="button"
+              onClick={() => setAvatarOpen((prev) => !prev)}
+              aria-expanded={avatarOpen}
+              className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-white shadow-sm ring-1 ring-slate-900/[0.08]">
+                  <SelectedIcon className={cn('h-4 w-4', activeAvatar.color)} />
+                </span>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    Avatar di gioco
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400">
+                    Selezionato: <span className="text-slate-600">{activeAvatar.name}</span>
+                  </p>
+                </div>
+              </div>
+              <ChevronDown className={cn('h-4 w-4 text-slate-400 transition-transform duration-200', avatarOpen && 'rotate-180')} />
+            </button>
+
+            {avatarOpen && (
+              <div className="mt-3.5 grid grid-cols-5 gap-2 border-t border-slate-900/[0.06] pt-3 animate-in fade-in-50 duration-200">
+                {GAME_AVATARS.map((avatar) => {
+                  const Icon = avatar.icon;
+                  const isSelected = avatar.id === selectedAvatarId;
+                  return (
+                    <button
+                      key={avatar.id}
+                      type="button"
+                      onClick={() => handleSelectAvatar(avatar.id)}
+                      title={avatar.name}
+                      aria-label={`Seleziona avatar ${avatar.name}`}
+                      className={cn(
+                        'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all',
+                        isSelected ? 'border-primary bg-white shadow-md ring-2 ring-primary/40 scale-105' : 'border-slate-200 bg-white/70 hover:border-slate-300 hover:bg-white',
+                      )}
+                    >
+                      <Icon className={cn('h-5 w-5 transition-transform group-hover:scale-110', avatar.color)} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
-          {state.status === 'loading' && (
-            <p className="rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-6 text-center text-sm font-semibold text-slate-500">
-              Caricamento dei tuoi badge…
-            </p>
-          )}
+          {/* Sezione Badge Collassabile */}
+          <section className="mb-4 rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-3.5 transition-all">
+            <button
+              type="button"
+              onClick={() => setBadgesOpen((prev) => !prev)}
+              aria-expanded={badgesOpen}
+              className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-white shadow-sm ring-1 ring-slate-900/[0.08]">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                </span>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    Badge & Obiettivi
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400">
+                    {achievements.filter((a) => a.unlockedNow).length} di {achievements.length} sbloccati
+                  </p>
+                </div>
+              </div>
+              <ChevronDown className={cn('h-4 w-4 text-slate-400 transition-transform duration-200', badgesOpen && 'rotate-180')} />
+            </button>
 
-          {state.status === 'error' && (
-            <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              {state.message}
-            </p>
-          )}
+            {badgesOpen && (
+              <div className="mt-3.5 space-y-4 border-t border-slate-900/[0.06] pt-3 animate-in fade-in-50 duration-200">
+                <AchievementSummary achievements={achievements} />
+                <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {achievements.map((a) => (
+                    <AchievementCard key={a.id} achievement={a} />
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
 
-          {state.status === 'success' && (
-            <>
-              <AchievementSummary achievements={achievements} />
-              <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {achievements.map((a) => (
-                  <AchievementCard key={a.id} achievement={a} />
-                ))}
-              </ul>
-              <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-400">
-                I badge si sbloccano giocando: ogni partita conclusa aggiorna lo stato. Nessuno è
-                segreto — accumula vittorie e buon comportamento.
-              </p>
-            </>
-          )}
+          {/* Box Info: Spiegazione Leghe, Reset 24h & Fuoco */}
+          <RankLeagueInfo />
 
           <button
             type="button"
             onClick={() => setRulesOpen(true)}
-            className="mt-6 w-full rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-3 text-center text-xs font-semibold text-slate-600 transition hover:border-slate-900/15 hover:text-header-bg"
+            className="mt-5 w-full rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-3 text-center text-xs font-semibold text-slate-600 transition hover:border-slate-900/15 hover:text-header-bg"
           >
             Regolamento e informativa privacy dei tornei
           </button>
           <TournamentRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
 
-          <form action={logoutAction} className="mt-5 pb-2 text-center">
-            <button
-              type="submit"
-              className="text-xs font-bold text-red-600 transition hover:text-red-700 hover:underline"
-            >
+          <form action={logoutAction} className="mt-4 pb-1 text-center">
+            <button type="submit" className="text-xs font-bold text-red-600 transition hover:text-red-700 hover:underline">
               Esci
             </button>
           </form>
