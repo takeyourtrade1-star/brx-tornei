@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 import { ClashingSwordsIcon } from '@/components/feature/tornei/lobby/clashing-swords-icon';
+import { cn } from '@/lib/utils';
 import {
   CrownStatIcon,
   CrystalStatIcon,
@@ -17,10 +18,8 @@ interface StatTile {
   value: string | number;
   Icon: ComponentType<{ className?: string }>;
   iconColor: string;
-  badge: string;
-  gem: string;
-  ring: string;
-  glow: string;
+  accentBar: string;
+  bgGlow: string;
 }
 
 function computeLongestStreak(rows: { outcome: string; createdAt: string }[]): number {
@@ -72,7 +71,7 @@ function formatAvgTime(seconds: number): string {
 }
 
 /**
- * Griglia stats compatta con medaglioni rifiniti e animazioni delicate.
+ * Griglia statistiche con card a sfondo chiaro e icone full-card sfumate in filigrana.
  */
 export function PartiteStatsGrid({
   reputation,
@@ -101,11 +100,9 @@ export function PartiteStatsGrid({
       label: 'Vittorie',
       value: stats.wins,
       Icon: CrownStatIcon,
-      iconColor: 'text-marquee',
-      badge: 'border-marquee/35 bg-marquee/10',
-      gem: 'bg-marquee',
-      ring: 'border-marquee/10',
-      glow: 'rgba(243,199,106,0.12)',
+      iconColor: 'text-amber-500',
+      accentBar: 'bg-amber-500',
+      bgGlow: 'rgba(245,158,11,0.18)',
     },
     {
       id: 'winrate',
@@ -113,76 +110,62 @@ export function PartiteStatsGrid({
       value: `${winRate}%`,
       Icon: CrystalStatIcon,
       iconColor: 'text-primary',
-      badge: 'border-primary/35 bg-primary/10',
-      gem: 'bg-primary',
-      ring: 'border-primary/10',
-      glow: 'rgba(255,115,0,0.12)',
+      accentBar: 'bg-primary',
+      bgGlow: 'rgba(255,115,0,0.18)',
     },
     {
       id: 'streak',
       label: 'Striscia Record',
       value: longestStreak,
       Icon: FlameStatIcon,
-      iconColor: 'text-orange-400',
-      badge: 'border-orange-400/30 bg-orange-400/10',
-      gem: 'bg-orange-400',
-      ring: 'border-orange-400/10',
-      glow: 'rgba(251,146,60,0.12)',
+      iconColor: 'text-orange-500',
+      accentBar: 'bg-orange-500',
+      bgGlow: 'rgba(249,115,22,0.18)',
     },
     {
       id: 'played',
       label: 'Partite Giocate',
       value: stats.played,
       Icon: ClashingSwordsIcon,
-      iconColor: 'text-sky-400',
-      badge: 'border-sky-400/30 bg-sky-400/10',
-      gem: 'bg-sky-400',
-      ring: 'border-sky-400/10',
-      glow: 'rgba(56,189,248,0.10)',
+      iconColor: 'text-sky-500',
+      accentBar: 'bg-sky-500',
+      bgGlow: 'rgba(14,165,233,0.18)',
     },
     {
       id: 'time',
       label: 'Tempo di Gioco',
       value: formatTotalTime(totalSeconds),
       Icon: HourglassStatIcon,
-      iconColor: 'text-cyan-400',
-      badge: 'border-cyan-400/30 bg-cyan-400/10',
-      gem: 'bg-cyan-400',
-      ring: 'border-cyan-400/10',
-      glow: 'rgba(34,211,238,0.10)',
+      iconColor: 'text-cyan-500',
+      accentBar: 'bg-cyan-500',
+      bgGlow: 'rgba(6,182,212,0.18)',
     },
     {
       id: 'avg_time',
       label: 'Durata Media',
       value: formatAvgTime(avgSeconds),
       Icon: WatchStatIcon,
-      iconColor: 'text-indigo-400',
-      badge: 'border-indigo-400/30 bg-indigo-400/10',
-      gem: 'bg-indigo-400',
-      ring: 'border-indigo-400/10',
-      glow: 'rgba(129,140,248,0.10)',
+      iconColor: 'text-indigo-500',
+      accentBar: 'bg-indigo-500',
+      bgGlow: 'rgba(99,102,241,0.18)',
     },
     {
       id: 'losses',
       label: 'Sconfitte',
       value: stats.losses,
       Icon: SkullStatIcon,
-      iconColor: 'text-rose-400',
-      badge: 'border-rose-400/30 bg-rose-400/10',
-      gem: 'bg-rose-400',
-      ring: 'border-rose-400/10',
-      glow: 'rgba(251,113,133,0.10)',
+      iconColor: 'text-rose-500',
+      accentBar: 'bg-rose-500',
+      bgGlow: 'rgba(244,63,94,0.18)',
     },
     {
       id: 'fairplay',
       label: 'Fair Play',
       value: `${fairPlayRate}%`,
       Icon: ShieldStatIcon,
-      iconColor: 'text-teal-400',
-      badge: 'border-teal-400/30 bg-teal-400/10',
-      gem: 'bg-teal-400',
-      ring: 'border-teal-400/10',
-      glow: 'rgba(45,212,191,0.10)',
+      iconColor: 'text-teal-500',
+      accentBar: 'bg-teal-500',
+      bgGlow: 'rgba(20,184,166,0.18)',
     },
   ];
 
@@ -198,34 +181,36 @@ export function PartiteStatsGrid({
 function StatBadgeCard({ tile }: { tile: StatTile }) {
   const Icon = tile.Icon;
   return (
-    <div className="group relative flex min-h-[108px] flex-col items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-slate-950/70 p-3 text-center shadow-lg shadow-black/40 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-slate-900/80 sm:min-h-[116px]">
+    <div className="group relative flex min-h-[96px] sm:min-h-[104px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
+      {/* Sfumatura di sfondo morbida a gradiente */}
       <span
         aria-hidden
-        className={`pointer-events-none absolute inset-1 rounded-lg border ${tile.ring}`}
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        style={{ background: `radial-gradient(ellipse at top, ${tile.glow}, transparent 70%)` }}
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-0 opacity-40 transition-opacity duration-300 group-hover:opacity-75"
+        style={{ background: `radial-gradient(circle at 85% 85%, ${tile.bgGlow}, transparent 70%)` }}
       />
 
-      <span
-        className={`relative mb-1.5 grid h-9 w-9 rotate-45 place-items-center rounded-lg border bg-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${tile.badge}`}
+      {/* Icona Full-Card a sfondo filigrana sfumata verso l'esterno */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-3 -right-3 h-20 w-20 sm:h-24 sm:w-24 opacity-[0.16] transition-all duration-300 group-hover:scale-110 group-hover:opacity-28 [mask-image:radial-gradient(circle_at_center,black_45%,transparent_85%)]"
       >
-        <Icon className={`h-5 w-5 -rotate-45 ${tile.iconColor}`} />
-      </span>
+        <Icon className={cn('h-full w-full', tile.iconColor)} />
+      </div>
 
-      <span className="relative font-display text-xl font-black tabular-nums tracking-tight text-white sm:text-2xl">
-        {tile.value}
-      </span>
+      {/* Intestazione tile: accento e label */}
+      <div className="relative flex items-center justify-between gap-2">
+        <span className={cn('h-1.5 w-6 rounded-full', tile.accentBar)} />
+        <span className={cn('text-[9px] sm:text-[10px] font-black uppercase tracking-wider', tile.iconColor)}>
+          {tile.label}
+        </span>
+      </div>
 
-      <span className="relative mt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400 transition-colors duration-200 group-hover:text-slate-300">
-        {tile.label}
-      </span>
+      {/* Valore numerico in primo piano */}
+      <div className="relative mt-2">
+        <span className="font-display text-2xl font-black tabular-nums tracking-tight text-slate-900 sm:text-3xl">
+          {tile.value}
+        </span>
+      </div>
     </div>
   );
 }
