@@ -33,7 +33,6 @@ export function MatchErrorNotice({
     </div>
   );
 }
-
 const ABANDONMENT_REASONS = new Set(['leave']);
 
 function endedMessage(
@@ -64,7 +63,6 @@ function endedMessage(
     ? 'L’avversario ha abbandonato il tavolo.'
     : 'Il match si è concluso o l’avversario ha abbandonato.';
 }
-
 /**
  * Schermata di fine partita: sostituisce webcam e chat, impossibile non
  * accorgersene.
@@ -187,77 +185,5 @@ export function MatchConnectionNotice({
         <RefreshCw className="h-3.5 w-3.5" /> Riprova
       </button>
     </div>
-  );
-}
-
-/**
- * Avviso non bloccante durante una proposta di risultato.
- */
-export function MatchResultPendingPanel({
-  awaitingMe,
-  reselection,
-  remaining,
-  reconnecting,
-  busy,
-  localName,
-  opponentName,
-  onDeclare,
-}: {
-  awaitingMe: boolean;
-  reselection: boolean;
-  remaining: number | null;
-  reconnecting: boolean;
-  busy: boolean;
-  localName: string;
-  opponentName: string;
-  onDeclare: (iWon: boolean) => void;
-}) {
-  const countdown = remaining !== null ? ` (${remaining}s)` : '';
-  return (
-    <section
-      aria-live="polite"
-      className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/35 bg-header-bg/95 p-4 text-white shadow-xl backdrop-blur-md"
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-primary/30 bg-primary/15 text-primary">
-          <Flag className="h-5 w-5 text-primary" aria-hidden />
-        </span>
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Dichiarazione Esito</p>
-          <h2 className="font-sans text-base font-black text-white">
-            {reselection ? 'Scegliete di nuovo' : 'Risultato proposto'}
-          </h2>
-          <p className="mt-0.5 text-xs font-semibold text-slate-300">
-            {reconnecting
-              ? 'Risposta sospesa durante la riconnessione. Avrai nuovamente tutto il tempo quando il collegamento torna.'
-              : reselection && awaitingMe
-              ? 'Le prime scelte erano diverse. Indicate entrambi il vincitore una seconda volta.'
-              : awaitingMe
-              ? `Indica il vincitore entro${countdown}. Se le dichiarazioni non coincidono, la partita resta aperta.`
-              : `In attesa della scelta di ${opponentName}${countdown}. Alla scadenza la proposta viene annullata.`}
-          </p>
-        </div>
-      </div>
-      {awaitingMe && !reconnecting && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onDeclare(true)}
-            className="inline-flex h-[38px] items-center rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black uppercase tracking-wider text-white shadow-sm transition hover:brightness-110 active:scale-95 disabled:opacity-50"
-          >
-            Ha vinto {localName}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onDeclare(false)}
-            className="inline-flex h-[38px] items-center rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-black uppercase tracking-wider text-white transition hover:bg-white/15 active:scale-95 disabled:opacity-50"
-          >
-            Ha vinto {opponentName}
-          </button>
-        </div>
-      )}
-    </section>
   );
 }

@@ -6,6 +6,8 @@ import type { StickerShot } from '@/hooks/use-match-sticker-shot';
 import { cn } from '@/lib/utils';
 import { MatchDeckChip } from './match-deck-chip';
 import { MatchLifeBadge } from './match-life-badge';
+import { MatchWebcamDisconnectOverlay } from './match-live-parts';
+import { MatchStickerIcon } from './match-sticker-icons';
 import { WebcamTile } from './webcam-tile';
 
 interface MatchVideoGridProps {
@@ -19,11 +21,15 @@ interface MatchVideoGridProps {
   remoteStream?: MediaStream | null;
   feedLabel?: string;
   peerConnecting: boolean;
-  /** Testo del tile avversario quando il video non c'è (es. riconnessione in corso). */
+  peerReconnecting?: boolean;
+  graceRemaining?: number | null;
+  disconnectedIsMe?: boolean;
   remoteEmptyLabel?: string;
   camOn: boolean;
   micOn: boolean;
   opponentMuted?: boolean;
+  mirroredLocal?: boolean;
+  mirroredRemote?: boolean;
   lifeByPlayerId: Record<string, number>;
   startingLife: number;
   lifeConnected: boolean;
@@ -34,60 +40,37 @@ interface MatchVideoGridProps {
   onToggleMic: () => void;
   onToggleCam: () => void;
   onToggleOpponentMute?: () => void;
+  onToggleMirrorLocal?: () => void;
+  onToggleMirrorRemote?: () => void;
   onFullscreen: () => void;
   onLifeChange: (playerId: string, delta: number) => void;
   onLifeReset?: () => void;
+  onRetryPeer?: () => void;
 }
 
 export function MatchVideoGrid({
-  isObserver,
-  isPlayer,
-  started,
-  leftPlayer,
-  rightPlayer,
-  formatName,
-  localStream,
-  remoteStream,
-  feedLabel,
-  peerConnecting,
-  remoteEmptyLabel,
-  camOn,
-  micOn,
-  opponentMuted = false,
-  lifeByPlayerId,
-  startingLife,
-  lifeConnected,
-  stickerShot,
-  participantNames,
-  userId,
-  me,
-  onToggleMic,
-  onToggleCam,
-  onToggleOpponentMute,
-  onFullscreen,
-  onLifeChange,
-  onLifeReset,
+  isObserver, isPlayer, started, leftPlayer, rightPlayer, formatName,
+  localStream, remoteStream, feedLabel, peerConnecting, peerReconnecting = false,
+  graceRemaining = null, disconnectedIsMe = false, remoteEmptyLabel,
+  camOn, micOn, opponentMuted = false, mirroredLocal = false,
+  mirroredRemote = false, lifeByPlayerId, startingLife, lifeConnected,
+  stickerShot, participantNames, userId, me, onToggleMic, onToggleCam,
+  onToggleOpponentMute, onToggleMirrorLocal, onToggleMirrorRemote,
+  onFullscreen, onLifeChange, onLifeReset, onRetryPeer,
 }: MatchVideoGridProps) {
   return (
     <div className="relative min-w-0">
       {stickerShot && (
         <div key={stickerShot.key} className="pointer-events-none absolute inset-0 z-30 grid place-items-center" aria-hidden>
-          <div className="sticker-overlay flex flex-col items-center gap-1">
-            <span
-              className={cn(
-                'text-7xl drop-shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:text-8xl',
-                stickerShot.sticker.animation,
-              )}
-            >
-              {stickerShot.sticker.emoji}
-            </span>
-            <span className="rounded-full bg-black/60 px-3 py-1 text-sm font-black uppercase tracking-widest text-primary backdrop-blur-sm">
+          <div className="sticker-overlay flex flex-col items-center gap-1.5">
+            <div className={cn('h-24 w-24 sm:h-32 sm:w-32 drop-shadow-[0_15px_35px_rgba(0,0,0,0.6)]', stickerShot.sticker.animation)}>
+              <MatchStickerIcon id={stickerShot.sticker.id} />
+            </div>
+            <span className="rounded-full border border-primary/40 bg-black/75 px-3.5 py-1 font-sans text-xs font-black uppercase tracking-widest text-primary backdrop-blur-md shadow-lg">
               {stickerShot.sticker.label}
             </span>
-            <span className="text-[11px] font-bold text-white/75 [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">
-              {stickerShot.fromUserId === userId
-                ? me
-                : (participantNames[stickerShot.fromUserId] ?? 'Avversario')}
+            <span className="text-[11px] font-bold text-white/80 [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">
+              {stickerShot.fromUserId === userId ? me : (participantNames[stickerShot.fromUserId] ?? 'Avversario')}
             </span>
           </div>
         </div>
@@ -105,6 +88,8 @@ export function MatchVideoGrid({
                 username={leftPlayer.username}
                 feedLabel={feedLabel}
                 videoDisabled={!camOn}
+                mirrored={mirroredLocal}
+                onToggleMirror={onToggleMirrorLocal}
                 hideUsername
               />
             )}
@@ -112,6 +97,15 @@ export function MatchVideoGrid({
           <div className="absolute left-2.5 top-2.5 z-20">
             <MatchDeckChip player={leftPlayer} formatName={formatName} />
           </div>
+          {isPlayer && disconnectedIsMe && (
+            <MatchWebcamDisconnectOverlay
+              reconnecting={peerReconnecting}
+              remaining={graceRemaining}
+              disconnectedIsMe={true}
+              opponentName={leftPlayer.username}
+              onRetry={onRetryPeer}
+            />
+          )}
           {isPlayer && localStream && (
             <div className="absolute bottom-2.5 right-2.5 z-20 flex flex-col gap-1.5">
               <MediaButton on={micOn} kind="mic" onClick={onToggleMic} />
@@ -126,7 +120,6 @@ export function MatchVideoGrid({
                 playerId={leftPlayer.id}
                 connected={lifeConnected}
                 variant="local"
-                roleLabel={isPlayer ? 'Tu' : null}
                 interactive={isPlayer && started}
                 startingLife={startingLife}
                 onChange={onLifeChange}
@@ -144,6 +137,8 @@ export function MatchVideoGrid({
               username={rightPlayer.username}
               connecting={isPlayer ? peerConnecting : false}
               muted={isPlayer ? opponentMuted : true}
+              mirrored={mirroredRemote}
+              onToggleMirror={onToggleMirrorRemote}
               hideUsername
               emptyLabel={isObserver ? 'Video non disponibile agli osservatori' : remoteEmptyLabel}
             />
@@ -151,6 +146,15 @@ export function MatchVideoGrid({
           <div className="absolute left-2.5 top-2.5 z-20">
             <MatchDeckChip player={rightPlayer} formatName={formatName} />
           </div>
+          {isPlayer && !disconnectedIsMe && (
+            <MatchWebcamDisconnectOverlay
+              reconnecting={peerReconnecting}
+              remaining={graceRemaining}
+              disconnectedIsMe={false}
+              opponentName={rightPlayer.username}
+              onRetry={onRetryPeer}
+            />
+          )}
           <div className="absolute right-2.5 top-2.5 z-20 flex items-center gap-1.5">
             {isPlayer && started && (
               <button
@@ -166,11 +170,7 @@ export function MatchVideoGrid({
           </div>
           {isPlayer && remoteStream && onToggleOpponentMute && (
             <div className="absolute bottom-2.5 right-2.5 z-20">
-              <MediaButton
-                on={!opponentMuted}
-                kind="volume"
-                onClick={onToggleOpponentMute}
-              />
+              <MediaButton on={!opponentMuted} kind="volume" onClick={onToggleOpponentMute} />
             </div>
           )}
           <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex justify-center">
@@ -181,7 +181,6 @@ export function MatchVideoGrid({
                 playerId={rightPlayer.id}
                 connected={lifeConnected}
                 variant="remote"
-                roleLabel={isPlayer ? 'Avversario' : null}
                 interactive={false}
                 onChange={onLifeChange}
               />

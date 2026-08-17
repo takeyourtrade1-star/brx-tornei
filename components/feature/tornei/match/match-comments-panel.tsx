@@ -6,9 +6,13 @@ import type { MatchChatConnectionState, MatchChatMessage } from '@/hooks/use-mat
 import { isMatchLifeMessage } from '@/lib/match-life-protocol';
 import { isMatchStartMessage } from '@/lib/match-start-protocol';
 import {
-  MATCH_STICKERS, STICKER_COOLDOWN_MS,
-  stickerFromText, stickerToText, type MatchSticker,
+  MATCH_STICKERS,
+  STICKER_COOLDOWN_MS,
+  stickerFromText,
+  stickerToText,
+  type MatchSticker,
 } from './match-stickers';
+import { MatchStickerIcon } from './match-sticker-icons';
 import { cn } from '@/lib/utils';
 
 export interface MatchCommentsPanelProps {
@@ -160,10 +164,10 @@ export function MatchCommentsPanel({
                     )}
                     {sticker ? (
                       <p className="flex items-center gap-2 py-0.5">
-                        <span className="sticker-chat-emoji text-2xl leading-none" aria-hidden>
-                          {sticker.emoji}
+                        <span className="sticker-chat-pop grid h-6 w-6 shrink-0 place-items-center" aria-hidden>
+                          <MatchStickerIcon id={sticker.id} />
                         </span>
-                        <span className="text-[11px] font-black uppercase tracking-wider text-[#FF9C4A]">
+                        <span className="font-sans text-[11px] font-black uppercase tracking-wider text-[#FF9C4A]">
                           {sticker.label}
                         </span>
                       </p>
@@ -190,13 +194,15 @@ export function MatchCommentsPanel({
               disabled={stickerCooldown || connectionState !== 'connected'}
               onClick={() => sendSticker(s.id)}
               className={cn(
-                'group relative grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.05] text-base transition duration-150',
+                'group relative grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.05] p-1 transition duration-150',
                 stickerCooldown || connectionState !== 'connected'
                   ? 'cursor-not-allowed opacity-35'
-                  : 'hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/20 hover:shadow-[0_0_12px_rgba(255,115,0,0.3)] active:scale-95',
+                  : 'hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/20 hover:shadow-[0_0_12px_rgba(255,115,0,0.35)] active:scale-95',
               )}
             >
-              <span className="transition-transform duration-150 group-hover:scale-125 select-none">{s.emoji}</span>
+              <div className="h-5 w-5 transition-transform duration-150 group-hover:scale-125">
+                <MatchStickerIcon id={s.id} />
+              </div>
             </button>
           ))}
         </div>

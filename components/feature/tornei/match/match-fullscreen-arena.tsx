@@ -7,6 +7,7 @@ import { getPlaymat, type PlaymatId } from '@/lib/playmats';
 import { MatchCompactChat, type MatchCompactChatProps } from './match-compact-chat';
 import { MatchLifeBadge } from './match-life-badge';
 import { MatchMediaButton } from './match-media-button';
+import { MatchWebcamDisconnectOverlay } from './match-live-parts';
 import { WebcamTile } from './webcam-tile';
 
 interface MatchFullscreenArenaProps {
@@ -19,11 +20,14 @@ interface MatchFullscreenArenaProps {
   remotePlayerId: string;
   localFeedLabel?: string;
   connecting?: boolean;
-  /** Testo del riquadro avversario quando il video manca (es. riconnessione). */
+  peerReconnecting?: boolean;
+  graceRemaining?: number | null;
   remoteEmptyLabel?: string;
   camOn: boolean;
   micOn: boolean;
   opponentMuted?: boolean;
+  mirroredLocal?: boolean;
+  mirroredRemote?: boolean;
   startingLife: number;
   lifeByPlayerId: Record<string, number>;
   lifeConnected: boolean;
@@ -32,36 +36,23 @@ interface MatchFullscreenArenaProps {
   onToggleCam: () => void;
   onToggleMic: () => void;
   onToggleOpponentMute?: () => void;
+  onToggleMirrorLocal?: () => void;
+  onToggleMirrorRemote?: () => void;
   onLifeChange: (playerId: string, delta: number) => void;
   onLifeReset?: () => void;
+  onRetryPeer?: () => void;
   onClose: () => void;
 }
 
 export function MatchFullscreenArena({
-  open,
-  localStream,
-  remoteStream,
-  localUsername,
-  remoteUsername,
-  localPlayerId,
-  remotePlayerId,
-  localFeedLabel,
-  connecting = false,
-  remoteEmptyLabel,
-  camOn,
-  micOn,
-  opponentMuted = false,
-  startingLife,
-  lifeByPlayerId,
-  lifeConnected,
-  playmatId,
-  chat,
-  onToggleCam,
-  onToggleMic,
-  onToggleOpponentMute,
-  onLifeChange,
-  onLifeReset,
-  onClose,
+  open, localStream, remoteStream, localUsername, remoteUsername,
+  localPlayerId, remotePlayerId, localFeedLabel, connecting = false,
+  peerReconnecting = false, graceRemaining = null,
+  remoteEmptyLabel, camOn, micOn, opponentMuted = false,
+  mirroredLocal = false, mirroredRemote = false, startingLife,
+  lifeByPlayerId, lifeConnected, playmatId, chat, onToggleCam,
+  onToggleMic, onToggleOpponentMute, onToggleMirrorLocal,
+  onToggleMirrorRemote, onLifeChange, onLifeReset, onRetryPeer, onClose,
 }: MatchFullscreenArenaProps) {
   const [mounted, setMounted] = useState(false);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
@@ -181,9 +172,18 @@ export function MatchFullscreenArena({
                 username={remoteUsername}
                 connecting={connecting}
                 muted={opponentMuted}
+                mirrored={mirroredRemote}
+                onToggleMirror={onToggleMirrorRemote}
                 emptyLabel={remoteEmptyLabel}
               />
             </div>
+            <MatchWebcamDisconnectOverlay
+              reconnecting={peerReconnecting}
+              remaining={graceRemaining}
+              disconnectedIsMe={false}
+              opponentName={remoteUsername}
+              onRetry={onRetryPeer}
+            />
             <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-sky-500/90 border border-sky-400/30 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg backdrop-blur-md">
               Webcam avversario
             </span>
@@ -206,7 +206,6 @@ export function MatchFullscreenArena({
             playerId={localPlayerId}
             connected={lifeConnected}
             variant="local"
-            roleLabel="Tu"
             startingLife={startingLife}
             onChange={onLifeChange}
             onReset={onLifeReset}
@@ -224,6 +223,8 @@ export function MatchFullscreenArena({
                 username={localUsername}
                 feedLabel={localFeedLabel}
                 videoDisabled={!camOn}
+                mirrored={mirroredLocal}
+                onToggleMirror={onToggleMirrorLocal}
                 compact
                 hideUsername
               />
@@ -240,7 +241,6 @@ export function MatchFullscreenArena({
           playerId={remotePlayerId}
           connected={lifeConnected}
           variant="remote"
-          roleLabel="Avversario"
           interactive={false}
           onChange={onLifeChange}
         />
