@@ -244,17 +244,17 @@
     min-height: 100%;
     scrollbar-gutter: stable;
   }
-  /* Sfondo: gradiente azzurro sfumato + pattern logo BRX in tile.
-     Tutto in un unico ::before fixed (layer composito, niente repaint allo
-     scroll). L'opacità del pattern è nei fill-opacity dell'SVG locale, così
-     il gradiente resta pieno. */
-  /* Default testo SCURO: lo sfondo pagina è chiaro. I pannelli scuri
-     (.simple-panel, .brx-glass, modali navy) dichiarano text-white loro:
-     così il testo senza classe colore è leggibile ovunque per default. */
+  /* Sfondo globale allineato a new_frontend_brx: blu sfumato + pattern BRX. */
   body {
     @apply min-h-screen font-medium;
     font-family: var(--font-sans), system-ui, sans-serif;
-    background-color: #1d3160;
+    background-image:
+      linear-gradient(rgba(61, 101, 198, 0.65), rgba(29, 49, 96, 0.65)),
+      url('/brx_bg.png'),
+      linear-gradient(180deg, #3d65c6 0%, #1d3160 100%);
+    background-size: cover, 80px 80px, cover;
+    background-repeat: no-repeat, repeat, no-repeat;
+    background-attachment: fixed;
     color: #fff;
   }
 
@@ -265,23 +265,10 @@
     font-family: var(--font-sans), system-ui, sans-serif;
   }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    /* Sfondo identico a ebartex.com: gradiente blu notte + pattern logo BRX
-       in tile + velo scuro di profondità (unico ::before fixed, nessun
-       repaint allo scroll). L'overlay scuro smorza il pattern esattamente
-       come sul sito principale. */
-    background-image:
-      linear-gradient(rgba(61, 101, 198, 0.65), rgba(29, 49, 96, 0.65)),
-      url('/brx_bg.png'),
-      linear-gradient(180deg, #3d65c6 0%, #1d3160 100%);
-    background-size: cover, 80px 80px, cover;
-    background-repeat: no-repeat, repeat, no-repeat;
-    transform: translateZ(0);
-    pointer-events: none;
+  @media (max-width: 768px) {
+    body {
+      background-attachment: scroll;
+    }
   }
 }
 
