@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 const SECRET_BEARING_FETCH_FILES = [
   'actions/auth.ts',
   'app/api/auth/[...path]/route.ts',
+  'app/auth/bridge/sso/callback/route.ts',
   'app/api/tornei/webcam/[sessionId]/authorize/route.ts',
   'app/api/tournaments/ice-servers/route.ts',
   'app/api/tournaments/match/[matchId]/chat-ticket/route.ts',

@@ -10,7 +10,7 @@
 
 | Area | Com'è fatto in `new_frontend_brx` | Impatto sul nuovo sito |
 |---|---|---|
-| Auth backend | Microservizio FastAPI su AWS, JWT RS256 (access + refresh), MFA con pre-auth token, login passwordless via codice email, honeypot `website_url` | Stesso backend, zero modifiche richieste |
+| Auth backend | Microservizio FastAPI su AWS, JWT RS256 (access + refresh), MFA e broker SSO first-party | Il broker emette code monouso, hashato a riposo e vincolato con PKCE |
 | Auth client | Token in `localStorage` (`ebartex_access_token`, `ebartex_refresh_token`, `ebartex_user`) + store Zustand persistito (`ebartex-auth`) | localStorage NON è condiviso tra domini → non utilizzabile per SSO |
 | Proxy auth | `app/api/auth/[...path]/route.ts`: il browser chiama same-origin `/api/auth/*`, il route handler inoltra ad `AUTH_API_URL`. Imposta cookie `__Host-` **HttpOnly, Secure, SameSite=Lax, host-only** | I token sono redatti dal JSON e restano invisibili a client e sottodomini |
 | Design system | shadcn/ui style: `cva` + `@radix-ui/react-slot` + `cn()` (clsx + tailwind-merge). Token in `tailwind.config.ts` + CSS vars in `globals.css`. Font: stack sans di sistema (allineato al sito principale) + display rounded di sistema; nessun font scaricato né asset `/fonts/` (vincolo del test `build-environment.test.ts`) | Token e atomi estratti in un preset Tailwind condivisibile |
@@ -24,12 +24,23 @@
 ### 2.1 Problema
 La sessione non deve essere leggibile né sovrascrivibile da sottodomini fratelli. Un cookie parent-domain allargherebbe il perimetro di compromissione di qualunque sottodominio a tutto l'account tornei.
 
-### 2.2 Soluzione: cookie `__Host-` e nuovo login locale
+### 2.2 Soluzione: cookie `__Host-` e authorization-code handoff
 
 Il proxy Next converte le credenziali restituite dal backend in cookie HttpOnly
-`__Host-`: `Secure`, `Path=/`, nessun attributo `Domain`. Il browser non riceve
-mai access, refresh o pre-auth token nel JSON. Il mini-sito richiede un login
-locale esplicito; non esiste SSO implicito cross-subdomain.
+`__Host-`: `Secure`, `Path=/`, nessun attributo `Domain`. I due siti non
+condividono cookie. Quando l'utente arriva dal marketplace, Tornei genera
+`state` e PKCE verifier in cookie transitori HttpOnly e manda al browser solo la
+challenge. Il BFF marketplace usa la propria sessione host-only per chiedere ad
+Auth un code opaco da 60 secondi. Il callback Tornei scambia il code una sola
+volta, server-to-server, ottenendo una nuova sessione locale distinta.
+
+```
+Tornei /auth/bridge/sso/start
+  -> Ebartex BFF /api/auth/sso/authorize (cookie Ebartex, server-side)
+  -> code monouso + state al callback Tornei
+  -> Auth /api/auth/sso/exchange (client secret Tornei + PKCE verifier)
+  -> nuovi cookie __Host- esclusivi di Tornei
+```
 
 Flusso di rinnovo locale:
 
@@ -44,6 +55,8 @@ Utente su tournaments.ebartex.com
 ```
 
 Nessun cookie di questo sito viene inviato a `ebartex.com` o ad altri sottodomini.
+Il code in query non è una sessione: scade rapidamente, è monouso e inutilizzabile
+senza il verifier PKCE conservato nel cookie host-only di Tornei.
 
 ### 2.3 Sessione interna al nuovo sito: cookie-first (non localStorage)
 
@@ -98,7 +111,8 @@ tournaments-live-frontend/
 │   │   ├── login/page.tsx          # RSC: rende LoginForm (client)
 │   │   └── registrati/page.tsx     # Stub → rimanda al sito principale (MVP)
 │   │
-│   ├── auth/bridge/route.ts        # SSO: refresh-token cookie → sessione locale → redirect
+│   ├── auth/bridge/route.ts        # Rinnovo della sessione locale
+│   ├── auth/bridge/sso/            # Start + callback authorization-code PKCE
 │   │
 │   ├── (hub)/                      # Route group: fasi di configurazione
 │   │   ├── layout.tsx              # Shell hub (SiteHeader stile Ebartex)
@@ -169,8 +183,9 @@ Decisioni notevoli:
 ### M2 — Auth Gateway
 7. Login locale: `LoginForm` → `loginAction` → proxy `/api/auth/login` → set cookie sessione → redirect `/hub`. Gestire MFA (redirect a step codice) ed errori col formato del backend (`parseAuthError` pattern).
 8. Bridge locale: testare rinnovo access token con il solo refresh cookie `__Host-` di questo host.
-9. Verificare che il BFF rediga ricorsivamente tutti i token dalle risposte JSON.
-10. Logout locale: revoca il refresh backend e cancella tutti i cookie `__Host-`.
+9. Handoff marketplace: testare state, PKCE, scadenza, replay e redirect esatto sui due BFF e su Auth.
+10. Verificare che nessun token di sessione entri in URL, HTML, JSON client o log.
+11. Logout locale: revoca il refresh backend e cancella tutti i cookie `__Host-`.
 
 ### M3 — Hub di selezione
 11. Step 1 (gioco) e Step 2 (modalità) con `SelectionCard`; modalità non disponibili rese come "Presto in arrivo" (badge, non cliccabili) come da mockup.

@@ -14,9 +14,8 @@ import { isCanonicalRequestHost } from '@/lib/security/canonical-origin';
  *   silenzioso, poi torna alla pagina richiesta).
  * - Altrimenti → /login.
  *
- * Il login NON viene più propagato automaticamente dal marketplace: sul portale
- * tornei l'utente effettua SEMPRE un nuovo login. Il bridge serve solo a
- * rinnovare la sessione locale col refresh token già emesso qui.
+ * Il rinnovo locale resta isolato. L'accesso dal marketplace usa invece
+ * `/auth/bridge/sso/*`: authorization code monouso + PKCE, mai cookie condivisi.
  */
 
 const ACCESS_COOKIE = appConfig.auth.accessCookie;
@@ -24,8 +23,8 @@ const REFRESH_COOKIE = appConfig.auth.refreshCookie;
 
 // `/tornei/webcam/[id]` è la pagina aperta dal telefono dopo la scansione del
 // QR: deve essere raggiungibile senza login (il telefono non è autenticato).
-// `/auth/bridge` è la destinazione del refresh silenzioso: senza eccezione
-// il middleware la rimbalzerebbe a /login prima che possa rinnovare i cookie.
+// `/auth/bridge` include rinnovo locale e handoff SSO: senza eccezione il
+// middleware li rimbalzerebbe a /login prima che possano creare la sessione.
 const PUBLIC_PATHS = ['/login', '/registrati', '/tornei/webcam', '/auth/bridge'];
 
 function getTournamentWebSocketSource(): string | null {

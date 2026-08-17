@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Gamepad2, Layers, Swords } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Layers, Swords } from 'lucide-react';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 import { ProfileDrawer } from '@/components/feature/profile/profile-drawer';
 import { ProfileRankBadge } from '@/components/feature/profile/profile-rank-badge';
@@ -11,6 +11,7 @@ import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { getSavedAvatarId } from '@/lib/avatars';
 import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
+import { publicConfig } from '@/lib/public-config';
 import { cn } from '@/lib/utils';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { SessionUser } from '@/types/auth';
@@ -123,6 +124,16 @@ export function DashboardHeader({
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center justify-end gap-2 sm:ml-0 sm:gap-3">
+          <a
+            href={publicConfig.app.mainSiteUrl}
+            aria-label="Torna su Ebartex"
+            title="Torna su Ebartex"
+            className="flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-xs font-bold uppercase tracking-wide text-white/80 transition hover:border-primary/40 hover:bg-primary/15 hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden lg:inline">Ebartex</span>
+          </a>
+
           {showMinigameBack && onBackToMinigame && (
             <button
               type="button"

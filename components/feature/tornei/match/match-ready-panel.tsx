@@ -64,7 +64,7 @@ export function MatchReadyPanel({
   // - non ho confermato alla scadenza → declino (esco dal tavolo);
   // - ho confermato ma l'avversario no → segnalo "non ha accettato".
   // La deadline globale (non riavviata dalla mia conferma) copre anche il
-  // caso "l'avversario ha la tab chiusa" — nessun client li a rispondere.
+  // caso "l'avversario ha la tab chiusa" — nessun client è lì a rispondere.
   useEffect(() => {
     if (remaining > 0 || finishedRef.current) return;
     finishedRef.current = true;

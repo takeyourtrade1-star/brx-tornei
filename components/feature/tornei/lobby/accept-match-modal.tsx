@@ -80,7 +80,6 @@ export function AcceptMatchModal({
     else onLeave();
   }, [acceptLeft, onLeave, onOpponentTimeout, phase]);
 
-  // Stato "rifiutato": pochi secondi e si torna in lobby chiudendo il tavolo.
   useEffect(() => {
     if (phase !== 'declined') return;
     setDeclinedLeft(DECLINED_LEAVE_SECONDS);
@@ -150,7 +149,6 @@ export function AcceptMatchModal({
               Partita trovata
             </h2>
 
-            {/* Anello timer: si svuota, diventa rosso sotto i 10s restanti. */}
             <span
               className={cn(
                 'relative mt-6 grid h-28 w-28 place-items-center rounded-full',
@@ -168,7 +166,6 @@ export function AcceptMatchModal({
                 {acceptLeft}
               </span>
             </span>
-
             <div className="mt-6 flex w-full items-center gap-2">
               <AcceptPlayerChip
                 label={myUsername}
