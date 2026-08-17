@@ -145,7 +145,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
               className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-950 p-1 shadow-sm ring-1 ring-slate-900/[0.08]">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-900/[0.08]">
                   <SelectedIcon className="h-6 w-6" />
                 </span>
                 <div>
@@ -173,10 +173,10 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
                       title={`${avatar.name} (${avatar.subtitle})`}
                       aria-label={`Seleziona avatar ${avatar.name}`}
                       className={cn(
-                        'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all bg-gradient-to-b from-slate-900 via-slate-950 to-black',
+                        'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all bg-white shadow-sm',
                         isSelected
-                          ? 'border-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.55)] ring-2 ring-amber-400/50 scale-105'
-                          : 'border-slate-800 hover:border-slate-600 hover:scale-105',
+                          ? 'border-amber-500 bg-amber-50/60 shadow-[0_0_12px_rgba(245,158,11,0.25)] ring-2 ring-amber-400/60 scale-105'
+                          : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50 hover:scale-105',
                       )}
                     >
                       <Icon className="h-7 w-7 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
