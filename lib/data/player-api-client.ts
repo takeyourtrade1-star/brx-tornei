@@ -57,6 +57,11 @@ export interface RecentMatchResult {
   createdAt: string;
 }
 
+export interface NegativeFeedbackNotice {
+  /** Timestamp ISO della prima valutazione negativa ricevuta. */
+  receivedAt: string;
+}
+
 export interface ReputationSummary {
   played: number;
   wins: number;
@@ -66,6 +71,8 @@ export interface ReputationSummary {
   recent: RecentMatchResult[];
   /** Storico completo (pagina /partite); oggi ricade sulla coda recent. */
   history: RecentMatchResult[];
+  /** Presente solo entro 24 ore dalla prima valutazione negativa ricevuta. */
+  negativeFeedbackNotice?: NegativeFeedbackNotice | null;
 }
 
 const VALID_OUTCOMES: MatchOutcome[] = ['win', 'loss', 'abandoned', 'disputed'];
@@ -104,6 +111,15 @@ export async function fetchMyReputationPage(): Promise<ReputationSummary> {
   // Se il backend espone una lista lunga separata (storico completo) la
   // preferiamo; altrimenti la pagina usera' la coda recente.
   const historyRaw = Array.isArray(data.history) ? data.history : recentRaw;
+  const noticeRaw =
+    data.negative_feedback_notice && typeof data.negative_feedback_notice === 'object'
+      ? (data.negative_feedback_notice as Record<string, unknown>)
+      : null;
+  const noticeReceivedAt = noticeRaw?.received_at;
+  const negativeFeedbackNotice =
+    typeof noticeReceivedAt === 'string' && Number.isFinite(Date.parse(noticeReceivedAt))
+      ? { receivedAt: noticeReceivedAt }
+      : null;
   const mapRow = (entry: unknown) => {
     const row = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
     const outcome =
@@ -126,6 +142,7 @@ export async function fetchMyReputationPage(): Promise<ReputationSummary> {
     disputed: toNumber(data.disputed),
     recent: recentRaw.map(mapRow),
     history: historyRaw.map(mapRow),
+    negativeFeedbackNotice,
   };
 }
 

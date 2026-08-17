@@ -17,7 +17,7 @@ export interface ReportActionState {
  */
 export async function submitMatchReportAction(
   matchId: string,
-  input: unknown,
+  message: unknown,
 ): Promise<ReportActionState> {
   const session = await getSession();
   if (!session) {
@@ -26,7 +26,7 @@ export async function submitMatchReportAction(
   if (!matchId) {
     return { error: 'Partita non valida.' };
   }
-  const parsed = matchReportSchema.safeParse(input);
+  const parsed = matchReportSchema.safeParse({ message });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Segnalazione non valida.' };
   }
