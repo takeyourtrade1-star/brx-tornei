@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
+import { rankStarsForWins } from '@/lib/rank';
 import { cn } from '@/lib/utils';
 import { ClashingSwordsIcon } from '@/components/feature/tornei/lobby/clashing-swords-icon';
 import { CrystalStatIcon, SkullStatIcon } from './partite-stats-icons';
@@ -11,12 +12,6 @@ const OUTCOME_DOT: Record<string, string> = {
   abandoned: 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.7)]',
   disputed: 'bg-slate-400 shadow-[0_0_6px_rgba(148,163,184,0.7)]',
 };
-
-const MAX_RANK_STARS = 9;
-
-function rankStarsForWins(wins: number): number {
-  return Math.min(MAX_RANK_STARS, 1 + Math.floor(Math.max(0, wins) / 5));
-}
 
 /**
  * Banner del duellante: ritratto con emblema animato, gamertag, grado e

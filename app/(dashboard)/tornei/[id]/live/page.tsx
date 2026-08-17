@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { requireGamertag } from '@/lib/auth/require-gamertag';
+import { fetchMyReputation } from '@/lib/data/player-api-client';
 import { getTournamentById } from '@/lib/data/tournaments';
 import { parseLiveViewSearch } from '@/lib/validations/live';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
@@ -22,11 +23,14 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   if (!session) redirect('/login');
   const gamertag = await requireGamertag(`/tornei/${id}/live`);
 
-  const tournament = await getTournamentById(id);
+  const [tournament, reputation, defaultPlaymatId] = await Promise.all([
+    getTournamentById(id),
+    fetchMyReputation().catch(() => null),
+    getDefaultPlaymatId(),
+  ]);
   if (!tournament) notFound();
 
   const { role: requestedRole } = parseLiveViewSearch(await searchParams);
-  const defaultPlaymatId = await getDefaultPlaymatId();
   const isParticipant = tournament.participants.some((p) => p.id === session.user.id);
   const role = isParticipant ? 'player' : requestedRole === 'observer' ? 'observer' : 'observer';
 
@@ -47,7 +51,7 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <div className="shrink-0">
-        <DashboardHeader user={session.user} displayName={gamertag} />
+        <DashboardHeader user={session.user} displayName={gamertag} reputation={reputation} />
       </div>
       <MatchLiveView
         tournament={tournament}
