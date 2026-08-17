@@ -15,6 +15,10 @@ describe('match result consensus UI contract', () => {
       new URL('../../components/feature/tornei/match/match-live-notices.tsx', import.meta.url),
       'utf8',
     );
+    const resultPending = readFileSync(
+      new URL('../../components/feature/tornei/match/match-result-pending.tsx', import.meta.url),
+      'utf8',
+    );
 
     expect(view).toContain("const resultClaimPending = tournament.resultStatus === 'claimed'");
     expect(view).not.toContain(
@@ -25,7 +29,7 @@ describe('match result consensus UI contract', () => {
     expect(view).toContain("chat.opponentPresence === 'offline'");
     expect(notices).toContain('il risultato è bloccato');
     expect(notices).toContain('La partita resta aperta');
-    expect(notices).toContain('Risposta sospesa durante la riconnessione');
+    expect(resultPending).toContain('Risposta sospesa durante la riconnessione');
     expect(notices).not.toContain('persa a tavolino');
     expect(notices).not.toContain('vincerai la partita a tavolino');
   });
