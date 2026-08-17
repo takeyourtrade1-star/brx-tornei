@@ -653,6 +653,27 @@
   animation: swords-clash-spark 2.4s infinite;
 }
 
+/* Variante arena: scudo che respira e anello runico in orbita lenta. */
+@keyframes swords-arena-shield {
+  0%, 100% { transform: scale(0.96); opacity: 0.12; }
+  30% { transform: scale(1.03); opacity: 0.26; }
+  48% { transform: scale(1); opacity: 0.18; }
+}
+.swords-arena-shield {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: swords-arena-shield 2.4s ease-in-out infinite;
+}
+
+@keyframes swords-arena-orbit {
+  to { transform: rotate(360deg); }
+}
+.swords-arena-orbit {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: swords-arena-orbit 14s linear infinite;
+}
+
 /* L'alone dell'emblema pulsa sull'impatto: il colpo si sente anche fuori. */
 @keyframes swords-emblem-impact {
   0%,
@@ -685,7 +706,9 @@
 @media (prefers-reduced-motion: reduce) {
   .swords-blade-left,
   .swords-blade-right,
-  .swords-emblem {
+  .swords-emblem,
+  .swords-arena-shield,
+  .swords-arena-orbit {
     animation: none;
   }
   .swords-clash-spark {
@@ -1738,6 +1761,5 @@
   transform-origin: center;
   animation: av-card-holo-gleam 1.8s ease-in-out infinite;
 }
-
 
 

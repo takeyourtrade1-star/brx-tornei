@@ -1,20 +1,13 @@
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
-import { cn } from '@/lib/utils';
 import { AbandonedEmblem } from '@/components/feature/tornei/partite/partite-outcome-icons';
 import { CrownStatIcon, SkullStatIcon } from '@/components/feature/tornei/partite/partite-stats-icons';
 import { StatBadgeCard } from '@/components/feature/tornei/partite/stat-badge-card';
 import { ClashingSwordsIcon } from './clashing-swords-icon';
-
-const OUTCOME_TONE: Record<string, { dot: string; label: string }> = {
-  win: { dot: 'bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.16)]', label: 'Vittoria' },
-  loss: { dot: 'bg-red-500 shadow-[0_0_0_2px_rgba(239,68,68,0.16)]', label: 'Sconfitta' },
-  abandoned: { dot: 'bg-amber-500 shadow-[0_0_0_2px_rgba(245,158,11,0.16)]', label: 'Abbandonata' },
-  disputed: { dot: 'bg-slate-400 shadow-[0_0_0_2px_rgba(148,163,184,0.16)]', label: 'Contestata' },
-};
+import { RecentResultsStrip } from './recent-results-strip';
 
 /**
- * Card "Le tue partite" (home lobby): divisa a metà — a sinistra emblema
- * animato + totale partite + ultime sfide, a destra le statistiche di esito.
+ * Card "Le tue partite" (home lobby): emblema arena e forma recente a sinistra,
+ * statistiche full-card a destra.
  */
 export function ReputationSummary({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats: ReputationSummaryData = reputation ?? {
@@ -31,62 +24,64 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
   return (
     <section
       aria-label="Le tue partite"
-      className="overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-b from-global-bg-start/55 via-global-bg-end/85 to-header-bg text-white shadow-lg shadow-black/25 backdrop-blur-md sm:bg-gradient-to-r"
+      className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 text-white shadow-xl shadow-black/35 backdrop-blur-md"
     >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(420px_180px_at_12%_45%,rgba(255,115,0,0.14),transparent_72%)]"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(440px_180px_at_96%_100%,rgba(56,189,248,0.07),transparent_75%)]"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
+      />
+
       <div className="flex flex-col sm:flex-row">
-        {/* Metà sinistra: emblema + totale + ultime sfide. */}
-        <div className="flex flex-1 flex-col gap-2.5 bg-gradient-to-r from-white/[0.07] via-global-bg-end/20 to-header-bg/70 px-4 py-3.5 sm:px-5">
-          <div className="flex items-center gap-3.5">
-            <span className="swords-emblem relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-sm">
+        {/* Emblema ampio a sinistra; gerarchia e forma recente alla sua destra. */}
+        <div className="relative flex min-w-0 flex-1 items-stretch gap-3.5 p-3 sm:gap-4 sm:p-3.5">
+          <div className="swords-emblem relative grid min-h-[124px] w-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/25 bg-slate-950/85 text-white shadow-lg shadow-black/35 sm:w-[104px]">
+            <span
+              aria-hidden
+              className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,115,0,0.42),rgba(255,115,0,0.08)_48%,transparent_74%)]"
+            />
+            <span aria-hidden className="absolute inset-2 rounded-xl border border-white/[0.07]" />
+            <span aria-hidden className="absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+            <span className="relative grid h-[78px] w-[78px] place-items-center">
               <span
                 aria-hidden
-                className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 via-transparent to-black/20"
+                className="absolute inset-2 rounded-full bg-primary/20 blur-xl"
               />
-              <ClashingSwordsIcon className="relative h-[26px] w-[26px]" />
+              <ClashingSwordsIcon ornate className="relative h-[72px] w-[72px] drop-shadow-[0_0_14px_rgba(255,115,0,0.45)]" />
             </span>
-
-            <p className="min-w-0">
-              <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/60">
-                Le tue partite
-              </span>
-              <span className="block text-xl font-black tabular-nums leading-tight text-white">
-                {stats.played}
-                <span className="ml-1.5 text-[11px] font-semibold text-white/50">
-                  {stats.played === 1 ? 'partita' : 'partite'}
-                </span>
-              </span>
-            </p>
+            <span className="absolute bottom-2 rounded-full border border-white/10 bg-black/25 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.2em] text-white/55">
+              Arena
+            </span>
           </div>
 
-          {recent.length > 0 ? (
-            <div
-              role="img"
-              aria-label={`Ultime sfide: ${recent.slice(0, 5).map((m) => OUTCOME_TONE[m.outcome]?.label ?? m.outcome).join(', ')}`}
-              className="flex items-center gap-1.5"
-            >
-              <span className="hidden text-[8px] font-black uppercase tracking-[0.16em] text-white/50 sm:inline">
-                Ultime
+          <div className="flex min-w-0 flex-1 flex-col justify-center py-1">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+              Le tue partite
+            </p>
+            <p className="mt-0.5 flex items-baseline gap-2">
+              <span className="font-display text-3xl font-black tabular-nums leading-none text-white sm:text-4xl">
+                {stats.played}
               </span>
-              {recent.slice(0, 5).map((m, index) => (
-                <span
-                  key={index}
-                  aria-hidden
-                  title={`${OUTCOME_TONE[m.outcome]?.label ?? m.outcome} vs ${m.opponentGamertag ?? 'avversario'}`}
-                  className={cn('h-2.5 w-2.5 rounded-full', OUTCOME_TONE[m.outcome]?.dot ?? 'bg-slate-400')}
-                />
-              ))}
-            </div>
-          ) : (
-            <span className="hidden text-[10px] font-bold leading-tight text-white/50 sm:block">
-              Nessuna sfida ancora: siediti a un tavolo.
-            </span>
-          )}
+              <span className="text-[11px] font-bold text-slate-400">
+                {stats.played === 1 ? 'partita giocata' : 'partite giocate'}
+              </span>
+            </p>
+            <span aria-hidden className="my-2 h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
+            <RecentResultsStrip recent={recent} />
+          </div>
         </div>
 
         {/* Esiti compatti con la stessa estetica delle statistiche in /partite. */}
         <div
           aria-label="Esiti delle tue partite"
-          className="grid grid-cols-3 gap-2 border-t border-white/10 bg-header-bg/70 p-2 sm:w-[340px] sm:shrink-0 sm:border-l sm:border-t-0"
+          className="relative grid grid-cols-3 gap-2 border-t border-white/10 bg-black/15 p-2 sm:w-[340px] sm:shrink-0 sm:border-l sm:border-t-0"
         >
           <StatBadgeCard
             label="Vinte"
