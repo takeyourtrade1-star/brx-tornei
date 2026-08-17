@@ -19,7 +19,7 @@ export interface ProfileRankBadgeProps {
 }
 
 /**
- * Badge profilo vettoriale con stelle di grado grandi, nitide e fiamme scolpite ad alta definizione.
+ * Badge profilo vettoriale con stelle di grado posizionate rigorosamente entro il canale scuro.
  */
 export function ProfileRankBadge({
   avatarId,
@@ -46,8 +46,9 @@ export function ProfileRankBadge({
   const flameInnerGradId = `flame-inner-${uid}`;
   const glowFilterId = `glow-${uid}`;
 
-  const trackRadius = 32.8;
-  const starOuterR = stars >= 4 ? 4.3 : 4.8;
+  // Geometria calibrata: track 32.0 (tra r=27.0 e r=37.0), stella rOuter=3.6 (max reach 35.6 < 36.0)
+  const trackRadius = 32.0;
+  const starOuterR = stars >= 4 ? 3.3 : 3.6;
   const starInnerR = starOuterR * 0.44;
 
   const content = (
@@ -88,14 +89,14 @@ export function ProfileRankBadge({
             </linearGradient>
 
             <filter id={glowFilterId} x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="0" stdDeviation={isBurning ? '0.8' : '0.6'} floodColor={isBurning ? '#FF3300' : '#F59E0B'} floodOpacity="0.9" />
+              <feDropShadow dx="0" dy="0" stdDeviation={isBurning ? '0.7' : '0.5'} floodColor={isBurning ? '#FF3300' : '#F59E0B'} floodOpacity="0.9" />
             </filter>
           </defs>
 
           <circle cx="40" cy="40" r="37" fill="#080d1a" />
-          <circle cx="40" cy="40" r={trackRadius} fill="none" stroke={isBurning ? '#180a06' : '#0f172a'} strokeWidth="9.5" />
+          <circle cx="40" cy="40" r={trackRadius} fill="none" stroke={isBurning ? '#180a06' : '#0f172a'} strokeWidth="9" />
           <circle cx="40" cy="40" r="37" fill="none" stroke={`url(#${ringGradId})`} strokeWidth={isBurning ? '2.8' : '2.4'} />
-          <circle cx="40" cy="40" r="27.5" fill="none" stroke={isBurning ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.22)'} strokeWidth="1.8" />
+          <circle cx="40" cy="40" r="27" fill="none" stroke={isBurning ? 'rgba(255,140,0,0.5)' : 'rgba(255,255,255,0.22)'} strokeWidth="1.8" />
 
           {angles.map((angle, idx) => {
             const rad = (angle * Math.PI) / 180;
@@ -109,14 +110,14 @@ export function ProfileRankBadge({
                 <g key={idx}>
                   <path d={outer} fill={`url(#${flameOuterGradId})`} className="flame-tongue-outer" style={{ animationDelay: `${(idx * 0.18).toFixed(2)}s` }} />
                   <path d={inner} fill={`url(#${flameInnerGradId})`} className="flame-tongue-inner" style={{ animationDelay: `${(idx * 0.22 + 0.1).toFixed(2)}s` }} />
-                  <polygon points={points} fill={`url(#${starGradId})`} stroke="#7F1D1D" strokeWidth="0.5" filter={`url(#${glowFilterId})`} className="flame-star-core" style={{ animationDelay: `${(idx * 0.15).toFixed(2)}s` }} />
-                  <circle cx={sx} cy={sy - 5.5} r={0.65} fill="#FEF08A" className="flame-ember-1" style={{ animationDelay: `${(idx * 0.25).toFixed(2)}s` }} />
+                  <polygon points={points} fill={`url(#${starGradId})`} stroke="#7F1D1D" strokeWidth="0.4" filter={`url(#${glowFilterId})`} className="flame-star-core" style={{ animationDelay: `${(idx * 0.15).toFixed(2)}s` }} />
+                  <circle cx={sx} cy={sy - 4.5} r={0.55} fill="#FEF08A" className="flame-ember-1" style={{ animationDelay: `${(idx * 0.25).toFixed(2)}s` }} />
                 </g>
               );
             }
 
             return (
-              <polygon key={idx} points={points} fill={`url(#${starGradId})`} stroke="#78350F" strokeWidth="0.5" filter={`url(#${glowFilterId})`} />
+              <polygon key={idx} points={points} fill={`url(#${starGradId})`} stroke="#78350F" strokeWidth="0.4" filter={`url(#${glowFilterId})`} />
             );
           })}
         </svg>
