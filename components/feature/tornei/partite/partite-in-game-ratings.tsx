@@ -6,9 +6,7 @@ import { BADGE_ICONS, BADGE_TONES } from '@/components/feature/tornei/match/hono
 import { ConnectionBarsIcon } from '@/components/feature/tornei/match/match-feedback-icons';
 
 /**
- * Sezione "Valutazioni In-Game" (pagina /partite): i titoli ricevuti dagli
- * avversari, le segnalazioni (visibili solo a te) e la distribuzione dei
- * rapporti di connessione che hai inviato.
+ * Sezione Valutazioni In-Game con titoli, segnalazioni e rapporti di connessione.
  */
 export function PartiteInGameRatings({ feedback }: { feedback: MatchFeedbackSummary | null }) {
   if (!feedback) return null;
@@ -22,35 +20,34 @@ export function PartiteInGameRatings({ feedback }: { feedback: MatchFeedbackSumm
   const hasData = positive.length > 0 || negative.length > 0 || reportCount > 0;
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-header-bg/95 shadow-xl shadow-black/50 backdrop-blur-md">
+    <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 shadow-lg shadow-black/40 backdrop-blur-md">
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
+        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
       />
 
-      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
-        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-transparent to-white/15" />
-        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3 sm:px-5 sm:py-3.5">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
           Valutazioni In-Game
         </h2>
-        <span aria-hidden className="h-px flex-1 bg-gradient-to-l from-transparent to-white/15" />
-        <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white/60">
+        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold tabular-nums text-slate-300">
           {positive.length + negative.length + reportCount}
         </span>
       </div>
 
       {!hasData ? (
-        <div className="px-6 py-10 text-center">
-          <p className="text-sm font-bold text-white/70">Nessuna valutazione ancora</p>
-          <p className="mt-1 text-xs font-semibold text-white/45">
+        <div className="px-5 py-8 text-center">
+          <p className="text-xs font-bold text-white/70">Nessuna valutazione ancora</p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400">
             Al termine delle prossime battaglie, titoli e segnalazioni compariranno qui.
           </p>
         </div>
       ) : (
-        <div className="space-y-5 p-4 sm:p-5">
+        <div className="space-y-4 p-3.5 sm:p-4">
           {positive.length > 0 && (
             <div>
-              <p className="mb-2.5 text-[9px] font-black uppercase tracking-[0.18em] text-marquee/80">
+              <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-marquee/80">
                 Titoli ricevuti
               </p>
               <ul className="flex flex-wrap gap-2">
@@ -63,9 +60,9 @@ export function PartiteInGameRatings({ feedback }: { feedback: MatchFeedbackSumm
 
           {negative.length > 0 && (
             <div>
-              <p className="mb-2.5 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-red-300/70">
+              <p className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-rose-300/80">
                 Segnalazioni ricevute
-                <span className="rounded-full border border-red-400/20 bg-red-400/10 px-1.5 py-px text-[8px] font-bold tracking-[0.12em] text-red-300/60">
+                <span className="rounded-full border border-rose-400/20 bg-rose-400/10 px-1.5 py-px text-[8px] font-bold tracking-[0.10em] text-rose-300/70">
                   solo per te
                 </span>
               </p>
@@ -79,7 +76,7 @@ export function PartiteInGameRatings({ feedback }: { feedback: MatchFeedbackSumm
 
           {reportCount > 0 && (
             <div>
-              <p className="mb-2.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/40">
+              <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">
                 Connessioni da te segnalate
               </p>
               <ul className="flex flex-wrap gap-2">
@@ -104,15 +101,15 @@ function RatingMedal({ badge, count, dim }: { badge: MatchBadgeId; count: number
     <li
       title={def.description}
       className={cn(
-        'flex items-center gap-2 rounded-xl border px-3 py-2 transition-colors hover:bg-white/[0.05]',
+        'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-colors hover:bg-white/[0.05]',
         tone.medal,
       )}
     >
-      <Icon className={cn('h-5 w-5', dim ? 'text-white/45' : tone.icon)} />
+      <Icon className={cn('h-4 w-4', dim ? 'text-white/45' : tone.icon)} />
       <span className="text-[11px] font-bold text-white/85">{def.label}</span>
       <span
         className={cn(
-          'rounded-full bg-white/10 px-1.5 py-px text-[10px] font-black tabular-nums',
+          'rounded-full bg-white/10 px-1.5 py-px text-[9px] font-black tabular-nums',
           dim ? 'text-white/40' : 'text-white/70',
         )}
       >
@@ -135,10 +132,10 @@ function ConnectionMedal({
   const iconTone =
     level === 'smooth' ? 'text-emerald-400' : level === 'some_issues' ? 'text-amber-300' : 'text-rose-400';
   return (
-    <li className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-      <ConnectionBarsIcon level={level} className={cn('h-5 w-5', iconTone)} />
+    <li className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5">
+      <ConnectionBarsIcon level={level} className={cn('h-4 w-4', iconTone)} />
       <span className="text-[11px] font-bold text-white/85">{label}</span>
-      <span className="rounded-full bg-white/10 px-1.5 py-px text-[10px] font-black tabular-nums text-white/70">
+      <span className="rounded-full bg-white/10 px-1.5 py-px text-[9px] font-black tabular-nums text-white/70">
         {count}
       </span>
     </li>

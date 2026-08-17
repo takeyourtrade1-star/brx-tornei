@@ -68,8 +68,7 @@ function formatDuration(seconds: number): string {
 }
 
 /**
- * Registro delle battaglie: ogni esito ha il suo emblema animato e il
- * suo tono cromatico; le righe entrano in sequenza con un piccolo ritardo.
+ * Registro delle battaglie con righe compatte, contrasto elevato e micro-animazioni.
  */
 export function PartiteBattleLog({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats: ReputationSummaryData = reputation ?? {
@@ -84,32 +83,31 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
   const rows = stats.history.length > 0 ? stats.history : stats.recent;
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-header-bg/95 shadow-xl shadow-black/50 backdrop-blur-md">
+    <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 shadow-lg shadow-black/40 backdrop-blur-md">
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
+        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
       />
 
-      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
-        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-transparent to-white/15" />
-        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3 sm:px-5 sm:py-3.5">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
           Cronache di battaglia
         </h2>
-        <span aria-hidden className="h-px flex-1 bg-gradient-to-l from-transparent to-white/15" />
-        <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white/60">
+        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold tabular-nums text-slate-300">
           {rows.length}
         </span>
       </div>
 
       {rows.length === 0 ? (
-        <div className="px-6 py-16 text-center">
-          <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl border border-white/10 bg-white/5 text-white/30">
-            <ClashingSwordsIcon className="h-8 w-8" />
+        <div className="px-5 py-12 text-center">
+          <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-500">
+            <ClashingSwordsIcon className="h-6 w-6" />
           </span>
-          <p className="font-display text-lg font-black text-white/80">
+          <p className="font-display text-base font-bold text-white/80">
             Nessuna battaglia combattuta
           </p>
-          <p className="mx-auto mt-1.5 max-w-xs text-xs font-semibold leading-relaxed text-white/45">
+          <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-slate-400">
             Appena chiudi la prima partita, la cronaca della battaglia comparirà qui.
           </p>
         </div>
@@ -121,27 +119,27 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
             return (
               <li
                 key={index}
-                className="pt-row-in relative flex flex-wrap items-center gap-3.5 px-5 py-4 sm:flex-nowrap sm:px-6"
-                style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
+                className="pt-row-in relative flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03] sm:flex-nowrap sm:px-5 sm:py-3"
+                style={{ animationDelay: `${Math.min(index, 12) * 35}ms` }}
               >
                 <span
-                  className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${tone.badge}`}
+                  className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${tone.badge}`}
                 >
-                  <Icon className={`h-6 w-6 ${tone.iconColor}`} />
+                  <Icon className={`h-5 w-5 ${tone.iconColor}`} />
                 </span>
 
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold text-white">
+                  <span className="block truncate text-xs font-bold text-white sm:text-sm">
                     vs {m.opponentGamertag ?? 'Avversario'}
                   </span>
-                  <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  <span className="block text-[10px] font-medium text-slate-400">
                     {tone.flavor}
                   </span>
                 </span>
 
                 <span
                   className={cn(
-                    'shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em]',
+                    'shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em]',
                     tone.badge,
                     tone.text,
                   )}
@@ -149,7 +147,7 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
                   {tone.label}
                 </span>
 
-                <span className="shrink-0 text-right text-[11px] font-semibold tabular-nums text-white/45">
+                <span className="shrink-0 text-right text-[11px] font-medium tabular-nums text-slate-400">
                   {formatDuration(m.durationSeconds)} · {formatDate(m.createdAt)}
                 </span>
               </li>

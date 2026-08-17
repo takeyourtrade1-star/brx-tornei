@@ -72,9 +72,7 @@ function formatAvgTime(seconds: number): string {
 }
 
 /**
- * Griglia stats in cornice card-game: gemma, medaglione a rombo e
- * riflesso al passaggio. Icone SVG custom animate ognuna col suo loop
- * (vedi partite-stats-icons.tsx). Server Component puro.
+ * Griglia stats compatta con medaglioni rifiniti e animazioni delicate.
  */
 export function PartiteStatsGrid({
   reputation,
@@ -104,10 +102,10 @@ export function PartiteStatsGrid({
       value: stats.wins,
       Icon: CrownStatIcon,
       iconColor: 'text-marquee',
-      badge: 'border-marquee/40 bg-marquee/10',
+      badge: 'border-marquee/35 bg-marquee/10',
       gem: 'bg-marquee',
       ring: 'border-marquee/10',
-      glow: 'rgba(243,199,106,0.14)',
+      glow: 'rgba(243,199,106,0.12)',
     },
     {
       id: 'winrate',
@@ -115,10 +113,10 @@ export function PartiteStatsGrid({
       value: `${winRate}%`,
       Icon: CrystalStatIcon,
       iconColor: 'text-primary',
-      badge: 'border-primary/40 bg-primary/10',
+      badge: 'border-primary/35 bg-primary/10',
       gem: 'bg-primary',
       ring: 'border-primary/10',
-      glow: 'rgba(255,115,0,0.15)',
+      glow: 'rgba(255,115,0,0.12)',
     },
     {
       id: 'streak',
@@ -126,10 +124,10 @@ export function PartiteStatsGrid({
       value: longestStreak,
       Icon: FlameStatIcon,
       iconColor: 'text-orange-400',
-      badge: 'border-orange-400/35 bg-orange-400/10',
+      badge: 'border-orange-400/30 bg-orange-400/10',
       gem: 'bg-orange-400',
       ring: 'border-orange-400/10',
-      glow: 'rgba(251,146,60,0.14)',
+      glow: 'rgba(251,146,60,0.12)',
     },
     {
       id: 'played',
@@ -137,10 +135,10 @@ export function PartiteStatsGrid({
       value: stats.played,
       Icon: ClashingSwordsIcon,
       iconColor: 'text-sky-400',
-      badge: 'border-sky-400/35 bg-sky-400/10',
+      badge: 'border-sky-400/30 bg-sky-400/10',
       gem: 'bg-sky-400',
       ring: 'border-sky-400/10',
-      glow: 'rgba(56,189,248,0.12)',
+      glow: 'rgba(56,189,248,0.10)',
     },
     {
       id: 'time',
@@ -148,10 +146,10 @@ export function PartiteStatsGrid({
       value: formatTotalTime(totalSeconds),
       Icon: HourglassStatIcon,
       iconColor: 'text-cyan-400',
-      badge: 'border-cyan-400/35 bg-cyan-400/10',
+      badge: 'border-cyan-400/30 bg-cyan-400/10',
       gem: 'bg-cyan-400',
       ring: 'border-cyan-400/10',
-      glow: 'rgba(34,211,238,0.12)',
+      glow: 'rgba(34,211,238,0.10)',
     },
     {
       id: 'avg_time',
@@ -159,10 +157,10 @@ export function PartiteStatsGrid({
       value: formatAvgTime(avgSeconds),
       Icon: WatchStatIcon,
       iconColor: 'text-indigo-400',
-      badge: 'border-indigo-400/35 bg-indigo-400/10',
+      badge: 'border-indigo-400/30 bg-indigo-400/10',
       gem: 'bg-indigo-400',
       ring: 'border-indigo-400/10',
-      glow: 'rgba(129,140,248,0.12)',
+      glow: 'rgba(129,140,248,0.10)',
     },
     {
       id: 'losses',
@@ -170,10 +168,10 @@ export function PartiteStatsGrid({
       value: stats.losses,
       Icon: SkullStatIcon,
       iconColor: 'text-rose-400',
-      badge: 'border-rose-400/35 bg-rose-400/10',
+      badge: 'border-rose-400/30 bg-rose-400/10',
       gem: 'bg-rose-400',
       ring: 'border-rose-400/10',
-      glow: 'rgba(251,113,133,0.12)',
+      glow: 'rgba(251,113,133,0.10)',
     },
     {
       id: 'fairplay',
@@ -181,15 +179,15 @@ export function PartiteStatsGrid({
       value: `${fairPlayRate}%`,
       Icon: ShieldStatIcon,
       iconColor: 'text-teal-400',
-      badge: 'border-teal-400/35 bg-teal-400/10',
+      badge: 'border-teal-400/30 bg-teal-400/10',
       gem: 'bg-teal-400',
       ring: 'border-teal-400/10',
-      glow: 'rgba(45,212,191,0.12)',
+      glow: 'rgba(45,212,191,0.10)',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4 sm:gap-4">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
       {tiles.map((tile) => (
         <StatBadgeCard key={tile.id} tile={tile} />
       ))}
@@ -200,10 +198,10 @@ export function PartiteStatsGrid({
 function StatBadgeCard({ tile }: { tile: StatTile }) {
   const Icon = tile.Icon;
   return (
-    <div className="group relative flex min-h-[136px] flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-header-bg/90 p-4 pt-6 text-center shadow-xl shadow-black/50 backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-white/25 hover:shadow-2xl hover:shadow-black/60">
+    <div className="group relative flex min-h-[108px] flex-col items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-slate-950/70 p-3 text-center shadow-lg shadow-black/40 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-slate-900/80 sm:min-h-[116px]">
       <span
         aria-hidden
-        className={`pointer-events-none absolute inset-1.5 rounded-xl border ${tile.ring}`}
+        className={`pointer-events-none absolute inset-1 rounded-lg border ${tile.ring}`}
       />
       <span
         aria-hidden
@@ -212,27 +210,20 @@ function StatBadgeCard({ tile }: { tile: StatTile }) {
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
+        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
       />
-      <span
-        aria-hidden
-        className={`absolute left-1/2 top-1.5 h-2 w-2 -translate-x-1/2 rotate-45 rounded-[2px] ${tile.gem}`}
-      >
-        <span aria-hidden className="pt-gem-glint absolute inset-0 rounded-[2px] bg-white/80" />
-      </span>
-      <span aria-hidden className="pt-shine" />
 
       <span
-        className={`relative mb-2.5 grid h-11 w-11 rotate-45 place-items-center rounded-[10px] border bg-black/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${tile.badge}`}
+        className={`relative mb-1.5 grid h-8 w-8 rotate-45 place-items-center rounded-lg border bg-black/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${tile.badge}`}
       >
-        <Icon className={`h-5 w-5 -rotate-45 ${tile.iconColor}`} />
+        <Icon className={`h-4 w-4 -rotate-45 ${tile.iconColor}`} />
       </span>
 
-      <span className="relative font-display text-2xl font-black tabular-nums tracking-tight text-white sm:text-[1.7rem]">
+      <span className="relative font-display text-xl font-black tabular-nums tracking-tight text-white sm:text-2xl">
         {tile.value}
       </span>
 
-      <span className="relative mt-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-white/50 transition-colors duration-200 group-hover:text-white/75">
+      <span className="relative mt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400 transition-colors duration-200 group-hover:text-slate-300">
         {tile.label}
       </span>
     </div>
