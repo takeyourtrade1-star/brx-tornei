@@ -7,6 +7,7 @@ import type { SessionUser } from '@/types/auth';
 import type { Deck } from '@/types/deck';
 import type { CreateDeckInput } from '@/lib/validations/deck';
 import type { PlaymatId } from '@/lib/playmats';
+import type { ReputationSummary } from '@/lib/data/player-api-client';
 import { DeckBuilder } from './deck-builder';
 import { DeckList } from './deck-list';
 import { DeckPlaymatSettings } from './deck-playmat-settings';
@@ -18,9 +19,16 @@ interface MazziWorkspaceProps {
   /** Gamertag torneo-only mostrato nell'header al posto di email/username. */
   gamertag?: string;
   defaultPlaymatId: PlaymatId;
+  reputation?: ReputationSummary | null;
 }
 
-export function MazziWorkspace({ initialDecks, user, gamertag, defaultPlaymatId }: MazziWorkspaceProps) {
+export function MazziWorkspace({
+  initialDecks,
+  user,
+  gamertag,
+  defaultPlaymatId,
+  reputation,
+}: MazziWorkspaceProps) {
   const [deckView, setDeckView] = useState<'list' | 'builder'>('list');
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
 
@@ -72,7 +80,7 @@ export function MazziWorkspace({ initialDecks, user, gamertag, defaultPlaymatId 
 
   return (
     <div className="min-h-screen">
-      <DashboardHeader user={user} displayName={gamertag} />
+      <DashboardHeader user={user} displayName={gamertag} reputation={reputation} />
 
       <div className="mx-auto w-full max-w-content px-4 py-6 sm:px-6">
         <header className="mb-5 rounded-2xl border border-slate-900/[0.08] bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-7 sm:py-6">

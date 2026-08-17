@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Gamepad2, Layers, Star, Swords } from 'lucide-react';
+import { Gamepad2, Layers, Swords } from 'lucide-react';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 import { ProfileDrawer } from '@/components/feature/profile/profile-drawer';
+import { ProfileRankBadge } from '@/components/feature/profile/profile-rank-badge';
+import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
-import { getAvatarById, getSavedAvatarId } from '@/lib/avatars';
+import { getSavedAvatarId } from '@/lib/avatars';
 import { cn } from '@/lib/utils';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { SessionUser } from '@/types/auth';
@@ -23,12 +25,14 @@ interface DashboardHeaderProps {
   reputation?: ReputationSummary | null;
 }
 
+/** Cache client in-memory della reputazione per evitare sfarfallii durante la navigazione. */
+let lastKnownReputation: ReputationSummary | null = null;
+
 /**
  * Header dashboard tornei — Mazzi e Partite sono le azioni primarie; profilo,
  * ritorno al minigioco e logout restano controlli secondari e più discreti.
- * Il widget profilo mostra l'avatar gaming personalizzabile in un cerchio di
- * grado, con stelline ad arco che partono dal basso a destra (1★ di base,
- * +1★ ogni 5 vittorie).
+ * Il widget profilo mostra l'avatar gaming in un cerchio di grado dorato
+ * con stelline simmetriche e gamertag centrato.
  */
 export function DashboardHeader({
   user,
@@ -41,7 +45,27 @@ export function DashboardHeader({
   const shownName = displayName ?? user.name ?? user.email;
   const [profileOpen, setProfileOpen] = useState(false);
   const [avatarId, setAvatarId] = useState(() => getSavedAvatarId());
+  const [currentReputation, setCurrentReputation] = useState<ReputationSummary | null>(
+    () => reputation ?? lastKnownReputation,
+  );
 
+  // Sincronizza se la prop cambia dall'SSR
+  useEffect(() => {
+    if (reputation) {
+      lastKnownReputation = reputation;
+      setCurrentReputation(reputation);
+    } else if (!lastKnownReputation) {
+      // Fetch in background se la pagina non ha fornito la reputazione
+      fetchMyAchievementsAction().then((res) => {
+        if (res.ok) {
+          lastKnownReputation = res.reputation;
+          setCurrentReputation(res.reputation);
+        }
+      });
+    }
+  }, [reputation]);
+
+  // Ascolta aggiornamenti dell'avatar
   useEffect(() => {
     const handleAvatarChange = (e: Event) => {
       const customEvent = e as CustomEvent<{ avatarId: string }>;
@@ -53,10 +77,18 @@ export function DashboardHeader({
     return () => window.removeEventListener('ebartex-avatar-changed', handleAvatarChange);
   }, []);
 
-  const activeAvatar = getAvatarById(avatarId);
-  const AvatarIcon = activeAvatar.icon;
-  // Grado attuale: si parte da 1★; ogni 5 vittorie ne arriva una in più.
-  const rankStars = rankStarsForWins(reputation?.wins ?? 0);
+  // Ascolta aggiornamenti della reputazione (es. fine partita)
+  useEffect(() => {
+    const handleReputationUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ reputation: ReputationSummary }>;
+      if (customEvent.detail?.reputation) {
+        lastKnownReputation = customEvent.detail.reputation;
+        setCurrentReputation(customEvent.detail.reputation);
+      }
+    };
+    window.addEventListener('ebartex-reputation-updated', handleReputationUpdate);
+    return () => window.removeEventListener('ebartex-reputation-updated', handleReputationUpdate);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full font-sans text-white">
@@ -98,45 +130,14 @@ export function DashboardHeader({
             </button>
           )}
 
-          {/* Widget Profilo con Cerchio Grado: stelline piccole disposte ad arco
-              sul bordo, partendo dal basso a destra — più vittorie, più stelline. */}
+          {/* Widget Profilo con Cerchio di Grado e Stelle Pixel-Perfect */}
           <div className="relative flex items-center justify-center py-1 sm:py-1.5">
-            <button
-              type="button"
+            <ProfileRankBadge
+              avatarId={avatarId}
+              gamertag={shownName}
+              wins={currentReputation?.wins ?? 0}
               onClick={() => setProfileOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={profileOpen}
-              aria-label={`Apri il profilo di ${shownName}`}
-              className="group relative flex flex-col items-center justify-center focus-visible:outline-none"
-            >
-              {/* Cerchio del Grado (Rank Ring) che avvolge l'icona; le stelline
-                  poggiano sul bordo, in arco dal basso-destra verso l'alto. */}
-              {/* --rank-ring: raggio dell'arco stelline, DENTRO il bordo del
-                  cerchio (27px mobile / 33px sm) così restano interne al ring. */}
-              <div className="relative grid place-items-center rounded-full border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/25 via-slate-950/90 to-slate-950 p-1.5 shadow-[0_0_22px_rgba(255,115,0,0.4)] transition-transform [--rank-ring:27px] group-hover:scale-105 group-hover:border-amber-300 sm:[--rank-ring:33px]">
-                {/* Icona Avatar centrale */}
-                <div
-                  className={cn(
-                    'grid h-[52px] w-[52px] place-items-center rounded-full border-2 border-white/30 bg-gradient-to-b from-slate-900 via-header-bg to-black p-2.5 shadow-2xl transition-all sm:h-16 sm:w-16 sm:p-3',
-                    activeAvatar.bgGradient,
-                  )}
-                >
-                  <AvatarIcon
-                    className={cn(
-                      'h-6 w-6 transition-transform group-hover:scale-110 sm:h-8 sm:w-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]',
-                      activeAvatar.color,
-                    )}
-                  />
-                </div>
-
-                <RankStarsRing count={rankStars} />
-              </div>
-
-              {/* Gamertag sovrapposto in basso: mezzo dentro e mezzo fuori dal cerchio */}
-              <span className="absolute -bottom-2.5 z-20 inline-flex max-w-[6rem] items-center justify-center truncate rounded-full border border-white/25 bg-slate-950/95 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-xl backdrop-blur-md transition-colors group-hover:border-primary/70 group-hover:text-primary sm:max-w-[8.5rem] sm:text-[10px]">
-                {shownName}
-              </span>
-            </button>
+            />
           </div>
         </div>
       </div>
@@ -145,50 +146,9 @@ export function DashboardHeader({
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
         gamertag={shownName}
-        initialReputation={reputation}
+        initialReputation={currentReputation}
       />
     </header>
-  );
-}
-
-/**
- * Stelline di grado sul bordo del cerchio profilo: partono dal basso a destra
- * e risalgono l'arco destro del ring. Regola: si inizia da 1★ e ogni 5 vittorie
- * se ne conquista una in più, fino a riempire l'arco (MAX_RANK_STARS).
- */
-const MAX_RANK_STARS = 9;
-
-function rankStarsForWins(wins: number): number {
-  return Math.min(MAX_RANK_STARS, 1 + Math.floor(Math.max(0, wins) / 5));
-}
-
-function RankStarsRing({ count }: { count: number }) {
-  // Arco di 90° sul lato destro del cerchio, "sollevato" dal basso: inizia a
-  // +45° (basso-destra, sopra la pill del gamertag che occupa il centro-basso)
-  // e sale fino a -45° (alto-destra). Ogni stellina resta dritta grazie alla
-  // contro-rotazione.
-  return (
-    <>
-      <span className="sr-only">
-        Grado {count} {count === 1 ? 'stella' : 'stelle'}
-      </span>
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        {Array.from({ length: count }, (_, i) => {
-          const angle = 45 - (i * 90) / (MAX_RANK_STARS - 1);
-          return (
-            <span
-              key={i}
-              className="absolute left-1/2 top-1/2 -ml-[5px] -mt-[5px]"
-              style={{
-                transform: `rotate(${angle}deg) translateX(var(--rank-ring)) rotate(${-angle}deg)`,
-              }}
-            >
-              <Star className="h-2.5 w-2.5 fill-amber-300 text-amber-300 drop-shadow-[0_0_3px_rgba(245,158,11,0.9)]" />
-            </span>
-          );
-        })}
-      </div>
-    </>
   );
 }
 

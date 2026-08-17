@@ -11,6 +11,7 @@ import { GAME_AVATARS, getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import { cn } from '@/lib/utils';
 import { AchievementCard, AchievementSummary } from './achievement-card';
+import { ProfileRankBadge } from './profile-rank-badge';
 
 interface ProfileDrawerProps {
   open: boolean;
@@ -92,8 +93,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
     let cancelled = false;
     fetchMyAchievementsAction()
       .then((res) => {
-        if (cancelled) return;
-        setState(res.ok ? { status: 'success', reputation: res.reputation } : { status: 'error', message: res.error });
+        if (!cancelled) setState(res.ok ? { status: 'success', reputation: res.reputation } : { status: 'error', message: res.error });
       })
       .catch((err: unknown) => {
         if (!cancelled) setState({ status: 'error', message: err instanceof Error ? err.message : 'Errore di rete' });
@@ -125,20 +125,29 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
         onClick={(e) => e.stopPropagation()}
       >
         {/* Testata */}
-        <header className="relative flex items-start justify-between gap-3 border-b border-slate-900/[0.06] px-6 py-5">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Profilo torneo
-            </p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-header-bg">
-              {gamertag}
-            </h2>
-            {state.status === 'success' && (
-              <p className="mt-1 text-xs font-semibold text-slate-500">
-                {state.reputation.played} partite · {state.reputation.wins} vinte ·{' '}
-                {state.reputation.losses} perse
+        <header className="relative flex items-center justify-between gap-3 border-b border-slate-900/[0.06] px-6 py-5">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <ProfileRankBadge
+              avatarId={selectedAvatarId}
+              gamertag={gamertag}
+              wins={state.status === 'success' ? state.reputation.wins : 0}
+              interactive={false}
+              hidePill
+            />
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                Profilo torneo
               </p>
-            )}
+              <h2 className="mt-0.5 truncate text-lg font-black tracking-tight text-header-bg sm:text-xl">
+                {gamertag}
+              </h2>
+              {state.status === 'success' && (
+                <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                  {state.reputation.played} partite · {state.reputation.wins} vinte ·{' '}
+                  {state.reputation.losses} perse
+                </p>
+              )}
+            </div>
           </div>
           <button
             ref={closeRef}
@@ -193,10 +202,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
           )}
 
           {state.status === 'error' && (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
-            >
+            <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {state.message}
             </p>
           )}
@@ -204,13 +210,11 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
           {state.status === 'success' && (
             <>
               <AchievementSummary achievements={achievements} />
-
               <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {achievements.map((a) => (
                   <AchievementCard key={a.id} achievement={a} />
                 ))}
               </ul>
-
               <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-400">
                 I badge si sbloccano giocando: ogni partita conclusa aggiorna lo stato. Nessuno è
                 segreto — accumula vittorie e buon comportamento.
