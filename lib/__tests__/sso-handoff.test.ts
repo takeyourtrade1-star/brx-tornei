@@ -97,7 +97,7 @@ describe('SSO Ebartex -> Tornei', () => {
     expect(response.cookies.get(SSO_VERIFIER_COOKIE)).toBeUndefined();
   });
 
-  it('riusa una sessione Tornei ancora attiva senza crearne un altra', async () => {
+  it('sincronizza sempre la sessione Ebartex -> Tornei anche se e presente un cookie locale', async () => {
     const response = await startSso(
       new NextRequest(
         'https://tornei.ebartex.com/auth/bridge/sso/start?next=%2Fpartite',
@@ -105,9 +105,11 @@ describe('SSO Ebartex -> Tornei', () => {
       ),
     );
 
-    expect(response.headers.get('location')).toBe('https://tornei.ebartex.com/partite');
-    expect(response.cookies.get(SSO_VERIFIER_COOKIE)).toBeUndefined();
-    expect(fetchMock).not.toHaveBeenCalled();
+    const location = new URL(response.headers.get('location')!);
+    expect(location.href).toMatch(
+      /^https:\/\/www\.ebartex\.com\/api\/auth\/sso\/authorize\?/,
+    );
+    expect(response.cookies.get(SSO_VERIFIER_COOKIE)).toBeDefined();
   });
 
   it('scambia il code solo server-to-server e imposta cookie host-only', async () => {

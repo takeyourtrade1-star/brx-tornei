@@ -20,14 +20,8 @@ function loginRedirect(next: string): NextResponse {
   return hardenSsoResponse(NextResponse.redirect(url));
 }
 
-/** Avvia l'handoff senza esporre token o verifier a URL e JavaScript. */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const next = sanitizeRedirect(request.nextUrl.searchParams.get('next'));
-  if (isValidAuthCookieToken(request.cookies.get(config.auth.accessCookie)?.value)) {
-    return hardenSsoResponse(
-      NextResponse.redirect(new URL(next, config.app.siteUrl)),
-    );
-  }
   const ssoConfig = getSsoHandoffConfig();
   if (!ssoConfig) return loginRedirect(next);
 
