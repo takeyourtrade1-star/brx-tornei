@@ -62,19 +62,6 @@ export function OnboardingView({
             </section>
           </div>
         </main>
-
-        {/* Footer discreto con note di supporto */}
-        <footer className="relative z-10 border-t border-white/5 py-4 text-center text-xs text-white/40">
-          <p>
-            Ebartex Tournaments · Hai bisogno di aiuto? Scrivici a{' '}
-            <a
-              href="mailto:ebartex.service@gmail.com"
-              className="text-white/60 underline hover:text-white"
-            >
-              ebartex.service@gmail.com
-            </a>
-          </p>
-        </footer>
       </div>
     </div>
   );
