@@ -9,23 +9,42 @@ vi.mock('@/lib/data/tournament-api-client', () => ({
 
 import {
   friendRequestSchema,
+  removeFriendSchema,
+  respondFriendRequestSchema,
+  respondGameChallengeSchema,
   searchPlayersSchema,
   sendGameChallengeSchema,
 } from '@/lib/validations/social';
-import { mapPresence } from '@/lib/data/social-mock-store';
+import {
+  buildFallbackPublicProfile,
+  getAvatarIdForGamertag,
+  mapPresence,
+} from '@/lib/data/social-mock-store';
 
-describe('Social Validations & Privacy Bucketing', () => {
-  it('valida la ricerca di giocatori correttamente', () => {
+describe('Social Validations, Scalability & Privacy Bucketing', () => {
+  it('valida la ricerca di giocatori con limiti corretti', () => {
     expect(searchPlayersSchema.safeParse({ query: 'Al' }).success).toBe(true);
     expect(searchPlayersSchema.safeParse({ query: 'A' }).success).toBe(false);
     expect(searchPlayersSchema.safeParse({ query: 'Alex_TCG' }).success).toBe(true);
     expect(searchPlayersSchema.safeParse({ query: 'Invalid<script>' }).success).toBe(false);
+    expect(searchPlayersSchema.safeParse({ query: 'a'.repeat(35) }).success).toBe(false);
   });
 
-  it('valida le richieste di amicizia su gamertag leciti', () => {
+  it('valida le richieste di amicizia e rimozione su gamertag leciti', () => {
     expect(friendRequestSchema.safeParse({ gamertag: 'Alex99' }).success).toBe(true);
     expect(friendRequestSchema.safeParse({ gamertag: 'ab' }).success).toBe(false);
     expect(friendRequestSchema.safeParse({ gamertag: 'invalid name with space' }).success).toBe(false);
+    expect(removeFriendSchema.safeParse({ gamertag: 'Kurogane' }).success).toBe(true);
+    expect(removeFriendSchema.safeParse({ gamertag: 'ab' }).success).toBe(false);
+  });
+
+  it('valida le risposte a richieste e sfide', () => {
+    expect(respondFriendRequestSchema.safeParse({ requestId: 'r-1', action: 'accept' }).success).toBe(true);
+    expect(respondFriendRequestSchema.safeParse({ requestId: 'r-1', action: 'decline' }).success).toBe(true);
+    expect(respondFriendRequestSchema.safeParse({ requestId: 'r-1', action: 'invalid' }).success).toBe(false);
+
+    expect(respondGameChallengeSchema.safeParse({ challengeId: 'ch-1', action: 'accept' }).success).toBe(true);
+    expect(respondGameChallengeSchema.safeParse({ challengeId: 'ch-1', action: 'decline' }).success).toBe(true);
   });
 
   it('valida i parametri di una sfida diretta', () => {
@@ -57,5 +76,20 @@ describe('Social Validations & Privacy Bucketing', () => {
     // Offline (> 48 ore)
     expect(mapPresence(49 * 60, false)).toBe('offline');
     expect(mapPresence(10000, false)).toBe('offline');
+  });
+
+  it('assegna avatar deterministici e profili pubblici senza esporre dati sensibili', () => {
+    const avatar1 = getAvatarIdForGamertag('PlayerOne');
+    const avatar2 = getAvatarIdForGamertag('PlayerOne');
+    expect(avatar1).toBe(avatar2);
+
+    const profile = buildFallbackPublicProfile('TestOpponent', 'MyGamertag');
+    expect(profile.gamertag).toBe('TestOpponent');
+    expect(profile.stats.played).toBeGreaterThanOrEqual(0);
+    expect(profile.stats.wins).toBeGreaterThanOrEqual(0);
+    expect(profile.honorBadges.friendly).toBeGreaterThanOrEqual(0);
+    // Verifica che non esistano campi sensibili esposti
+    expect('email' in profile).toBe(false);
+    expect('token' in profile).toBe(false);
   });
 });

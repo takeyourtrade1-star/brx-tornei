@@ -108,6 +108,11 @@ export async function sendFriendRequestAction(gamertag: string): Promise<SocialA
   if (!parsed.success) return { ok: false, error: 'Gamertag non valido.' };
 
   try {
+    const myGamertag = await fetchMyGamertag().catch(() => null);
+    if (myGamertag && myGamertag.toLowerCase() === parsed.data.gamertag.toLowerCase()) {
+      return { ok: false, error: 'Non puoi inviare una richiesta a te stesso.' };
+    }
+
     await postSendFriendRequest(parsed.data.gamertag);
     revalidatePath('/tornei');
     return { ok: true };
@@ -167,11 +172,13 @@ export async function sendGameChallengeAction(
 
   try {
     const myGamertag = (await fetchMyGamertag().catch(() => null)) ?? session.user.name ?? 'Player';
-    const myAvatarId = 'crown';
+    if (myGamertag.toLowerCase() === parsed.data.targetGamertag.toLowerCase()) {
+      return { ok: false, error: 'Non puoi sfidare te stesso.' };
+    }
 
     const challenge = await postCreateGameChallenge({
       challengerGamertag: myGamertag,
-      challengerAvatarId: myAvatarId,
+      challengerAvatarId: 'crown',
       recipientGamertag: parsed.data.targetGamertag,
       format: parsed.data.format,
       bestOf: parsed.data.bestOf,

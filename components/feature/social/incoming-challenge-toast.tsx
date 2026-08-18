@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Flame, Swords, X } from 'lucide-react';
+import { Check, Swords, X } from 'lucide-react';
 import { checkIncomingChallengeAction, respondGameChallengeAction } from '@/actions/social';
 import type { DirectGameChallenge } from '@/types/social';
 import { getAvatarById } from '@/lib/avatars';

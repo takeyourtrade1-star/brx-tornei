@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Flame, Swords, X } from 'lucide-react';
+import { Check, Swords, X } from 'lucide-react';
 import { FORMATS } from '@/lib/data/catalog';
 import { sendGameChallengeAction } from '@/actions/social';
 import { Button } from '@/components/ui/button';
@@ -28,8 +28,14 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
     if (!open) {
       setSending(false);
       setSent(false);
+      return;
     }
-  }, [open]);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
 
   if (!open || !mounted || !targetGamertag) return null;
 
