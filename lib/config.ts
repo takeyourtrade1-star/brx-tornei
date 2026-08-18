@@ -29,21 +29,26 @@ function isIPLiteral(hostname: string): boolean {
   return isIPv4Literal(hostname) || hostname.includes(':') || hostname.includes('[');
 }
 
-function trustedUpstreamHosts(): ReadonlySet<string> | null {
+const DEFAULT_TRUSTED_HOSTS = new Set([
+  'api.ebartex.com',
+  'sync.ebartex.com',
+  'api-tornei.ebartex.com',
+]);
+
+function trustedUpstreamHosts(): ReadonlySet<string> {
+  const hosts = new Set<string>(DEFAULT_TRUSTED_HOSTS);
   const raw = process.env.TRUSTED_UPSTREAM_HOSTS;
-  if (!raw?.trim()) return null;
-  const values = raw.split(',').map((value) => value.trim());
-  if (values.some((value) => !value)) return null;
-  const hosts = new Set<string>();
-  for (const host of values) {
-    if (
-      host !== host.toLowerCase() ||
-      isIPLiteral(host) ||
-      !DNS_HOSTNAME.test(host)
-    ) {
-      return null;
+  if (raw?.trim()) {
+    const values = raw.split(',').map((value) => value.trim());
+    for (const host of values) {
+      if (
+        host === host.toLowerCase() &&
+        !isIPLiteral(host) &&
+        DNS_HOSTNAME.test(host)
+      ) {
+        hosts.add(host);
+      }
     }
-    hosts.add(host);
   }
   return hosts;
 }
@@ -76,7 +81,7 @@ export function trustedUpstreamOrigin(raw: string | undefined): string {
       if (
         url.protocol !== 'https:' ||
         url.port ||
-        !hosts?.has(url.hostname.toLowerCase())
+        !hosts.has(url.hostname.toLowerCase())
       ) {
         return '';
       }
@@ -101,29 +106,19 @@ export function trustedUpstreamOrigin(raw: string | undefined): string {
  * baseURL vuoto (proxy → 503, bridge → redirect /login, action → errore tipizzato).
  */
 const getAuthApiURL = (): string => {
-  const envUrl = process.env.AUTH_API_URL || '';
-  if (!envUrl) {
-    console.warn('[Config] AUTH_API_URL non configurato (vedi .env.example).');
-    return '';
-  }
+  const envUrl = process.env.AUTH_API_URL || 'https://api.ebartex.com';
   return trustedUpstreamOrigin(envUrl);
 };
 
 /** URL del microservizio Sync (BRX Sync) — usato per l'inventario utente. */
 const getSyncApiURL = (): string => {
-  const envUrl = process.env.SYNC_API_URL || '';
-  if (!envUrl && isDevelopment) {
-    console.warn('[Config] SYNC_API_URL non configurato.');
-  }
+  const envUrl = process.env.SYNC_API_URL || 'https://sync.ebartex.com';
   return trustedUpstreamOrigin(envUrl);
 };
 
 /** URL del Tournament Service — CRUD tornei, join, signaling. */
 const getTournamentsApiURL = (): string => {
-  const envUrl = process.env.TOURNAMENTS_API_URL || '';
-  if (!envUrl && isDevelopment) {
-    console.warn('[Config] TOURNAMENTS_API_URL non configurato.');
-  }
+  const envUrl = process.env.TOURNAMENTS_API_URL || 'https://api-tornei.ebartex.com';
   return trustedUpstreamOrigin(envUrl);
 };
 
