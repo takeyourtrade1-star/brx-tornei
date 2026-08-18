@@ -74,6 +74,7 @@ export const mockRequestsStore = new Map<string, FriendRequestItem[]>([
 
 export const mockChallengesStore = new Map<string, DirectGameChallenge>();
 export const mockDndStore = new Map<string, number>();
+export const mockEbartexVisibilityStore = new Map<string, boolean>();
 
 export function isPlayerDnd(gamertag: string): boolean {
   const expiresAt = mockDndStore.get(gamertag.toLowerCase());
@@ -87,6 +88,15 @@ export function isPlayerDnd(gamertag: string): boolean {
 
 export function setPlayerDnd(gamertag: string, durationMinutes = 60): void {
   mockDndStore.set(gamertag.toLowerCase(), Date.now() + durationMinutes * 60 * 1000);
+}
+
+export function isEbartexProfileVisible(gamertag: string): boolean {
+  const pref = mockEbartexVisibilityStore.get(gamertag.toLowerCase());
+  return pref !== false;
+}
+
+export function setEbartexProfileVisible(gamertag: string, visible: boolean): void {
+  mockEbartexVisibilityStore.set(gamertag.toLowerCase(), visible);
 }
 
 /** Mappa la presenza preservando la privacy: zero timestamp precisi */
@@ -105,6 +115,7 @@ export function mapPresence(
 export function buildFallbackPublicProfile(
   targetGamertag: string,
   myGamertag?: string | null,
+  myEbartexUsername?: string | null,
 ): PublicPlayerProfile {
   const normalized = targetGamertag.trim();
   const isSelf = Boolean(myGamertag && myGamertag.toLowerCase() === normalized.toLowerCase());
@@ -121,6 +132,7 @@ export function buildFallbackPublicProfile(
   const dnd = isPlayerDnd(normalized);
   const presenceList: FriendPresenceStatus[] = ['online', 'in_game', 'recent', 'offline'];
   const presence = dnd ? 'dnd' : isSelf ? 'online' : presenceList[hash % presenceList.length];
+  const showEbartex = isEbartexProfileVisible(normalized);
 
   return {
     gamertag: normalized,
@@ -145,5 +157,7 @@ export function buildFallbackPublicProfile(
     },
     friendship: isSelf ? 'self' : isFriend ? 'friend' : 'none',
     isBot: isMockBot(normalized),
+    showEbartexProfile: showEbartex,
+    ebartexUsername: isSelf ? (myEbartexUsername ?? null) : showEbartex ? normalized.toLowerCase() : null,
   };
 }

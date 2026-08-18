@@ -204,7 +204,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
 
           {/* Link al profilo marketplace Ebartex */}
           <a
-            href={getEbartexProfileUrl(gamertag)}
+            href={getEbartexProfileUrl()}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-900/[0.08] bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800"

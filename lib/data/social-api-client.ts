@@ -34,6 +34,7 @@ export {
 export async function fetchPublicProfile(
   targetGamertag: string,
   myGamertag?: string | null,
+  myEbartexUsername?: string | null,
 ): Promise<PublicPlayerProfile | null> {
   const isSelf = Boolean(
     myGamertag && targetGamertag.trim().toLowerCase() === myGamertag.trim().toLowerCase(),
@@ -70,6 +71,9 @@ export async function fetchPublicProfile(
             punctual: realFeedbackMap['punctual'] ?? 0,
           };
         }
+        if (isSelf && myEbartexUsername) {
+          data.ebartexUsername = myEbartexUsername;
+        }
         return data;
       }
     }
@@ -77,7 +81,7 @@ export async function fetchPublicProfile(
     // Fallback a dati simulati
   }
 
-  const profile = buildFallbackPublicProfile(targetGamertag, myGamertag);
+  const profile = buildFallbackPublicProfile(targetGamertag, myGamertag, myEbartexUsername);
 
   if (isSelf) {
     try {

@@ -38,6 +38,10 @@ export interface PublicPlayerProfile {
   friendship: FriendshipRelation;
   dndUntil?: number;
   isBot?: boolean;
+  /** Nome utente reale dell'account sul marketplace Ebartex (se visibile) */
+  ebartexUsername?: string | null;
+  /** Permesso di visibilità del profilo Ebartex agli altri utenti */
+  showEbartexProfile?: boolean;
 }
 
 export interface FriendSummary {
@@ -49,6 +53,7 @@ export interface FriendSummary {
   dailyWins: number;
   dndUntil?: number;
   isBot?: boolean;
+  ebartexUsername?: string | null;
 }
 
 export interface FriendRequestItem {

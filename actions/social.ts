@@ -13,7 +13,7 @@ import {
   postSendFriendRequest,
   searchPlayers,
 } from '@/lib/data/social-api-client';
-import { setPlayerDnd } from '@/lib/data/social-mock-store';
+import { setEbartexProfileVisible, setPlayerDnd } from '@/lib/data/social-mock-store';
 import {
   friendRequestSchema,
   removeFriendSchema,
@@ -38,7 +38,8 @@ export async function getPublicProfileAction(
 
   try {
     const myGamertag = await fetchMyGamertag().catch(() => null);
-    const profile = await fetchPublicProfile(parsed.data.gamertag, myGamertag);
+    const myEbartexUsername = session.user.name ?? null;
+    const profile = await fetchPublicProfile(parsed.data.gamertag, myGamertag, myEbartexUsername);
     if (!profile) return { ok: false, error: 'Profilo giocatore non trovato.' };
     return { ok: true, data: profile };
   } catch (err) {
@@ -178,6 +179,22 @@ export async function setSocialDndAction(active: boolean, durationMinutes = 60):
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Impossibile aggiornare lo stato.';
+    return { ok: false, error: message };
+  }
+}
+
+export async function setSocialEbartexVisibilityAction(visible: boolean): Promise<SocialActionState> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Sessione non valida.' };
+
+  try {
+    const myGamertag = await fetchMyGamertag().catch(() => null);
+    if (myGamertag) {
+      setEbartexProfileVisible(myGamertag, visible);
+    }
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Impossibile aggiornare la visibilità.';
     return { ok: false, error: message };
   }
 }

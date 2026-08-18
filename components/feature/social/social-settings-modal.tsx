@@ -2,10 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, BellOff, ExternalLink, Settings, ShieldCheck, X } from 'lucide-react';
-import { getDndStatus, getEbartexProfileUrl, setDndStatus } from '@/lib/social-preferences';
-import { setSocialDndAction } from '@/actions/social';
-import { Button } from '@/components/ui/button';
+import { Bell, BellOff, Eye, EyeOff, ExternalLink, Settings, ShieldCheck, X } from 'lucide-react';
+import {
+  getDndStatus,
+  getEbartexProfileUrl,
+  getEbartexVisibility,
+  setDndStatus,
+  setEbartexVisibility,
+} from '@/lib/social-preferences';
+import { setSocialDndAction, setSocialEbartexVisibilityAction } from '@/actions/social';
 import { cn } from '@/lib/utils';
 
 interface SocialSettingsModalProps {
@@ -14,8 +19,9 @@ interface SocialSettingsModalProps {
   gamertag?: string | null;
 }
 
-export function SocialSettingsModal({ open, onClose, gamertag }: SocialSettingsModalProps) {
+export function SocialSettingsModal({ open, onClose }: SocialSettingsModalProps) {
   const [dnd, setDnd] = useState(() => getDndStatus());
+  const [showEbartex, setShowEbartex] = useState(() => getEbartexVisibility());
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -26,6 +32,7 @@ export function SocialSettingsModal({ open, onClose, gamertag }: SocialSettingsM
   useEffect(() => {
     if (!open) return;
     setDnd(getDndStatus());
+    setShowEbartex(getEbartexVisibility());
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -43,7 +50,13 @@ export function SocialSettingsModal({ open, onClose, gamertag }: SocialSettingsM
     setSaving(false);
   };
 
-  const ebartexUrl = getEbartexProfileUrl(gamertag);
+  const handleToggleEbartexVisibility = async (visible: boolean) => {
+    setShowEbartex(visible);
+    setEbartexVisibility(visible);
+    await setSocialEbartexVisibilityAction(visible);
+  };
+
+  const ebartexUrl = getEbartexProfileUrl();
 
   return createPortal(
     <div role="presentation" className="fixed inset-0 z-[1000] grid place-items-center p-4" onClick={onClose}>
@@ -76,21 +89,67 @@ export function SocialSettingsModal({ open, onClose, gamertag }: SocialSettingsM
         </header>
 
         <div className="mt-5 space-y-6">
-          {/* Sezione 1: Profilo Ebartex Principale */}
+          {/* Sezione 1: Profilo Ebartex & Privacy Visibilità */}
           <section className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 mb-1">
-              Profilo Marketplace Ebartex
-            </h4>
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                Profilo Marketplace Ebartex
+              </h4>
+            </div>
             <p className="text-xs font-medium leading-relaxed text-slate-500 mb-3.5">
-              Visualizza le carte che vendi, il tuo inventario e la tua vetrina pubblica sul sito principale Ebartex.
+              Scegli se permettere agli altri duellanti di vedere il link al tuo account Ebartex e alle carte che vendi.
             </p>
+
+            {/* Opzioni di visibilità */}
+            <div className="space-y-2 mb-3.5">
+              <button
+                type="button"
+                onClick={() => handleToggleEbartexVisibility(true)}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-xl border p-2.5 text-left transition',
+                  showEbartex
+                    ? 'border-slate-900 bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/10'
+                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white',
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Eye className={cn('h-4 w-4', showEbartex ? 'text-slate-900' : 'text-slate-400')} />
+                  <div>
+                    <p className="text-xs font-bold">Visibile a tutti</p>
+                    <p className="text-[10px] text-slate-500">Mostra il link alle mie carte sul profilo</p>
+                  </div>
+                </div>
+                {showEbartex && <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleToggleEbartexVisibility(false)}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-xl border p-2.5 text-left transition',
+                  !showEbartex
+                    ? 'border-slate-900 bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/10'
+                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white',
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <EyeOff className={cn('h-4 w-4', !showEbartex ? 'text-slate-900' : 'text-slate-400')} />
+                  <div>
+                    <p className="text-xs font-bold">Nascosto (Privato)</p>
+                    <p className="text-[10px] text-slate-500">Nessun collegamento al profilo Ebartex</p>
+                  </div>
+                </div>
+                {!showEbartex && <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />}
+              </button>
+            </div>
+
             <a
               href={ebartexUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition"
             >
-              <span>Mostra il mio profilo Ebartex</span>
+              <span>Apri il mio profilo Ebartex</span>
               <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
             </a>
           </section>

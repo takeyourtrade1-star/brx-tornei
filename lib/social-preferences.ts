@@ -1,14 +1,17 @@
 import { publicConfig } from '@/lib/public-config';
 
 const DND_STORAGE_KEY = 'ebartex_social_dnd_until';
+const EBARTEX_VISIBILITY_KEY = 'ebartex_profile_visibility';
 
 /**
- * Restituisce l'URL assoluto del profilo Ebartex (principale) dell'utente o di un altro giocatore.
+ * Restituisce l'URL assoluto del profilo Ebartex Marketplace.
+ * Se ebartexUsername non è specificato, punta a `/profilo` (profilo dell'utente corrente).
  */
-export function getEbartexProfileUrl(gamertag?: string | null): string {
+export function getEbartexProfileUrl(ebartexUsername?: string | null): string {
   const base = publicConfig.app.mainSiteUrl || 'https://www.ebartex.com';
-  if (!gamertag) return `${base}/profilo`;
-  return `${base}/profilo/${encodeURIComponent(gamertag)}`;
+  const trimmed = ebartexUsername?.trim();
+  if (!trimmed) return `${base}/profilo`;
+  return `${base}/profilo/${encodeURIComponent(trimmed)}`;
 }
 
 export interface DndStatus {
@@ -60,5 +63,34 @@ export function setDndStatus(active: boolean, durationMinutes = 60): DndStatus {
     return { active: true, minutesRemaining: durationMinutes, expiresAt };
   } catch {
     return { active: false, minutesRemaining: 0, expiresAt: null };
+  }
+}
+
+/**
+ * Legge la preferenza di visibilità del profilo Ebartex agli altri giocatori (default: true).
+ */
+export function getEbartexVisibility(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const stored = localStorage.getItem(EBARTEX_VISIBILITY_KEY);
+    if (stored === null) return true;
+    return stored !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Salva la preferenza di visibilità del profilo Ebartex agli altri giocatori.
+ */
+export function setEbartexVisibility(visible: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(EBARTEX_VISIBILITY_KEY, visible ? 'true' : 'false');
+    window.dispatchEvent(
+      new CustomEvent('ebartex-visibility-changed', { detail: { visible } }),
+    );
+  } catch {
+    // ignore
   }
 }

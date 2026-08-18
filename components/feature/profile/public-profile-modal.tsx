@@ -71,6 +71,10 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
 
   const presence = profile ? presenceConfig[profile.presence] : presenceConfig.offline;
   const isDnd = profile?.presence === 'dnd';
+  const showEbartexCard =
+    profile &&
+    (profile.friendship === 'self' ||
+      (profile.showEbartexProfile !== false && Boolean(profile.ebartexUsername)));
 
   return createPortal(
     <div role="presentation" className="fixed inset-0 z-[950]" onClick={onClose}>
@@ -178,15 +182,17 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
                   </>
                 )}
 
-                <a
-                  href={getEbartexProfileUrl(profile.gamertag)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 transition"
-                >
-                  <span>Carte su Ebartex</span>
-                  <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
-                </a>
+                {showEbartexCard && (
+                  <a
+                    href={getEbartexProfileUrl(profile.ebartexUsername)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 transition"
+                  >
+                    <span>Carte su Ebartex</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                  </a>
+                )}
               </div>
 
               {/* Statistiche e Badge d'Onore */}
