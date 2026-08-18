@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, UserPlus, X } from 'lucide-react';
+import { AlertCircle, Search, UserPlus, X } from 'lucide-react';
 import { searchPlayersAction, sendFriendRequestAction } from '@/actions/social';
 import type { FriendSummary } from '@/types/social';
 import { getAvatarById } from '@/lib/avatars';
@@ -16,6 +16,7 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
   const [results, setResults] = useState<FriendSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [sentMap, setSentMap] = useState<Record<string, boolean>>({});
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -42,8 +43,13 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
   }, [query]);
 
   const handleSendRequest = async (gamertag: string) => {
+    setErrorMsg(null);
+    const res = await sendFriendRequestAction(gamertag);
+    if (!res.ok) {
+      setErrorMsg(res.error ?? 'Impossibile inviare la richiesta.');
+      return;
+    }
     setSentMap((prev) => ({ ...prev, [gamertag]: true }));
-    await sendFriendRequestAction(gamertag);
   };
 
   return (
@@ -53,20 +59,33 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setErrorMsg(null);
+          }}
           placeholder="Cerca qualsiasi giocatore per gamertag…"
           className="h-12 w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-10 text-sm font-bold text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
         />
         {query && (
           <button
             type="button"
-            onClick={() => setQuery('')}
+            onClick={() => {
+              setQuery('');
+              setErrorMsg(null);
+            }}
             className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
           >
             <X className="h-4 w-4" />
           </button>
         )}
       </div>
+
+      {errorMsg && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700 animate-in fade-in duration-150">
+          <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       {loading ? (
         <div className="py-12 text-center text-xs font-bold text-slate-400 animate-pulse">

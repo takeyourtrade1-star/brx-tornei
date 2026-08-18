@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ExternalLink, Swords, UserPlus, X } from 'lucide-react';
+import { AlertCircle, Check, ExternalLink, Swords, UserPlus, X } from 'lucide-react';
 import { getPublicProfileAction, sendFriendRequestAction } from '@/actions/social';
 import { getEbartexProfileUrl } from '@/lib/social-preferences';
 import { ProfileRankBadge } from './profile-rank-badge';
@@ -22,6 +22,7 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
   const [profile, setProfile] = useState<PublicPlayerProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
     if (!open || !gamertag) {
       setProfile(null);
       setRequestSent(false);
+      setErrorMsg(null);
       return;
     }
     let cancelled = false;
@@ -50,8 +52,13 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
 
   const handleAddFriend = async () => {
     if (!profile) return;
+    setErrorMsg(null);
+    const res = await sendFriendRequestAction(profile.gamertag);
+    if (!res.ok) {
+      setErrorMsg(res.error ?? 'Impossibile inviare la richiesta.');
+      return;
+    }
     setRequestSent(true);
-    await sendFriendRequestAction(profile.gamertag);
   };
 
   const presenceConfig = {
@@ -121,6 +128,13 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
             </div>
           ) : profile ? (
             <div className="space-y-6">
+              {errorMsg && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700 animate-in fade-in duration-150">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
               {/* Barra Azioni Social & Ebartex */}
               <div className="flex flex-wrap items-center gap-2.5">
                 {profile.friendship !== 'self' && (
