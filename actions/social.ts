@@ -67,7 +67,8 @@ export async function getFriendRequestsAction(): Promise<SocialActionState<Frien
   if (!session) return { ok: false, error: 'Sessione non valida.' };
 
   try {
-    const requests = await fetchFriendRequests();
+    const myGamertag = await fetchMyGamertag().catch(() => null);
+    const requests = await fetchFriendRequests(myGamertag);
     return { ok: true, data: requests };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Impossibile caricare le richieste.';
@@ -105,7 +106,7 @@ export async function sendFriendRequestAction(gamertag: string): Promise<SocialA
       return { ok: false, error: 'Non puoi inviare una richiesta a te stesso.' };
     }
 
-    await postSendFriendRequest(parsed.data.gamertag);
+    await postSendFriendRequest(parsed.data.gamertag, myGamertag);
     revalidatePath('/tornei');
     return { ok: true };
   } catch (err) {
@@ -125,7 +126,8 @@ export async function respondFriendRequestAction(
   if (!parsed.success) return { ok: false, error: 'Dati non validi.' };
 
   try {
-    await postRespondFriendRequest(parsed.data.requestId, parsed.data.action);
+    const myGamertag = await fetchMyGamertag().catch(() => null);
+    await postRespondFriendRequest(parsed.data.requestId, parsed.data.action, myGamertag);
     revalidatePath('/tornei');
     return { ok: true };
   } catch (err) {
@@ -140,7 +142,8 @@ export async function cancelFriendRequestAction(requestId: string): Promise<Soci
   if (!requestId || typeof requestId !== 'string') return { ok: false, error: 'ID richiesta non valido.' };
 
   try {
-    await postCancelFriendRequest(requestId);
+    const myGamertag = await fetchMyGamertag().catch(() => null);
+    await postCancelFriendRequest(requestId, myGamertag);
     revalidatePath('/tornei');
     return { ok: true };
   } catch (err) {
@@ -157,7 +160,8 @@ export async function removeFriendAction(gamertag: string): Promise<SocialAction
   if (!parsed.success) return { ok: false, error: 'Gamertag non valido.' };
 
   try {
-    await postRemoveFriend(parsed.data.gamertag);
+    const myGamertag = await fetchMyGamertag().catch(() => null);
+    await postRemoveFriend(parsed.data.gamertag, myGamertag);
     revalidatePath('/tornei');
     return { ok: true };
   } catch (err) {

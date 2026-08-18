@@ -44,33 +44,18 @@ export function getAvatarIdForGamertag(username: string): string {
   return KNOWN_AVATARS[idx] ?? 'crown';
 }
 
-export const mockFriendsStore = new Map<string, Set<string>>([
-  ['default', new Set(['Alex_TCG', 'Valerio_Magic', 'Sara_Draws', 'Kurogane'])],
-]);
+export interface RawMockFriendRequest {
+  id: string;
+  senderGamertag: string;
+  recipientGamertag: string;
+  createdAt: number;
+}
 
-export const mockRequestsStore = new Map<string, FriendRequestItem[]>([
-  [
-    'default',
-    [
-      {
-        id: 'req-1',
-        gamertag: 'DeckMaster99',
-        avatarId: 'swords',
-        createdAtText: 'Oggi',
-        direction: 'incoming',
-        isBot: true,
-      },
-      {
-        id: 'req-out-1',
-        gamertag: 'BlackLotus_Fan',
-        avatarId: 'flame',
-        createdAtText: 'Ieri',
-        direction: 'outgoing',
-        isBot: true,
-      },
-    ],
-  ],
-]);
+/** Amicizie per utente: Map<gamertagLower, Set<friendGamertag>> */
+export const mockFriendsStore = new Map<string, Set<string>>();
+
+/** Richieste di amicizia globali tra coppie di utenti */
+export const mockRawRequests: RawMockFriendRequest[] = [];
 
 export const mockChallengesStore = new Map<string, DirectGameChallenge>();
 export const mockDndStore = new Map<string, number>();
@@ -119,8 +104,30 @@ export function buildFallbackPublicProfile(
 ): PublicPlayerProfile {
   const normalized = targetGamertag.trim();
   const isSelf = Boolean(myGamertag && myGamertag.toLowerCase() === normalized.toLowerCase());
-  const friends = mockFriendsStore.get('default') ?? new Set();
-  const isFriend = friends.has(normalized);
+  
+  let isFriend = false;
+  let isPendingSent = false;
+  let isPendingReceived = false;
+
+  if (myGamertag) {
+    const myFriends = mockFriendsStore.get(myGamertag.toLowerCase()) ?? new Set();
+    isFriend = myFriends.has(normalized);
+
+    const pending = mockRawRequests.find(
+      (r) =>
+        (r.senderGamertag.toLowerCase() === myGamertag.toLowerCase() &&
+          r.recipientGamertag.toLowerCase() === normalized.toLowerCase()) ||
+        (r.senderGamertag.toLowerCase() === normalized.toLowerCase() &&
+          r.recipientGamertag.toLowerCase() === myGamertag.toLowerCase()),
+    );
+    if (pending) {
+      if (pending.senderGamertag.toLowerCase() === myGamertag.toLowerCase()) {
+        isPendingSent = true;
+      } else {
+        isPendingReceived = true;
+      }
+    }
+  }
 
   const hash = Array.from(normalized).reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const played = isSelf ? 0 : 5 + (hash % 10);
@@ -133,6 +140,16 @@ export function buildFallbackPublicProfile(
   const presenceList: FriendPresenceStatus[] = ['online', 'in_game', 'recent', 'offline'];
   const presence = dnd ? 'dnd' : isSelf ? 'online' : presenceList[hash % presenceList.length];
   const showEbartex = isEbartexProfileVisible(normalized);
+
+  const friendship = isSelf
+    ? 'self'
+    : isFriend
+      ? 'friend'
+      : isPendingSent
+        ? 'pending_sent'
+        : isPendingReceived
+          ? 'pending_received'
+          : 'none';
 
   return {
     gamertag: normalized,
@@ -155,7 +172,7 @@ export function buildFallbackPublicProfile(
       strategist: 0,
       punctual: 0,
     },
-    friendship: isSelf ? 'self' : isFriend ? 'friend' : 'none',
+    friendship,
     isBot: isMockBot(normalized),
     showEbartexProfile: showEbartex,
     ebartexUsername: isSelf ? (myEbartexUsername ?? null) : showEbartex ? normalized.toLowerCase() : null,

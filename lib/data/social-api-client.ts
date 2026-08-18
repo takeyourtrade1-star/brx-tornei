@@ -10,7 +10,7 @@ import {
   getAvatarIdForGamertag,
   isMockBot,
   mockFriendsStore,
-  mockRequestsStore,
+  mockRawRequests,
 } from '@/lib/data/social-mock-store';
 import type {
   FriendPresenceStatus,
@@ -124,7 +124,8 @@ export async function fetchFriendsList(myGamertag?: string | null): Promise<Frie
     // Fallback mock
   }
 
-  const friendTags = Array.from(mockFriendsStore.get('default') ?? []);
+  const key = myGamertag?.toLowerCase() ?? 'default';
+  const friendTags = Array.from(mockFriendsStore.get(key) ?? []);
   return friendTags.map((tag, idx) => {
     const presenceList: FriendPresenceStatus[] = ['online', 'in_game', 'recent', 'offline'];
     const presence = presenceList[idx % presenceList.length];
@@ -149,7 +150,7 @@ export async function fetchFriendsList(myGamertag?: string | null): Promise<Frie
   });
 }
 
-export async function fetchFriendRequests(): Promise<FriendRequestItem[]> {
+export async function fetchFriendRequests(myGamertag?: string | null): Promise<FriendRequestItem[]> {
   try {
     const { ok, body } = await tournamentFetch('/api/v1/friends/requests');
     if (ok) {
@@ -160,7 +161,33 @@ export async function fetchFriendRequests(): Promise<FriendRequestItem[]> {
     // Fallback mock
   }
 
-  return mockRequestsStore.get('default') ?? [];
+  if (!myGamertag) return [];
+  const myTagLower = myGamertag.toLowerCase();
+  const items: FriendRequestItem[] = [];
+
+  for (const r of mockRawRequests) {
+    if (r.recipientGamertag.toLowerCase() === myTagLower) {
+      items.push({
+        id: r.id,
+        gamertag: r.senderGamertag,
+        avatarId: getAvatarIdForGamertag(r.senderGamertag),
+        createdAtText: 'Oggi',
+        direction: 'incoming',
+        isBot: isMockBot(r.senderGamertag),
+      });
+    } else if (r.senderGamertag.toLowerCase() === myTagLower) {
+      items.push({
+        id: r.id,
+        gamertag: r.recipientGamertag,
+        avatarId: getAvatarIdForGamertag(r.recipientGamertag),
+        createdAtText: 'Oggi',
+        direction: 'outgoing',
+        isBot: isMockBot(r.recipientGamertag),
+      });
+    }
+  }
+
+  return items;
 }
 
 export async function searchPlayers(query: string, myGamertag?: string | null): Promise<FriendSummary[]> {
@@ -189,7 +216,8 @@ export async function searchPlayers(query: string, myGamertag?: string | null): 
     'Liliana_Dread',
   ];
 
-  const friends = Array.from(mockFriendsStore.get('default') ?? []);
+  const key = myGamertag?.toLowerCase() ?? 'default';
+  const friends = Array.from(mockFriendsStore.get(key) ?? []);
   const allKnown = Array.from(new Set([...basePool, ...friends]));
 
   const qLower = q.toLowerCase();
