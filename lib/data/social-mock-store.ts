@@ -49,9 +49,29 @@ export const mockRequestsStore = new Map<string, FriendRequestItem[]>([
 ]);
 
 export const mockChallengesStore = new Map<string, DirectGameChallenge>();
+export const mockDndStore = new Map<string, number>();
+
+export function isPlayerDnd(gamertag: string): boolean {
+  const expiresAt = mockDndStore.get(gamertag.toLowerCase());
+  if (!expiresAt) return false;
+  if (expiresAt <= Date.now()) {
+    mockDndStore.delete(gamertag.toLowerCase());
+    return false;
+  }
+  return true;
+}
+
+export function setPlayerDnd(gamertag: string, durationMinutes = 60): void {
+  mockDndStore.set(gamertag.toLowerCase(), Date.now() + durationMinutes * 60 * 1000);
+}
 
 /** Mappa la presenza preservando la privacy: zero timestamp precisi */
-export function mapPresence(lastSeenMinutesAgo?: number, inGame?: boolean): FriendPresenceStatus {
+export function mapPresence(
+  lastSeenMinutesAgo?: number,
+  inGame?: boolean,
+  isDnd?: boolean,
+): FriendPresenceStatus {
+  if (isDnd) return 'dnd';
   if (inGame) return 'in_game';
   if (typeof lastSeenMinutesAgo !== 'number' || lastSeenMinutesAgo <= 5) return 'online';
   if (lastSeenMinutesAgo <= 48 * 60) return 'recent';
@@ -74,8 +94,9 @@ export function buildFallbackPublicProfile(
   const winStreak = hash % 5;
   const dailyWins = Math.min(5, hash % 4);
 
+  const dnd = isPlayerDnd(normalized);
   const presenceList: FriendPresenceStatus[] = ['online', 'in_game', 'recent', 'offline'];
-  const presence = isSelf ? 'online' : presenceList[hash % presenceList.length];
+  const presence = dnd ? 'dnd' : isSelf ? 'online' : presenceList[hash % presenceList.length];
 
   return {
     gamertag: normalized,

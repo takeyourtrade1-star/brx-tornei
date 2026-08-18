@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Pencil, Sparkles, X } from 'lucide-react';
+import { ChevronDown, ExternalLink, Pencil, Sparkles, X } from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { evaluateAchievements } from '@/lib/data/achievements';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
 import { getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
 import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
+import { getEbartexProfileUrl } from '@/lib/social-preferences';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import { cn } from '@/lib/utils';
 import { AchievementCard, AchievementSummary } from './achievement-card';
@@ -201,10 +202,21 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
           {/* Box Info: Spiegazione Leghe, Reset 24h & Fuoco */}
           <RankLeagueInfo />
 
+          {/* Link al profilo marketplace Ebartex */}
+          <a
+            href={getEbartexProfileUrl(gamertag)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-900/[0.08] bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800"
+          >
+            <span>Mostra il mio profilo Ebartex</span>
+            <ExternalLink className="h-4 w-4 text-slate-400" />
+          </a>
+
           <button
             type="button"
             onClick={() => setRulesOpen(true)}
-            className="mt-5 w-full rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-3 text-center text-xs font-semibold text-slate-600 transition hover:border-slate-900/15 hover:text-header-bg"
+            className="mt-3 w-full rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-3 text-center text-xs font-semibold text-slate-600 transition hover:border-slate-900/15 hover:text-header-bg"
           >
             Regolamento e informativa privacy dei tornei
           </button>

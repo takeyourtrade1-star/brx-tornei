@@ -195,6 +195,7 @@ export function DashboardHeader({
         onClose={() => setFriendsOpen(false)}
         onOpenProfile={(tag) => setPublicProfileTarget(tag)}
         onChallenge={(tag) => setChallengeTarget(tag)}
+        myGamertag={shownName}
       />
 
       <PublicProfileModal

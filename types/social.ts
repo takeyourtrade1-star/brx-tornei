@@ -2,7 +2,7 @@
  * Tipi condivisi per il sistema social, profili pubblici, presenza e sfide.
  */
 
-export type FriendPresenceStatus = 'online' | 'in_game' | 'recent' | 'offline';
+export type FriendPresenceStatus = 'online' | 'in_game' | 'dnd' | 'recent' | 'offline';
 
 export type FriendshipRelation = 'friend' | 'pending_sent' | 'pending_received' | 'none' | 'self';
 
@@ -30,6 +30,7 @@ export interface PublicPlayerProfile {
     punctual: number;
   };
   friendship: FriendshipRelation;
+  dndUntil?: number;
 }
 
 export interface FriendSummary {
@@ -39,6 +40,7 @@ export interface FriendSummary {
   statusText?: string;
   winStreak: number;
   dailyWins: number;
+  dndUntil?: number;
 }
 
 export interface FriendRequestItem {

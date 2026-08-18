@@ -19,12 +19,24 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
   const avatar = getAvatarById(friend.avatarId);
   const AvatarIcon = avatar.icon;
 
+  const isDnd = friend.presence === 'dnd';
+  const isOffline = friend.presence === 'offline';
+
   const presenceDot = {
     online: 'bg-emerald-500 ring-emerald-400/30',
     in_game: 'bg-purple-500 ring-purple-400/30',
+    dnd: 'bg-amber-500 ring-amber-400/30',
     recent: 'bg-amber-400 ring-amber-300/30',
     offline: 'bg-slate-300 ring-slate-200',
   }[friend.presence];
+
+  const defaultStatusText = isDnd
+    ? 'Non disturbare (Occupato)'
+    : friend.presence === 'online'
+      ? 'Online adesso'
+      : friend.presence === 'in_game'
+        ? 'In partita'
+        : 'Attivo di recente';
 
   return (
     <li className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4">
@@ -61,8 +73,13 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
               </span>
             )}
           </div>
-          <p className="truncate text-xs font-semibold text-slate-500">
-            {friend.statusText ?? (friend.presence === 'online' ? 'Online adesso' : 'Attivo di recente')}
+          <p
+            className={cn(
+              'truncate text-xs font-semibold',
+              isDnd ? 'text-amber-600' : 'text-slate-500',
+            )}
+          >
+            {friend.statusText ?? defaultStatusText}
           </p>
         </div>
       </button>
@@ -96,7 +113,12 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
             <Button
               type="button"
               onClick={() => onChallenge(friend.gamertag)}
-              disabled={friend.presence === 'offline'}
+              disabled={isOffline || isDnd}
+              title={
+                isDnd
+                  ? 'Questo giocatore ha impostato "Non disturbare" per il momento e non può ricevere inviti di sfida'
+                  : undefined
+              }
               className="h-9 gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-3.5 text-xs font-black text-white shadow-sm hover:brightness-105 disabled:opacity-40"
             >
               <Swords className="h-4 w-4" />

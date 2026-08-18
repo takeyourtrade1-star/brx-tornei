@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Swords, UserPlus, X } from 'lucide-react';
+import { Check, ExternalLink, Swords, UserPlus, X } from 'lucide-react';
 import { getPublicProfileAction, sendFriendRequestAction } from '@/actions/social';
+import { getEbartexProfileUrl } from '@/lib/social-preferences';
 import { ProfileRankBadge } from './profile-rank-badge';
 import { PublicProfileStats } from './public-profile-stats';
 import type { PublicPlayerProfile } from '@/types/social';
@@ -56,11 +57,13 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
   const presenceConfig = {
     online: { label: 'Online adesso', color: 'bg-emerald-50 text-emerald-700 border-emerald-300' },
     in_game: { label: 'In Partita', color: 'bg-purple-50 text-purple-700 border-purple-300' },
+    dnd: { label: 'Non disturbare', color: 'bg-amber-50 text-amber-800 border-amber-300' },
     recent: { label: 'Attivo di recente', color: 'bg-amber-50 text-amber-700 border-amber-300' },
     offline: { label: 'Non attivo di recente', color: 'bg-slate-100 text-slate-600 border-slate-300' },
   };
 
   const presence = profile ? presenceConfig[profile.presence] : presenceConfig.offline;
+  const isDnd = profile?.presence === 'dnd';
 
   return createPortal(
     <div role="presentation" className="fixed inset-0 z-[950]" onClick={onClose}>
@@ -111,7 +114,7 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
             </div>
           ) : profile ? (
             <div className="space-y-6">
-              {/* Barra Azioni Social */}
+              {/* Barra Azioni Social & Ebartex */}
               <div className="flex flex-wrap items-center gap-2.5">
                 {profile.friendship !== 'self' && (
                   <>
@@ -136,17 +139,33 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
                     {onChallenge && (
                       <Button
                         type="button"
+                        disabled={isDnd}
+                        title={
+                          isDnd
+                            ? 'Questo giocatore ha impostato "Non disturbare" per il momento e non può ricevere inviti di sfida'
+                            : undefined
+                        }
                         onClick={() => {
                           onClose();
                           onChallenge(profile.gamertag);
                         }}
-                        className="h-10 gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 text-xs font-black text-white shadow-sm hover:brightness-105"
+                        className="h-10 gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 text-xs font-black text-white shadow-sm hover:brightness-105 disabled:opacity-40"
                       >
                         <Swords className="h-4 w-4" /> Sfida a duello
                       </Button>
                     )}
                   </>
                 )}
+
+                <a
+                  href={getEbartexProfileUrl(profile.gamertag)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 transition"
+                >
+                  <span>Carte su Ebartex</span>
+                  <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                </a>
               </div>
 
               {/* Statistiche e Badge d'Onore */}

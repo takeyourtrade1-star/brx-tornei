@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, UserPlus, Users, X } from 'lucide-react';
+import { Search, Settings, UserPlus, Users, X } from 'lucide-react';
 import {
   getFriendRequestsAction,
   getFriendsListAction,
@@ -14,21 +14,30 @@ import { FriendRow } from './friend-row';
 import { FriendSearch } from './friend-search';
 import { FriendRequestsList } from './friend-requests-list';
 import { SocialTabButton } from './social-tab-button';
+import { SocialSettingsModal } from './social-settings-modal';
 
 interface FriendsDrawerProps {
   open: boolean;
   onClose: () => void;
   onOpenProfile: (gamertag: string) => void;
   onChallenge: (gamertag: string) => void;
+  myGamertag?: string | null;
 }
 
 type TabType = 'friends' | 'requests' | 'search';
 
-export function FriendsDrawer({ open, onClose, onOpenProfile, onChallenge }: FriendsDrawerProps) {
+export function FriendsDrawer({
+  open,
+  onClose,
+  onOpenProfile,
+  onChallenge,
+  myGamertag,
+}: FriendsDrawerProps) {
   const [tab, setTab] = useState<TabType>('friends');
   const [friends, setFriends] = useState<FriendSummary[]>([]);
   const [requests, setRequests] = useState<FriendRequestItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -38,11 +47,11 @@ export function FriendsDrawer({ open, onClose, onOpenProfile, onChallenge }: Fri
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !settingsOpen) onClose();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [open, onClose]);
+  }, [open, settingsOpen, onClose]);
 
   const loadData = async () => {
     setLoading(true);
@@ -95,14 +104,25 @@ export function FriendsDrawer({ open, onClose, onOpenProfile, onChallenge }: Fri
               <h2 className="text-xl font-black tracking-tight text-header-bg">Amici & Giocatori</h2>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Chiudi"
-            className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-800 transition"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Impostazioni Social"
+              title="Impostazioni Social e Profilo Ebartex"
+              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 transition"
+            >
+              <Settings className="h-4.5 w-4.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Chiudi"
+              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-800 transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </header>
 
         <div className="border-b border-slate-200/80 bg-white px-7 pt-3">
@@ -208,6 +228,12 @@ export function FriendsDrawer({ open, onClose, onOpenProfile, onChallenge }: Fri
           {tab === 'search' && <FriendSearch onOpenProfile={onOpenProfile} />}
         </div>
       </aside>
+
+      <SocialSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        gamertag={myGamertag}
+      />
     </div>,
     document.body,
   );
