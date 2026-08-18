@@ -109,7 +109,14 @@ export function FriendRequestsList({
                       <AvatarIcon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                        {req.isBot && (
+                          <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 shrink-0">
+                            BOT | Test
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs font-semibold text-slate-400">{req.createdAtText}</p>
                     </div>
                   </button>
@@ -165,7 +172,14 @@ export function FriendRequestsList({
                       <AvatarIcon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                        {req.isBot && (
+                          <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 shrink-0">
+                            BOT | Test
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600">
                         <Clock className="h-3.5 w-3.5" />
                         <span>In attesa di risposta ({req.createdAtText})</span>

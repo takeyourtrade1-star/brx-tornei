@@ -8,6 +8,7 @@ import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import {
   buildFallbackPublicProfile,
   getAvatarIdForGamertag,
+  isMockBot,
   mockFriendsStore,
   mockRequestsStore,
 } from '@/lib/data/social-mock-store';
@@ -139,6 +140,7 @@ export async function fetchFriendsList(myGamertag?: string | null): Promise<Frie
       statusText,
       winStreak: 0,
       dailyWins: 0,
+      isBot: isMockBot(tag),
     };
   });
 }
@@ -207,5 +209,6 @@ export async function searchPlayers(query: string, myGamertag?: string | null): 
     statusText: idx % 2 === 0 ? 'Online' : 'Attivo di recente',
     winStreak: 0,
     dailyWins: 0,
+    isBot: isMockBot(tag),
   }));
 }

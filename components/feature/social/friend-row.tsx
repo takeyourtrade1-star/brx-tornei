@@ -63,10 +63,15 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
         </div>
 
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate text-sm font-black text-slate-900 sm:text-base">
               {friend.gamertag}
             </span>
+            {friend.isBot && (
+              <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 shrink-0">
+                BOT | Test
+              </span>
+            )}
             {friend.winStreak >= 3 && (
               <span title="On Fire 🔥" className="inline-flex shrink-0">
                 <Flame className="h-4 w-4 text-orange-500 animate-pulse" />

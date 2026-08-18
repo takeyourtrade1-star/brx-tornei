@@ -18,6 +18,22 @@ const KNOWN_AVATARS = [
   'trophy',
 ];
 
+export const MOCK_BOT_TAGS = new Set([
+  'alex_tcg',
+  'valerio_magic',
+  'sara_draws',
+  'kurogane',
+  'deckmaster99',
+  'blacklotus_fan',
+  'chandra_flame',
+  'jace_mind',
+  'liliana_dread',
+]);
+
+export function isMockBot(gamertag: string): boolean {
+  return MOCK_BOT_TAGS.has(gamertag.trim().toLowerCase());
+}
+
 export function getAvatarIdForGamertag(username: string): string {
   let hash = 0;
   for (let i = 0; i < username.length; i++) {
@@ -42,6 +58,7 @@ export const mockRequestsStore = new Map<string, FriendRequestItem[]>([
         avatarId: 'swords',
         createdAtText: 'Oggi',
         direction: 'incoming',
+        isBot: true,
       },
       {
         id: 'req-out-1',
@@ -49,6 +66,7 @@ export const mockRequestsStore = new Map<string, FriendRequestItem[]>([
         avatarId: 'flame',
         createdAtText: 'Ieri',
         direction: 'outgoing',
+        isBot: true,
       },
     ],
   ],
@@ -126,5 +144,6 @@ export function buildFallbackPublicProfile(
       punctual: 0,
     },
     friendship: isSelf ? 'self' : isFriend ? 'friend' : 'none',
+    isBot: isMockBot(normalized),
   };
 }

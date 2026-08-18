@@ -93,7 +93,14 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
                     <AvatarIcon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-black text-slate-900">{player.gamertag}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="truncate text-sm font-black text-slate-900">{player.gamertag}</p>
+                      {player.isBot && (
+                        <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 shrink-0">
+                          BOT | Test
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs font-semibold text-slate-500">{player.statusText}</p>
                   </div>
                 </button>

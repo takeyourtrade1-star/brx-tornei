@@ -31,6 +31,7 @@ export interface PublicPlayerProfile {
   };
   friendship: FriendshipRelation;
   dndUntil?: number;
+  isBot?: boolean;
 }
 
 export interface FriendSummary {
@@ -41,6 +42,7 @@ export interface FriendSummary {
   winStreak: number;
   dailyWins: number;
   dndUntil?: number;
+  isBot?: boolean;
 }
 
 export interface FriendRequestItem {
@@ -50,6 +52,7 @@ export interface FriendRequestItem {
   /** "Oggi", "Ieri", "Recente" — mai timestamp precisi per tutela privacy */
   createdAtText: string;
   direction: 'incoming' | 'outgoing';
+  isBot?: boolean;
 }
 
 export interface DirectGameChallenge {
@@ -62,4 +65,5 @@ export interface DirectGameChallenge {
   tableId?: string;
   expiresAt: number;
   status: 'pending' | 'accepted' | 'declined' | 'expired';
+  isBot?: boolean;
 }

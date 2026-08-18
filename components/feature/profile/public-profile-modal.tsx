@@ -89,9 +89,16 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
               />
             )}
             <div className="min-w-0">
-              <span className={cn('inline-block rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider', presence.color)}>
-                {presence.label}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={cn('inline-block rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider', presence.color)}>
+                  {presence.label}
+                </span>
+                {profile?.isBot && (
+                  <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700">
+                    BOT | Test
+                  </span>
+                )}
+              </div>
               <h2 className="mt-0.5 truncate text-xl font-black tracking-tight text-header-bg sm:text-2xl">
                 {gamertag}
               </h2>
