@@ -9,6 +9,7 @@ interface LobbySeatProps {
   compact?: boolean;
   /** Variante chiara per le superfici Apple-style della lobby. */
   light?: boolean;
+  onClickPlayer?: (username: string) => void;
 }
 
 /** Posto giocatore condiviso tra card lobby e riepilogo del modale. */
@@ -19,7 +20,23 @@ export function LobbySeat({
   isMe = false,
   compact = false,
   light = false,
+  onClickPlayer,
 }: LobbySeatProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (occupied && username && !isMe) {
+      e.stopPropagation();
+      if (onClickPlayer) {
+        onClickPlayer(username);
+      } else if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('ebartex-open-player-profile', { detail: { gamertag: username } }),
+        );
+      }
+    }
+  };
+
+  const isClickable = occupied && username && !isMe;
+
   return (
     <div
       className={cn(
@@ -73,21 +90,36 @@ export function LobbySeat({
         >
           {label}
         </span>
-        <span
-          className={cn(
-            'block truncate font-black leading-snug',
-            compact ? 'text-xs sm:text-sm' : 'text-xs sm:text-base',
-            light
-              ? occupied
-                ? 'text-header-bg'
-                : 'text-slate-400'
-              : occupied
-                ? 'text-white'
-                : 'text-white/55',
-          )}
-        >
-          {occupied ? username : 'Posto libero'}
-        </span>
+        {isClickable ? (
+          <button
+            type="button"
+            onClick={handleClick}
+            title={`Vedi profilo di ${username}`}
+            className={cn(
+              'block truncate font-black leading-snug text-left hover:text-primary transition-colors focus-visible:outline-none',
+              compact ? 'text-xs sm:text-sm' : 'text-xs sm:text-base',
+              light ? 'text-header-bg' : 'text-white',
+            )}
+          >
+            {username}
+          </button>
+        ) : (
+          <span
+            className={cn(
+              'block truncate font-black leading-snug',
+              compact ? 'text-xs sm:text-sm' : 'text-xs sm:text-base',
+              light
+                ? occupied
+                  ? 'text-header-bg'
+                  : 'text-slate-400'
+                : occupied
+                  ? 'text-white'
+                  : 'text-white/55',
+            )}
+          >
+            {occupied ? username : 'Posto libero'}
+          </span>
+        )}
       </span>
 
       {isMe && (

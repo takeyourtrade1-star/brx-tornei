@@ -1,41 +1,35 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowLeft, Gamepad2, Layers, Swords } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Layers, Swords, Users } from 'lucide-react';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
+import { HeaderPrimarySegment } from '@/components/layout/header-primary-segment';
 import { ProfileDrawer } from '@/components/feature/profile/profile-drawer';
 import { ProfileRankBadge } from '@/components/feature/profile/profile-rank-badge';
+import { PublicProfileModal } from '@/components/feature/profile/public-profile-modal';
+import { FriendsDrawer } from '@/components/feature/social/friends-drawer';
+import { DirectChallengeModal } from '@/components/feature/social/direct-challenge-modal';
+import { IncomingChallengeToast } from '@/components/feature/social/incoming-challenge-toast';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
+import { getFriendsListAction, getFriendRequestsAction } from '@/actions/social';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { getSavedAvatarId } from '@/lib/avatars';
 import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import { publicConfig } from '@/lib/public-config';
-import { cn } from '@/lib/utils';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { SessionUser } from '@/types/auth';
 
 interface DashboardHeaderProps {
   user: SessionUser;
-  /** Identità mostrata nel chip profilo: il gamertag torneo, quando noto. */
   displayName?: string;
-  /** Mostra il pulsante icona per tornare al minigioco (vista semplice desktop). */
   showMinigameBack?: boolean;
   onBackToMinigame?: () => void;
-  /** Reputazione già disponibile sulla pagina: passata al drawer per evitare fetch. */
   reputation?: ReputationSummary | null;
 }
 
-/** Cache client in-memory della reputazione per evitare sfarfallii durante la navigazione. */
 let lastKnownReputation: ReputationSummary | null = null;
 
-/**
- * Header dashboard tornei — Mazzi e Partite sono le azioni primarie; profilo,
- * ritorno al minigioco e logout restano controlli secondari e più discreti.
- * Il widget profilo mostra l'avatar gaming in un cerchio di grado dorato
- * con stelline simmetriche e gamertag centrato.
- */
 export function DashboardHeader({
   user,
   displayName,
@@ -46,18 +40,21 @@ export function DashboardHeader({
   const pathname = usePathname();
   const shownName = displayName ?? user.name ?? user.email;
   const [profileOpen, setProfileOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [publicProfileTarget, setPublicProfileTarget] = useState<string | null>(null);
+  const [challengeTarget, setChallengeTarget] = useState<string | null>(null);
   const [avatarId, setAvatarId] = useState(() => getSavedAvatarId());
+  const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [currentReputation, setCurrentReputation] = useState<ReputationSummary | null>(
     () => reputation ?? lastKnownReputation,
   );
 
-  // Sincronizza se la prop cambia dall'SSR
   useEffect(() => {
     if (reputation) {
       lastKnownReputation = reputation;
       setCurrentReputation(reputation);
     } else if (!lastKnownReputation) {
-      // Fetch in background se la pagina non ha fornito la reputazione
       fetchMyAchievementsAction().then((res) => {
         if (res.ok) {
           lastKnownReputation = res.reputation;
@@ -67,30 +64,40 @@ export function DashboardHeader({
     }
   }, [reputation]);
 
-  // Ascolta aggiornamenti dell'avatar
   useEffect(() => {
     const handleAvatarChange = (e: Event) => {
       const customEvent = e as CustomEvent<{ avatarId: string }>;
-      if (customEvent.detail?.avatarId) {
-        setAvatarId(customEvent.detail.avatarId);
-      }
+      if (customEvent.detail?.avatarId) setAvatarId(customEvent.detail.avatarId);
     };
     window.addEventListener('ebartex-avatar-changed', handleAvatarChange);
     return () => window.removeEventListener('ebartex-avatar-changed', handleAvatarChange);
   }, []);
 
-  // Ascolta aggiornamenti della reputazione (es. fine partita)
   useEffect(() => {
-    const handleReputationUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent<{ reputation: ReputationSummary }>;
-      if (customEvent.detail?.reputation) {
-        lastKnownReputation = customEvent.detail.reputation;
-        setCurrentReputation(customEvent.detail.reputation);
+    const handleOpenProfile = (e: Event) => {
+      const customEvent = e as CustomEvent<{ gamertag: string }>;
+      if (customEvent.detail?.gamertag) setPublicProfileTarget(customEvent.detail.gamertag);
+    };
+    window.addEventListener('ebartex-open-player-profile', handleOpenProfile);
+    return () => window.removeEventListener('ebartex-open-player-profile', handleOpenProfile);
+  }, []);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const [friendsRes, reqRes] = await Promise.all([
+        getFriendsListAction(),
+        getFriendRequestsAction(),
+      ]);
+      if (friendsRes.ok && friendsRes.data) {
+        const count = friendsRes.data.filter((f) => f.presence === 'online' || f.presence === 'in_game').length;
+        setOnlineFriendsCount(count);
+      }
+      if (reqRes.ok && reqRes.data) {
+        setPendingRequestsCount(reqRes.data.length);
       }
     };
-    window.addEventListener('ebartex-reputation-updated', handleReputationUpdate);
-    return () => window.removeEventListener('ebartex-reputation-updated', handleReputationUpdate);
-  }, []);
+    void fetchCounts();
+  }, [friendsOpen]);
 
   const dailyWins = calculateDailyWins(currentReputation);
   const winStreak = calculateWinStreak(currentReputation);
@@ -145,7 +152,24 @@ export function DashboardHeader({
             </button>
           )}
 
-          {/* Widget Profilo con Cerchio di Grado e Stelle Pixel-Perfect */}
+          <button
+            type="button"
+            onClick={() => setFriendsOpen(true)}
+            aria-label="Apri amici e duellanti"
+            className="relative flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 text-xs font-bold uppercase tracking-wide text-white/90 transition hover:border-primary/40 hover:bg-primary/15 hover:text-white"
+          >
+            <Users className="h-4 w-4 text-primary" />
+            <span className="hidden sm:inline">Amici</span>
+            {onlineFriendsCount > 0 && (
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-white/20" />
+            )}
+            {pendingRequestsCount > 0 && (
+              <span className="grid h-4 min-w-[16px] place-items-center rounded-full bg-orange-500 px-1 text-[9px] font-black text-white">
+                {pendingRequestsCount}
+              </span>
+            )}
+          </button>
+
           <div className="relative flex items-center justify-center py-1 sm:py-1.5">
             <ProfileRankBadge
               avatarId={avatarId}
@@ -165,41 +189,28 @@ export function DashboardHeader({
         gamertag={shownName}
         initialReputation={currentReputation}
       />
-    </header>
-  );
-}
 
-function HeaderPrimarySegment({
-  href,
-  label,
-  icon: Icon,
-  active,
-}: {
-  href: string;
-  label: string;
-  icon: typeof Layers;
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        'group flex min-h-[38px] min-w-0 items-center justify-center gap-2 rounded-full px-4 py-1.5 text-center transition-all duration-200 sm:min-w-[8.75rem]',
-        active
-          ? 'border border-white/30 bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.5),0_4px_16px_-2px_rgba(255,115,0,0.6)] font-black'
-          : 'text-white/75 hover:bg-white/10 hover:text-white font-bold',
-      )}
-    >
-      <span
-        className={cn(
-          'grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors',
-          active ? 'bg-white/25 text-white' : 'bg-white/10 text-white/80 group-hover:bg-white/20 group-hover:text-white',
-        )}
-      >
-        <Icon className="h-3.5 w-3.5" strokeWidth={2.4} />
-      </span>
-      <span className="min-w-0 truncate text-xs uppercase tracking-wide">{label}</span>
-    </Link>
+      <FriendsDrawer
+        open={friendsOpen}
+        onClose={() => setFriendsOpen(false)}
+        onOpenProfile={(tag) => setPublicProfileTarget(tag)}
+        onChallenge={(tag) => setChallengeTarget(tag)}
+      />
+
+      <PublicProfileModal
+        gamertag={publicProfileTarget}
+        open={Boolean(publicProfileTarget)}
+        onClose={() => setPublicProfileTarget(null)}
+        onChallenge={(tag) => setChallengeTarget(tag)}
+      />
+
+      <DirectChallengeModal
+        targetGamertag={challengeTarget}
+        open={Boolean(challengeTarget)}
+        onClose={() => setChallengeTarget(null)}
+      />
+
+      <IncomingChallengeToast />
+    </header>
   );
 }

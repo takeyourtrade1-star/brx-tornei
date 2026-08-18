@@ -90,6 +90,14 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
   const rows = stats.history.length > 0 ? stats.history : stats.recent;
   const displayedRows = expanded ? rows : rows.slice(0, 1);
 
+  const handleOpenOpponent = (gamertag: string) => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('ebartex-open-player-profile', { detail: { gamertag } }),
+      );
+    }
+  };
+
   return (
     <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 shadow-lg shadow-black/40 backdrop-blur-md">
       <span
@@ -125,6 +133,8 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
             {displayedRows.map((m, index) => {
               const tone = OUTCOME_TONE[m.outcome] ?? OUTCOME_TONE.disputed;
               const Icon = tone.icon;
+              const opponent = m.opponentGamertag;
+
               return (
                 <li
                   key={index}
@@ -138,9 +148,20 @@ export function PartiteBattleLog({ reputation }: { reputation: ReputationSummary
                   </span>
 
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-bold text-white sm:text-sm">
-                      vs {m.opponentGamertag ?? 'Avversario'}
-                    </span>
+                    {opponent ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenOpponent(opponent)}
+                        title={`Visualizza profilo di ${opponent}`}
+                        className="block truncate text-left text-xs font-bold text-white hover:text-primary transition-colors sm:text-sm focus-visible:outline-none"
+                      >
+                        vs {opponent}
+                      </button>
+                    ) : (
+                      <span className="block truncate text-xs font-bold text-white sm:text-sm">
+                        vs Avversario
+                      </span>
+                    )}
                     <span className="block text-[10px] font-medium text-slate-400">
                       {tone.flavor}
                     </span>
