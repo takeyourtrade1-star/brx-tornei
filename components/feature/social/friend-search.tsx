@@ -33,7 +33,7 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
         setLoading(false);
         if (res.ok && res.data) setResults(res.data);
       });
-    }, 300);
+    }, 250);
 
     return () => {
       cancelled = true;
@@ -47,62 +47,64 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cerca per gamertag…"
-          className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-9 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:border-primary focus:bg-white focus:outline-none"
+          placeholder="Cerca qualsiasi giocatore per gamertag…"
+          className="h-12 w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-10 text-sm font-bold text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
       {loading ? (
-        <div className="py-8 text-center text-xs font-bold text-slate-400 animate-pulse">
-          Ricerca in corso…
+        <div className="py-12 text-center text-xs font-bold text-slate-400 animate-pulse">
+          Ricerca giocatori in corso…
         </div>
       ) : results.length > 0 ? (
-        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+        <ul className="space-y-2.5">
           {results.map((player) => {
             const avatar = getAvatarById(player.avatarId);
             const AvatarIcon = avatar.icon;
             const isSent = sentMap[player.gamertag];
 
             return (
-              <li key={player.gamertag} className="flex items-center justify-between gap-3 p-3">
+              <li
+                key={player.gamertag}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4"
+              >
                 <button
                   type="button"
                   onClick={() => onOpenProfile(player.gamertag)}
-                  className="flex min-w-0 items-center gap-2.5 text-left focus-visible:outline-none"
+                  className="flex min-w-0 items-center gap-3 text-left focus-visible:outline-none"
                 >
-                  <div className="grid h-8 w-8 place-items-center rounded-lg bg-slate-900 text-white">
-                    <AvatarIcon className="h-4 w-4" />
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-900 text-white shadow-sm shrink-0">
+                    <AvatarIcon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-black text-slate-800">{player.gamertag}</p>
-                    <p className="text-[10px] font-semibold text-slate-400">{player.statusText}</p>
+                    <p className="truncate text-sm font-black text-slate-900">{player.gamertag}</p>
+                    <p className="text-xs font-semibold text-slate-500">{player.statusText}</p>
                   </div>
                 </button>
 
                 <Button
                   type="button"
-                  size="sm"
                   disabled={isSent}
                   onClick={() => handleSendRequest(player.gamertag)}
-                  className="h-7 gap-1 rounded-lg px-2.5 text-[10px] font-bold"
+                  className="h-9 gap-1.5 rounded-xl px-3.5 text-xs font-bold shadow-sm"
                 >
-                  <UserPlus className="h-3 w-3" />
+                  <UserPlus className="h-4 w-4" />
                   <span>{isSent ? 'Inviata' : 'Aggiungi'}</span>
                 </Button>
               </li>
@@ -110,12 +112,12 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
           })}
         </ul>
       ) : query.trim().length >= 2 ? (
-        <div className="py-8 text-center text-xs font-bold text-slate-400">
+        <div className="py-12 text-center text-xs font-bold text-slate-400">
           Nessun giocatore trovato con questo gamertag.
         </div>
       ) : (
-        <div className="py-6 text-center text-xs font-medium text-slate-400">
-          Digita almeno 2 caratteri per cercare altri duellanti.
+        <div className="py-8 text-center text-xs font-medium text-slate-400">
+          Digita almeno 2 caratteri per trovare qualsiasi duellante o amico.
         </div>
       )}
     </div>

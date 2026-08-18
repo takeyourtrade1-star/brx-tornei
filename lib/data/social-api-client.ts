@@ -86,7 +86,7 @@ export async function fetchFriendRequests(): Promise<FriendRequestItem[]> {
 }
 
 export async function searchPlayers(query: string, myGamertag?: string | null): Promise<FriendSummary[]> {
-  const q = query.trim().toLowerCase();
+  const q = query.trim();
   if (q.length < 2) return [];
 
   try {
@@ -99,7 +99,7 @@ export async function searchPlayers(query: string, myGamertag?: string | null): 
     // Fallback mock
   }
 
-  const pool = [
+  const basePool = [
     'Alex_TCG',
     'Valerio_Magic',
     'Sara_Draws',
@@ -111,17 +111,32 @@ export async function searchPlayers(query: string, myGamertag?: string | null): 
     'Liliana_Dread',
   ];
 
-  return pool
-    .filter((name) => name.toLowerCase().includes(q) && name.toLowerCase() !== myGamertag?.toLowerCase())
-    .slice(0, 8)
-    .map((tag, idx) => ({
-      gamertag: tag,
-      avatarId: getAvatarIdForGamertag(tag),
-      presence: (idx % 2 === 0 ? 'online' : 'recent') as FriendPresenceStatus,
-      statusText: idx % 2 === 0 ? 'Online' : 'Attivo di recente',
-      winStreak: idx % 3,
-      dailyWins: idx % 2,
-    }));
+  const friends = Array.from(mockFriendsStore.get('default') ?? []);
+  const allKnown = Array.from(new Set([...basePool, ...friends]));
+
+  const qLower = q.toLowerCase();
+  const matched = allKnown.filter(
+    (name) => name.toLowerCase().includes(qLower) && name.toLowerCase() !== myGamertag?.toLowerCase(),
+  );
+
+  // Se l'utente cerca un gamertag specifico (es. altro account) non ancora presente, lo includiamo
+  if (
+    q.length >= 3 &&
+    /^[a-zA-Z0-9_]+$/.test(q) &&
+    !matched.some((m) => m.toLowerCase() === qLower) &&
+    qLower !== myGamertag?.toLowerCase()
+  ) {
+    matched.unshift(q);
+  }
+
+  return matched.slice(0, 10).map((tag, idx) => ({
+    gamertag: tag,
+    avatarId: getAvatarIdForGamertag(tag),
+    presence: (idx % 2 === 0 ? 'online' : 'recent') as FriendPresenceStatus,
+    statusText: idx % 2 === 0 ? 'Online' : 'Attivo di recente',
+    winStreak: idx % 3,
+    dailyWins: idx % 2,
+  }));
 }
 
 export async function postSendFriendRequest(targetGamertag: string): Promise<void> {

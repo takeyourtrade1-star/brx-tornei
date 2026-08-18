@@ -82,17 +82,17 @@ export function FriendsDrawer({ open, onClose, onOpenProfile, onChallenge }: Fri
         role="dialog"
         aria-modal="true"
         aria-label="Amici e Duellanti"
-        className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-white shadow-2xl transition-all"
+        className="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-white shadow-2xl transition-all"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b border-slate-900/[0.06] px-6 py-5">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 text-white shadow-sm">
-              <Users className="h-4.5 w-4.5" />
+        <header className="flex items-center justify-between border-b border-slate-200/80 bg-white px-7 py-5">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-900 text-white shadow-md">
+              <Users className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Social</p>
-              <h2 className="text-lg font-black text-header-bg">Amici & Duellanti</h2>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Social & Duelli</p>
+              <h2 className="text-xl font-black tracking-tight text-header-bg">Amici & Giocatori</h2>
             </div>
           </div>
           <button
@@ -105,8 +105,8 @@ export function FriendsDrawer({ open, onClose, onOpenProfile, onChallenge }: Fri
           </button>
         </header>
 
-        <div className="border-b border-slate-900/[0.06] px-6 pt-3">
-          <nav className="flex space-x-2">
+        <div className="border-b border-slate-200/80 bg-white px-7 pt-3">
+          <nav className="flex space-x-3">
             <SocialTabButton
               active={tab === 'friends'}
               onClick={() => setTab('friends')}
@@ -129,38 +129,38 @@ export function FriendsDrawer({ open, onClose, onOpenProfile, onChallenge }: Fri
           </nav>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-7 py-6">
           {tab === 'friends' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {loading ? (
-                <div className="py-8 text-center text-xs font-bold text-slate-400 animate-pulse">
+                <div className="py-12 text-center text-xs font-bold text-slate-400 animate-pulse">
                   Caricamento amici…
                 </div>
               ) : friends.length === 0 ? (
-                <div className="py-12 text-center">
-                  <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-400">
-                    <UserPlus className="h-6 w-6" />
+                <div className="py-16 text-center">
+                  <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-white border border-slate-200 text-slate-400 shadow-sm">
+                    <UserPlus className="h-7 w-7" />
                   </span>
-                  <p className="text-sm font-bold text-slate-800">Nessun amico ancora</p>
-                  <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-slate-400">
+                  <p className="text-base font-bold text-slate-800">Nessun amico ancora</p>
+                  <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-slate-500">
                     Cerca i tuoi compagni di gioco o aggiungili direttamente dai tavoli e dalle partite.
                   </p>
                   <button
                     type="button"
                     onClick={() => setTab('search')}
-                    className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition"
+                    className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition"
                   >
                     Cerca giocatori
                   </button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {onlineFriends.length > 0 && (
                     <div>
-                      <h3 className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-600">
+                      <h3 className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
                         Online ({onlineFriends.length})
                       </h3>
-                      <ul className="space-y-2">
+                      <ul className="space-y-2.5">
                         {onlineFriends.map((f) => (
                           <FriendRow
                             key={f.gamertag}
@@ -176,10 +176,10 @@ export function FriendsDrawer({ open, onClose, onOpenProfile, onChallenge }: Fri
 
                   {otherFriends.length > 0 && (
                     <div>
-                      <h3 className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                      <h3 className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
                         Non al tavolo ({otherFriends.length})
                       </h3>
-                      <ul className="space-y-2">
+                      <ul className="space-y-2.5">
                         {otherFriends.map((f) => (
                           <FriendRow
                             key={f.gamertag}

@@ -14,12 +14,12 @@ interface FriendRequestsListProps {
 export function FriendRequestsList({ requests, onRespond, onOpenProfile }: FriendRequestsListProps) {
   if (requests.length === 0) {
     return (
-      <div className="py-10 text-center">
-        <span className="mx-auto mb-2.5 grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-400">
-          <UserPlus className="h-5 w-5" />
+      <div className="py-16 text-center">
+        <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-white border border-slate-200 text-slate-400 shadow-sm">
+          <UserPlus className="h-7 w-7" />
         </span>
-        <p className="text-xs font-bold text-slate-700">Nessuna richiesta in attesa</p>
-        <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+        <p className="text-base font-bold text-slate-800">Nessuna richiesta in attesa</p>
+        <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-slate-500">
           Quando altri giocatori ti invieranno una richiesta di amicizia, comparirà qui.
         </p>
       </div>
@@ -27,44 +27,46 @@ export function FriendRequestsList({ requests, onRespond, onOpenProfile }: Frien
   }
 
   return (
-    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+    <ul className="space-y-3">
       {requests.map((req) => {
         const avatar = getAvatarById(req.avatarId);
         const AvatarIcon = avatar.icon;
 
         return (
-          <li key={req.id} className="flex items-center justify-between gap-3 p-3.5">
+          <li
+            key={req.id}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md"
+          >
             <button
               type="button"
               onClick={() => onOpenProfile(req.gamertag)}
-              className="flex min-w-0 items-center gap-2.5 text-left focus-visible:outline-none"
+              className="flex min-w-0 items-center gap-3 text-left focus-visible:outline-none"
             >
-              <div className="grid h-9 w-9 place-items-center rounded-lg bg-slate-900 text-white">
-                <AvatarIcon className="h-4.5 w-4.5" />
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-900 text-white shadow-sm shrink-0">
+                <AvatarIcon className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-xs font-black text-slate-800">{req.gamertag}</p>
-                <p className="text-[10px] font-semibold text-slate-400">{req.createdAtText}</p>
+                <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                <p className="text-xs font-semibold text-slate-400">{req.createdAtText}</p>
               </div>
             </button>
 
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 type="button"
-                size="sm"
                 onClick={() => onRespond(req.id, 'accept')}
-                className="h-8 gap-1 rounded-lg bg-emerald-600 px-2.5 text-[11px] font-bold text-white hover:bg-emerald-700"
+                className="h-9 gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
               >
-                <Check className="h-3.5 w-3.5" />
+                <Check className="h-4 w-4" />
                 <span>Accetta</span>
               </Button>
               <button
                 type="button"
                 onClick={() => onRespond(req.id, 'decline')}
                 aria-label="Rifiuta richiesta"
-                className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </li>
