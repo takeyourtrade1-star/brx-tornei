@@ -12,8 +12,7 @@ import {
   respondGameChallengeSchema,
   sendGameChallengeSchema,
 } from '@/lib/validations/social';
-import type { DirectGameChallenge } from '@/types/social';
-import type { SocialActionState } from './social';
+import type { DirectGameChallenge, SocialActionState } from '@/types/social';
 
 export async function sendGameChallengeAction(
   targetGamertag: string,

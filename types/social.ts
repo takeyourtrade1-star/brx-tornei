@@ -2,6 +2,12 @@
  * Tipi condivisi per il sistema social, profili pubblici, presenza e sfide.
  */
 
+export interface SocialActionState<T = unknown> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+}
+
 export type FriendPresenceStatus = 'online' | 'in_game' | 'dnd' | 'recent' | 'offline';
 
 export type FriendshipRelation = 'friend' | 'pending_sent' | 'pending_received' | 'none' | 'self';

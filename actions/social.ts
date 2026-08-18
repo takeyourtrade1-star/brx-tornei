@@ -24,19 +24,8 @@ import type {
   FriendRequestItem,
   FriendSummary,
   PublicPlayerProfile,
+  SocialActionState,
 } from '@/types/social';
-
-export {
-  sendGameChallengeAction,
-  checkIncomingChallengeAction,
-  respondGameChallengeAction,
-} from './social-challenges';
-
-export interface SocialActionState<T = unknown> {
-  ok: boolean;
-  data?: T;
-  error?: string;
-}
 
 export async function getPublicProfileAction(
   gamertag: string,

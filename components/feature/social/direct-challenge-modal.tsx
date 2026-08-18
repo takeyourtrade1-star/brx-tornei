@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Swords, X } from 'lucide-react';
 import { FORMATS } from '@/lib/data/catalog';
-import { sendGameChallengeAction } from '@/actions/social';
+import { sendGameChallengeAction } from '@/actions/social-challenges';
 import { Button } from '@/components/ui/button';
 
 interface DirectChallengeModalProps {

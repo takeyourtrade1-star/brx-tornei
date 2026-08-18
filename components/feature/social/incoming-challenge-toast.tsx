@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Swords, X } from 'lucide-react';
-import { checkIncomingChallengeAction, respondGameChallengeAction } from '@/actions/social';
+import { checkIncomingChallengeAction, respondGameChallengeAction } from '@/actions/social-challenges';
 import type { DirectGameChallenge } from '@/types/social';
 import { getAvatarById } from '@/lib/avatars';
 import { Button } from '@/components/ui/button';
