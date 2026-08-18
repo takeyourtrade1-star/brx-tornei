@@ -44,23 +44,12 @@ export function OnboardingView({
 
         {/* Contenuto Hero Principale */}
         <main className="mx-auto flex w-full max-w-7xl flex-1 items-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-          <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-12">
-            {/* Colonna Sinistra: Benvenuto e Mini Guida */}
-            <section className="lg:col-span-7 xl:col-span-7">
-              <OnboardingGuide userName={userName} />
-            </section>
-
-            {/* Colonna Destra: Card Preview + Form Interattivo */}
-            <section className="lg:col-span-5 xl:col-span-5">
-              <div className="mx-auto max-w-md lg:max-w-none">
-                <OnboardingForm
-                  initialGamertag={initialGamertag}
-                  suggestedGamertag={suggestedGamertag}
-                  redirectTo={redirectTo}
-                />
-              </div>
-            </section>
-          </div>
+          <OnboardingForm
+            userName={userName}
+            initialGamertag={initialGamertag}
+            suggestedGamertag={suggestedGamertag}
+            redirectTo={redirectTo}
+          />
         </main>
       </div>
     </div>

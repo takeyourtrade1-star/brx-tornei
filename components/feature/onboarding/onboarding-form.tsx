@@ -3,26 +3,30 @@
 import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
 import { checkGamertagAvailabilityAction, setGamertagAction } from '@/actions/players';
 import { GAME_AVATARS, getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
 import type { GamertagAvailability } from '@/lib/data/player-api-client';
+import { OnboardingGuide } from './onboarding-guide';
 import { OnboardingCardPreview } from './onboarding-card-preview';
+import { OnboardingAgreements } from './onboarding-agreements';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface OnboardingFormProps {
+  userName?: string | null;
   initialGamertag: string | null;
   suggestedGamertag?: string | null;
   redirectTo: string;
 }
 
 /**
- * Form di onboarding per la scelta del gamertag e dell'avatar iniziale.
+ * Gestore interattivo dell'onboarding: guida, configurazione avatar/gamertag,
+ * patti di fair play in liquid glass e CTA finale.
  */
 export function OnboardingForm({
+  userName,
   initialGamertag,
   suggestedGamertag,
   redirectTo,
@@ -33,6 +37,7 @@ export function OnboardingForm({
   const [selectedAvatarId, setSelectedAvatarId] = useState(() => getSavedAvatarId());
   const [error, setError] = useState<string | null>(null);
   const [availability, setAvailability] = useState<GamertagAvailability | null>(null);
+  const [fairPlayAccepted, setFairPlayAccepted] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [checking, startChecking] = useTransition();
@@ -81,149 +86,148 @@ export function OnboardingForm({
     trimmed.length <= 20 &&
     !saving &&
     (unchanged || availability?.available === true) &&
-    (!mustAcceptRules || rulesAccepted);
+    (!mustAcceptRules || (rulesAccepted && fairPlayAccepted));
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="w-full space-y-8">
       <TournamentRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
 
-      {/* Anteprima Card Duellante ingrandita e autentica */}
-      <OnboardingCardPreview gamertag={value} avatarId={selectedAvatarId} />
+      {/* Griglia Superiore: Guida a sinistra, Preview + Form a destra */}
+      <div className="grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-12">
+        {/* Colonna Sinistra: Guida */}
+        <section className="lg:col-span-7">
+          <OnboardingGuide userName={userName} />
+        </section>
 
-      {/* Form di Selezione e Registrazione */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4 rounded-2xl border border-slate-900/[0.08] bg-white p-5 shadow-xl sm:p-6"
-      >
-        {/* Scelta Avatar Starter */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Scegli il tuo avatar
-            </label>
-            <span className="text-[11px] text-slate-500">Puoi cambiarlo in ogni momento</span>
-          </div>
-          <div className="grid grid-cols-5 gap-2">
-            {GAME_AVATARS.map((avatar) => {
-              const Icon = avatar.icon;
-              const isSelected = avatar.id === selectedAvatarId;
-              return (
-                <button
-                  key={avatar.id}
-                  type="button"
-                  onClick={() => handleAvatarSelect(avatar.id)}
-                  title={`${avatar.name} (${avatar.subtitle})`}
-                  aria-label={`Seleziona avatar ${avatar.name}`}
-                  className={cn(
-                    'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all',
-                    isSelected
-                      ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/40 scale-105'
-                      : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-100 hover:scale-105'
-                  )}
-                >
-                  <Icon className="h-7 w-7 transition-transform group-hover:scale-110 sm:h-8 sm:w-8" />
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Colonna Destra: Anteprima Carta + Scelta Avatar e Gamertag */}
+        <section className="space-y-4 lg:col-span-5">
+          <OnboardingCardPreview gamertag={value} avatarId={selectedAvatarId} />
 
-        {/* Inserimento Gamertag */}
-        <div className="space-y-2 border-t border-slate-100 pt-3">
-          <label htmlFor="gamertag-input" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-            Gamertag nei tornei
-          </label>
-          <div className="relative">
-            <Input
-              id="gamertag-input"
-              autoFocus
-              value={value}
-              onChange={(e) => handleGamertagChange(e.target.value)}
-              placeholder="Es. DragoBlu92"
-              maxLength={20}
-              aria-label="Gamertag"
-              className="h-11 pr-10 text-sm font-semibold"
-            />
-            {checking && (
-              <span className="absolute right-3 top-3 text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin" />
-              </span>
-            )}
-          </div>
+          <div className="space-y-4 rounded-2xl border border-slate-900/[0.08] bg-white p-5 shadow-xl sm:p-6 text-slate-900">
+            {/* Scelta Avatar Starter */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Scegli il tuo avatar
+                </label>
+                <span className="text-[11px] text-slate-500">Cambiabile quando vuoi</span>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {GAME_AVATARS.map((avatar) => {
+                  const Icon = avatar.icon;
+                  const isSelected = avatar.id === selectedAvatarId;
+                  return (
+                    <button
+                      key={avatar.id}
+                      type="button"
+                      onClick={() => handleAvatarSelect(avatar.id)}
+                      title={`${avatar.name} (${avatar.subtitle})`}
+                      aria-label={`Seleziona avatar ${avatar.name}`}
+                      className={cn(
+                        'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all',
+                        isSelected
+                          ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/40 scale-105'
+                          : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-100 hover:scale-105'
+                      )}
+                    >
+                      <Icon className="h-7 w-7 transition-transform group-hover:scale-110 sm:h-8 sm:w-8" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[11px] text-slate-500">
-              3-20 caratteri (lettere, numeri, underscore)
-            </span>
-            {showAvailability && (
-              <span
-                className={
-                  availability?.validFormat && availability.available
-                    ? 'font-bold text-emerald-600'
-                    : 'font-bold text-destructive'
-                }
+            {/* Inserimento Gamertag */}
+            <div className="space-y-2 border-t border-slate-100 pt-3">
+              <label
+                htmlFor="gamertag-input"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700"
               >
-                {!availability?.validFormat
-                  ? 'Formato non valido'
-                  : availability.available
-                    ? 'Disponibile'
-                    : 'Già occupato'}
-              </span>
-            )}
+                Gamertag nei tornei
+              </label>
+              <div className="relative">
+                <Input
+                  id="gamertag-input"
+                  autoFocus
+                  value={value}
+                  onChange={(e) => handleGamertagChange(e.target.value)}
+                  placeholder="Es. DragoBlu92"
+                  maxLength={20}
+                  aria-label="Gamertag"
+                  className="h-11 pr-10 text-sm font-semibold text-slate-900"
+                />
+                {checking && (
+                  <span className="absolute right-3 top-3 text-slate-400">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[11px] text-slate-500">
+                  3-20 caratteri (lettere, numeri, underscore)
+                </span>
+                {showAvailability && (
+                  <span
+                    className={
+                      availability?.validFormat && availability.available
+                        ? 'font-bold text-emerald-600'
+                        : 'font-bold text-destructive'
+                    }
+                  >
+                    {!availability?.validFormat
+                      ? 'Formato non valido'
+                      : availability.available
+                        ? 'Disponibile'
+                        : 'Già occupato'}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
+      </div>
+
+      {/* Sezione Inferiore Full-Width: Condizioni Liquid Glass e Bottone CTA */}
+      <div className="space-y-5 border-t border-white/10 pt-6">
+        {mustAcceptRules && (
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Condizioni di partecipazione & Fair Play
+            </p>
+            <OnboardingAgreements
+              fairPlayAccepted={fairPlayAccepted}
+              onToggleFairPlay={() => setFairPlayAccepted((prev) => !prev)}
+              rulesAccepted={rulesAccepted}
+              onToggleRules={() => setRulesAccepted((prev) => !prev)}
+              onOpenRulesModal={() => setRulesOpen(true)}
+            />
+          </div>
+        )}
 
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+          <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-center text-xs font-semibold text-red-300">
             {error}
           </div>
         )}
 
-        {/* Accettazione Regolamento */}
-        {mustAcceptRules && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-slate-900/[0.06] bg-slate-50 px-3.5 py-3">
-            <Checkbox
-              id="accept-rules"
-              checked={rulesAccepted}
-              onCheckedChange={setRulesAccepted}
-              aria-describedby="accept-rules-label"
-              className="mt-0.5"
-            />
-            <label
-              id="accept-rules-label"
-              htmlFor="accept-rules"
-              className="cursor-pointer text-xs leading-relaxed text-slate-600"
-            >
-              Accetto il{' '}
-              <button
-                type="button"
-                onClick={() => setRulesOpen(true)}
-                className="font-bold text-primary underline underline-offset-2 hover:text-primary-text"
-              >
-                regolamento e l&apos;informativa privacy dei tornei
-              </button>
-              , inclusa la connessione video P2P e le registrazioni locali anti-cheat.
-            </label>
-          </div>
-        )}
-
-        {/* Pulsante di Submit */}
-        <Button
-          type="submit"
-          disabled={!canSubmit}
-          className="h-12 w-full text-sm font-bold uppercase tracking-wider shadow-lg transition-all"
-        >
-          {saving ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Salvataggio in corso…
-            </span>
-          ) : (
-            'Entra nella sala tornei'
-          )}
-        </Button>
-      </form>
-    </div>
+        <div className="flex justify-center pt-2">
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            className="h-13 w-full max-w-xl text-base font-bold uppercase tracking-wider shadow-2xl transition-all"
+          >
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Accesso in corso…
+              </span>
+            ) : (
+              'Entra nella sala tornei'
+            )}
+          </Button>
+        </div>
+      </div>
+    </form>
   );
 }
-

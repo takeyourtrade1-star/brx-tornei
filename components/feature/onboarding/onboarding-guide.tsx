@@ -9,13 +9,14 @@ const HIGHLIGHTS = [
   {
     title: 'Duelli 1v1 con carte fisiche',
     description:
-      'Gioca direttamente dal browser inquadrando il tuo tappetino con la webcam del PC o usando la fotocamera dello smartphone.',
+      'Gioca direttamente dal browser inquadrando il tuo tappetino con la webcam del PC o usando la fotocamera dello smartphone. Sono ammesse anche carte stampate, a patto che siano a colori e ben visibili.',
     Icon: Video,
   },
   {
     title: 'Tornei per i tuoi TCG preferiti',
     description:
-      'Iscriviti a tornei aperti, crea eventi personalizzati con i tuoi amici o cerca partite rapide quando vuoi.',
+      'Iscriviti a tornei aperti, crea eventi personalizzati con i tuoi amici o cerca partite rapide quando vuoi.*',
+    footnote: '*Funzionalità tornei personalizzati e matchmaking avanzato in arrivo.',
     Icon: Swords,
   },
   {
@@ -56,7 +57,7 @@ export function OnboardingGuide({ userName }: OnboardingGuideProps) {
 
       {/* 3 Pilastri di gioco */}
       <div className="space-y-3.5">
-        {HIGHLIGHTS.map(({ title, description, Icon }) => (
+        {HIGHLIGHTS.map(({ title, description, footnote, Icon }) => (
           <div
             key={title}
             className="flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm transition-colors hover:border-white/20 hover:bg-white/[0.06]"
@@ -67,6 +68,9 @@ export function OnboardingGuide({ userName }: OnboardingGuideProps) {
             <div className="min-w-0">
               <h2 className="text-base font-bold text-white">{title}</h2>
               <p className="mt-1 text-sm leading-relaxed text-slate-300">{description}</p>
+              {footnote && (
+                <p className="mt-1.5 text-[11px] font-medium text-amber-300/80">{footnote}</p>
+              )}
             </div>
           </div>
         ))}
