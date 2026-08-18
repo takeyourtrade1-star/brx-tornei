@@ -2,7 +2,6 @@ import type {
   DirectGameChallenge,
   FriendPresenceStatus,
   FriendRequestItem,
-  FriendSummary,
   PublicPlayerProfile,
 } from '@/types/social';
 
@@ -88,11 +87,11 @@ export function buildFallbackPublicProfile(
   const isFriend = friends.has(normalized);
 
   const hash = Array.from(normalized).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const played = 15 + (hash % 60);
-  const wins = Math.floor(played * (0.45 + (hash % 30) / 100));
+  const played = isSelf ? 0 : 5 + (hash % 10);
+  const wins = Math.floor(played * 0.5);
   const losses = played - wins;
-  const winStreak = hash % 5;
-  const dailyWins = Math.min(5, hash % 4);
+  const winStreak = 0;
+  const dailyWins = 0;
 
   const dnd = isPlayerDnd(normalized);
   const presenceList: FriendPresenceStatus[] = ['online', 'in_game', 'recent', 'offline'];
@@ -106,18 +105,19 @@ export function buildFallbackPublicProfile(
       played,
       wins,
       losses,
-      abandoned: hash % 3 === 0 ? 1 : 0,
+      abandoned: 0,
       disputed: 0,
       winStreak,
       dailyWins,
     },
-    unlockedAchievements: ['first-win', 'ten-games', wins >= 10 ? 'ten-wins' : 'first-loss'],
+    unlockedAchievements: wins > 0 ? ['first-win'] : [],
+    // Solo le medaglie d'onore effettivamente ricevute (default 0 per evitare numeri gonfiati)
     honorBadges: {
-      friendly: 4 + (hash % 12),
-      sportive: 2 + (hash % 8),
-      great_player: 1 + (hash % 6),
-      strategist: hash % 5,
-      punctual: 3 + (hash % 7),
+      friendly: 0,
+      sportive: 0,
+      great_player: 0,
+      strategist: 0,
+      punctual: 0,
     },
     friendship: isSelf ? 'self' : isFriend ? 'friend' : 'none',
   };

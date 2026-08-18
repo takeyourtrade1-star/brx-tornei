@@ -1,39 +1,110 @@
 import 'server-only';
 
-import { extractApiError, tournamentFetch, TournamentApiError } from '@/lib/data/tournament-api-client';
+import { tournamentFetch } from '@/lib/data/tournament-api-client';
 import { unwrapApiPayload } from '@/lib/data/tournament-mapper';
+import { fetchMyMatchFeedback } from '@/lib/data/match-feedback';
+import { fetchMyReputation } from '@/lib/data/player-api-client';
+import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import {
   buildFallbackPublicProfile,
   getAvatarIdForGamertag,
-  mockChallengesStore,
   mockFriendsStore,
   mockRequestsStore,
 } from '@/lib/data/social-mock-store';
 import type {
-  DirectGameChallenge,
   FriendPresenceStatus,
   FriendRequestItem,
   FriendSummary,
   PublicPlayerProfile,
 } from '@/types/social';
 
+export {
+  postSendFriendRequest,
+  postRespondFriendRequest,
+  postRemoveFriend,
+} from './social-friendship-client';
+
+export {
+  postCreateGameChallenge,
+  fetchActiveChallengeForUser,
+} from './social-challenges-client';
+
 export async function fetchPublicProfile(
   targetGamertag: string,
   myGamertag?: string | null,
 ): Promise<PublicPlayerProfile | null> {
+  const isSelf = Boolean(
+    myGamertag && targetGamertag.trim().toLowerCase() === myGamertag.trim().toLowerCase(),
+  );
+
+  let realFeedbackMap: Record<string, number> | null = null;
+  if (isSelf) {
+    try {
+      const fb = await fetchMyMatchFeedback();
+      if (fb?.badges) {
+        realFeedbackMap = {};
+        for (const b of fb.badges) {
+          realFeedbackMap[b.badge] = b.count;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   try {
     const { ok, body } = await tournamentFetch(
       `/api/v1/players/${encodeURIComponent(targetGamertag)}/public-profile`,
     );
     if (ok) {
       const data = unwrapApiPayload<PublicPlayerProfile>(body);
-      if (data) return data;
+      if (data) {
+        if (realFeedbackMap && data.honorBadges) {
+          data.honorBadges = {
+            friendly: realFeedbackMap['friendly'] ?? 0,
+            sportive: realFeedbackMap['sportive'] ?? 0,
+            great_player: realFeedbackMap['great_player'] ?? 0,
+            strategist: realFeedbackMap['strategist'] ?? 0,
+            punctual: realFeedbackMap['punctual'] ?? 0,
+          };
+        }
+        return data;
+      }
     }
   } catch {
-    // Fallback a dati deterministici simulati
+    // Fallback a dati simulati
   }
 
-  return buildFallbackPublicProfile(targetGamertag, myGamertag);
+  const profile = buildFallbackPublicProfile(targetGamertag, myGamertag);
+
+  if (isSelf) {
+    try {
+      const rep = await fetchMyReputation();
+      if (rep) {
+        profile.stats.played = rep.played;
+        profile.stats.wins = rep.wins;
+        profile.stats.losses = rep.losses;
+        profile.stats.abandoned = rep.abandoned;
+        profile.stats.disputed = rep.disputed;
+        profile.stats.winStreak = calculateWinStreak(rep);
+        profile.stats.dailyWins = calculateDailyWins(rep);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (realFeedbackMap) {
+    profile.honorBadges = {
+      friendly: realFeedbackMap['friendly'] ?? 0,
+      sportive: realFeedbackMap['sportive'] ?? 0,
+      great_player: realFeedbackMap['great_player'] ?? 0,
+      strategist: realFeedbackMap['strategist'] ?? 0,
+      punctual: realFeedbackMap['punctual'] ?? 0,
+    };
+  }
+
+  return profile;
 }
 
 export async function fetchFriendsList(myGamertag?: string | null): Promise<FriendSummary[]> {
@@ -65,8 +136,8 @@ export async function fetchFriendsList(myGamertag?: string | null): Promise<Frie
       avatarId: getAvatarIdForGamertag(tag),
       presence,
       statusText,
-      winStreak: (idx * 2) % 6,
-      dailyWins: idx % 4,
+      winStreak: 0,
+      dailyWins: 0,
     };
   });
 }
@@ -119,7 +190,6 @@ export async function searchPlayers(query: string, myGamertag?: string | null): 
     (name) => name.toLowerCase().includes(qLower) && name.toLowerCase() !== myGamertag?.toLowerCase(),
   );
 
-  // Se l'utente cerca un gamertag specifico (es. altro account) non ancora presente, lo includiamo
   if (
     q.length >= 3 &&
     /^[a-zA-Z0-9_]+$/.test(q) &&
@@ -134,98 +204,7 @@ export async function searchPlayers(query: string, myGamertag?: string | null): 
     avatarId: getAvatarIdForGamertag(tag),
     presence: (idx % 2 === 0 ? 'online' : 'recent') as FriendPresenceStatus,
     statusText: idx % 2 === 0 ? 'Online' : 'Attivo di recente',
-    winStreak: idx % 3,
-    dailyWins: idx % 2,
+    winStreak: 0,
+    dailyWins: 0,
   }));
-}
-
-export async function postSendFriendRequest(targetGamertag: string): Promise<void> {
-  try {
-    const { ok, status, body } = await tournamentFetch('/api/v1/friends/requests', {
-      method: 'POST',
-      body: JSON.stringify({ gamertag: targetGamertag }),
-    });
-    if (!ok) throw extractApiError(body, status, 'Impossibile inviare la richiesta di amicizia');
-  } catch (err) {
-    if (err instanceof TournamentApiError && err.code === 'API_NOT_CONFIGURED') {
-      const friends = mockFriendsStore.get('default') ?? new Set();
-      friends.add(targetGamertag.trim());
-      mockFriendsStore.set('default', friends);
-      return;
-    }
-    throw err;
-  }
-}
-
-export async function postRespondFriendRequest(requestId: string, action: 'accept' | 'decline'): Promise<void> {
-  try {
-    const { ok, status, body } = await tournamentFetch(`/api/v1/friends/requests/${encodeURIComponent(requestId)}`, {
-      method: 'POST',
-      body: JSON.stringify({ action }),
-    });
-    if (!ok) throw extractApiError(body, status, 'Impossibile rispondere alla richiesta');
-  } catch (err) {
-    if (err instanceof TournamentApiError && err.code === 'API_NOT_CONFIGURED') {
-      const requests = mockRequestsStore.get('default') ?? [];
-      const item = requests.find((r) => r.id === requestId);
-      if (item && action === 'accept') {
-        const friends = mockFriendsStore.get('default') ?? new Set();
-        friends.add(item.gamertag);
-        mockFriendsStore.set('default', friends);
-      }
-      mockRequestsStore.set(
-        'default',
-        requests.filter((r) => r.id !== requestId),
-      );
-      return;
-    }
-    throw err;
-  }
-}
-
-export async function postRemoveFriend(targetGamertag: string): Promise<void> {
-  try {
-    const { ok, status, body } = await tournamentFetch(
-      `/api/v1/friends/${encodeURIComponent(targetGamertag)}`,
-      { method: 'DELETE' },
-    );
-    if (!ok) throw extractApiError(body, status, 'Impossibile rimuovere l’amico');
-  } catch (err) {
-    if (err instanceof TournamentApiError && err.code === 'API_NOT_CONFIGURED') {
-      const friends = mockFriendsStore.get('default') ?? new Set();
-      friends.delete(targetGamertag.trim());
-      mockFriendsStore.set('default', friends);
-      return;
-    }
-    throw err;
-  }
-}
-
-export async function postCreateGameChallenge(challenge: {
-  challengerGamertag: string;
-  challengerAvatarId: string;
-  recipientGamertag: string;
-  format: string;
-  bestOf: 'BO1' | 'BO3' | 'BO5';
-}): Promise<DirectGameChallenge> {
-  const challengeId = `ch-${Date.now()}`;
-  const record: DirectGameChallenge = {
-    id: challengeId,
-    ...challenge,
-    expiresAt: Date.now() + 60_000,
-    status: 'pending',
-  };
-  mockChallengesStore.set(challengeId, record);
-  return record;
-}
-
-export async function fetchActiveChallengeForUser(recipientGamertag: string): Promise<DirectGameChallenge | null> {
-  const now = Date.now();
-  for (const [, ch] of mockChallengesStore.entries()) {
-    if (ch.recipientGamertag.toLowerCase() === recipientGamertag.toLowerCase() && ch.status === 'pending') {
-      if (ch.expiresAt > now) return ch;
-      ch.status = 'expired';
-    }
-  }
-  return null;
 }
