@@ -10,7 +10,7 @@ import { checkGamertagAvailabilityAction, setGamertagAction } from '@/actions/pl
 import { GAME_AVATARS, getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
 import type { GamertagAvailability } from '@/lib/data/player-api-client';
 import { OnboardingCardPreview } from './onboarding-card-preview';
-import { CheckCircle2, XCircle, Loader2, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface OnboardingFormProps {
@@ -20,7 +20,7 @@ interface OnboardingFormProps {
 }
 
 /**
- * Form interattivo per la scelta del gamertag, avatar iniziale e accettazione regolamento.
+ * Form di onboarding per la scelta del gamertag e dell'avatar iniziale.
  */
 export function OnboardingForm({
   initialGamertag,
@@ -84,23 +84,26 @@ export function OnboardingForm({
     (!mustAcceptRules || rulesAccepted);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <TournamentRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
 
-      {/* Live Preview della Carta Duellante */}
+      {/* Anteprima Card Duellante ingrandita e autentica */}
       <OnboardingCardPreview gamertag={value} avatarId={selectedAvatarId} />
 
-      {/* Form di Configurazione */}
+      {/* Form di Selezione e Registrazione */}
       <form
         onSubmit={handleSubmit}
         className="space-y-4 rounded-2xl border border-slate-900/[0.08] bg-white p-5 shadow-xl sm:p-6"
       >
-        {/* Sezione Avatar Starter */}
+        {/* Scelta Avatar Starter */}
         <div className="space-y-2">
-          <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-            1. Scegli il tuo Avatar
-          </label>
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Scegli il tuo avatar
+            </label>
+            <span className="text-[11px] text-slate-500">Puoi cambiarlo in ogni momento</span>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
             {GAME_AVATARS.map((avatar) => {
               const Icon = avatar.icon;
               const isSelected = avatar.id === selectedAvatarId;
@@ -112,23 +115,23 @@ export function OnboardingForm({
                   title={`${avatar.name} (${avatar.subtitle})`}
                   aria-label={`Seleziona avatar ${avatar.name}`}
                   className={cn(
-                    'group relative grid aspect-square place-items-center rounded-xl border p-1.5 transition-all',
+                    'group relative grid aspect-square place-items-center rounded-xl border p-2 transition-all',
                     isSelected
-                      ? 'border-primary bg-primary/10 shadow-md ring-2 ring-primary/40 scale-105'
-                      : 'border-slate-200 bg-slate-50/60 hover:border-slate-300 hover:bg-slate-100 hover:scale-105'
+                      ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/40 scale-105'
+                      : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-100 hover:scale-105'
                   )}
                 >
-                  <Icon className="h-6 w-6 transition-transform group-hover:scale-110 sm:h-7 sm:w-7" />
+                  <Icon className="h-7 w-7 transition-transform group-hover:scale-110 sm:h-8 sm:w-8" />
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Sezione Gamertag */}
-        <div className="space-y-2 pt-2 border-t border-slate-100">
-          <label htmlFor="gamertag-input" className="block text-xs font-black uppercase tracking-wider text-slate-700">
-            2. Inserisci il tuo Gamertag
+        {/* Inserimento Gamertag */}
+        <div className="space-y-2 border-t border-slate-100 pt-3">
+          <label htmlFor="gamertag-input" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+            Gamertag nei tornei
           </label>
           <div className="relative">
             <Input
@@ -139,27 +142,17 @@ export function OnboardingForm({
               placeholder="Es. DragoBlu92"
               maxLength={20}
               aria-label="Gamertag"
-              className="h-11 text-sm font-semibold pr-10"
+              className="h-11 pr-10 text-sm font-semibold"
             />
             {checking && (
               <span className="absolute right-3 top-3 text-slate-400">
                 <Loader2 className="h-5 w-5 animate-spin" />
               </span>
             )}
-            {!checking && showAvailability && availability?.available && (
-              <span className="absolute right-3 top-3 text-emerald-600">
-                <CheckCircle2 className="h-5 w-5" />
-              </span>
-            )}
-            {!checking && showAvailability && !availability?.available && (
-              <span className="absolute right-3 top-3 text-destructive">
-                <XCircle className="h-5 w-5" />
-              </span>
-            )}
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground text-[11px]">
+            <span className="text-[11px] text-slate-500">
               3-20 caratteri (lettere, numeri, underscore)
             </span>
             {showAvailability && (
@@ -174,7 +167,7 @@ export function OnboardingForm({
                   ? 'Formato non valido'
                   : availability.available
                     ? 'Disponibile'
-                    : 'Già in uso'}
+                    : 'Già occupato'}
               </span>
             )}
           </div>
@@ -188,7 +181,7 @@ export function OnboardingForm({
 
         {/* Accettazione Regolamento */}
         {mustAcceptRules && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-slate-900/[0.06] bg-slate-50/80 px-3.5 py-3">
+          <div className="flex items-start gap-2.5 rounded-xl border border-slate-900/[0.06] bg-slate-50 px-3.5 py-3">
             <Checkbox
               id="accept-rules"
               checked={rulesAccepted}
@@ -209,12 +202,12 @@ export function OnboardingForm({
               >
                 regolamento e l&apos;informativa privacy dei tornei
               </button>
-              , inclusa la connessione P2P e l&apos;anti-cheat locale a tutela del gioco.
+              , inclusa la connessione video P2P e le registrazioni locali anti-cheat.
             </label>
           </div>
         )}
 
-        {/* Submit Button */}
+        {/* Pulsante di Submit */}
         <Button
           type="submit"
           disabled={!canSubmit}
@@ -223,16 +216,14 @@ export function OnboardingForm({
           {saving ? (
             <span className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Accesso in corso…
+              Salvataggio in corso…
             </span>
           ) : (
-            <span className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Entra nell&apos;Arena dei Tornei
-            </span>
+            'Entra nella sala tornei'
           )}
         </Button>
       </form>
     </div>
   );
 }
+
