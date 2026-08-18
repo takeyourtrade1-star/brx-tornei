@@ -1,6 +1,6 @@
 import { publicConfig } from '@/lib/public-config';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
-import { ArrowLeft, Swords } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 interface OnboardingHeaderProps {
   userEmail?: string | null;
@@ -13,12 +13,10 @@ export function OnboardingHeader({ userEmail }: OnboardingHeaderProps) {
   return (
     <header className="relative z-20 w-full border-b border-white/10 bg-[#0F172A]/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 overflow-visible py-0.5">
           <BrxHeaderLogo href="/" ariaLabel="Ebartex Tornei" />
-          <div className="h-4 w-px bg-white/15" aria-hidden />
-          <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
-            <Swords className="h-2.5 w-2.5" aria-hidden />
-            Arena Tornei
+          <span className="font-sans text-xl font-black uppercase tracking-wide text-primary sm:text-2xl">
+            Tournaments
           </span>
         </div>
 
