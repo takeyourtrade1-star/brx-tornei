@@ -21,6 +21,7 @@ import type {
 export {
   postSendFriendRequest,
   postRespondFriendRequest,
+  postCancelFriendRequest,
   postRemoveFriend,
 } from './social-friendship-client';
 

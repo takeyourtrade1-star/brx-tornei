@@ -7,6 +7,7 @@ import {
   fetchFriendRequests,
   fetchFriendsList,
   fetchPublicProfile,
+  postCancelFriendRequest,
   postRemoveFriend,
   postRespondFriendRequest,
   postSendFriendRequest,
@@ -139,6 +140,21 @@ export async function respondFriendRequestAction(
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Impossibile rispondere alla richiesta.';
+    return { ok: false, error: message };
+  }
+}
+
+export async function cancelFriendRequestAction(requestId: string): Promise<SocialActionState> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Sessione non valida.' };
+  if (!requestId || typeof requestId !== 'string') return { ok: false, error: 'ID richiesta non valido.' };
+
+  try {
+    await postCancelFriendRequest(requestId);
+    revalidatePath('/tornei');
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Impossibile annullare la richiesta.';
     return { ok: false, error: message };
   }
 }

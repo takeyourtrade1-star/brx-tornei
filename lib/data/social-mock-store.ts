@@ -43,6 +43,13 @@ export const mockRequestsStore = new Map<string, FriendRequestItem[]>([
         createdAtText: 'Oggi',
         direction: 'incoming',
       },
+      {
+        id: 'req-out-1',
+        gamertag: 'BlackLotus_Fan',
+        avatarId: 'flame',
+        createdAtText: 'Ieri',
+        direction: 'outgoing',
+      },
     ],
   ],
 ]);
@@ -111,7 +118,6 @@ export function buildFallbackPublicProfile(
       dailyWins,
     },
     unlockedAchievements: wins > 0 ? ['first-win'] : [],
-    // Solo le medaglie d'onore effettivamente ricevute (default 0 per evitare numeri gonfiati)
     honorBadges: {
       friendly: 0,
       sportive: 0,

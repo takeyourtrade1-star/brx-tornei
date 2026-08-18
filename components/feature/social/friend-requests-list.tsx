@@ -1,77 +1,194 @@
 'use client';
 
-import { Check, UserPlus, X } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Clock, Inbox, Send, UserPlus, X } from 'lucide-react';
 import type { FriendRequestItem } from '@/types/social';
 import { getAvatarById } from '@/lib/avatars';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface FriendRequestsListProps {
   requests: FriendRequestItem[];
   onRespond: (requestId: string, action: 'accept' | 'decline') => void;
+  onCancel?: (requestId: string) => void;
   onOpenProfile: (gamertag: string) => void;
 }
 
-export function FriendRequestsList({ requests, onRespond, onOpenProfile }: FriendRequestsListProps) {
+export function FriendRequestsList({
+  requests,
+  onRespond,
+  onCancel,
+  onOpenProfile,
+}: FriendRequestsListProps) {
+  const [filter, setFilter] = useState<'all' | 'incoming' | 'outgoing'>('all');
+
+  const incoming = requests.filter((r) => r.direction === 'incoming');
+  const outgoing = requests.filter((r) => r.direction === 'outgoing');
+
   if (requests.length === 0) {
     return (
       <div className="py-16 text-center">
         <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-white border border-slate-200 text-slate-400 shadow-sm">
           <UserPlus className="h-7 w-7" />
         </span>
-        <p className="text-base font-bold text-slate-800">Nessuna richiesta in attesa</p>
+        <p className="text-base font-bold text-slate-800">Nessuna richiesta pendente</p>
         <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-slate-500">
-          Quando altri giocatori ti invieranno una richiesta di amicizia, comparirà qui.
+          Non hai richieste di amicizia in attesa, né ricevute né inviate.
         </p>
       </div>
     );
   }
 
   return (
-    <ul className="space-y-3">
-      {requests.map((req) => {
-        const avatar = getAvatarById(req.avatarId);
-        const AvatarIcon = avatar.icon;
+    <div className="space-y-5">
+      {/* Sub-filtri per vedere Ricevute ed Inviate */}
+      <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setFilter('all')}
+          className={cn(
+            'flex-1 rounded-lg py-1.5 text-xs font-black transition',
+            filter === 'all'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-500 hover:text-slate-900',
+          )}
+        >
+          Tutte ({requests.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('incoming')}
+          className={cn(
+            'flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-black transition',
+            filter === 'incoming'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-500 hover:text-slate-900',
+          )}
+        >
+          <Inbox className="h-3.5 w-3.5" />
+          <span>Ricevute ({incoming.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilter('outgoing')}
+          className={cn(
+            'flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-black transition',
+            filter === 'outgoing'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-500 hover:text-slate-900',
+          )}
+        >
+          <Send className="h-3.5 w-3.5" />
+          <span>Inviate ({outgoing.length})</span>
+        </button>
+      </div>
 
-        return (
-          <li
-            key={req.id}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md"
-          >
-            <button
-              type="button"
-              onClick={() => onOpenProfile(req.gamertag)}
-              className="flex min-w-0 items-center gap-3 text-left focus-visible:outline-none"
-            >
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-900 text-white shadow-sm shrink-0">
-                <AvatarIcon className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
-                <p className="text-xs font-semibold text-slate-400">{req.createdAtText}</p>
-              </div>
-            </button>
+      {/* Sezione Richieste Ricevute */}
+      {(filter === 'all' || filter === 'incoming') && incoming.length > 0 && (
+        <div>
+          <h3 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
+            <Inbox className="h-3.5 w-3.5" />
+            <span>Richieste Ricevute ({incoming.length})</span>
+          </h3>
+          <ul className="space-y-2.5">
+            {incoming.map((req) => {
+              const avatar = getAvatarById(req.avatarId);
+              const AvatarIcon = avatar.icon;
 
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                type="button"
-                onClick={() => onRespond(req.id, 'accept')}
-                className="h-9 gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
-              >
-                <Check className="h-4 w-4" />
-                <span>Accetta</span>
-              </Button>
-              <button
-                type="button"
-                onClick={() => onRespond(req.id, 'decline')}
-                aria-label="Rifiuta richiesta"
-                className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+              return (
+                <li
+                  key={req.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4"
+                >
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile(req.gamertag)}
+                    className="flex min-w-0 items-center gap-3 text-left focus-visible:outline-none"
+                  >
+                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-900 text-white shadow-sm shrink-0">
+                      <AvatarIcon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                      <p className="text-xs font-semibold text-slate-400">{req.createdAtText}</p>
+                    </div>
+                  </button>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      onClick={() => onRespond(req.id, 'accept')}
+                      className="h-9 gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
+                    >
+                      <Check className="h-4 w-4" />
+                      <span>Accetta</span>
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => onRespond(req.id, 'decline')}
+                      aria-label="Rifiuta richiesta"
+                      className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* Sezione Richieste Inviate */}
+      {(filter === 'all' || filter === 'outgoing') && outgoing.length > 0 && (
+        <div>
+          <h3 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            <Send className="h-3.5 w-3.5" />
+            <span>Richieste Inviate da te ({outgoing.length})</span>
+          </h3>
+          <ul className="space-y-2.5">
+            {outgoing.map((req) => {
+              const avatar = getAvatarById(req.avatarId);
+              const AvatarIcon = avatar.icon;
+
+              return (
+                <li
+                  key={req.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4"
+                >
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile(req.gamertag)}
+                    className="flex min-w-0 items-center gap-3 text-left focus-visible:outline-none"
+                  >
+                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-900 text-white shadow-sm shrink-0">
+                      <AvatarIcon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>In attesa di risposta ({req.createdAtText})</span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {onCancel && (
+                    <button
+                      type="button"
+                      onClick={() => onCancel(req.id)}
+                      className="inline-flex h-9 items-center gap-1 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition shrink-0"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      <span>Annulla</span>
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }

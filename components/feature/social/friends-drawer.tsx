@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Settings, UserPlus, Users, X } from 'lucide-react';
 import {
+  cancelFriendRequestAction,
   getFriendRequestsAction,
   getFriendsListAction,
   removeFriendAction,
@@ -81,6 +82,12 @@ export function FriendsDrawer({
     void loadData();
   };
 
+  const handleCancelRequest = async (requestId: string) => {
+    setRequests((prev) => prev.filter((r) => r.id !== requestId));
+    await cancelFriendRequestAction(requestId);
+    void loadData();
+  };
+
   const onlineFriends = friends.filter((f) => f.presence === 'online' || f.presence === 'in_game');
   const otherFriends = friends.filter((f) => f.presence !== 'online' && f.presence !== 'in_game');
 
@@ -138,7 +145,7 @@ export function FriendsDrawer({
               onClick={() => setTab('requests')}
               label="Richieste"
               badge={requests.length > 0 ? requests.length : undefined}
-              badgeHighlight={requests.length > 0}
+              badgeHighlight={requests.some((r) => r.direction === 'incoming')}
             />
             <SocialTabButton
               active={tab === 'search'}
@@ -221,6 +228,7 @@ export function FriendsDrawer({
             <FriendRequestsList
               requests={requests}
               onRespond={handleRespondRequest}
+              onCancel={handleCancelRequest}
               onOpenProfile={onOpenProfile}
             />
           )}
