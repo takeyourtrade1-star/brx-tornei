@@ -124,7 +124,7 @@ export function DashboardHeader({
         <nav
           aria-label="Navigazione principale tornei"
           className={cn(
-            'order-3 grid w-full grid-cols-2 gap-1 rounded-full p-1.5 transition-all duration-300 backdrop-blur-xl sm:order-none sm:ml-auto sm:flex sm:w-auto sm:gap-1.5',
+            'order-3 grid w-full grid-cols-3 gap-1 rounded-full p-1.5 transition-all duration-300 backdrop-blur-xl sm:order-none sm:ml-auto sm:flex sm:w-auto sm:gap-1.5',
             isScrolled
               ? 'border border-slate-300/80 bg-slate-100/85 shadow-inner'
               : 'border border-white/20 bg-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_8px_25px_-6px_rgba(0,0,0,0.4)]',
@@ -132,22 +132,64 @@ export function DashboardHeader({
         >
           <HeaderPrimarySegment href="/mazzi" label="I miei mazzi" icon={Layers} active={pathname.startsWith('/mazzi')} scrolled={isScrolled} />
           <HeaderPrimarySegment href="/partite" label="Le mie partite" icon={Swords} active={pathname.startsWith('/partite')} scrolled={isScrolled} />
+          <button
+            type="button"
+            onClick={() => setFriendsOpen(true)}
+            aria-label="Apri amici e duellanti"
+            className={cn(
+              'group flex min-h-[38px] min-w-0 items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-center transition-all duration-200 sm:min-w-[7.5rem]',
+              friendsOpen
+                ? 'border border-white/30 bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.5),0_4px_16px_-2px_rgba(255,115,0,0.6)] font-black'
+                : isScrolled
+                  ? 'text-slate-600 hover:bg-slate-200/70 hover:text-slate-950 font-bold'
+                  : 'text-white/75 hover:bg-white/10 hover:text-white font-bold',
+            )}
+          >
+            <span
+              className={cn(
+                'relative grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors',
+                friendsOpen
+                  ? 'bg-white/25 text-white'
+                  : isScrolled
+                    ? 'bg-slate-200/80 text-slate-600 group-hover:bg-slate-300 group-hover:text-slate-900'
+                    : 'bg-white/10 text-white/80 group-hover:bg-white/20 group-hover:text-white',
+              )}
+            >
+              <Users className="h-3.5 w-3.5" strokeWidth={2.4} />
+              {onlineFriendsCount > 0 && (
+                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
+              )}
+            </span>
+            <span className="min-w-0 truncate text-xs uppercase tracking-wide">Amici</span>
+            {pendingRequestsCount > 0 && (
+              <span className="grid h-4 min-w-[16px] place-items-center rounded-full bg-orange-500 px-1 text-[9px] font-black text-white shadow-sm">
+                {pendingRequestsCount}
+              </span>
+            )}
+          </button>
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center justify-end gap-2 sm:ml-0 sm:gap-3">
           <a
             href={publicConfig.app.mainSiteUrl}
-            aria-label="Torna su Ebartex"
-            title="Torna su Ebartex"
+            aria-label="Torna al marketplace Ebartex"
+            title="Torna al marketplace Ebartex"
             className={cn(
-              'flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-bold uppercase tracking-wide transition',
+              'group relative flex h-9 items-center gap-2 rounded-full px-3.5 text-xs font-black uppercase tracking-wider transition-all duration-200 shadow-sm',
               isScrolled
-                ? 'border border-slate-300 bg-white/90 text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50 hover:text-slate-950'
-                : 'border border-white/15 bg-white/10 text-white/80 hover:border-primary/40 hover:bg-primary/15 hover:text-white',
+                ? 'border border-slate-300/90 bg-white/95 text-slate-800 hover:border-orange-500/50 hover:bg-orange-500/[0.06] hover:text-orange-600 hover:shadow-md'
+                : 'border border-white/20 bg-white/[0.12] text-white backdrop-blur-md hover:border-orange-400/60 hover:bg-white/20 hover:text-white hover:shadow-[0_0_15px_rgba(255,115,0,0.35)]',
             )}
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden lg:inline">Ebartex</span>
+            <span
+              className={cn(
+                'grid h-5 w-5 place-items-center rounded-full transition-transform duration-200 group-hover:-translate-x-0.5',
+                isScrolled ? 'bg-slate-100 text-slate-700 group-hover:bg-orange-500/15 group-hover:text-orange-600' : 'bg-white/15 text-white',
+              )}
+            >
+              <ArrowLeft className="h-3 w-3 stroke-[2.5]" />
+            </span>
+            <span>Ebartex</span>
           </a>
 
           {showMinigameBack && onBackToMinigame && (
@@ -166,29 +208,6 @@ export function DashboardHeader({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => setFriendsOpen(true)}
-            aria-label="Apri amici e duellanti"
-            className={cn(
-              'relative flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold uppercase tracking-wide transition',
-              isScrolled
-                ? 'border border-slate-300 bg-white/90 text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50 hover:text-slate-950'
-                : 'border border-white/15 bg-white/10 text-white/90 hover:border-primary/40 hover:bg-primary/15 hover:text-white',
-            )}
-          >
-            <Users className="h-4 w-4 text-primary" />
-            <span className="hidden sm:inline">Amici</span>
-            {onlineFriendsCount > 0 && (
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-white/20" />
-            )}
-            {pendingRequestsCount > 0 && (
-              <span className="grid h-4 min-w-[16px] place-items-center rounded-full bg-orange-500 px-1 text-[9px] font-black text-white">
-                {pendingRequestsCount}
-              </span>
-            )}
-          </button>
-
           <div className="relative flex items-center justify-center py-1 sm:py-1.5">
             <ProfileRankBadge
               avatarId={avatarId}
@@ -202,36 +221,10 @@ export function DashboardHeader({
         </div>
       </div>
 
-      <ProfileDrawer
-        open={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        gamertag={shownName}
-        ebartexUsername={user.name}
-        initialReputation={currentReputation}
-      />
-
-      <FriendsDrawer
-        open={friendsOpen}
-        onClose={() => setFriendsOpen(false)}
-        onOpenProfile={(tag) => setPublicProfileTarget(tag)}
-        onChallenge={(tag) => setChallengeTarget(tag)}
-        myGamertag={shownName}
-        myEbartexUsername={user.name}
-      />
-
-      <PublicProfileModal
-        gamertag={publicProfileTarget}
-        open={Boolean(publicProfileTarget)}
-        onClose={() => setPublicProfileTarget(null)}
-        onChallenge={(tag) => setChallengeTarget(tag)}
-      />
-
-      <DirectChallengeModal
-        targetGamertag={challengeTarget}
-        open={Boolean(challengeTarget)}
-        onClose={() => setChallengeTarget(null)}
-      />
-
+      <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} gamertag={shownName} ebartexUsername={user.name} initialReputation={currentReputation} />
+      <FriendsDrawer open={friendsOpen} onClose={() => setFriendsOpen(false)} onOpenProfile={setPublicProfileTarget} onChallenge={setChallengeTarget} myGamertag={shownName} myEbartexUsername={user.name} />
+      <PublicProfileModal gamertag={publicProfileTarget} open={Boolean(publicProfileTarget)} onClose={() => setPublicProfileTarget(null)} onChallenge={setChallengeTarget} />
+      <DirectChallengeModal targetGamertag={challengeTarget} open={Boolean(challengeTarget)} onClose={() => setChallengeTarget(null)} />
       <IncomingChallengeToast />
     </header>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { config } from '@/lib/config';
 import { AuthRefreshReconciler } from '@/components/feature/auth/auth-refresh-reconciler';
+import { ConditionalFooter } from '@/components/layout/ConditionalFooter';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -20,10 +21,12 @@ export const dynamic = 'force-dynamic';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it">
-      <body className="font-sans antialiased">
-        {children}
+      <body className="flex min-h-screen flex-col font-sans antialiased">
+        <div className="flex flex-1 flex-col">{children}</div>
+        <ConditionalFooter />
         <AuthRefreshReconciler />
       </body>
     </html>
   );
 }
+
