@@ -11,7 +11,7 @@ export function getEbartexProfileUrl(ebartexUsername?: string | null): string {
   const base = publicConfig.app.mainSiteUrl || 'https://www.ebartex.com';
   const trimmed = ebartexUsername?.trim();
   if (!trimmed) return `${base}/profilo`;
-  return `${base}/profilo/${encodeURIComponent(trimmed)}`;
+  return `${base}/users/${encodeURIComponent(trimmed)}`;
 }
 
 export interface DndStatus {

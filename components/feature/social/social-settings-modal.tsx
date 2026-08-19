@@ -17,9 +17,10 @@ interface SocialSettingsModalProps {
   open: boolean;
   onClose: () => void;
   gamertag?: string | null;
+  ebartexUsername?: string | null;
 }
 
-export function SocialSettingsModal({ open, onClose }: SocialSettingsModalProps) {
+export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSettingsModalProps) {
   const [dnd, setDnd] = useState(() => getDndStatus());
   const [showEbartex, setShowEbartex] = useState(() => getEbartexVisibility());
   const [mounted, setMounted] = useState(false);
@@ -56,7 +57,7 @@ export function SocialSettingsModal({ open, onClose }: SocialSettingsModalProps)
     await setSocialEbartexVisibilityAction(visible);
   };
 
-  const ebartexUrl = getEbartexProfileUrl();
+  const ebartexUrl = getEbartexProfileUrl(ebartexUsername);
 
   return createPortal(
     <div role="presentation" className="fixed inset-0 z-[1000] grid place-items-center p-4" onClick={onClose}>

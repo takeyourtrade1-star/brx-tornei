@@ -187,6 +187,7 @@ export function DashboardHeader({
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
         gamertag={shownName}
+        ebartexUsername={user.name}
         initialReputation={currentReputation}
       />
 
@@ -196,6 +197,7 @@ export function DashboardHeader({
         onOpenProfile={(tag) => setPublicProfileTarget(tag)}
         onChallenge={(tag) => setChallengeTarget(tag)}
         myGamertag={shownName}
+        myEbartexUsername={user.name}
       />
 
       <PublicProfileModal

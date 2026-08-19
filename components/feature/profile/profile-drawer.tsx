@@ -21,6 +21,7 @@ interface ProfileDrawerProps {
   open: boolean;
   onClose: () => void;
   gamertag: string;
+  ebartexUsername?: string | null;
   initialReputation?: ReputationSummary | null;
 }
 
@@ -31,7 +32,13 @@ type FetchState =
   | { status: 'error'; message: string };
 
 /** Drawer laterale con modifica gamertag, avatar, badge e leghe. */
-export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: ProfileDrawerProps) {
+export function ProfileDrawer({
+  open,
+  onClose,
+  gamertag,
+  ebartexUsername,
+  initialReputation,
+}: ProfileDrawerProps) {
   const [state, setState] = useState<FetchState>(() =>
     initialReputation ? { status: 'success', reputation: initialReputation } : { status: 'idle' },
   );
@@ -204,7 +211,7 @@ export function ProfileDrawer({ open, onClose, gamertag, initialReputation }: Pr
 
           {/* Link al profilo marketplace Ebartex */}
           <a
-            href={getEbartexProfileUrl()}
+            href={getEbartexProfileUrl(ebartexUsername)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-900/[0.08] bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800"

@@ -30,6 +30,17 @@ export const MOCK_BOT_TAGS = new Set([
   'liliana_dread',
 ]);
 
+export const KNOWN_EBARTEX_USERNAMES = new Map<string, string>([
+  ['drakone_rabioso', 'Clemyx'],
+  ['king', 'King_Ebartex'],
+  ['alex_tcg', 'alex_cards'],
+  ['valerio_magic', 'valerio_tcg'],
+  ['sara_draws', 'sara_art'],
+  ['kurogane', 'kurogane_store'],
+  ['deckmaster99', 'deckmaster'],
+  ['blacklotus_fan', 'blacklotus_dealer'],
+]);
+
 export function isMockBot(gamertag: string): boolean {
   return MOCK_BOT_TAGS.has(gamertag.trim().toLowerCase());
 }
@@ -175,6 +186,10 @@ export function buildFallbackPublicProfile(
     friendship,
     isBot: isMockBot(normalized),
     showEbartexProfile: showEbartex,
-    ebartexUsername: isSelf ? (myEbartexUsername ?? null) : showEbartex ? normalized.toLowerCase() : null,
+    ebartexUsername: isSelf
+      ? (myEbartexUsername ?? KNOWN_EBARTEX_USERNAMES.get(normalized.toLowerCase()) ?? normalized)
+      : showEbartex
+        ? (KNOWN_EBARTEX_USERNAMES.get(normalized.toLowerCase()) ?? normalized)
+        : null,
   };
 }

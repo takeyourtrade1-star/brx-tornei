@@ -23,6 +23,7 @@ interface FriendsDrawerProps {
   onOpenProfile: (gamertag: string) => void;
   onChallenge: (gamertag: string) => void;
   myGamertag?: string | null;
+  myEbartexUsername?: string | null;
 }
 
 type TabType = 'friends' | 'requests' | 'search';
@@ -33,6 +34,7 @@ export function FriendsDrawer({
   onOpenProfile,
   onChallenge,
   myGamertag,
+  myEbartexUsername,
 }: FriendsDrawerProps) {
   const [tab, setTab] = useState<TabType>('friends');
   const [friends, setFriends] = useState<FriendSummary[]>([]);
@@ -134,12 +136,7 @@ export function FriendsDrawer({
 
         <div className="border-b border-slate-200/80 bg-white px-7 pt-3">
           <nav className="flex space-x-3">
-            <SocialTabButton
-              active={tab === 'friends'}
-              onClick={() => setTab('friends')}
-              label="Amici"
-              badge={friends.length}
-            />
+            <SocialTabButton active={tab === 'friends'} onClick={() => setTab('friends')} label="Amici" badge={friends.length} />
             <SocialTabButton
               active={tab === 'requests'}
               onClick={() => setTab('requests')}
@@ -147,12 +144,7 @@ export function FriendsDrawer({
               badge={requests.length > 0 ? requests.length : undefined}
               badgeHighlight={requests.some((r) => r.direction === 'incoming')}
             />
-            <SocialTabButton
-              active={tab === 'search'}
-              onClick={() => setTab('search')}
-              label="Cerca"
-              icon={Search}
-            />
+            <SocialTabButton active={tab === 'search'} onClick={() => setTab('search')} label="Cerca" icon={Search} />
           </nav>
         </div>
 
@@ -241,6 +233,7 @@ export function FriendsDrawer({
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         gamertag={myGamertag}
+        ebartexUsername={myEbartexUsername}
       />
     </div>,
     document.body,
