@@ -1,6 +1,5 @@
-import { Flame, HeartHandshake, Shield, Sparkles, Swords, Trophy, Zap } from 'lucide-react';
+import { Flame, HeartHandshake, Shield, Sparkles, Trophy, Zap } from 'lucide-react';
 import type { PublicPlayerStats } from '@/types/social';
-import { cn } from '@/lib/utils';
 
 interface PublicProfileStatsProps {
   stats: PublicPlayerStats;
@@ -16,6 +15,7 @@ interface PublicProfileStatsProps {
 export function PublicProfileStats({ stats, honorBadges }: PublicProfileStatsProps) {
   const decided = stats.wins + stats.losses;
   const winRate = decided > 0 ? Math.round((stats.wins / decided) * 100) : 0;
+  const totalBadges = Object.values(honorBadges).reduce((acc, count) => acc + (count || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -54,36 +54,50 @@ export function PublicProfileStats({ stats, honorBadges }: PublicProfileStatsPro
 
       {/* Badge d'Onore Assegnati dalla Community */}
       <section className="rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-3.5">
-        <h4 className="mb-2.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-          Medaglie d&rsquo;Onore Ricevute
-        </h4>
-        <div className="flex flex-wrap gap-2">
-          <HonorBadgeChip
-            icon={<HeartHandshake className="h-3.5 w-3.5 text-emerald-600" />}
-            label="Amichevole"
-            count={honorBadges.friendly}
-          />
-          <HonorBadgeChip
-            icon={<Shield className="h-3.5 w-3.5 text-blue-600" />}
-            label="Sportivo"
-            count={honorBadges.sportive}
-          />
-          <HonorBadgeChip
-            icon={<Trophy className="h-3.5 w-3.5 text-amber-600" />}
-            label="Grande Giocatore"
-            count={honorBadges.great_player}
-          />
-          <HonorBadgeChip
-            icon={<Zap className="h-3.5 w-3.5 text-purple-600" />}
-            label="Stratega"
-            count={honorBadges.strategist}
-          />
-          <HonorBadgeChip
-            icon={<Sparkles className="h-3.5 w-3.5 text-sky-600" />}
-            label="Puntuale"
-            count={honorBadges.punctual}
-          />
+        <div className="flex items-center justify-between mb-2.5">
+          <h4 className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+            Medaglie d&rsquo;Onore Ricevute
+          </h4>
+          {totalBadges > 0 && (
+            <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-black text-slate-700">
+              {totalBadges} totali
+            </span>
+          )}
         </div>
+
+        {totalBadges === 0 ? (
+          <p className="py-2 text-center text-xs font-medium text-slate-400">
+            Nessuna medaglia d&rsquo;onore ricevuta finora.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <HonorBadgeChip
+              icon={<HeartHandshake className="h-3.5 w-3.5 text-emerald-600" />}
+              label="Amichevole"
+              count={honorBadges.friendly}
+            />
+            <HonorBadgeChip
+              icon={<Shield className="h-3.5 w-3.5 text-blue-600" />}
+              label="Sportivo"
+              count={honorBadges.sportive}
+            />
+            <HonorBadgeChip
+              icon={<Trophy className="h-3.5 w-3.5 text-amber-600" />}
+              label="Grande Giocatore"
+              count={honorBadges.great_player}
+            />
+            <HonorBadgeChip
+              icon={<Zap className="h-3.5 w-3.5 text-purple-600" />}
+              label="Stratega"
+              count={honorBadges.strategist}
+            />
+            <HonorBadgeChip
+              icon={<Sparkles className="h-3.5 w-3.5 text-sky-600" />}
+              label="Puntuale"
+              count={honorBadges.punctual}
+            />
+          </div>
+        )}
       </section>
     </div>
   );
@@ -98,12 +112,12 @@ function HonorBadgeChip({
   label: string;
   count: number;
 }) {
-  if (count <= 0) return null;
+  if (!count || count <= 0) return null;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-sm">
       {icon}
       <span>{label}</span>
-      <span className="rounded-full bg-slate-100 px-1.5 py-0.2 text-[10px] font-black text-slate-600">
+      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">
         {count}
       </span>
     </span>
