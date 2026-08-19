@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { COMPANY_INFO } from '@/lib/legal/company-info';
 
-describe('footer and conditional footer contract', () => {
+describe('footer dual-hub layout and conditional footer contract', () => {
   it('defines company and legal information correctly', () => {
     expect(COMPANY_INFO.legalName).toBe('PHONEX SRL');
     expect(COMPANY_INFO.tradeName).toBe('Ebartex');
@@ -21,7 +21,18 @@ describe('footer and conditional footer contract', () => {
     expect(conditionalFooterSource).toContain("pathname.startsWith('/tornei/webcam')");
   });
 
-  it('contains locked language selector with Italian active and others disabled', () => {
+  it('contains dual top-banner with centered Ebartex and Ebartex + Tournaments', () => {
+    const footerSource = readFileSync(
+      new URL('../../components/layout/Footer.tsx', import.meta.url),
+      'utf8',
+    );
+
+    expect(footerSource).toContain('Ebartex Marketplace');
+    expect(footerSource).toContain('Ebartex Tournaments');
+    expect(footerSource).toContain('Tournaments');
+  });
+
+  it('contains locked language selector on the marketplace half', () => {
     const footerSource = readFileSync(
       new URL('../../components/layout/Footer.tsx', import.meta.url),
       'utf8',
@@ -38,18 +49,19 @@ describe('footer and conditional footer contract', () => {
     expect(footerSource).toContain('In arrivo');
   });
 
-  it('includes features, legal, guides, and games columns aligned with main site', () => {
+  it('contains tournament-specific columns on the right half', () => {
     const footerSource = readFileSync(
       new URL('../../components/layout/Footer.tsx', import.meta.url),
       'utf8',
     );
 
-    expect(footerSource).toContain("title: 'Funzionalità'");
-    expect(footerSource).toContain("title: 'Aiuto & Regolamento'");
-    expect(footerSource).toContain("title: 'Guide'");
-    expect(footerSource).toContain("title: 'Giochi'");
-    expect(footerSource).toContain('Fatto con cura ad Ivrea');
-    expect(footerSource).toContain('Tutti i marchi, i nomi dei giochi e le immagini delle carte');
+    expect(footerSource).toContain("title: 'Arena & Sfide'");
+    expect(footerSource).toContain("title: 'Regole & Fair Play'");
+    expect(footerSource).toContain("title: 'Community & Social'");
+    expect(footerSource).toContain('Lobby Tornei');
+    expect(footerSource).toContain('Le mie partite');
+    expect(footerSource).toContain('Deck Builder & Mazzi');
+    expect(footerSource).toContain('Fatto col ❤️ a Ivrea, terra di idee iconiche.');
   });
 
   it('is integrated into root layout', () => {
