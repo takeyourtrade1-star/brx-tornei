@@ -103,6 +103,22 @@ export function LobbyPage({
     return () => clearInterval(iv);
   }, [tournaments, user.id, router, goLiveTo, monitoredTable, selection.format, selection.mode]);
 
+  // Se l'host chiude la finestra del browser mentre attende da solo al tavolo,
+  // invia il segnale asincrono di uscita per liberare immediatamente il tavolo.
+  useEffect(() => {
+    if (!monitoredTable || monitoredTable.participants.length > 1) return;
+    const tableId = monitoredTable.id;
+    const handleUnload = () => {
+      try {
+        void leaveTournamentAction(tableId);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('pagehide', handleUnload);
+    return () => window.removeEventListener('pagehide', handleUnload);
+  }, [monitoredTable]);
+
   // Accettazione stile LoL in LOBBY: tavolo pieno e partita non ancora
   // iniziata → modale "Avversario trovato". Il tavolo resta in lobby.
   const approvalTarget = useMemo(() => {
