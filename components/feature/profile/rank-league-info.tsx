@@ -7,17 +7,17 @@ import { LEAGUES } from '@/lib/rank';
  */
 export function RankLeagueInfo() {
   return (
-    <section className="mt-5 rounded-2xl border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.06] via-slate-900/[0.02] to-transparent p-4 text-slate-700">
+    <section className="mt-5 rounded-2xl border-2 border-amber-500/35 bg-gradient-to-b from-amber-500/[0.08] via-amber-500/[0.02] to-white p-4 shadow-sm text-slate-700">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-amber-500/15 text-amber-600">
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-amber-500/20 text-amber-700 border border-amber-500/30">
             <Trophy className="h-4 w-4" />
           </div>
           <h3 className="text-xs font-black uppercase tracking-wider text-header-bg">
             Gradi & Leghe
           </h3>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-700">
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-700">
           <Sparkles className="h-2.5 w-2.5" /> Beta Demo
         </span>
       </div>
@@ -32,7 +32,7 @@ export function RankLeagueInfo() {
         {LEAGUES.map((l) => (
           <div
             key={l.stars}
-            className="flex flex-col items-center rounded-xl border border-slate-900/[0.06] bg-white p-2 shadow-sm"
+            className="flex flex-col items-center rounded-xl border border-slate-300 bg-white p-2 shadow-sm"
           >
             <span className="text-xs font-black text-amber-500">
               {Array.from({ length: l.stars }).map(() => '★').join('')}
@@ -43,7 +43,7 @@ export function RankLeagueInfo() {
       </div>
 
       {/* Dettaglio ON FIRE e Reset */}
-      <div className="mt-3.5 space-y-2 rounded-xl bg-slate-900/[0.03] p-3 text-[11px] leading-snug text-slate-600">
+      <div className="mt-3.5 space-y-2 rounded-xl border border-slate-200 bg-slate-100/90 p-3 text-[11px] leading-snug text-slate-600">
         <div className="flex items-start gap-2">
           <Flame className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-500" />
           <p>
@@ -52,8 +52,8 @@ export function RankLeagueInfo() {
           </p>
         </div>
         <div className="flex items-start gap-2">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-          <p className="text-slate-500">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+          <p className="text-slate-600">
             Le stelline si resettano ogni 24h. I dati attuali sono dimostrativi: al lancio ufficiale
             della piattaforma le stagioni e i gradi partiranno da zero.
           </p>

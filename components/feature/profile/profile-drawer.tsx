@@ -119,7 +119,7 @@ export function ProfileDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Testata */}
-        <header className="relative flex items-center justify-between gap-3 border-b border-slate-900/[0.06] px-6 py-5">
+        <header className="relative flex items-center justify-between gap-3 border-b border-slate-200 px-6 py-5">
           <div className="flex items-center gap-3.5 min-w-0">
             <ProfileRankBadge
               avatarId={selectedAvatarId}
@@ -145,7 +145,7 @@ export function ProfileDrawer({
             type="button"
             onClick={onClose}
             aria-label="Chiudi"
-            className="grid h-10 w-10 place-items-center rounded-full border border-slate-900/[0.1] bg-white text-slate-500 transition hover:border-slate-900/25 hover:text-header-bg"
+            className="grid h-10 w-10 place-items-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 hover:text-header-bg"
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
@@ -154,12 +154,12 @@ export function ProfileDrawer({
         {/* Contenuto */}
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {/* Modifica Gamertag (Presto in arrivo) */}
-          <div className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-slate-900/[0.08] bg-slate-50/80 px-3.5 py-2.5">
+          <div className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 shadow-sm">
             <div className="flex items-center gap-2 min-w-0">
-              <Pencil className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <Pencil className="h-3.5 w-3.5 text-slate-500 shrink-0" />
               <span className="text-xs font-bold text-slate-700 truncate">Modifica gamertag</span>
             </div>
-            <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-600">
+            <span className="shrink-0 rounded-full border border-amber-500/40 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-700">
               Presto in arrivo
             </span>
           </div>
@@ -173,7 +173,7 @@ export function ProfileDrawer({
           />
 
           {/* Sezione Badge Collassabile */}
-          <section className="mb-4 rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-3.5 transition-all">
+          <section className="mb-4 rounded-2xl border border-slate-300 bg-slate-50/90 p-3.5 shadow-sm transition-all">
             <button
               type="button"
               onClick={() => setBadgesOpen((prev) => !prev)}
@@ -181,7 +181,7 @@ export function ProfileDrawer({
               className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-white shadow-sm ring-1 ring-slate-900/[0.08]">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-white border border-slate-300 shadow-sm">
                   <Sparkles className="h-4 w-4 text-amber-500" />
                 </span>
                 <div>
@@ -191,11 +191,11 @@ export function ProfileDrawer({
                   </p>
                 </div>
               </div>
-              <ChevronDown className={cn('h-4 w-4 text-slate-400 transition-transform duration-200', badgesOpen && 'rotate-180')} />
+              <ChevronDown className={cn('h-4 w-4 text-slate-500 transition-transform duration-200', badgesOpen && 'rotate-180')} />
             </button>
 
             {badgesOpen && (
-              <div className="mt-3.5 space-y-4 border-t border-slate-900/[0.06] pt-3 animate-in fade-in-50 duration-200">
+              <div className="mt-3.5 space-y-4 border-t border-slate-300 pt-3 animate-in fade-in-50 duration-200">
                 <AchievementSummary achievements={achievements} />
                 <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   {achievements.map((a) => (
@@ -214,7 +214,7 @@ export function ProfileDrawer({
             href={getEbartexProfileUrl(ebartexUsername)}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-900/[0.08] bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800"
+            className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-900 bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-md transition hover:bg-slate-800"
           >
             <span>Mostra il mio profilo Ebartex</span>
             <ExternalLink className="h-4 w-4 text-slate-400" />
@@ -223,7 +223,7 @@ export function ProfileDrawer({
           <button
             type="button"
             onClick={() => setRulesOpen(true)}
-            className="mt-3 w-full rounded-xl border border-slate-900/[0.06] bg-slate-50 px-4 py-3 text-center text-xs font-semibold text-slate-600 transition hover:border-slate-900/15 hover:text-header-bg"
+            className="mt-3 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-center text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-100 hover:text-header-bg"
           >
             Regolamento e informativa privacy dei tornei
           </button>
