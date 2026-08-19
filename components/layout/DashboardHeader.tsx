@@ -19,6 +19,7 @@ import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import { publicConfig } from '@/lib/public-config';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { SessionUser } from '@/types/auth';
+import { cn } from '@/lib/utils';
 
 interface DashboardHeaderProps {
   user: SessionUser;
@@ -39,6 +40,7 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const pathname = usePathname();
   const shownName = displayName ?? user.name ?? user.email;
+  const [isScrolled, setIsScrolled] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [publicProfileTarget, setPublicProfileTarget] = useState<string | null>(null);
@@ -49,6 +51,13 @@ export function DashboardHeader({
   const [currentReputation, setCurrentReputation] = useState<ReputationSummary | null>(
     () => reputation ?? lastKnownReputation,
   );
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 12);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     if (reputation) {
@@ -65,36 +74,29 @@ export function DashboardHeader({
   }, [reputation]);
 
   useEffect(() => {
-    const handleAvatarChange = (e: Event) => {
-      const customEvent = e as CustomEvent<{ avatarId: string }>;
-      if (customEvent.detail?.avatarId) setAvatarId(customEvent.detail.avatarId);
+    const onAvatar = (e: Event) => {
+      const d = (e as CustomEvent<{ avatarId: string }>).detail;
+      if (d?.avatarId) setAvatarId(d.avatarId);
     };
-    window.addEventListener('ebartex-avatar-changed', handleAvatarChange);
-    return () => window.removeEventListener('ebartex-avatar-changed', handleAvatarChange);
-  }, []);
-
-  useEffect(() => {
-    const handleOpenProfile = (e: Event) => {
-      const customEvent = e as CustomEvent<{ gamertag: string }>;
-      if (customEvent.detail?.gamertag) setPublicProfileTarget(customEvent.detail.gamertag);
+    const onProfile = (e: Event) => {
+      const d = (e as CustomEvent<{ gamertag: string }>).detail;
+      if (d?.gamertag) setPublicProfileTarget(d.gamertag);
     };
-    window.addEventListener('ebartex-open-player-profile', handleOpenProfile);
-    return () => window.removeEventListener('ebartex-open-player-profile', handleOpenProfile);
+    window.addEventListener('ebartex-avatar-changed', onAvatar);
+    window.addEventListener('ebartex-open-player-profile', onProfile);
+    return () => {
+      window.removeEventListener('ebartex-avatar-changed', onAvatar);
+      window.removeEventListener('ebartex-open-player-profile', onProfile);
+    };
   }, []);
 
   useEffect(() => {
     const fetchCounts = async () => {
-      const [friendsRes, reqRes] = await Promise.all([
-        getFriendsListAction(),
-        getFriendRequestsAction(),
-      ]);
+      const [friendsRes, reqRes] = await Promise.all([getFriendsListAction(), getFriendRequestsAction()]);
       if (friendsRes.ok && friendsRes.data) {
-        const count = friendsRes.data.filter((f) => f.presence === 'online' || f.presence === 'in_game').length;
-        setOnlineFriendsCount(count);
+        setOnlineFriendsCount(friendsRes.data.filter((f) => f.presence === 'online' || f.presence === 'in_game').length);
       }
-      if (reqRes.ok && reqRes.data) {
-        setPendingRequestsCount(reqRes.data.length);
-      }
+      if (reqRes.ok && reqRes.data) setPendingRequestsCount(reqRes.data.length);
     };
     void fetchCounts();
   }, [friendsOpen]);
@@ -103,7 +105,14 @@ export function DashboardHeader({
   const winStreak = calculateWinStreak(currentReputation);
 
   return (
-    <header className="sticky top-0 z-40 w-full font-sans text-white">
+    <header
+      className={cn(
+        'sticky top-0 z-40 w-full font-sans transition-all duration-300 ease-out',
+        isScrolled
+          ? 'border-b border-slate-200/90 bg-white/85 text-slate-900 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)] backdrop-blur-xl'
+          : 'border-b border-transparent bg-transparent text-white',
+      )}
+    >
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-2.5 px-4 py-2 sm:flex-nowrap sm:gap-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-visible py-0.5 sm:flex-none">
           <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" />
@@ -114,20 +123,15 @@ export function DashboardHeader({
 
         <nav
           aria-label="Navigazione principale tornei"
-          className="order-3 grid w-full grid-cols-2 gap-1 rounded-full border border-white/20 bg-white/[0.08] p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_8px_25px_-6px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:order-none sm:ml-auto sm:flex sm:w-auto sm:gap-1.5"
+          className={cn(
+            'order-3 grid w-full grid-cols-2 gap-1 rounded-full p-1.5 transition-all duration-300 backdrop-blur-xl sm:order-none sm:ml-auto sm:flex sm:w-auto sm:gap-1.5',
+            isScrolled
+              ? 'border border-slate-300/80 bg-slate-100/85 shadow-inner'
+              : 'border border-white/20 bg-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_8px_25px_-6px_rgba(0,0,0,0.4)]',
+          )}
         >
-          <HeaderPrimarySegment
-            href="/mazzi"
-            label="I miei mazzi"
-            icon={Layers}
-            active={pathname.startsWith('/mazzi')}
-          />
-          <HeaderPrimarySegment
-            href="/partite"
-            label="Le mie partite"
-            icon={Swords}
-            active={pathname.startsWith('/partite')}
-          />
+          <HeaderPrimarySegment href="/mazzi" label="I miei mazzi" icon={Layers} active={pathname.startsWith('/mazzi')} scrolled={isScrolled} />
+          <HeaderPrimarySegment href="/partite" label="Le mie partite" icon={Swords} active={pathname.startsWith('/partite')} scrolled={isScrolled} />
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center justify-end gap-2 sm:ml-0 sm:gap-3">
@@ -135,7 +139,12 @@ export function DashboardHeader({
             href={publicConfig.app.mainSiteUrl}
             aria-label="Torna su Ebartex"
             title="Torna su Ebartex"
-            className="flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-xs font-bold uppercase tracking-wide text-white/80 transition hover:border-primary/40 hover:bg-primary/15 hover:text-white"
+            className={cn(
+              'flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-bold uppercase tracking-wide transition',
+              isScrolled
+                ? 'border border-slate-300 bg-white/90 text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50 hover:text-slate-950'
+                : 'border border-white/15 bg-white/10 text-white/80 hover:border-primary/40 hover:bg-primary/15 hover:text-white',
+            )}
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden lg:inline">Ebartex</span>
@@ -146,7 +155,12 @@ export function DashboardHeader({
               type="button"
               onClick={onBackToMinigame}
               aria-label="Torna al mini-gioco"
-              className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/10 text-primary transition hover:border-primary/40 hover:bg-primary/15"
+              className={cn(
+                'grid h-9 w-9 place-items-center rounded-full transition',
+                isScrolled
+                  ? 'border border-slate-300 bg-white/90 text-primary shadow-sm hover:border-slate-400 hover:bg-slate-50'
+                  : 'border border-white/15 bg-white/10 text-primary hover:border-primary/40 hover:bg-primary/15',
+              )}
             >
               <Gamepad2 className="h-4 w-4" />
             </button>
@@ -156,7 +170,12 @@ export function DashboardHeader({
             type="button"
             onClick={() => setFriendsOpen(true)}
             aria-label="Apri amici e duellanti"
-            className="relative flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 text-xs font-bold uppercase tracking-wide text-white/90 transition hover:border-primary/40 hover:bg-primary/15 hover:text-white"
+            className={cn(
+              'relative flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold uppercase tracking-wide transition',
+              isScrolled
+                ? 'border border-slate-300 bg-white/90 text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50 hover:text-slate-950'
+                : 'border border-white/15 bg-white/10 text-white/90 hover:border-primary/40 hover:bg-primary/15 hover:text-white',
+            )}
           >
             <Users className="h-4 w-4 text-primary" />
             <span className="hidden sm:inline">Amici</span>
