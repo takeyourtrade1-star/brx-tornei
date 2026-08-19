@@ -2,11 +2,14 @@ import 'server-only';
 
 import { extractApiError, tournamentFetch, TournamentApiError } from '@/lib/data/tournament-api-client';
 import {
+  loadStateFromDisk,
   mockFriendsStore,
   mockRawRequests,
+  saveStateToDisk,
 } from '@/lib/data/social-mock-store';
 
 function saveMockOutgoingRequest(senderGamertag: string | null | undefined, targetGamertag: string): void {
+  loadStateFromDisk();
   const sender = senderGamertag?.trim() || 'default';
   const recipient = targetGamertag.trim();
   const exists = mockRawRequests.some(
@@ -21,6 +24,7 @@ function saveMockOutgoingRequest(senderGamertag: string | null | undefined, targ
       recipientGamertag: recipient,
       createdAt: Date.now(),
     });
+    saveStateToDisk();
   }
 }
 
@@ -88,6 +92,7 @@ function handleMockRespond(
   action: 'accept' | 'decline',
   myGamertag?: string | null,
 ): void {
+  loadStateFromDisk();
   const idx = mockRawRequests.findIndex((r) => r.id === requestId);
   if (idx !== -1) {
     const req = mockRawRequests[idx];
@@ -104,6 +109,7 @@ function handleMockRespond(
       mockFriendsStore.set(recipient.toLowerCase(), friendsRecipient);
     }
     mockRawRequests.splice(idx, 1);
+    saveStateToDisk();
   }
 }
 
@@ -135,9 +141,11 @@ export async function postCancelFriendRequest(
 }
 
 function handleMockCancel(requestId: string): void {
+  loadStateFromDisk();
   const idx = mockRawRequests.findIndex((r) => r.id === requestId);
   if (idx !== -1) {
     mockRawRequests.splice(idx, 1);
+    saveStateToDisk();
   }
 }
 
@@ -170,6 +178,7 @@ export async function postRemoveFriend(
 }
 
 function handleMockRemove(myGamertag: string | null | undefined, targetGamertag: string): void {
+  loadStateFromDisk();
   if (myGamertag) {
     const myFriends = mockFriendsStore.get(myGamertag.toLowerCase());
     if (myFriends) {
@@ -182,4 +191,5 @@ function handleMockRemove(myGamertag: string | null | undefined, targetGamertag:
     otherFriends.delete(myGamertag);
     mockFriendsStore.set(targetGamertag.toLowerCase(), otherFriends);
   }
+  saveStateToDisk();
 }

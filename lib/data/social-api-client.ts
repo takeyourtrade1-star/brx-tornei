@@ -9,6 +9,7 @@ import {
   buildFallbackPublicProfile,
   getAvatarIdForGamertag,
   isMockBot,
+  loadStateFromDisk,
   mockFriendsStore,
   mockRawRequests,
 } from '@/lib/data/social-mock-store';
@@ -125,6 +126,7 @@ export async function fetchFriendsList(myGamertag?: string | null): Promise<Frie
   }
 
   const key = myGamertag?.toLowerCase() ?? 'default';
+  loadStateFromDisk();
   const friendTags = Array.from(mockFriendsStore.get(key) ?? []);
   return friendTags.map((tag, idx) => {
     const presenceList: FriendPresenceStatus[] = ['online', 'in_game', 'recent', 'offline'];
@@ -162,6 +164,7 @@ export async function fetchFriendRequests(myGamertag?: string | null): Promise<F
   }
 
   if (!myGamertag) return [];
+  loadStateFromDisk();
   const myTagLower = myGamertag.toLowerCase();
   const items: FriendRequestItem[] = [];
 

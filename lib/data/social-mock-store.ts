@@ -55,12 +55,17 @@ export function getAvatarIdForGamertag(username: string): string {
   return KNOWN_AVATARS[idx] ?? 'crown';
 }
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 export interface RawMockFriendRequest {
   id: string;
   senderGamertag: string;
   recipientGamertag: string;
   createdAt: number;
 }
+
+const STORE_PATH = path.join(process.cwd(), '.next', 'social_store.json');
 
 /** Amicizie per utente: Map<gamertagLower, Set<friendGamertag>> */
 export const mockFriendsStore = new Map<string, Set<string>>();
@@ -71,6 +76,50 @@ export const mockRawRequests: RawMockFriendRequest[] = [];
 export const mockChallengesStore = new Map<string, DirectGameChallenge>();
 export const mockDndStore = new Map<string, number>();
 export const mockEbartexVisibilityStore = new Map<string, boolean>();
+
+export function loadStateFromDisk(): void {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      const raw = fs.readFileSync(STORE_PATH, 'utf-8');
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.requests)) {
+        mockRawRequests.length = 0;
+        mockRawRequests.push(...data.requests);
+      }
+      if (data.friends && typeof data.friends === 'object') {
+        mockFriendsStore.clear();
+        for (const [k, v] of Object.entries(data.friends)) {
+          if (Array.isArray(v)) {
+            mockFriendsStore.set(k.toLowerCase(), new Set((v as string[])));
+          }
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function saveStateToDisk(): void {
+  try {
+    const dir = path.dirname(STORE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const friendsObj: Record<string, string[]> = {};
+    for (const [k, v] of mockFriendsStore.entries()) {
+      friendsObj[k] = Array.from(v);
+    }
+    fs.writeFileSync(
+      STORE_PATH,
+      JSON.stringify({ requests: mockRawRequests, friends: friendsObj }, null, 2),
+      'utf-8',
+    );
+  } catch {
+    // ignore
+  }
+}
+
+// Inizializza caricamento
+loadStateFromDisk();
 
 export function isPlayerDnd(gamertag: string): boolean {
   const expiresAt = mockDndStore.get(gamertag.toLowerCase());
