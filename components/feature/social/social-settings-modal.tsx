@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, BellOff, Eye, EyeOff, ExternalLink, Settings, ShieldCheck, X } from 'lucide-react';
+import { Bell, BellOff, CheckCircle2, ExternalLink, Eye, EyeOff, Settings, Sparkles, X } from 'lucide-react';
 import {
   getDndStatus,
   getEbartexProfileUrl,
@@ -58,170 +58,181 @@ export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSe
   };
 
   const ebartexUrl = getEbartexProfileUrl(ebartexUsername);
+  const displayAccountName = ebartexUsername?.trim() || 'il tuo account';
 
   return createPortal(
-    <div role="presentation" className="fixed inset-0 z-[1000] grid place-items-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div role="presentation" className="fixed inset-0 z-[1000] grid place-items-center p-4 sm:p-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-xl transition-all" />
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Impostazioni Social e Profilo"
-        className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all sm:p-7"
+        aria-label="Impostazioni Social e Privacy"
+        className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/15 bg-slate-900/95 p-6 sm:p-7 text-white shadow-2xl backdrop-blur-2xl transition-all"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-[#FF7300]/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-emerald-500/20 blur-3xl" />
+
+        {/* Header */}
+        <header className="relative flex items-center justify-between pb-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-900 text-white shadow-sm">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10 border border-white/15 text-[#FF7300]">
               <Settings className="h-5 w-5" />
             </span>
             <div>
-              <h3 className="text-base font-black text-slate-900 sm:text-lg">Impostazioni Social</h3>
-              <p className="text-xs font-semibold text-slate-400">Profilo Ebartex & Disponibilità</p>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black tracking-tight text-white">Impostazioni Social</h3>
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-300">
+                  Privacy & Inviti
+                </span>
+              </div>
+              <p className="text-xs font-medium text-slate-400">
+                Personalizza presenza e visibilità del tuo account
+              </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Chiudi"
-            className="grid h-9 w-9 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/15 transition"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
 
-        <div className="mt-5 space-y-6">
-          {/* Sezione 1: Profilo Ebartex & Privacy Visibilità */}
-          <section className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4">
-            <div className="flex items-center justify-between mb-1">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Profilo Marketplace Ebartex
-              </h4>
+        {/* Body */}
+        <div className="relative mt-5 space-y-5">
+          {/* Sezione 1: Marketplace */}
+          <section className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-[#FF7300]" /> Profilo Marketplace Ebartex
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400">@{displayAccountName}</span>
             </div>
-            <p className="text-xs font-medium leading-relaxed text-slate-500 mb-3.5">
-              Scegli se permettere agli altri duellanti di vedere il link al tuo account Ebartex e alle carte che vendi.
-            </p>
 
-            {/* Opzioni di visibilità */}
-            <div className="space-y-2 mb-3.5">
-              <button
-                type="button"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <OptionCard
+                active={showEbartex}
                 onClick={() => handleToggleEbartexVisibility(true)}
-                className={cn(
-                  'flex w-full items-center justify-between rounded-xl border p-2.5 text-left transition',
-                  showEbartex
-                    ? 'border-slate-900 bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/10'
-                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white',
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Eye className={cn('h-4 w-4', showEbartex ? 'text-slate-900' : 'text-slate-400')} />
-                  <div>
-                    <p className="text-xs font-bold">Visibile a tutti</p>
-                    <p className="text-[10px] text-slate-500">Mostra il link alle mie carte sul profilo</p>
-                  </div>
-                </div>
-                {showEbartex && <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />}
-              </button>
-
-              <button
-                type="button"
+                icon={<Eye className="h-4 w-4" />}
+                title="Visibile a tutti"
+                description="Mostra il link alle tue carte in vendita sul tuo profilo duellante."
+                accent="emerald"
+              />
+              <OptionCard
+                active={!showEbartex}
                 onClick={() => handleToggleEbartexVisibility(false)}
-                className={cn(
-                  'flex w-full items-center justify-between rounded-xl border p-2.5 text-left transition',
-                  !showEbartex
-                    ? 'border-slate-900 bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/10'
-                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white',
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <EyeOff className={cn('h-4 w-4', !showEbartex ? 'text-slate-900' : 'text-slate-400')} />
-                  <div>
-                    <p className="text-xs font-bold">Nascosto (Privato)</p>
-                    <p className="text-[10px] text-slate-500">Nessun collegamento al profilo Ebartex</p>
-                  </div>
-                </div>
-                {!showEbartex && <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />}
-              </button>
+                icon={<EyeOff className="h-4 w-4" />}
+                title="Privato"
+                description="Nessun collegamento visibile. Mostra solo le tue statistiche torneo."
+                accent="slate"
+              />
             </div>
 
             <a
               href={ebartexUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition"
+              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-white/10 hover:text-white transition"
             >
-              <span>Apri il mio profilo Ebartex</span>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Apri la tua pagina utente su Ebartex</span>
+              </div>
               <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
             </a>
           </section>
 
-          {/* Sezione 2: Disponibilità Sfide / Non Disturbare */}
-          <section className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Ricezione Inviti di Gioco
-              </h4>
+          {/* Sezione 2: Inviti */}
+          <section className="space-y-2.5 pt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Bell className="h-3.5 w-3.5 text-[#FF7300]" /> Disponibilità Inviti di Gioco
+              </span>
               {dnd.active && (
-                <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-black uppercase text-amber-700">
-                  {dnd.minutesRemaining} min rimasti
+                <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-[10px] font-black text-amber-400 animate-pulse">
+                  DND: {dnd.minutesRemaining} min
                 </span>
               )}
             </div>
-            <p className="text-xs font-medium leading-relaxed text-slate-500 mb-4">
-              Puoi bloccare temporaneamente le sfide dirette dagli amici se vuoi giocare senza interruzioni.
-            </p>
 
-            <div className="space-y-2.5">
-              <button
-                type="button"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <OptionCard
+                active={!dnd.active}
                 disabled={saving}
                 onClick={() => handleToggleDnd(false)}
-                className={cn(
-                  'flex w-full items-center justify-between rounded-xl border p-3 text-left transition',
-                  !dnd.active
-                    ? 'border-emerald-500 bg-emerald-50/70 text-emerald-900 ring-1 ring-emerald-400/30'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={cn('grid h-8 w-8 place-items-center rounded-lg', !dnd.active ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400')}>
-                    <Bell className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="text-xs font-black">Disponibile alle sfide</p>
-                    <p className="text-[10px] font-medium text-slate-500">Gli amici possono invitarti a duellare</p>
-                  </div>
-                </div>
-                {!dnd.active && <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />}
-              </button>
-
-              <button
-                type="button"
+                icon={<Bell className="h-4 w-4" />}
+                title="Disponibile"
+                description="Ricevi inviti a sfide 1v1 dagli amici nella lobby dei tornei."
+                accent="orange"
+              />
+              <OptionCard
+                active={dnd.active}
                 disabled={saving}
                 onClick={() => handleToggleDnd(true)}
-                className={cn(
-                  'flex w-full items-center justify-between rounded-xl border p-3 text-left transition',
-                  dnd.active
-                    ? 'border-amber-500 bg-amber-50/70 text-amber-900 ring-1 ring-amber-400/30'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={cn('grid h-8 w-8 place-items-center rounded-lg', dnd.active ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-400')}>
-                    <BellOff className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="text-xs font-black">Non disturbare (60 min)</p>
-                    <p className="text-[10px] font-medium text-slate-500">Blocca gli inviti; gli altri vedranno che sei occupato</p>
-                  </div>
-                </div>
-                {dnd.active && <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />}
-              </button>
+                icon={<BellOff className="h-4 w-4" />}
+                title="Non disturbare"
+                description="Pausa inviti di 60 min. Gli altri vedranno che sei occupato."
+                accent="amber"
+              />
             </div>
           </section>
         </div>
       </div>
     </div>,
     document.body,
+  );
+}
+
+function OptionCard({
+  active,
+  disabled,
+  onClick,
+  icon,
+  title,
+  description,
+  accent,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  accent: 'emerald' | 'orange' | 'amber' | 'slate';
+}) {
+  const accentStyles = {
+    emerald: active ? 'border-emerald-500/80 bg-emerald-950/40 ring-1 ring-emerald-500/50' : '',
+    orange: active ? 'border-[#FF7300] bg-orange-950/40 ring-1 ring-[#FF7300]/50' : '',
+    amber: active ? 'border-amber-500 bg-amber-950/40 ring-1 ring-amber-500/50' : '',
+    slate: active ? 'border-slate-400 bg-slate-800/60 ring-1 ring-slate-400/50' : '',
+  };
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        'group flex flex-col justify-between rounded-2xl border p-3.5 text-left transition-all duration-200',
+        active
+          ? accentStyles[accent]
+          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]',
+        disabled && 'opacity-60 cursor-not-allowed',
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <span className={cn('grid h-8 w-8 place-items-center rounded-xl border', active ? 'bg-white/15 border-white/25 text-white' : 'bg-white/5 border-white/10 text-slate-400')}>
+          {icon}
+        </span>
+        {active && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+      </div>
+      <div className="mt-2.5">
+        <p className="text-xs font-black text-white">{title}</p>
+        <p className="mt-0.5 text-[11px] font-medium text-slate-400 leading-snug">{description}</p>
+      </div>
+    </button>
   );
 }
