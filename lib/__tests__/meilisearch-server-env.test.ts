@@ -17,18 +17,27 @@ describe('Meilisearch server credentials', () => {
     expect(getMeilisearchServerConfig().apiKey).toBe('');
   });
 
-  it('accepts only the server-side search-scoped key', () => {
+  it('accepts the preferred server-side search-scoped key', () => {
     vi.stubEnv('MEILISEARCH_SEARCH_KEY', 'search-only-secret');
     expect(getMeilisearchServerConfig().apiKey).toBe('search-only-secret');
   });
 
-  it('fails closed on missing or non-canonical production index UIDs', () => {
+  it.each(['MEILISEARCH_SEARCH_API_KEY', 'MEILISEARCH_API_KEY'])(
+    'keeps the server-only deployment alias %s compatible',
+    (name) => {
+      vi.stubEnv('MEILISEARCH_SEARCH_KEY', '');
+      vi.stubEnv(name, 'legacy-server-secret');
+      expect(getMeilisearchServerConfig().apiKey).toBe('legacy-server-secret');
+    },
+  );
+
+  it('uses the fixed cards index by default and rejects non-canonical UIDs', () => {
     vi.stubEnv('NODE_ENV', 'production');
     for (const name of ('MEILISEARCH_INDEX,MEILISEARCH_INDEX_NAME,MEILI_INDEX').split(',')) {
       vi.stubEnv(name, '');
     }
-    expect(getMeilisearchServerConfig().index).toBe('');
-    for (const invalid of ('../cards,/cards,cards/other, cards,cards?x,').split(',')) {
+    expect(getMeilisearchServerConfig().index).toBe('cards');
+    for (const invalid of ('../cards,/cards,cards/other, cards,cards?x').split(',')) {
       vi.stubEnv('MEILISEARCH_INDEX', invalid);
       expect(getMeilisearchServerConfig().index).toBe('');
     }
@@ -47,5 +56,14 @@ describe('Meilisearch server credentials', () => {
       vi.stubEnv('MEILISEARCH_URL', invalid);
       expect(getMeilisearchServerConfig().url).toBe('');
     }
+  });
+
+  it('uses the canonical production search origin when the deploy omits it', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('MEILISEARCH_URL', '');
+    vi.stubEnv('MEILI_URL', '');
+    vi.stubEnv('TRUSTED_UPSTREAM_HOSTS', 'api.ebartex.com');
+
+    expect(getMeilisearchServerConfig().url).toBe('https://search.ebartex.com');
   });
 });

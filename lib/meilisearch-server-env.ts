@@ -16,11 +16,13 @@ function trimTrailingSlashes(value: string): string {
 }
 
 function trustedHosts(): Set<string> | null {
+  const hosts = new Set(['search.ebartex.com']);
   const values = (process.env.TRUSTED_UPSTREAM_HOSTS ?? '')
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
-  return values.length > 0 ? new Set(values) : null;
+  for (const value of values) hosts.add(value);
+  return hosts;
 }
 
 function canonicalMeilisearchOrigin(rawValue: string): string {
@@ -54,7 +56,7 @@ function canonicalMeilisearchOrigin(rawValue: string): string {
 }
 
 function canonicalIndexUid(rawValue: string | undefined): string {
-  if (!rawValue) return process.env.NODE_ENV === 'production' ? '' : 'cards';
+  if (!rawValue) return 'cards';
   if (rawValue !== rawValue.trim()) return '';
   return /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(rawValue) ? rawValue : '';
 }
@@ -63,12 +65,19 @@ export function getMeilisearchServerConfig(): MeilisearchServerConfig {
   const url = canonicalMeilisearchOrigin(
     process.env.MEILISEARCH_URL ||
       process.env.MEILI_URL ||
+      (process.env.NODE_ENV === 'production' ? 'https://search.ebartex.com' : '') ||
       ''
   );
 
   // This must be a server-only, search-scoped key. Never fall back to a
   // NEXT_PUBLIC/VITE value: those variables are embedded in browser bundles.
-  const apiKey = process.env.MEILISEARCH_SEARCH_KEY || '';
+  // MEILISEARCH_API_KEY resta un alias server-only per i deploy precedenti al
+  // rename; la route espone comunque soltanto operazioni di ricerca limitate.
+  const apiKey =
+    process.env.MEILISEARCH_SEARCH_KEY ||
+    process.env.MEILISEARCH_SEARCH_API_KEY ||
+    process.env.MEILISEARCH_API_KEY ||
+    '';
 
   const index = canonicalIndexUid(
     process.env.MEILISEARCH_INDEX ||
