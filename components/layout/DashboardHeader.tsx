@@ -172,6 +172,8 @@ export function DashboardHeader({
         <div className="ml-auto flex shrink-0 items-center justify-end gap-2 sm:ml-0 sm:gap-3">
           <a
             href={publicConfig.app.mainSiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             aria-label="Torna al marketplace Ebartex"
             title="Torna al marketplace Ebartex"
             className={cn(
@@ -189,8 +191,7 @@ export function DashboardHeader({
             >
               <ArrowLeft className="h-3 w-3 stroke-[2.5]" />
             </span>
-            <span className="hidden xl:inline">Torna su Ebartex</span>
-            <span className="xl:hidden">Indietro</span>
+            <span>Ebartex</span>
           </a>
 
           {showMinigameBack && onBackToMinigame && (
