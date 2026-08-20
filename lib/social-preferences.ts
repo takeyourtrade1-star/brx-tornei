@@ -5,13 +5,16 @@ const EBARTEX_VISIBILITY_KEY = 'ebartex_profile_visibility';
 
 /**
  * Restituisce l'URL assoluto del profilo Ebartex Marketplace.
- * Se ebartexUsername non è specificato, punta a `/profilo` (profilo dell'utente corrente).
+ * Punta a `/users/[username]` o alla ricerca utenti se nessun identificativo è disponibile.
  */
-export function getEbartexProfileUrl(ebartexUsername?: string | null): string {
+export function getEbartexProfileUrl(
+  ebartexUsername?: string | null,
+  fallbackGamertag?: string | null,
+): string {
   const base = publicConfig.app.mainSiteUrl || 'https://www.ebartex.com';
-  const trimmed = ebartexUsername?.trim();
-  if (!trimmed) return `${base}/profilo`;
-  return `${base}/users/${encodeURIComponent(trimmed)}`;
+  const target = ebartexUsername?.trim() || fallbackGamertag?.trim();
+  if (!target) return `${base}/search/user`;
+  return `${base}/users/${encodeURIComponent(target)}`;
 }
 
 export interface DndStatus {

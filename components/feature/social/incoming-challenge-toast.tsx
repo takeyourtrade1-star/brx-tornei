@@ -15,14 +15,14 @@ export function IncomingChallengeToast() {
   const [acting, setActing] = useState(false);
 
   useEffect(() => {
-    // Polling leggero ogni 10 secondi per verificare eventuali sfide in arrivo
+    // Polling rapido ogni 3 secondi per verificare sfide in arrivo
     const interval = setInterval(async () => {
       if (challenge) return;
       const res = await checkIncomingChallengeAction();
       if (res.ok && res.data) {
         setChallenge(res.data);
       }
-    }, 10_000);
+    }, 3_000);
 
     return () => clearInterval(interval);
   }, [challenge]);

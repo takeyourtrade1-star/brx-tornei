@@ -30,6 +30,10 @@ export {
 export {
   postCreateGameChallenge,
   fetchActiveChallengeForUser,
+  fetchChallengeById,
+  postRespondGameChallenge,
+  fetchOutgoingChallengeStatus,
+  postCancelGameChallenge,
 } from './social-challenges-client';
 
 export async function fetchPublicProfile(
