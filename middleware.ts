@@ -106,6 +106,8 @@ function createPageResponse(
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  const isServerAction =
+    request.method === 'POST' && request.headers.has('next-action');
 
   if (
     process.env.NODE_ENV === 'production' &&
@@ -128,6 +130,14 @@ export function middleware(request: NextRequest) {
   }
 
   if (request.cookies.has(ACCESS_COOKIE)) {
+    return createPageResponse(request);
+  }
+
+  // Un redirect del middleware durante una Server Action obbliga Next a
+  // inoltrare internamente la POST. Su Hostinger quell'inoltro puo fallire con
+  // `failed to forward action response`; le action rileggono gia la sessione e
+  // restituiscono un errore tipizzato, quindi lasciamo che siano loro a gestirla.
+  if (isServerAction) {
     return createPageResponse(request);
   }
 

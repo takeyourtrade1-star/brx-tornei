@@ -104,6 +104,23 @@ describe('middleware CSP', () => {
     expect(crossSite.headers.get('set-cookie')).toBeNull();
   });
 
+  it('non reindirizza le Server Action senza access cookie', () => {
+    const response = middleware(
+      new NextRequest('https://tornei.ebartex.com/mazzi', {
+        method: 'POST',
+        headers: {
+          cookie: '__Host-ebartex_refresh_token=refresh-token',
+          'next-action': 'create-deck-action',
+          'sec-fetch-site': 'same-origin',
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
   it('rifiuta host poisoning rispetto all host canonico', () => {
     expect(
       isCanonicalRequestHost('tornei.ebartex.com', 'https://tornei.ebartex.com'),

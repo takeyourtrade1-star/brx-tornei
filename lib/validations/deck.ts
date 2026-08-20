@@ -8,6 +8,7 @@ const archetypeIds = [DECK_ARCHETYPES[0].id, ...DECK_ARCHETYPES.slice(1).map((a)
 export const createDeckSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(1, 'Inserisci un nome per il mazzo')
     .max(60, 'Il nome è troppo lungo'),
   formatId: z.enum(formatIds, {

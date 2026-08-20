@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { getSession } from '@/lib/auth/session';
 import {
-  MAX_DECKS_PER_USER,
   createDeck,
   deleteDeck,
   getDeckById,
@@ -13,6 +12,7 @@ import {
   saveDeckVerification,
   updateDeck,
 } from '@/lib/data/decks';
+import { TournamentApiError } from '@/lib/data/tournament-api-client';
 import { validateDeckLegalityWithScryfall } from '@/lib/deck-legality-with-scryfall';
 import { deckDiffIsClean, diffDeckVsScanned } from '@/lib/deck-verification';
 import { createDeckSchema } from '@/lib/validations/deck';
@@ -26,11 +26,28 @@ import { PLAYMAT_PREFERENCE_COOKIE } from '@/lib/playmat-preference';
 import type { Deck } from '@/types/deck';
 import type { DeckLegalityIssue } from '@/types/card-legality';
 
+function deckActionError(error: unknown, fallback: string): { error: string } {
+  if (error instanceof TournamentApiError) {
+    const messages: Record<string, string> = {
+      DECK_LIMIT_REACHED: 'Hai raggiunto il limite massimo di 3 mazzi.',
+      DECK_NOT_FOUND: 'Mazzo non trovato.',
+      API_NOT_CONFIGURED: 'Servizio mazzi non configurato.',
+      API_UNAVAILABLE: 'Il servizio mazzi non è raggiungibile. Riprova tra poco.',
+      INVALID_RESPONSE: 'Il servizio mazzi ha restituito una risposta non valida.',
+    };
+    return { error: (error.code && messages[error.code]) || error.message || fallback };
+  }
+  return { error: error instanceof Error ? error.message : fallback };
+}
+
 export async function listDecksAction(): Promise<{ decks: Deck[] } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
-  const decks = await listDecks(session.user.id);
-  return { decks };
+  try {
+    return { decks: await listDecks(session.user.id) };
+  } catch (error) {
+    return deckActionError(error, 'Impossibile caricare i mazzi.');
+  }
 }
 
 export async function createDeckAction(
@@ -39,19 +56,18 @@ export async function createDeckAction(
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
 
-  const existingDecks = await listDecks(session.user.id);
-  if (existingDecks.length >= MAX_DECKS_PER_USER) {
-    return { error: `Hai raggiunto il limite massimo di ${MAX_DECKS_PER_USER} mazzi.` };
-  }
-
   const parsed = createDeckSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }
 
-  const deck = await createDeck(session.user.id, parsed.data);
-  revalidatePath('/mazzi');
-  return { deck };
+  try {
+    const deck = await createDeck(session.user.id, parsed.data);
+    revalidatePath('/mazzi');
+    return { deck };
+  } catch (error) {
+    return deckActionError(error, 'Impossibile creare il mazzo. Riprova tra poco.');
+  }
 }
 
 export async function updateDeckAction(
@@ -65,27 +81,32 @@ export async function updateDeckAction(
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }
 
-  const { deckId, main, side } = parsed.data;
-  const deck =
-    main !== undefined || side !== undefined
-      ? await saveDeckCards(session.user.id, deckId, main ?? [], side ?? [])
-      : await getDeckById(session.user.id, deckId);
-
-  if (!deck) return { error: 'Mazzo non trovato.' };
-
-  revalidatePath('/mazzi');
-  return { deck };
+  try {
+    const { deckId, main, side } = parsed.data;
+    const deck =
+      main !== undefined || side !== undefined
+        ? await saveDeckCards(session.user.id, deckId, main ?? [], side ?? [])
+        : await getDeckById(session.user.id, deckId);
+    if (!deck) return { error: 'Mazzo non trovato.' };
+    revalidatePath('/mazzi');
+    return { deck };
+  } catch (error) {
+    return deckActionError(error, 'Impossibile aggiornare il mazzo.');
+  }
 }
 
 export async function deleteDeckAction(deckId: string): Promise<{ ok: true } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
 
-  const removed = await deleteDeck(session.user.id, deckId);
-  if (!removed) return { error: 'Mazzo non trovato.' };
-
-  revalidatePath('/mazzi');
-  return { ok: true };
+  try {
+    const removed = await deleteDeck(session.user.id, deckId);
+    if (!removed) return { error: 'Mazzo non trovato.' };
+    revalidatePath('/mazzi');
+    return { ok: true };
+  } catch (error) {
+    return deckActionError(error, 'Impossibile eliminare il mazzo.');
+  }
 }
 
 export async function validateDeckLegalityAction(
@@ -103,7 +124,11 @@ export async function validateDeckLegalityAction(
 
   let deck: Deck | null = null;
   if (parsed.data.deckId) {
-    deck = await getDeckById(session.user.id, parsed.data.deckId);
+    try {
+      deck = await getDeckById(session.user.id, parsed.data.deckId);
+    } catch (error) {
+      return deckActionError(error, 'Impossibile caricare il mazzo.');
+    }
     if (!deck) return { error: 'Mazzo non trovato.' };
   } else if (parsed.data.deckSnapshot) {
     deck = {
@@ -123,15 +148,24 @@ export async function validateDeckLegalityAction(
   if (!deck) return { error: 'Mazzo non trovato.' };
 
   const formatId = (parsed.data.formatId ?? deck.formatId) as Deck['formatId'];
-  const result = await validateDeckLegalityWithScryfall(deck, formatId);
+  let result: Awaited<ReturnType<typeof validateDeckLegalityWithScryfall>>;
+  try {
+    result = await validateDeckLegalityWithScryfall(deck, formatId);
+  } catch (error) {
+    return deckActionError(error, 'Impossibile verificare la legalità del mazzo.');
+  }
 
   if (parsed.data.deckId) {
-    await updateDeck(session.user.id, parsed.data.deckId, {
-      main: result.deck.main,
-      side: result.deck.side,
-      legalityCheckedAt: new Date().toISOString(),
-      legalityErrors: result.issues,
-    });
+    try {
+      await updateDeck(session.user.id, parsed.data.deckId, {
+        main: result.deck.main,
+        side: result.deck.side,
+        legalityCheckedAt: new Date().toISOString(),
+        legalityErrors: result.issues,
+      });
+    } catch (error) {
+      return deckActionError(error, 'Impossibile salvare la verifica di legalità.');
+    }
     return { legal: result.legal, issues: result.issues, deck: result.deck };
   }
 
@@ -149,17 +183,20 @@ export async function saveDeckVerificationAction(
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }
 
-  const deck = await getDeckById(session.user.id, parsed.data.deckId);
-  if (!deck) return { error: 'Mazzo non trovato.' };
+  try {
+    const deck = await getDeckById(session.user.id, parsed.data.deckId);
+    if (!deck) return { error: 'Mazzo non trovato.' };
 
-  const issues = diffDeckVsScanned(deck.main, deck.side, parsed.data.scannedEntries);
-  const status = deckDiffIsClean(issues) ? 'verified' : 'mismatch';
+    const issues = diffDeckVsScanned(deck.main, deck.side, parsed.data.scannedEntries);
+    const status = deckDiffIsClean(issues) ? 'verified' : 'mismatch';
+    const updated = await saveDeckVerification(session.user.id, parsed.data.deckId, status);
+    if (!updated) return { error: 'Impossibile salvare la verifica.' };
 
-  const updated = await saveDeckVerification(session.user.id, parsed.data.deckId, status);
-  if (!updated) return { error: 'Impossibile salvare la verifica.' };
-
-  revalidatePath('/mazzi');
-  return { deck: updated, clean: status === 'verified' };
+    revalidatePath('/mazzi');
+    return { deck: updated, clean: status === 'verified' };
+  } catch (error) {
+    return deckActionError(error, 'Impossibile salvare la verifica.');
+  }
 }
 
 export async function saveDefaultPlaymatAction(

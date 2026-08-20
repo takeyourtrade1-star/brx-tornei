@@ -9,6 +9,7 @@ import type { Deck } from '@/types/deck';
 import type { CreateDeckInput } from '@/lib/validations/deck';
 import type { PlaymatId } from '@/lib/playmats';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
+import { MAX_DECKS_PER_USER } from '@/lib/deck-limits';
 import { DeckBuilder } from './deck-builder';
 import { DeckList } from './deck-list';
 import { DeckPlaymatSettings } from './deck-playmat-settings';
@@ -117,7 +118,7 @@ export function MazziWorkspace({
               <div className="px-3 text-center sm:px-5">
                 <dt className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Mazzi</dt>
                 <dd className="mt-0.5 text-lg font-black tabular-nums text-header-bg sm:text-2xl">
-                  {decks.length}/3
+                  {decks.length}/{MAX_DECKS_PER_USER}
                 </dd>
               </div>
               <div className="px-3 text-center sm:px-5">

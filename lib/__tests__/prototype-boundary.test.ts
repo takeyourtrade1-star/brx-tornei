@@ -35,11 +35,12 @@ describe('prototype deployment boundary', () => {
     expect(amplify).not.toContain('minigioco-test');
   });
 
-  it('uses cryptographic deck identifiers on client and server', () => {
+  it('keeps deck identifiers authoritative in the Tournament API', () => {
     const hook = readFileSync(new URL('../../hooks/use-decks.ts', import.meta.url), 'utf8');
     const store = readFileSync(new URL('../data/decks.ts', import.meta.url), 'utf8');
     expect(hook).toContain('createSecureSessionId()');
-    expect(store).toContain('randomUUID()');
+    expect(store).toContain("tournamentFetch('/api/v1/decks'");
+    expect(store).not.toContain('randomUUID()');
     expect(`${hook}\n${store}`).not.toContain('Math.random');
   });
 });
