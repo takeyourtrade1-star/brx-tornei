@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, ShieldCheck, AlertTriangle, Hammer } from 'lucide-react';
+import { Plus, Pencil, Trash2, ShieldCheck, AlertTriangle, Hammer, AlertCircle } from 'lucide-react';
 import { getFormat } from '@/lib/data/catalog';
 import { getDeckArchetype } from '@/lib/data/deck-archetypes';
 import { getMainDeckMinSize, getSideboardMaxSize, countCards } from '@/lib/data/deck-utils';
+import { MAX_DECKS_PER_USER } from '@/lib/data/decks';
 import type { Deck } from '@/types/deck';
 import { CreateDeckForm, FORMAT_META } from './create-deck-form';
 import type { CreateDeckInput } from '@/lib/validations/deck';
@@ -15,6 +16,8 @@ interface DeckListProps {
   onEdit: (deckId: string) => void;
   onDelete: (deckId: string) => void;
   isCreating?: boolean;
+  error?: string | null;
+  onClearError?: () => void;
 }
 
 type Status = 'verified' | 'mismatch' | 'legal' | 'building';
@@ -26,8 +29,18 @@ const STATUS_META: Record<Status, { label: string; className: string; Icon: type
   building: { label: 'In costruzione', className: 'bg-amber-100 text-amber-700', Icon: Hammer },
 };
 
-export function DeckList({ decks, onCreate, onEdit, onDelete, isCreating = false }: DeckListProps) {
+export function DeckList({
+  decks,
+  onCreate,
+  onEdit,
+  onDelete,
+  isCreating = false,
+  error,
+  onClearError,
+}: DeckListProps) {
   const [creating, setCreating] = useState(false);
+
+  const isLimitReached = decks.length >= MAX_DECKS_PER_USER;
 
   const handleCreate = (input: CreateDeckInput) => {
     onCreate(input);
@@ -36,20 +49,49 @@ export function DeckList({ decks, onCreate, onEdit, onDelete, isCreating = false
 
   return (
     <div className="flex flex-col gap-4">
+      {error && (
+        <div className="flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs font-semibold text-red-600">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+            <span>{error}</span>
+          </div>
+          {onClearError && (
+            <button
+              type="button"
+              onClick={onClearError}
+              className="text-[11px] font-bold underline hover:no-underline"
+            >
+              Chiudi
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-4">
-        <h2 className="font-display text-lg font-black uppercase tracking-wide text-header-bg">
-          I miei deck
-        </h2>
+        <div className="flex items-center gap-2.5">
+          <h2 className="font-display text-lg font-black uppercase tracking-wide text-header-bg">
+            I miei deck
+          </h2>
+          <span className="rounded-full border border-slate-900/10 bg-slate-100 px-2.5 py-0.5 text-xs font-black text-slate-600">
+            {decks.length}/{MAX_DECKS_PER_USER}
+          </span>
+        </div>
         {!creating && (
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            disabled={isCreating}
-            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-[0_6px_18px_rgba(255,115,0,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-            Nuovo mazzo
-          </button>
+          isLimitReached ? (
+            <span className="rounded-full border border-amber-500/30 bg-amber-50 px-3.5 py-1.5 text-xs font-bold text-amber-700">
+              Limite {MAX_DECKS_PER_USER}/{MAX_DECKS_PER_USER} mazzi
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              disabled={isCreating}
+              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-[0_6px_18px_rgba(255,115,0,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              Nuovo mazzo
+            </button>
+          )
         )}
       </div>
 

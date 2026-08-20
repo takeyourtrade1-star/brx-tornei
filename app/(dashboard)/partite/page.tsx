@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { PartiteHero } from '@/components/feature/tornei/partite/partite-hero';
 import { PartiteStatsGrid } from '@/components/feature/tornei/partite/partite-stats-grid';
@@ -58,6 +60,16 @@ export default async function PartitePage() {
 
         <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-6">
           <h1 className="sr-only">Le mie partite</h1>
+
+          <div className="mb-4">
+            <Link
+              href="/tornei"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white/80 backdrop-blur-md transition hover:border-white/30 hover:bg-white/20 hover:text-white active:scale-95"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Torna ai tornei
+            </Link>
+          </div>
 
           <div className="flex flex-col gap-5 sm:gap-6">
             <PartiteHero gamertag={gamertag} reputation={reputation} />

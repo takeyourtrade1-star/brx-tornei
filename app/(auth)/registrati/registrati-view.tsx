@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AuthBackLink } from '@/components/layout/AuthBackLink';
 import { AuthSplitHeader } from '@/components/layout/AuthSplitHeader';
 import { AuthSplitViewShell } from '@/components/layout/AuthSplitViewShell';
 import {
@@ -22,6 +23,7 @@ export function RegistratiView() {
 
   return (
     <AuthSplitViewShell>
+      <AuthBackLink href="/login?accesso=1" label="Torna al login" />
       <AuthSplitHeader title="Crea il tuo account in pochi secondi." className="mb-0 shrink-0" />
 
       <div className="flex flex-1 flex-col justify-center py-6 sm:py-8">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { validateDeckLegalityAction } from '@/actions/decks';
 import { getFormat } from '@/lib/data/catalog';
 import { getDeckArchetype } from '@/lib/data/deck-archetypes';
@@ -104,9 +104,10 @@ export function DeckBuilder({
             <button
               type="button"
               onClick={onBack}
-              className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold uppercase text-slate-600 hover:bg-slate-200"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-95"
             >
-              ← Indietro
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Indietro
             </button>
             <h2 className="truncate font-display text-lg font-black uppercase text-header-bg">
               {deck.name}

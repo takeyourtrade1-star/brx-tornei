@@ -22,7 +22,7 @@ export function VerifyMfaView({ redirect }: VerifyMfaViewProps) {
 
   return (
     <AuthSplitViewShell centerForm>
-      <AuthBackLink href={loginHref} />
+      <AuthBackLink href={loginHref} label="Torna al login" />
 
       <AuthSplitHeader
         title="Verifica in due passaggi"

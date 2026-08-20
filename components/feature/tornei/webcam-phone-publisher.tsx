@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle2,
   FlipHorizontal,
   Loader2,
@@ -10,6 +11,7 @@ import {
   Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { publicConfig } from '@/lib/public-config';
 import { createWebcamSender, type LinkController, type LinkState } from '@/lib/webrtc/webcam-link';
 
 const CONSTRAINTS: MediaStreamConstraints = {
@@ -171,14 +173,23 @@ export function WebcamPhonePublisher({
               <AlertTriangle className="h-5 w-5 text-red-300" />
             </div>
             <p className="text-sm leading-relaxed text-white/80">{error}</p>
-            <button
-              type="button"
-              onClick={retry}
-              className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#FF7300] px-5 py-2.5 text-sm font-bold text-white"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Riprova
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={retry}
+                className="inline-flex items-center gap-2 rounded-full bg-[#FF7300] px-5 py-2 text-sm font-bold text-white shadow-sm hover:brightness-110 active:scale-95"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Riprova
+              </button>
+              <a
+                href={publicConfig.app.mainSiteUrl}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white/80 transition hover:bg-white/20 hover:text-white"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Torna a Ebartex
+              </a>
+            </div>
           </div>
         ) : (
           <>

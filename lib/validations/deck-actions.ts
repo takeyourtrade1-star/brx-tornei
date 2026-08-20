@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isPlaymatId } from '@/lib/playmats';
+import type { TournamentLegalities } from '@/types/card-legality';
 import { createDeckSchema } from './deck';
 
 export const deckCardSchema = z.object({
@@ -13,6 +14,7 @@ export const deckCardSchema = z.object({
   collectorNumber: z.string().max(64).optional(),
   oracleId: z.string().max(128).optional(),
   scryfallId: z.string().max(128).optional(),
+  tournamentLegalities: z.custom<TournamentLegalities>().optional(),
 });
 
 export const updateDeckSchema = z.object({

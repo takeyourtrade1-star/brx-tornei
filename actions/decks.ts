@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { getSession } from '@/lib/auth/session';
 import {
+  MAX_DECKS_PER_USER,
   createDeck,
   deleteDeck,
   getDeckById,
@@ -24,19 +25,10 @@ import {
 import { PLAYMAT_PREFERENCE_COOKIE } from '@/lib/playmat-preference';
 import type { Deck } from '@/types/deck';
 import type { DeckLegalityIssue } from '@/types/card-legality';
-import { config } from '@/lib/config';
-
-const PERSISTENCE_ERROR = 'Salvataggio mazzi non ancora disponibile: nessuna modifica è stata registrata.';
-
-function deckWritesDisabled(): { error: string } | null {
-  return config.features.ephemeralDeckMutations ? null : { error: PERSISTENCE_ERROR };
-}
 
 export async function listDecksAction(): Promise<{ decks: Deck[] } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
-  const disabled = deckWritesDisabled();
-  if (disabled) return disabled;
   const decks = await listDecks(session.user.id);
   return { decks };
 }
@@ -46,8 +38,11 @@ export async function createDeckAction(
 ): Promise<{ deck: Deck } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
-  const disabled = deckWritesDisabled();
-  if (disabled) return disabled;
+
+  const existingDecks = await listDecks(session.user.id);
+  if (existingDecks.length >= MAX_DECKS_PER_USER) {
+    return { error: `Hai raggiunto il limite massimo di ${MAX_DECKS_PER_USER} mazzi.` };
+  }
 
   const parsed = createDeckSchema.safeParse(input);
   if (!parsed.success) {
@@ -64,8 +59,6 @@ export async function updateDeckAction(
 ): Promise<{ deck: Deck } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
-  const disabled = deckWritesDisabled();
-  if (disabled) return disabled;
 
   const parsed = updateDeckSchema.safeParse(input);
   if (!parsed.success) {
@@ -87,8 +80,6 @@ export async function updateDeckAction(
 export async function deleteDeckAction(deckId: string): Promise<{ ok: true } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
-  const disabled = deckWritesDisabled();
-  if (disabled) return disabled;
 
   const removed = await deleteDeck(session.user.id, deckId);
   if (!removed) return { error: 'Mazzo non trovato.' };
@@ -104,8 +95,6 @@ export async function validateDeckLegalityAction(
 > {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
-  const disabled = deckWritesDisabled();
-  if (disabled) return disabled;
 
   const parsed = validateLegalitySchema.safeParse(input);
   if (!parsed.success) {
@@ -122,14 +111,16 @@ export async function validateDeckLegalityAction(
       name: 'Snapshot',
       formatId: parsed.data.deckSnapshot.formatId as Deck['formatId'],
       archetypeId: 'aggro',
-      main: parsed.data.deckSnapshot.main,
-      side: parsed.data.deckSnapshot.side,
+      main: parsed.data.deckSnapshot.main as Deck['main'],
+      side: parsed.data.deckSnapshot.side as Deck['side'],
       createdAt: new Date().toISOString(),
       verificationStatus: 'none',
     };
   } else {
     return { error: 'Specificare deckId o deckSnapshot.' };
   }
+
+  if (!deck) return { error: 'Mazzo non trovato.' };
 
   const formatId = (parsed.data.formatId ?? deck.formatId) as Deck['formatId'];
   const result = await validateDeckLegalityWithScryfall(deck, formatId);
@@ -152,8 +143,6 @@ export async function saveDeckVerificationAction(
 ): Promise<{ deck: Deck; clean: boolean } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
-  const disabled = deckWritesDisabled();
-  if (disabled) return disabled;
 
   const parsed = saveVerificationSchema.safeParse(input);
   if (!parsed.success) {

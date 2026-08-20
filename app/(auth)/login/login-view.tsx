@@ -1,6 +1,7 @@
 'use client';
 
 import { LoginForm } from '@/components/feature/auth/login-form';
+import { AuthBackLink } from '@/components/layout/AuthBackLink';
 import { AuthSplitLayout } from '@/components/layout/AuthSplitLayout';
 import { AuthSplitHeader } from '@/components/layout/AuthSplitHeader';
 import {
@@ -22,6 +23,8 @@ export function LoginView({ redirect, recoverUrl }: LoginViewProps) {
       className="min-h-screen lg:min-h-screen"
       panelClassName="flex min-h-full flex-1 flex-col"
     >
+      <AuthBackLink href={publicConfig.app.mainSiteUrl} label="Torna su Ebartex" />
+
       <div className="flex flex-1 flex-col justify-center py-6 sm:py-8">
         <AuthSplitHeader
           title="Entra nella sala tornei"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState, useTransition } from 'react';
-import { Camera, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Camera, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { addScannedCardAction } from '@/actions/inventory';
 import { saveDeckVerificationAction } from '@/actions/decks';
 import { ScannerModal } from '@/components/feature/scanner/ScannerModal';
@@ -68,10 +68,27 @@ export function DeckVerifyWizard({ deck, onClose, onVerified }: DeckVerifyWizard
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80" onClick={onClose} aria-hidden />
       <div className="relative w-full max-w-lg rounded-2xl border border-white/15 bg-[#0a0f1a] p-5 text-white">
-        <h3 className="font-display text-lg font-black uppercase text-white">
-          Verifica mazzo fisico
-        </h3>
-        <p className="mt-1 text-xs text-white/55">{deck.name}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-lg font-black uppercase text-white">
+              Verifica mazzo fisico
+            </h3>
+            <p className="mt-0.5 text-xs text-white/55">{deck.name}</p>
+          </div>
+          {step !== 'intro' && step !== 'done' && (
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setStep((prev) => (prev === 'diff' ? 'scan' : 'intro'));
+              }}
+              className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Indietro
+            </button>
+          )}
+        </div>
 
         {step === 'intro' && (
           <div className="mt-4 space-y-3 text-sm text-white/70">

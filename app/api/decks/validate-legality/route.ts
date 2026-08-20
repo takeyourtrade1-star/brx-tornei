@@ -77,13 +77,17 @@ export async function POST(request: Request) {
       name: 'Snapshot',
       formatId: parsed.data.deckSnapshot.formatId as Deck['formatId'],
       archetypeId: 'aggro',
-      main: parsed.data.deckSnapshot.main,
-      side: parsed.data.deckSnapshot.side,
+      main: parsed.data.deckSnapshot.main as Deck['main'],
+      side: parsed.data.deckSnapshot.side as Deck['side'],
       createdAt: new Date().toISOString(),
       verificationStatus: 'none',
     };
   } else {
     return NextResponse.json({ error: 'deckId o deckSnapshot richiesto' }, { status: 400 });
+  }
+
+  if (!deck) {
+    return NextResponse.json({ error: 'Mazzo non trovato' }, { status: 404 });
   }
 
   const formatId = (parsed.data.formatId ?? deck.formatId) as Deck['formatId'];

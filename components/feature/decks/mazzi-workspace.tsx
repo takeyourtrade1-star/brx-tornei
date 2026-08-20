@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Layers } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Layers } from 'lucide-react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import type { SessionUser } from '@/types/auth';
 import type { Deck } from '@/types/deck';
@@ -38,6 +39,8 @@ export function MazziWorkspace({
 
   const {
     decks,
+    error,
+    clearError,
     createDeck,
     deleteDeck,
     addCard,
@@ -55,6 +58,7 @@ export function MazziWorkspace({
   );
 
   const handleCreateDeck = (input: CreateDeckInput) => {
+    clearError();
     const deck = createDeck(input);
     setEditingDeckId(deck.id);
     setDeckView('builder');
@@ -83,6 +87,18 @@ export function MazziWorkspace({
       <DashboardHeader user={user} displayName={gamertag} reputation={reputation} />
 
       <div className="mx-auto w-full max-w-content px-4 py-6 sm:px-6">
+        {!inBuilder && (
+          <div className="mb-4">
+            <Link
+              href="/tornei"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-900/[0.08] bg-white px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 shadow-sm transition hover:border-slate-900/20 hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Torna ai tornei
+            </Link>
+          </div>
+        )}
+
         <header className="mb-5 rounded-2xl border border-slate-900/[0.08] bg-white px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-7 sm:py-6">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/[0.09] text-primary sm:h-14 sm:w-14">
@@ -101,7 +117,7 @@ export function MazziWorkspace({
               <div className="px-3 text-center sm:px-5">
                 <dt className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Mazzi</dt>
                 <dd className="mt-0.5 text-lg font-black tabular-nums text-header-bg sm:text-2xl">
-                  {decks.length}
+                  {decks.length}/3
                 </dd>
               </div>
               <div className="px-3 text-center sm:px-5">
@@ -151,6 +167,8 @@ export function MazziWorkspace({
               }}
               onDelete={deleteDeck}
               isCreating={isPending}
+              error={error}
+              onClearError={clearError}
             />
           )}
         </div>
