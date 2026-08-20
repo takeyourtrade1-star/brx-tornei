@@ -1,20 +1,29 @@
 import 'server-only';
 
-import { tournamentFetch } from '@/lib/data/tournament-api-client';
+import {
+  extractApiError,
+  tournamentFetch,
+  TournamentApiError,
+} from '@/lib/data/tournament-api-client';
 import { unwrapApiPayload } from '@/lib/data/tournament-mapper';
 import { fetchMyMatchFeedback } from '@/lib/data/match-feedback';
 import { fetchMyReputation } from '@/lib/data/player-api-client';
 import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import {
   buildFallbackPublicProfile,
-  getAvatarIdForGamertag,
-  isMockBot,
-  loadStateFromDisk,
-  mockFriendsStore,
-  mockRawRequests,
 } from '@/lib/data/social-mock-store';
+import {
+  fetchMockFriendRequests,
+  fetchMockFriendsList,
+  searchMockPlayers,
+} from '@/lib/data/social-mock-readers';
+import {
+  mapFriendRequestList,
+  mapFriendSummaryList,
+  mapPublicPlayerProfile,
+} from '@/lib/data/social-api-mapper';
+import { canUseSocialMockForError } from '@/lib/data/social-fallback-policy';
 import type {
-  FriendPresenceStatus,
   FriendRequestItem,
   FriendSummary,
   PublicPlayerProfile,
@@ -61,29 +70,31 @@ export async function fetchPublicProfile(
   }
 
   try {
-    const { ok, body } = await tournamentFetch(
+    const { ok, status, body } = await tournamentFetch(
       `/api/v1/players/${encodeURIComponent(targetGamertag)}/public-profile`,
     );
-    if (ok) {
-      const data = unwrapApiPayload<PublicPlayerProfile>(body);
-      if (data) {
-        if (realFeedbackMap && data.honorBadges) {
-          data.honorBadges = {
-            friendly: realFeedbackMap['friendly'] ?? 0,
-            sportive: realFeedbackMap['sportive'] ?? 0,
-            great_player: realFeedbackMap['great_player'] ?? 0,
-            strategist: realFeedbackMap['strategist'] ?? 0,
-            punctual: realFeedbackMap['punctual'] ?? 0,
-          };
-        }
-        if (isSelf && myEbartexUsername) {
-          data.ebartexUsername = myEbartexUsername;
-        }
-        return data;
-      }
+    if (!ok) {
+      throw extractApiError(body, status, 'Impossibile caricare il profilo pubblico');
     }
-  } catch {
-    // Fallback a dati simulati
+    const data = mapPublicPlayerProfile(unwrapApiPayload<unknown>(body));
+    if (!data) {
+      throw new TournamentApiError('Risposta profilo non valida', 502, 'INVALID_RESPONSE');
+    }
+    if (realFeedbackMap) {
+      data.honorBadges = {
+        friendly: realFeedbackMap['friendly'] ?? 0,
+        sportive: realFeedbackMap['sportive'] ?? 0,
+        great_player: realFeedbackMap['great_player'] ?? 0,
+        strategist: realFeedbackMap['strategist'] ?? 0,
+        punctual: realFeedbackMap['punctual'] ?? 0,
+      };
+    }
+    if (isSelf && myEbartexUsername) {
+      data.ebartexUsername = myEbartexUsername;
+    }
+    return data;
+  } catch (err) {
+    if (!canUseSocialMockForError(err)) throw err;
   }
 
   const profile = buildFallbackPublicProfile(targetGamertag, myGamertag, myEbartexUsername);
@@ -120,81 +131,38 @@ export async function fetchPublicProfile(
 
 export async function fetchFriendsList(myGamertag?: string | null): Promise<FriendSummary[]> {
   try {
-    const { ok, body } = await tournamentFetch('/api/v1/friends');
-    if (ok) {
-      const data = unwrapApiPayload<FriendSummary[]>(body);
-      if (Array.isArray(data)) return data;
+    const { ok, status, body } = await tournamentFetch('/api/v1/friends');
+    if (!ok) {
+      throw extractApiError(body, status, 'Impossibile caricare gli amici');
     }
-  } catch {
-    // Fallback mock
+    const data = mapFriendSummaryList(unwrapApiPayload<unknown>(body));
+    if (!data) {
+      throw new TournamentApiError('Risposta amici non valida', 502, 'INVALID_RESPONSE');
+    }
+    return data;
+  } catch (err) {
+    if (!canUseSocialMockForError(err)) throw err;
   }
 
-  const key = myGamertag?.toLowerCase() ?? 'default';
-  loadStateFromDisk();
-  const friendTags = Array.from(mockFriendsStore.get(key) ?? []);
-  return friendTags.map((tag, idx) => {
-    const presenceList: FriendPresenceStatus[] = ['online', 'in_game', 'recent', 'offline'];
-    const presence = presenceList[idx % presenceList.length];
-    const statusText =
-      presence === 'in_game'
-        ? 'In partita'
-        : presence === 'recent'
-          ? 'Attivo di recente'
-          : presence === 'offline'
-            ? 'Non attivo di recente'
-            : 'Nella Lobby';
-
-    return {
-      gamertag: tag,
-      avatarId: getAvatarIdForGamertag(tag),
-      presence,
-      statusText,
-      winStreak: 0,
-      dailyWins: 0,
-      isBot: isMockBot(tag),
-    };
-  });
+  return fetchMockFriendsList(myGamertag);
 }
 
 export async function fetchFriendRequests(myGamertag?: string | null): Promise<FriendRequestItem[]> {
   try {
-    const { ok, body } = await tournamentFetch('/api/v1/friends/requests');
-    if (ok) {
-      const data = unwrapApiPayload<FriendRequestItem[]>(body);
-      if (Array.isArray(data)) return data;
+    const { ok, status, body } = await tournamentFetch('/api/v1/friends/requests');
+    if (!ok) {
+      throw extractApiError(body, status, 'Impossibile caricare le richieste');
     }
-  } catch {
-    // Fallback mock
+    const data = mapFriendRequestList(unwrapApiPayload<unknown>(body));
+    if (!data) {
+      throw new TournamentApiError('Risposta richieste non valida', 502, 'INVALID_RESPONSE');
+    }
+    return data;
+  } catch (err) {
+    if (!canUseSocialMockForError(err)) throw err;
   }
 
-  if (!myGamertag) return [];
-  loadStateFromDisk();
-  const myTagLower = myGamertag.toLowerCase();
-  const items: FriendRequestItem[] = [];
-
-  for (const r of mockRawRequests) {
-    if (r.recipientGamertag.toLowerCase() === myTagLower) {
-      items.push({
-        id: r.id,
-        gamertag: r.senderGamertag,
-        avatarId: getAvatarIdForGamertag(r.senderGamertag),
-        createdAtText: 'Oggi',
-        direction: 'incoming',
-        isBot: isMockBot(r.senderGamertag),
-      });
-    } else if (r.senderGamertag.toLowerCase() === myTagLower) {
-      items.push({
-        id: r.id,
-        gamertag: r.recipientGamertag,
-        avatarId: getAvatarIdForGamertag(r.recipientGamertag),
-        createdAtText: 'Oggi',
-        direction: 'outgoing',
-        isBot: isMockBot(r.recipientGamertag),
-      });
-    }
-  }
-
-  return items;
+  return fetchMockFriendRequests(myGamertag);
 }
 
 export async function searchPlayers(query: string, myGamertag?: string | null): Promise<FriendSummary[]> {
@@ -202,52 +170,18 @@ export async function searchPlayers(query: string, myGamertag?: string | null): 
   if (q.length < 2) return [];
 
   try {
-    const { ok, body } = await tournamentFetch(`/api/v1/players/search?q=${encodeURIComponent(q)}`);
-    if (ok) {
-      const data = unwrapApiPayload<FriendSummary[]>(body);
-      if (Array.isArray(data)) return data;
+    const { ok, status, body } = await tournamentFetch(`/api/v1/players/search?q=${encodeURIComponent(q)}`);
+    if (!ok) {
+      throw extractApiError(body, status, 'Impossibile cercare i giocatori');
     }
-  } catch {
-    // Fallback mock
+    const data = mapFriendSummaryList(unwrapApiPayload<unknown>(body));
+    if (!data) {
+      throw new TournamentApiError('Risposta ricerca non valida', 502, 'INVALID_RESPONSE');
+    }
+    return data;
+  } catch (err) {
+    if (!canUseSocialMockForError(err)) throw err;
   }
 
-  const basePool = [
-    'Alex_TCG',
-    'Valerio_Magic',
-    'Sara_Draws',
-    'Kurogane',
-    'DeckMaster99',
-    'BlackLotus_Fan',
-    'Chandra_Flame',
-    'Jace_Mind',
-    'Liliana_Dread',
-  ];
-
-  const key = myGamertag?.toLowerCase() ?? 'default';
-  const friends = Array.from(mockFriendsStore.get(key) ?? []);
-  const allKnown = Array.from(new Set([...basePool, ...friends]));
-
-  const qLower = q.toLowerCase();
-  const matched = allKnown.filter(
-    (name) => name.toLowerCase().includes(qLower) && name.toLowerCase() !== myGamertag?.toLowerCase(),
-  );
-
-  if (
-    q.length >= 3 &&
-    /^[a-zA-Z0-9_]+$/.test(q) &&
-    !matched.some((m) => m.toLowerCase() === qLower) &&
-    qLower !== myGamertag?.toLowerCase()
-  ) {
-    matched.unshift(q);
-  }
-
-  return matched.slice(0, 10).map((tag, idx) => ({
-    gamertag: tag,
-    avatarId: getAvatarIdForGamertag(tag),
-    presence: (idx % 2 === 0 ? 'online' : 'recent') as FriendPresenceStatus,
-    statusText: idx % 2 === 0 ? 'Online' : 'Attivo di recente',
-    winStreak: 0,
-    dailyWins: 0,
-    isBot: isMockBot(tag),
-  }));
+  return searchMockPlayers(q, myGamertag);
 }

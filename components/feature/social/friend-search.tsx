@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, Search, UserPlus, X } from 'lucide-react';
+import { AlertCircle, Check, Search, UserPlus, X } from 'lucide-react';
 import { searchPlayersAction, sendFriendRequestAction } from '@/actions/social';
 import type { FriendSummary } from '@/types/social';
 import { getAvatarById } from '@/lib/avatars';
@@ -9,9 +9,15 @@ import { Button } from '@/components/ui/button';
 
 interface FriendSearchProps {
   onOpenProfile: (gamertag: string) => void;
+  friendGamertags?: readonly string[];
+  pendingGamertags?: readonly string[];
 }
 
-export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
+export function FriendSearch({
+  onOpenProfile,
+  friendGamertags = [],
+  pendingGamertags = [],
+}: FriendSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FriendSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,11 +35,24 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
     let cancelled = false;
     setLoading(true);
     const timer = setTimeout(() => {
-      searchPlayersAction(trimmed).then((res) => {
-        if (cancelled) return;
-        setLoading(false);
-        if (res.ok && res.data) setResults(res.data);
-      });
+      searchPlayersAction(trimmed)
+        .then((res) => {
+          if (cancelled) return;
+          setLoading(false);
+          if (res.ok && res.data) {
+            setResults(res.data);
+            setErrorMsg(null);
+          } else {
+            setResults([]);
+            setErrorMsg(res.error ?? 'Impossibile cercare i giocatori.');
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setLoading(false);
+          setResults([]);
+          setErrorMsg('Impossibile cercare i giocatori.');
+        });
     }, 250);
 
     return () => {
@@ -96,7 +115,12 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
           {results.map((player) => {
             const avatar = getAvatarById(player.avatarId);
             const AvatarIcon = avatar.icon;
-            const isSent = sentMap[player.gamertag];
+            const normalized = player.gamertag.toLowerCase();
+            const isFriend = friendGamertags.some((tag) => tag.toLowerCase() === normalized);
+            const isPending = Boolean(
+              sentMap[player.gamertag] ||
+              pendingGamertags.some((tag) => tag.toLowerCase() === normalized),
+            );
 
             return (
               <li
@@ -126,12 +150,12 @@ export function FriendSearch({ onOpenProfile }: FriendSearchProps) {
 
                 <Button
                   type="button"
-                  disabled={isSent}
+                  disabled={isFriend || isPending}
                   onClick={() => handleSendRequest(player.gamertag)}
                   className="h-9 gap-1.5 rounded-xl px-3.5 text-xs font-bold shadow-sm"
                 >
-                  <UserPlus className="h-4 w-4" />
-                  <span>{isSent ? 'Inviata' : 'Aggiungi'}</span>
+                  {isFriend ? <Check className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                  <span>{isFriend ? 'Amico' : isPending ? 'In attesa' : 'Aggiungi'}</span>
                 </Button>
               </li>
             );

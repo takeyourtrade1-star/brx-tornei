@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2, ShieldCheck, AlertTriangle, Hammer, AlertCircle }
 import { getFormat } from '@/lib/data/catalog';
 import { getDeckArchetype } from '@/lib/data/deck-archetypes';
 import { getMainDeckMinSize, getSideboardMaxSize, countCards } from '@/lib/data/deck-utils';
-import { MAX_DECKS_PER_USER } from '@/lib/data/decks';
+import { MAX_DECKS_PER_USER } from '@/lib/deck-limits';
 import type { Deck } from '@/types/deck';
 import { CreateDeckForm, FORMAT_META } from './create-deck-form';
 import type { CreateDeckInput } from '@/lib/validations/deck';

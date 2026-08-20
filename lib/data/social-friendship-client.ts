@@ -1,6 +1,10 @@
 import 'server-only';
 
-import { extractApiError, tournamentFetch, TournamentApiError } from '@/lib/data/tournament-api-client';
+import { extractApiError, tournamentFetch } from '@/lib/data/tournament-api-client';
+import {
+  canUseSocialMockForError,
+  canUseSocialMockForStatus,
+} from '@/lib/data/social-fallback-policy';
 import {
   loadStateFromDisk,
   mockFriendsStore,
@@ -39,16 +43,13 @@ export async function postSendFriendRequest(
       body: JSON.stringify({ gamertag: normalized }),
     });
     if (ok) return;
-    if (status === 404 || status >= 500) {
+    if (canUseSocialMockForStatus(status)) {
       saveMockOutgoingRequest(myGamertag, normalized);
       return;
     }
     throw extractApiError(body, status, 'Impossibile inviare la richiesta di amicizia');
   } catch (err) {
-    if (
-      err instanceof TournamentApiError &&
-      (err.code === 'API_NOT_CONFIGURED' || err.status === 404 || err.status >= 500)
-    ) {
+    if (canUseSocialMockForError(err)) {
       saveMockOutgoingRequest(myGamertag, normalized);
       return;
     }
@@ -70,16 +71,13 @@ export async function postRespondFriendRequest(
       },
     );
     if (ok) return;
-    if (status === 404 || status >= 500) {
+    if (canUseSocialMockForStatus(status)) {
       handleMockRespond(requestId, action, myGamertag);
       return;
     }
     throw extractApiError(body, status, 'Impossibile rispondere alla richiesta');
   } catch (err) {
-    if (
-      err instanceof TournamentApiError &&
-      (err.code === 'API_NOT_CONFIGURED' || err.status === 404 || err.status >= 500)
-    ) {
+    if (canUseSocialMockForError(err)) {
       handleMockRespond(requestId, action, myGamertag);
       return;
     }
@@ -123,16 +121,13 @@ export async function postCancelFriendRequest(
       { method: 'DELETE' },
     );
     if (ok) return;
-    if (status === 404 || status >= 500) {
+    if (canUseSocialMockForStatus(status)) {
       handleMockCancel(requestId);
       return;
     }
     throw extractApiError(body, status, 'Impossibile annullare la richiesta');
   } catch (err) {
-    if (
-      err instanceof TournamentApiError &&
-      (err.code === 'API_NOT_CONFIGURED' || err.status === 404 || err.status >= 500)
-    ) {
+    if (canUseSocialMockForError(err)) {
       handleMockCancel(requestId);
       return;
     }
@@ -160,16 +155,13 @@ export async function postRemoveFriend(
       { method: 'DELETE' },
     );
     if (ok) return;
-    if (status === 404 || status >= 500) {
+    if (canUseSocialMockForStatus(status)) {
       handleMockRemove(myGamertag, normalized);
       return;
     }
     throw extractApiError(body, status, 'Impossibile rimuovere l’amico');
   } catch (err) {
-    if (
-      err instanceof TournamentApiError &&
-      (err.code === 'API_NOT_CONFIGURED' || err.status === 404 || err.status >= 500)
-    ) {
+    if (canUseSocialMockForError(err)) {
       handleMockRemove(myGamertag, normalized);
       return;
     }

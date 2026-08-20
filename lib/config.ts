@@ -183,5 +183,9 @@ export const config = {
       isDevelopment && process.env.ENABLE_EPHEMERAL_DECK_MUTATIONS === 'true',
     ephemeralInventoryMutations:
       isDevelopment && process.env.ENABLE_EPHEMERAL_INVENTORY_MUTATIONS === 'true',
+    // Il social deve usare PostgreSQL in produzione: il mock e lo store su
+    // disco sono ammessi solo per sviluppo locale esplicitamente opt-in.
+    ephemeralSocial:
+      isDevelopment && process.env.ENABLE_EPHEMERAL_SOCIAL === 'true',
   },
 } as const;

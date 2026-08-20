@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Settings, UserPlus, Users, X } from 'lucide-react';
+import { Search, Settings, Users, X } from 'lucide-react';
 import {
   cancelFriendRequestAction,
   getFriendRequestsAction,
@@ -14,7 +14,9 @@ import type { FriendRequestItem, FriendSummary } from '@/types/social';
 import { FriendRow } from './friend-row';
 import { FriendSearch } from './friend-search';
 import { FriendRequestsList } from './friend-requests-list';
+import { FriendsEmptyState } from './friends-empty-state';
 import { SocialTabButton } from './social-tab-button';
+import { SocialErrorNotice } from './social-error-notice';
 import { SocialSettingsModal } from './social-settings-modal';
 
 interface FriendsDrawerProps {
@@ -40,6 +42,7 @@ export function FriendsDrawer({
   const [friends, setFriends] = useState<FriendSummary[]>([]);
   const [requests, setRequests] = useState<FriendRequestItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -58,13 +61,21 @@ export function FriendsDrawer({
 
   const loadData = async () => {
     setLoading(true);
-    const [friendsRes, reqRes] = await Promise.all([
-      getFriendsListAction(),
-      getFriendRequestsAction(),
-    ]);
-    setLoading(false);
-    if (friendsRes.ok && friendsRes.data) setFriends(friendsRes.data);
-    if (reqRes.ok && reqRes.data) setRequests(reqRes.data);
+    setLoadError(null);
+    try {
+      const [friendsRes, reqRes] = await Promise.all([
+        getFriendsListAction(),
+        getFriendRequestsAction(),
+      ]);
+      if (friendsRes.ok && friendsRes.data) setFriends(friendsRes.data);
+      if (reqRes.ok && reqRes.data) setRequests(reqRes.data);
+      const error = !friendsRes.ok ? friendsRes.error : !reqRes.ok ? reqRes.error : null;
+      if (error) setLoadError(error);
+    } catch {
+      setLoadError('Impossibile caricare amici e richieste.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -74,20 +85,30 @@ export function FriendsDrawer({
   if (!open || !mounted) return null;
 
   const handleRemoveFriend = async (gamertag: string) => {
-    setFriends((prev) => prev.filter((f) => f.gamertag !== gamertag));
-    await removeFriendAction(gamertag);
+    const result = await removeFriendAction(gamertag);
+    if (!result.ok) {
+      setLoadError(result.error ?? 'Impossibile rimuovere l’amico.');
+      return;
+    }
+    await loadData();
   };
 
   const handleRespondRequest = async (requestId: string, action: 'accept' | 'decline') => {
-    setRequests((prev) => prev.filter((r) => r.id !== requestId));
-    await respondFriendRequestAction(requestId, action);
-    void loadData();
+    const result = await respondFriendRequestAction(requestId, action);
+    if (!result.ok) {
+      setLoadError(result.error ?? 'Impossibile rispondere alla richiesta.');
+      return;
+    }
+    await loadData();
   };
 
   const handleCancelRequest = async (requestId: string) => {
-    setRequests((prev) => prev.filter((r) => r.id !== requestId));
-    await cancelFriendRequestAction(requestId);
-    void loadData();
+    const result = await cancelFriendRequestAction(requestId);
+    if (!result.ok) {
+      setLoadError(result.error ?? 'Impossibile annullare la richiesta.');
+      return;
+    }
+    await loadData();
   };
 
   const onlineFriends = friends.filter((f) => f.presence === 'online' || f.presence === 'in_game');
@@ -149,6 +170,7 @@ export function FriendsDrawer({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-7 py-6">
+          {loadError && <SocialErrorNotice message={loadError} />}
           {tab === 'friends' && (
             <div className="space-y-6">
               {loading ? (
@@ -156,22 +178,7 @@ export function FriendsDrawer({
                   Caricamento amici…
                 </div>
               ) : friends.length === 0 ? (
-                <div className="py-16 text-center">
-                  <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-white border border-slate-200 text-slate-400 shadow-sm">
-                    <UserPlus className="h-7 w-7" />
-                  </span>
-                  <p className="text-base font-bold text-slate-800">Nessun amico ancora</p>
-                  <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-slate-500">
-                    Cerca i tuoi compagni di gioco o aggiungili direttamente dai tavoli e dalle partite.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setTab('search')}
-                    className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition"
-                  >
-                    Cerca giocatori
-                  </button>
-                </div>
+                <FriendsEmptyState onSearch={() => setTab('search')} />
               ) : (
                 <div className="space-y-6">
                   {onlineFriends.length > 0 && (
@@ -225,7 +232,9 @@ export function FriendsDrawer({
             />
           )}
 
-          {tab === 'search' && <FriendSearch onOpenProfile={onOpenProfile} />}
+          {tab === 'search' && (
+            <FriendSearch onOpenProfile={onOpenProfile} friendGamertags={friends.map((friend) => friend.gamertag)} pendingGamertags={requests.map((request) => request.gamertag)} />
+          )}
         </div>
       </aside>
 
