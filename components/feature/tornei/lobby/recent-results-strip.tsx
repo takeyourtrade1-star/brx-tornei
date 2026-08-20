@@ -77,7 +77,7 @@ export function RecentResultsStrip({ recent }: { recent: RecentMatchResult[] }) 
         <div className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
           <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 sm:text-[9px]">
-            Forma recente
+            Battaglie recenti
           </span>
         </div>
         {results.length > 0 && (
@@ -88,7 +88,7 @@ export function RecentResultsStrip({ recent }: { recent: RecentMatchResult[] }) 
       </div>
 
       <ol
-        aria-label={`Forma recente: ${results.length > 0 ? results.map((result) => (OUTCOME_STYLE[result.outcome] ?? OUTCOME_STYLE.disputed).label).join(', ') : 'Nessuna sfida'}`}
+        aria-label={`Battaglie recenti: ${results.length > 0 ? results.map((result) => (OUTCOME_STYLE[result.outcome] ?? OUTCOME_STYLE.disputed).label).join(', ') : 'Nessuna sfida'}`}
         className="grid grid-cols-5 gap-1.5 sm:gap-2"
       >
         {results.map((result, index) => {

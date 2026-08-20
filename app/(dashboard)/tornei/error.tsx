@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { publicConfig } from '@/lib/public-config';
 
 export default function TournamentsError({
   error,
@@ -25,13 +27,22 @@ export default function TournamentsError({
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           La sessione è al sicuro. Riprova per ricaricare tavoli e profilo giocatore.
         </p>
-        <button
-          type="button"
-          onClick={reset}
-          className="mt-6 rounded-full bg-gradient-global px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
-        >
-          Riprova
-        </button>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <a
+            href={publicConfig.app.mainSiteUrl}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-3 text-sm font-bold text-foreground transition hover:bg-muted"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Torna su Ebartex
+          </a>
+          <button
+            type="button"
+            onClick={reset}
+            className="rounded-full bg-gradient-global px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
+          >
+            Riprova
+          </button>
+        </div>
         {error.digest ? (
           <p className="mt-5 text-[11px] text-muted-foreground">Riferimento: {error.digest}</p>
         ) : null}

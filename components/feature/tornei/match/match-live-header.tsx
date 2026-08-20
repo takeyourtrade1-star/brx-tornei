@@ -79,11 +79,12 @@ export function MatchLiveHeader({
       <div className="flex min-w-0 items-center gap-3">
         <Link
           href="/tornei"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:border-white/25 hover:bg-white/15 hover:text-white"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.08] px-3 text-xs font-bold uppercase tracking-wide text-white/80 transition hover:border-white/30 hover:bg-white/15 hover:text-white"
           aria-label="Torna alla lobby: la partita resta attiva"
           title="Torna alla lobby: la partita resta attiva"
         >
           <ArrowLeft className="h-4 w-4" />
+          <span>Lobby</span>
         </Link>
         <div className="min-w-0">
           <p className="text-[9px] font-black uppercase tracking-[0.22em] text-primary">Partita live</p>

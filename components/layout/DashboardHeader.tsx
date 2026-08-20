@@ -189,7 +189,8 @@ export function DashboardHeader({
             >
               <ArrowLeft className="h-3 w-3 stroke-[2.5]" />
             </span>
-            <span>Ebartex</span>
+            <span className="hidden xl:inline">Torna su Ebartex</span>
+            <span className="xl:hidden">Indietro</span>
           </a>
 
           {showMinigameBack && onBackToMinigame && (
