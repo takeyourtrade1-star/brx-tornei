@@ -6,6 +6,7 @@ import type {
   PublicPlayerProfile,
   PublicPlayerStats,
 } from '@/types/social';
+import { mapPresence } from '@/lib/data/social-presence';
 
 const PRESENCE_VALUES: readonly FriendPresenceStatus[] = [
   'online',
@@ -60,6 +61,18 @@ function pickEnum<T extends string>(
   return value && (valid as readonly string[]).includes(value) ? (value as T) : fallback;
 }
 
+function resolvePresence(obj: Record<string, unknown>): FriendPresenceStatus {
+  const explicit = pickString(obj, 'presence');
+  if (explicit && (PRESENCE_VALUES as readonly string[]).includes(explicit)) {
+    return explicit as FriendPresenceStatus;
+  }
+  return mapPresence(
+    pickNumber(obj, 'last_seen_minutes', 'lastSeenMinutes'),
+    pickBoolean(obj, 'in_game', 'inGame') ?? false,
+    pickBoolean(obj, 'is_dnd', 'isDnd') ?? false,
+  );
+}
+
 function mapStats(raw: unknown): PublicPlayerStats {
   const obj = asRecord(raw) ?? {};
   return {
@@ -81,7 +94,7 @@ export function mapFriendSummary(raw: unknown): FriendSummary | null {
   return {
     gamertag,
     avatarId: pickString(obj, 'avatar_id', 'avatarId') ?? 'crown',
-    presence: pickEnum(obj, PRESENCE_VALUES, 'offline', 'presence'),
+    presence: resolvePresence(obj),
     statusText: pickString(obj, 'status_text', 'statusText'),
     winStreak: pickNumber(obj, 'win_streak', 'winStreak') ?? 0,
     dailyWins: pickNumber(obj, 'daily_wins', 'dailyWins') ?? 0,
@@ -128,7 +141,7 @@ export function mapPublicPlayerProfile(raw: unknown): PublicPlayerProfile | null
   return {
     gamertag,
     avatarId: pickString(obj, 'avatar_id', 'avatarId') ?? 'crown',
-    presence: pickEnum(obj, PRESENCE_VALUES, 'offline', 'presence'),
+    presence: resolvePresence(obj),
     stats: mapStats(obj.stats),
     unlockedAchievements: Array.isArray(achievements)
       ? achievements.filter((value): value is string => typeof value === 'string')

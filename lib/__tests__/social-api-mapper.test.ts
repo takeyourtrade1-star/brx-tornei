@@ -69,4 +69,14 @@ describe('social API mapper', () => {
     expect(mapFriendRequestList([{ id: 'missing-fields' }])).toEqual([]);
     expect(mapPublicPlayerProfile({ presence: 'online' })).toBeNull();
   });
+
+  it('se presence manca, last-seen assente diventa offline e non online', () => {
+    const result = mapFriendSummaryList([{ gamertag: 'GhostPlayer' }]);
+    expect(result?.[0]?.presence).toBe('offline');
+  });
+
+  it('ricalcola la presenza da last_seen_minutes se presence è assente', () => {
+    expect(mapFriendSummaryList([{ gamertag: 'RecentOne', last_seen_minutes: 20 }])?.[0]?.presence).toBe('recent');
+    expect(mapFriendSummaryList([{ gamertag: 'InGame', in_game: true }])?.[0]?.presence).toBe('in_game');
+  });
 });

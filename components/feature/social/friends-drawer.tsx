@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Settings, Users, X } from 'lucide-react';
+import { QrCode, Search, Settings, Users, X } from 'lucide-react';
 import {
   cancelFriendRequestAction,
   getFriendRequestsAction,
@@ -11,10 +11,10 @@ import {
   respondFriendRequestAction,
 } from '@/actions/social';
 import type { FriendRequestItem, FriendSummary } from '@/types/social';
-import { FriendRow } from './friend-row';
 import { FriendSearch } from './friend-search';
 import { FriendRequestsList } from './friend-requests-list';
-import { FriendsEmptyState } from './friends-empty-state';
+import { FriendsListPanel } from './friends-list-panel';
+import { FriendQrModal } from './friend-qr-modal';
 import { SocialTabButton } from './social-tab-button';
 import { SocialErrorNotice } from './social-error-notice';
 import { SocialSettingsModal } from './social-settings-modal';
@@ -44,6 +44,7 @@ export function FriendsDrawer({
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -53,11 +54,11 @@ export function FriendsDrawer({
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !settingsOpen) onClose();
+      if (e.key === 'Escape' && !settingsOpen && !qrOpen) onClose();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [open, settingsOpen, onClose]);
+  }, [open, settingsOpen, qrOpen, onClose]);
 
   const loadData = async () => {
     setLoading(true);
@@ -111,9 +112,6 @@ export function FriendsDrawer({
     await loadData();
   };
 
-  const onlineFriends = friends.filter((f) => f.presence === 'online' || f.presence === 'in_game');
-  const otherFriends = friends.filter((f) => f.presence !== 'online' && f.presence !== 'in_game');
-
   return createPortal(
     <div role="presentation" className="fixed inset-0 z-[900]" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -135,6 +133,15 @@ export function FriendsDrawer({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setQrOpen(true)}
+              aria-label="Mostra il tuo QR amici"
+              title="Il tuo QR amici"
+              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 transition"
+            >
+              <QrCode className="h-4 w-4" />
+            </button>
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
@@ -172,55 +179,15 @@ export function FriendsDrawer({
         <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-7 py-6">
           {loadError && <SocialErrorNotice message={loadError} />}
           {tab === 'friends' && (
-            <div className="space-y-6">
-              {loading ? (
-                <div className="py-12 text-center text-xs font-bold text-slate-400 animate-pulse">
-                  Caricamento amici…
-                </div>
-              ) : friends.length === 0 ? (
-                <FriendsEmptyState onSearch={() => setTab('search')} />
-              ) : (
-                <div className="space-y-6">
-                  {onlineFriends.length > 0 && (
-                    <div>
-                      <h3 className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
-                        Online ({onlineFriends.length})
-                      </h3>
-                      <ul className="space-y-2.5">
-                        {onlineFriends.map((f) => (
-                          <FriendRow
-                            key={f.gamertag}
-                            friend={f}
-                            onOpenProfile={onOpenProfile}
-                            onChallenge={onChallenge}
-                            onRemove={handleRemoveFriend}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {otherFriends.length > 0 && (
-                    <div>
-                      <h3 className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                        Non al tavolo ({otherFriends.length})
-                      </h3>
-                      <ul className="space-y-2.5">
-                        {otherFriends.map((f) => (
-                          <FriendRow
-                            key={f.gamertag}
-                            friend={f}
-                            onOpenProfile={onOpenProfile}
-                            onChallenge={onChallenge}
-                            onRemove={handleRemoveFriend}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <FriendsListPanel
+              loading={loading}
+              friends={friends}
+              onSearch={() => setTab('search')}
+              onShowQr={() => setQrOpen(true)}
+              onOpenProfile={onOpenProfile}
+              onChallenge={onChallenge}
+              onRemove={handleRemoveFriend}
+            />
           )}
 
           {tab === 'requests' && (
@@ -244,6 +211,7 @@ export function FriendsDrawer({
         gamertag={myGamertag}
         ebartexUsername={myEbartexUsername}
       />
+      <FriendQrModal open={qrOpen} onClose={() => setQrOpen(false)} gamertag={myGamertag} />
     </div>,
     document.body,
   );

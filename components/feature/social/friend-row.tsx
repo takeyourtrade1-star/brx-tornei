@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Check, Flame, Swords, UserMinus, X } from 'lucide-react';
 import type { FriendSummary } from '@/types/social';
 import { getAvatarById } from '@/lib/avatars';
+import { presenceStatusText } from '@/lib/data/social-presence';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -30,13 +31,7 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
     offline: 'bg-slate-300 ring-slate-200',
   }[friend.presence];
 
-  const defaultStatusText = isDnd
-    ? 'Non disturbare (Occupato)'
-    : friend.presence === 'online'
-      ? 'Online adesso'
-      : friend.presence === 'in_game'
-        ? 'In partita'
-        : 'Attivo di recente';
+  const defaultStatusText = presenceStatusText(friend.presence);
 
   return (
     <li className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4">

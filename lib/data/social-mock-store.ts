@@ -5,6 +5,8 @@ import type {
   PublicPlayerProfile,
 } from '@/types/social';
 
+export { mapPresence } from '@/lib/data/social-presence';
+
 const KNOWN_AVATARS = [
   'crown',
   'swords',
@@ -142,19 +144,6 @@ export function isEbartexProfileVisible(gamertag: string): boolean {
 
 export function setEbartexProfileVisible(gamertag: string, visible: boolean): void {
   mockEbartexVisibilityStore.set(gamertag.toLowerCase(), visible);
-}
-
-/** Mappa la presenza preservando la privacy: zero timestamp precisi */
-export function mapPresence(
-  lastSeenMinutesAgo?: number,
-  inGame?: boolean,
-  isDnd?: boolean,
-): FriendPresenceStatus {
-  if (isDnd) return 'dnd';
-  if (inGame) return 'in_game';
-  if (typeof lastSeenMinutesAgo !== 'number' || lastSeenMinutesAgo <= 5) return 'online';
-  if (lastSeenMinutesAgo <= 48 * 60) return 'recent';
-  return 'offline';
 }
 
 export function buildFallbackPublicProfile(

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 import { ReturnToMatchBanner } from '@/components/feature/tornei/return-to-match-banner';
+import { AddFriendFromQuery } from '@/components/feature/social/add-friend-from-query';
 
 /**
  * Shell della dashboard: nessun container qui — l'header (full-width,
@@ -12,6 +14,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {children}
       {/* Richiamo globale alla partita in corso, nascosto nella pagina live. */}
       <ReturnToMatchBanner />
+      <Suspense fallback={null}>
+        <AddFriendFromQuery />
+      </Suspense>
     </div>
   );
 }

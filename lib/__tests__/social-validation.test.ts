@@ -18,8 +18,8 @@ import {
 import {
   buildFallbackPublicProfile,
   getAvatarIdForGamertag,
-  mapPresence,
 } from '@/lib/data/social-mock-store';
+import { mapPresence, presenceStatusText } from '@/lib/data/social-presence';
 
 describe('Social Validations, Scalability & Privacy Bucketing', () => {
   it('valida la ricerca di giocatori con limiti corretti', () => {
@@ -76,6 +76,10 @@ describe('Social Validations, Scalability & Privacy Bucketing', () => {
     // Offline (> 48 ore)
     expect(mapPresence(49 * 60, false)).toBe('offline');
     expect(mapPresence(10000, false)).toBe('offline');
+    // Last-seen assente: offline, mai online di default
+    expect(mapPresence(undefined, false)).toBe('offline');
+    expect(mapPresence()).toBe('offline');
+    expect(presenceStatusText('offline')).toBe('Non attivo di recente');
   });
 
   it('assegna avatar deterministici e profili pubblici senza esporre dati sensibili', () => {
