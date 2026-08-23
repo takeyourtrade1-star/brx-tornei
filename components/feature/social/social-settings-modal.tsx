@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, BellOff, CheckCircle2, ExternalLink, Eye, EyeOff, Settings, Sparkles, X } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import {
   getDndStatus,
   getEbartexProfileUrl,
@@ -58,76 +58,58 @@ export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSe
   };
 
   const ebartexUrl = getEbartexProfileUrl(ebartexUsername);
-  const displayAccountName = ebartexUsername?.trim() || 'il tuo account';
+  const accountLabel = ebartexUsername?.trim() || 'account Ebartex';
 
   return createPortal(
     <div role="presentation" className="fixed inset-0 z-[1000] grid place-items-center p-4 sm:p-6" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-xl transition-all" />
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-md" />
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Impostazioni Social e Privacy"
-        className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/15 bg-slate-900/95 p-6 sm:p-7 text-white shadow-2xl backdrop-blur-2xl transition-all"
+        aria-label="Impostazioni Social"
+        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/12 bg-slate-900 p-6 text-white shadow-2xl sm:p-7"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-[#FF7300]/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-emerald-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-[#FF7300]/15 blur-3xl" />
 
-        {/* Header */}
-        <header className="relative flex items-center justify-between pb-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/10 border border-white/15 text-[#FF7300]">
-              <Settings className="h-5 w-5" />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black tracking-tight text-white">Impostazioni Social</h3>
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-300">
-                  Privacy & Inviti
-                </span>
-              </div>
-              <p className="text-xs font-medium text-slate-400">
-                Personalizza presenza e visibilità del tuo account
-              </p>
-            </div>
+        <header className="relative flex items-start justify-between gap-4 pb-5">
+          <div>
+            <h2 className="text-xl font-black tracking-tight">Impostazioni Social</h2>
+            <p className="mt-1 text-sm font-medium text-white/55">
+              Visibilità del profilo e inviti di gioco
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Chiudi"
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/15 transition"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/12 text-white/60 hover:bg-white/10 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
 
-        {/* Body */}
-        <div className="relative mt-5 space-y-5">
-          {/* Sezione 1: Marketplace */}
-          <section className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-[#FF7300]" /> Profilo Marketplace Ebartex
-              </span>
-              <span className="text-[10px] font-semibold text-slate-400">@{displayAccountName}</span>
+        <div className="relative space-y-6">
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.16em] text-white/40">
+                Profilo Ebartex
+              </h3>
+              <span className="truncate text-[11px] font-semibold text-white/45">@{accountLabel}</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <OptionCard
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <ChoiceCard
                 active={showEbartex}
                 onClick={() => handleToggleEbartexVisibility(true)}
-                icon={<Eye className="h-4 w-4" />}
-                title="Visibile a tutti"
-                description="Mostra il link alle tue carte in vendita sul tuo profilo duellante."
-                accent="emerald"
+                title="Visibile"
+                description="Le carte in vendita appaiono sul profilo duellante."
               />
-              <OptionCard
+              <ChoiceCard
                 active={!showEbartex}
                 onClick={() => handleToggleEbartexVisibility(false)}
-                icon={<EyeOff className="h-4 w-4" />}
-                title="Privato"
-                description="Nessun collegamento visibile. Mostra solo le tue statistiche torneo."
-                accent="slate"
+                title="Nascosto"
+                description="Gli altri vedono solo le statistiche di torneo."
               />
             </div>
 
@@ -135,47 +117,39 @@ export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSe
               href={ebartexUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-white/10 hover:text-white transition"
+              className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/80 hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
             >
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Apri la tua pagina utente su Ebartex</span>
-              </div>
-              <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+              <span>Apri il profilo su Ebartex</span>
+              <ExternalLink className="h-3.5 w-3.5 text-white/40" />
             </a>
           </section>
 
-          {/* Sezione 2: Inviti */}
-          <section className="space-y-2.5 pt-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <Bell className="h-3.5 w-3.5 text-[#FF7300]" /> Disponibilità Inviti di Gioco
-              </span>
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.16em] text-white/40">
+                Inviti di gioco
+              </h3>
               {dnd.active && (
-                <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-[10px] font-black text-amber-400 animate-pulse">
-                  DND: {dnd.minutesRemaining} min
+                <span className="text-[11px] font-semibold text-amber-300/90">
+                  Occupato · {dnd.minutesRemaining} min
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <OptionCard
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <ChoiceCard
                 active={!dnd.active}
                 disabled={saving}
                 onClick={() => handleToggleDnd(false)}
-                icon={<Bell className="h-4 w-4" />}
                 title="Disponibile"
-                description="Ricevi inviti a sfide 1v1 dagli amici nella lobby dei tornei."
-                accent="orange"
+                description="Gli amici possono inviarti sfide 1v1."
               />
-              <OptionCard
+              <ChoiceCard
                 active={dnd.active}
                 disabled={saving}
                 onClick={() => handleToggleDnd(true)}
-                icon={<BellOff className="h-4 w-4" />}
                 title="Non disturbare"
-                description="Pausa inviti di 60 min. Gli altri vedranno che sei occupato."
-                accent="amber"
+                description="Niente inviti per 60 minuti."
               />
             </div>
           </section>
@@ -186,53 +160,43 @@ export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSe
   );
 }
 
-function OptionCard({
+function ChoiceCard({
   active,
   disabled,
   onClick,
-  icon,
   title,
   description,
-  accent,
 }: {
   active: boolean;
   disabled?: boolean;
   onClick: () => void;
-  icon: React.ReactNode;
   title: string;
   description: string;
-  accent: 'emerald' | 'orange' | 'amber' | 'slate';
 }) {
-  const accentStyles = {
-    emerald: active ? 'border-emerald-500/80 bg-emerald-950/40 ring-1 ring-emerald-500/50' : '',
-    orange: active ? 'border-[#FF7300] bg-orange-950/40 ring-1 ring-[#FF7300]/50' : '',
-    amber: active ? 'border-amber-500 bg-amber-950/40 ring-1 ring-amber-500/50' : '',
-    slate: active ? 'border-slate-400 bg-slate-800/60 ring-1 ring-slate-400/50' : '',
-  };
-
   return (
     <button
       type="button"
       disabled={disabled}
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'group flex flex-col justify-between rounded-2xl border p-3.5 text-left transition-all duration-200',
+        'rounded-2xl border px-4 py-3.5 text-left transition',
         active
-          ? accentStyles[accent]
-          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]',
-        disabled && 'opacity-60 cursor-not-allowed',
+          ? 'border-[#FF7300]/70 bg-[#FF7300]/10'
+          : 'border-white/10 bg-white/[0.03] hover:border-white/18 hover:bg-white/[0.06]',
+        disabled && 'cursor-not-allowed opacity-55',
       )}
     >
-      <div className="flex items-start justify-between">
-        <span className={cn('grid h-8 w-8 place-items-center rounded-xl border', active ? 'bg-white/15 border-white/25 text-white' : 'bg-white/5 border-white/10 text-slate-400')}>
-          {icon}
-        </span>
-        {active && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-black tracking-tight text-white">{title}</p>
+        <span
+          className={cn(
+            'mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border',
+            active ? 'border-[#FF7300] bg-[#FF7300]' : 'border-white/25 bg-transparent',
+          )}
+        />
       </div>
-      <div className="mt-2.5">
-        <p className="text-xs font-black text-white">{title}</p>
-        <p className="mt-0.5 text-[11px] font-medium text-slate-400 leading-snug">{description}</p>
-      </div>
+      <p className="mt-1.5 text-xs font-medium leading-snug text-white/50">{description}</p>
     </button>
   );
 }
