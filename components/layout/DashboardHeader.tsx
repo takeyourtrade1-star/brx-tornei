@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Gamepad2 } from 'lucide-react';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
@@ -17,8 +17,12 @@ import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { getSavedAvatarId } from '@/lib/avatars';
 import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import { publicConfig } from '@/lib/public-config';
+import { cn } from '@/lib/utils';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { SessionUser } from '@/types/auth';
+
+const HEADER_GLASS_ON = 24;
+const HEADER_GLASS_OFF = 8;
 
 interface DashboardHeaderProps {
   user: SessionUser;
@@ -48,6 +52,8 @@ export function DashboardHeader({
   const [currentReputation, setCurrentReputation] = useState<ReputationSummary | null>(
     () => reputation ?? lastKnownReputation,
   );
+  const [scrolled, setScrolled] = useState(false);
+  const scrolledRef = useRef(false);
 
   useEffect(() => {
     if (reputation) {
@@ -81,6 +87,20 @@ export function DashboardHeader({
   }, []);
 
   useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const prev = scrolledRef.current;
+      const next = prev ? y > HEADER_GLASS_OFF : y > HEADER_GLASS_ON;
+      if (next === prev) return;
+      scrolledRef.current = next;
+      setScrolled(next);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
     const fetchCounts = async () => {
       const [friendsRes, reqRes] = await Promise.all([getFriendsListAction(), getFriendRequestsAction()]);
       if (friendsRes.ok && friendsRes.data) {
@@ -96,15 +116,20 @@ export function DashboardHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full overflow-visible font-sans text-white">
-        <div className="flex items-center justify-between gap-3 px-3 pb-5 pt-3 sm:px-5 sm:pt-3.5">
+      <header className="relative sticky top-0 z-40 w-full overflow-visible font-sans text-white">
+        <div
+          className="header-brand-glass"
+          data-expanded={scrolled ? 'true' : 'false'}
+          aria-hidden
+        />
+        <div className="relative z-10 flex items-center justify-between gap-3 px-3 pb-5 pt-3 sm:px-5 sm:pt-3.5">
           <Link
             href={DEFAULT_TOURNAMENTS_PATH}
             aria-label="Tornei"
             className="inline-flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-80"
           >
             <span className="hidden sm:inline-flex">
-              <BrxHeaderLogo variant="light" size="compact" linked={false} />
+              <BrxHeaderLogo variant="dark" size="compact" linked={false} />
             </span>
             <span className="truncate font-display text-sm font-black uppercase tracking-[0.14em] text-primary sm:text-lg">
               Tournaments
@@ -117,7 +142,12 @@ export function DashboardHeader({
                 type="button"
                 onClick={onBackToMinigame}
                 aria-label="Torna al mini-gioco"
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/10 text-primary hover:border-primary/40 hover:bg-primary/15"
+                className={cn(
+                  'grid h-9 w-9 place-items-center rounded-full text-primary transition-colors',
+                  scrolled
+                    ? 'border border-slate-900/10 bg-white/50 hover:bg-white/80'
+                    : 'border border-white/15 bg-white/10 hover:border-primary/40 hover:bg-primary/15',
+                )}
               >
                 <Gamepad2 className="h-4 w-4" />
               </button>
@@ -128,7 +158,10 @@ export function DashboardHeader({
               rel="noopener noreferrer"
               aria-label="Torna al marketplace Ebartex"
               title="Torna al marketplace Ebartex"
-              className="inline-flex items-center gap-1 text-[11px] font-bold tracking-wide text-white/40 transition hover:text-white/80 sm:text-xs"
+              className={cn(
+                'inline-flex items-center gap-1 text-[11px] font-bold tracking-wide transition sm:text-xs',
+                scrolled ? 'text-slate-600 hover:text-slate-900' : 'text-white/40 hover:text-white/80',
+              )}
             >
               <span>Ebartex</span>
               <ExternalLink className="h-3 w-3 opacity-70" aria-hidden />
