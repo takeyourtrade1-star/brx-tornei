@@ -35,6 +35,18 @@ export function buildFriendInviteUrl(origin: string, gamertag: string): string {
   }
 }
 
+/** Testo di share: URL https nudo in ultima riga così le chat lo rendono cliccabile. */
+export function buildFriendInviteShareMessage(gamertag: string, url: string): { title: string; text: string } {
+  return {
+    title: `Aggiungi ${gamertag} su BRX Tornei`,
+    text: [
+      `${gamertag} ti invita su BRX Tornei.`,
+      'Tocca il link per aggiungerlo direttamente agli amici:',
+      url,
+    ].join('\n'),
+  };
+}
+
 export function stripFriendInviteParam(search: string): string {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
   params.delete(FRIEND_INVITE_QUERY);

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildFriendInvitePath,
+  buildFriendInviteShareMessage,
   buildFriendInviteUrl,
   parseFriendInviteGamertag,
   stripFriendInviteParam,
@@ -35,5 +36,13 @@ describe('friend invite QR', () => {
       '?format=all&mode=heads-up',
     );
     expect(stripFriendInviteParam('add=Alex_TCG')).toBe('');
+  });
+
+  it('mette il link di amicizia da solo in ultima riga del messaggio di share', () => {
+    const url = 'https://tornei.ebartex.com/tornei?format=all&mode=heads-up&add=Alex_TCG';
+    const { title, text } = buildFriendInviteShareMessage('Alex_TCG', url);
+    expect(title).toBe('Aggiungi Alex_TCG su BRX Tornei');
+    expect(text.endsWith(`\n${url}`)).toBe(true);
+    expect(text.split('\n').at(-1)).toBe(url);
   });
 });
