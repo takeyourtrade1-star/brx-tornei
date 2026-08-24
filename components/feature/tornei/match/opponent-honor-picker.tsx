@@ -73,7 +73,7 @@ export function OpponentHonorPicker({
             <div className="flex items-center gap-2.5">
               <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-transparent to-red-400/30" />
               <p className="text-[9px] font-black uppercase tracking-[0.18em] text-red-300/80">
-                Segnala
+                Valuta negativamente
               </p>
               <span aria-hidden className="h-px flex-1 bg-gradient-to-l from-transparent to-red-400/30" />
             </div>
