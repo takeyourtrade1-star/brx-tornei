@@ -1,9 +1,13 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Layers, Swords } from 'lucide-react';
-import { FriendsNavIcon } from '@/components/layout/friends-nav-icon';
 import { GameNavButton } from '@/components/layout/game-nav-button';
+
+const HUD_ART = {
+  mazzi: { src: '/images/hud/deck-icon.png', width: 720, height: 264 },
+  partite: { src: '/images/hud/games-icon.png', width: 720, height: 265 },
+  amici: { src: '/images/hud/friends-icon.png', width: 720, height: 286 },
+} as const;
 
 interface GameNavRailProps {
   friendsOpen: boolean;
@@ -29,9 +33,9 @@ export function GameNavRail({
     <>
       <nav
         aria-label="Navigazione principale tornei"
-        className="pointer-events-none fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 md:block"
+        className="pointer-events-none fixed right-2 top-1/2 z-30 hidden -translate-y-1/2 md:block"
       >
-        <div className="pointer-events-auto flex flex-col gap-3.5">
+        <div className="pointer-events-auto flex flex-col items-end gap-2.5">
           <Buttons
             compact={false}
             mazziActive={mazziActive}
@@ -48,7 +52,7 @@ export function GameNavRail({
         aria-label="Navigazione principale tornei"
         className="pointer-events-none fixed inset-x-0 bottom-0 z-30 md:hidden"
       >
-        <div className="pointer-events-auto flex items-end justify-center gap-2.5 bg-gradient-to-t from-black/55 via-black/20 to-transparent px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-5">
+        <div className="pointer-events-auto flex items-end justify-center gap-2 bg-gradient-to-t from-black/55 via-black/20 to-transparent px-2 pb-[max(0.7rem,env(safe-area-inset-bottom))] pt-5">
           <Buttons
             compact
             mazziActive={mazziActive}
@@ -87,8 +91,7 @@ function Buttons({
         href="/mazzi"
         label="Mazzi"
         ariaLabel="I miei mazzi"
-        icon={Layers}
-        tone="orange"
+        art={HUD_ART.mazzi}
         active={mazziActive}
         compact={compact}
       />
@@ -96,16 +99,14 @@ function Buttons({
         href="/partite"
         label="Partite"
         ariaLabel="Le mie partite"
-        icon={Swords}
-        tone="gold"
+        art={HUD_ART.partite}
         active={partiteActive}
         compact={compact}
       />
       <GameNavButton
         label="Amici"
         ariaLabel="Apri amici e duellanti"
-        icon={FriendsNavIcon}
-        tone="blue"
+        art={HUD_ART.amici}
         active={friendsOpen}
         compact={compact}
         onlineDot={onlineFriendsCount > 0}

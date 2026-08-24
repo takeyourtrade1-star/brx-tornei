@@ -1,16 +1,19 @@
 'use client';
 
-import type { ComponentType } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-export type GameNavTone = 'orange' | 'gold' | 'blue';
+interface GameNavArt {
+  src: string;
+  width: number;
+  height: number;
+}
 
 interface GameNavButtonBase {
   label: string;
   ariaLabel: string;
-  icon: ComponentType<{ className?: string }>;
-  tone: GameNavTone;
+  art: GameNavArt;
   active?: boolean;
   badge?: number;
   onlineDot?: boolean;
@@ -20,12 +23,11 @@ interface GameNavButtonBase {
 type GameNavButtonProps = GameNavButtonBase &
   ({ href: string; onClick?: never } | { href?: never; onClick: () => void });
 
-/** Bottone HUD 3D stile arcade: estrusione, highlight e schiacciata al tap. */
+/** Bottone HUD: l'arte 3D è l'immagine, con press-in e badge. */
 export function GameNavButton({
   label,
   ariaLabel,
-  icon: Icon,
-  tone,
+  art,
   active = false,
   badge,
   onlineDot = false,
@@ -35,20 +37,22 @@ export function GameNavButton({
 }: GameNavButtonProps) {
   const className = cn(
     'game-nav-btn',
-    `game-nav-btn--${tone}`,
     active && 'game-nav-btn--active',
     compact && 'game-nav-btn--compact',
   );
 
   const inner = (
     <>
-      <span className="game-nav-btn-icon-wrap">
-        <span className="game-nav-btn-icon">
-          <Icon className={compact ? 'h-5 w-5' : 'h-6 w-6'} />
-        </span>
-        {onlineDot && <span className="game-nav-online-pip" />}
-      </span>
-      <span className="game-nav-btn-label">{label}</span>
+      <Image
+        src={art.src}
+        alt=""
+        width={art.width}
+        height={art.height}
+        className="game-nav-btn-art"
+        sizes={compact ? '108px' : '176px'}
+      />
+      <span className="sr-only">{label}</span>
+      {onlineDot && <span className="game-nav-online-pip" />}
       {typeof badge === 'number' && badge > 0 && (
         <span className="game-nav-btn-badge">{badge > 9 ? '9+' : badge}</span>
       )}
