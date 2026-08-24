@@ -88,7 +88,12 @@ export function LobbyPage({
         return;
       }
       const started = only.status === 'iniziata' && only.matchId;
-      if (started) {
+      const friendChallengeReady =
+        only.withFriend === true &&
+        only.isPrivate === true &&
+        only.status === 'in_registrazione' &&
+        only.participants.length >= only.maxPlayers;
+      if (started || friendChallengeReady) {
         goLiveTo(only.id);
         return;
       }

@@ -63,10 +63,8 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
         const tableId = res.data.tableId;
         setChallengeStatus('accepted');
         setStatusMessage('Sfida accettata! Ingresso al tavolo in corso…');
-        setTimeout(() => {
-          onClose();
-          router.push(`/tornei/${tableId}/live`);
-        }, 1200);
+        onClose();
+        router.push(`/tornei/${tableId}/live`);
       } else if (res.data.status === 'declined') {
         setChallengeStatus('declined');
         setStatusMessage(`${targetGamertag} ha rifiutato la sfida.`);
@@ -101,10 +99,8 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
         const tableId = res.data.tableId;
         setChallengeStatus('accepted');
         setStatusMessage('Sfida accettata! Ingresso al tavolo in corso…');
-        setTimeout(() => {
-          onClose();
-          router.push(`/tornei/${tableId}/live`);
-        }, 1000);
+        onClose();
+        router.push(`/tornei/${tableId}/live`);
       } else {
         setChallengeStatus('waiting');
       }

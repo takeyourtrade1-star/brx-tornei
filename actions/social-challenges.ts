@@ -11,7 +11,7 @@ import {
   postRespondGameChallenge,
 } from '@/lib/data/social-api-client';
 import { isMockBot, isPlayerDnd } from '@/lib/data/social-mock-store';
-import { createTournament, joinTournament } from '@/lib/data/tournaments';
+import { createTournament } from '@/lib/data/tournaments';
 import {
   respondGameChallengeSchema,
   sendGameChallengeSchema,
@@ -178,14 +178,6 @@ export async function checkOutgoingChallengeStatusAction(
     }
 
     if (challenge.status === 'accepted' && challenge.tableId) {
-      try {
-        await joinTournament(challenge.tableId, {
-          id: session.user.id,
-          username: session.user.name ?? session.user.email,
-        });
-      } catch {
-        // Già seduto (lo sfidante ha aperto il tavolo all'invio) o join implicito.
-      }
       return { ok: true, data: { status: 'accepted', tableId: challenge.tableId } };
     }
 
