@@ -131,7 +131,7 @@ export function DashboardHeader({
             <span className="hidden sm:inline-flex">
               <BrxHeaderLogo variant="dark" size="compact" linked={false} />
             </span>
-            <span className="truncate font-display text-sm font-black uppercase tracking-[0.14em] text-primary sm:text-lg">
+            <span className="truncate font-display text-lg font-black uppercase tracking-[0.14em] text-primary sm:text-2xl">
               Tournaments
             </span>
           </Link>
