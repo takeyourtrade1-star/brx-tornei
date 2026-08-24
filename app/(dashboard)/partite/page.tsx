@@ -28,7 +28,7 @@ export default async function PartitePage() {
     <div className="relative min-h-screen">
       <DashboardHeader user={session.user} displayName={gamertag} reputation={reputation} />
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-6">
+      <main className="mx-auto w-full max-w-content px-4 py-5 sm:px-6 sm:py-6">
         <h1 className="sr-only">Le mie partite</h1>
 
         <div className="mb-4">
