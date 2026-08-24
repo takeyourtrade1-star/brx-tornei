@@ -23,11 +23,12 @@ export function TableStage({ far, near, tone }: TableStageProps) {
       <TablePlayerToken seat={far} align="far" />
 
       <div className={cn('table-3d', `table-3d--${tone}`)}>
-        <div className="table-3d-felt" aria-hidden>
+        <div className="table-3d-felt" aria-hidden />
+        <div className="table-3d-overlay" aria-hidden>
           <span className="table-3d-card table-3d-card--l" />
           <span className="table-3d-card table-3d-card--r" />
+          <span className="table-3d-vs">vs</span>
         </div>
-        <span className="table-3d-vs">vs</span>
       </div>
 
       <TablePlayerToken seat={near} align="near" />
@@ -45,7 +46,8 @@ function TablePlayerToken({
   const name = seat.occupied ? (seat.username ?? 'Duellante') : 'Posto libero';
   const clickable = Boolean(seat.occupied && seat.username && !seat.isMe);
 
-  const openProfile = () => {
+  const openProfile = (event: React.MouseEvent) => {
+    event.stopPropagation();
     if (!clickable || !seat.username) return;
     window.dispatchEvent(
       new CustomEvent('ebartex-open-player-profile', { detail: { gamertag: seat.username } }),
@@ -72,7 +74,7 @@ function TablePlayerToken({
               : 'border-white/15 bg-slate-950/80 hover:border-white/30'
             : 'border-dashed border-white/25 bg-black/25',
           clickable && 'cursor-pointer hover:border-primary/40',
-          !clickable && 'cursor-default',
+          !clickable && 'pointer-events-none cursor-default',
         )}
       >
         <span
