@@ -9,10 +9,13 @@ interface GameNavArt {
   height: number;
 }
 
+export type GameNavVariant = 'mazzi' | 'partite' | 'amici';
+
 interface GameNavButtonBase {
   label: string;
   ariaLabel: string;
   art: GameNavArt;
+  variant: GameNavVariant;
   active?: boolean;
   badge?: number;
   onlineDot?: boolean;
@@ -27,6 +30,7 @@ export function GameNavButton({
   label,
   ariaLabel,
   art,
+  variant,
   active = false,
   badge,
   onlineDot = false,
@@ -36,6 +40,7 @@ export function GameNavButton({
 }: GameNavButtonProps) {
   const className = cn(
     'game-nav-btn',
+    `game-nav-btn--${variant}`,
     active && 'game-nav-btn--active',
     compact && 'game-nav-btn--compact',
   );

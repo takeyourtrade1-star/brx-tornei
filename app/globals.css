@@ -254,6 +254,8 @@
 /* ------------------------------------------------------------------ */
 
 .game-nav-btn {
+  --game-nav-glow: 56, 140, 255;
+  --game-nav-art: url('/images/hud/deck-icon.webp');
   isolation: isolate;
   position: relative;
   display: block;
@@ -271,10 +273,26 @@
   text-decoration: none;
   line-height: 0;
   filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.42));
-  transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0) scale(1);
+  transform-origin: center;
   transition:
-    transform 0.12s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.12s ease;
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.18s ease;
+}
+
+.game-nav-btn--mazzi {
+  --game-nav-glow: 56, 140, 255;
+  --game-nav-art: url('/images/hud/deck-icon.webp');
+}
+
+.game-nav-btn--partite {
+  --game-nav-glow: 74, 222, 128;
+  --game-nav-art: url('/images/hud/games-icon.webp');
+}
+
+.game-nav-btn--amici {
+  --game-nav-glow: 192, 132, 252;
+  --game-nav-art: url('/images/hud/friends-icon.webp');
 }
 
 .game-nav-btn-art {
@@ -282,6 +300,30 @@
   width: 100%;
   height: auto;
   pointer-events: none;
+  transition: filter 0.18s ease;
+}
+
+.game-nav-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.55) 46%,
+    transparent 72%
+  );
+  background-size: 220% 100%;
+  background-position: 140% 0;
+  opacity: 0;
+  mix-blend-mode: screen;
+  -webkit-mask-image: var(--game-nav-art);
+  mask-image: var(--game-nav-art);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
 .game-nav-btn--compact {
@@ -289,18 +331,50 @@
   filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.4));
 }
 
-.game-nav-btn:hover {
-  filter: brightness(1.08) drop-shadow(0 10px 12px rgba(0, 0, 0, 0.5));
-  transform: translate3d(0, -2px, 0);
+@media (hover: hover) and (pointer: fine) {
+  .game-nav-btn:hover {
+    z-index: 2;
+    filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 16px rgba(var(--game-nav-glow), 0.55));
+    transform: translate3d(0, -6px, 0) scale(1.08);
+  }
+
+  .game-nav-btn:hover .game-nav-btn-art {
+    filter: brightness(1.14) saturate(1.12);
+  }
+
+  .game-nav-btn:hover::after {
+    opacity: 1;
+    background-position: -30% 0;
+    transition:
+      opacity 0.12s ease,
+      background-position 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 }
 
 .game-nav-btn:active {
   filter: brightness(0.96) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
-  transform: translate3d(0, 2px, 0);
+  transform: translate3d(0, 3px, 0) scale(0.97);
+}
+
+.game-nav-btn:active .game-nav-btn-art {
+  filter: brightness(0.96);
+}
+
+.game-nav-btn:active::after {
+  opacity: 0;
 }
 
 .game-nav-btn--active {
-  filter: brightness(1.06) saturate(1.08) drop-shadow(0 0 12px rgba(255, 200, 80, 0.35));
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 12px rgba(var(--game-nav-glow), 0.42));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .game-nav-btn--active:hover {
+    filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 20px rgba(var(--game-nav-glow), 0.7));
+  }
 }
 
 .game-nav-online-pip {
@@ -360,9 +434,14 @@
 @media (prefers-reduced-motion: reduce) {
   .game-nav-btn,
   .game-nav-btn:hover,
-  .game-nav-btn:active {
+  .game-nav-btn:active,
+  .game-nav-btn-art,
+  .game-nav-btn::after {
     transition: none;
     transform: none;
+  }
+  .game-nav-btn::after {
+    opacity: 0;
   }
   .game-nav-online-pip {
     animation: none;

@@ -92,6 +92,7 @@ function Buttons({
         label="Mazzi"
         ariaLabel="I miei mazzi"
         art={HUD_ART.mazzi}
+        variant="mazzi"
         active={mazziActive}
         compact={compact}
       />
@@ -100,6 +101,7 @@ function Buttons({
         label="Partite"
         ariaLabel="Le mie partite"
         art={HUD_ART.partite}
+        variant="partite"
         active={partiteActive}
         compact={compact}
       />
@@ -107,6 +109,7 @@ function Buttons({
         label="Amici"
         ariaLabel="Apri amici e duellanti"
         art={HUD_ART.amici}
+        variant="amici"
         active={friendsOpen}
         compact={compact}
         onlineDot={onlineFriendsCount > 0}
