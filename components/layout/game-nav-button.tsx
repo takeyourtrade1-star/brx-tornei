@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -43,13 +42,14 @@ export function GameNavButton({
 
   const inner = (
     <>
-      <Image
+      {/* img statico: next/image passa da /_next/image e in produzione non carica. */}
+      <img
         src={art.src}
         alt=""
         width={art.width}
         height={art.height}
         className="game-nav-btn-art"
-        sizes={compact ? '108px' : '176px'}
+        decoding="async"
       />
       <span className="sr-only">{label}</span>
       {onlineDot && <span className="game-nav-online-pip" />}

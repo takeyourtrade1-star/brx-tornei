@@ -4,9 +4,9 @@ import { usePathname } from 'next/navigation';
 import { GameNavButton } from '@/components/layout/game-nav-button';
 
 const HUD_ART = {
-  mazzi: { src: '/images/hud/deck-icon.png', width: 720, height: 264 },
-  partite: { src: '/images/hud/games-icon.png', width: 720, height: 265 },
-  amici: { src: '/images/hud/friends-icon.png', width: 720, height: 286 },
+  mazzi: { src: '/images/hud/deck-icon.webp', width: 720, height: 264 },
+  partite: { src: '/images/hud/games-icon.webp', width: 720, height: 265 },
+  amici: { src: '/images/hud/friends-icon.webp', width: 720, height: 286 },
 } as const;
 
 interface GameNavRailProps {
