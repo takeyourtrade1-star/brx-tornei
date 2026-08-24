@@ -101,7 +101,7 @@ export function DashboardHeader({
           <Link
             href={DEFAULT_TOURNAMENTS_PATH}
             aria-label="Tornei"
-            className="tournaments-brand-plaque min-w-0"
+            className="inline-flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-80"
           >
             <span className="hidden sm:inline-flex">
               <BrxHeaderLogo variant="light" size="compact" linked={false} />
