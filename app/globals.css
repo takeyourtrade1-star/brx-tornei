@@ -1599,6 +1599,54 @@
   70%, 100% { transform: scale(1.6); opacity: 0; }
 }
 
+/* ------------------------------------------------------------------ */
+/* Seduta dei giocatori: i gettoni arrivano dal proprio capo del       */
+/* tavolo (il lontano scende dall'alto, il vicino sale dal basso) con  */
+/* rientro elastico, poi un anello luminoso celebra l'atterraggio.     */
+/* ------------------------------------------------------------------ */
+.table-sit-far {
+  animation: table-sit-far 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.table-sit-near {
+  animation: table-sit-near 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes table-sit-far {
+  from { transform: translateY(-26px) scale(0.85); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes table-sit-near {
+  from { transform: translateY(26px) scale(0.85); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* Anello luminoso: parte appena dopo l'atterraggio e sfuma espandendosi. */
+.table-sit-chip::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 1.5px solid rgba(255, 150, 70, 0.8);
+  box-shadow: 0 0 18px rgba(255, 115, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  animation: table-sit-ring 0.9s ease-out 0.45s both;
+}
+
+@keyframes table-sit-ring {
+  0% { opacity: 0; transform: scale(0.92); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-sit-far,
+  .table-sit-near,
+  .table-sit-chip::after { animation: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .asso-eyes--active .asso-lid,
   .asso-eyes--active .asso-gaze { animation: none; }

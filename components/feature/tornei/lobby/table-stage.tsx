@@ -83,12 +83,16 @@ function TablePlayerToken({
         onClick={openProfile}
         title={clickable ? `Vedi profilo di ${seat.username}` : undefined}
         className={cn(
-          'flex min-w-0 max-w-[85%] items-center gap-2 rounded-xl border px-2.5 py-1.5 text-left shadow-lg shadow-black/30 backdrop-blur-md transition',
+          'relative flex min-w-0 max-w-[85%] items-center gap-2 rounded-xl border px-2.5 py-1.5 text-left shadow-lg shadow-black/30 backdrop-blur-md transition',
           seat.occupied
             ? seat.isMe
               ? 'border-primary/40 bg-primary/15 ring-1 ring-primary/25'
               : 'border-white/15 bg-slate-950/80 hover:border-white/30'
             : 'border-dashed border-white/25 bg-black/25',
+          // Ingresso a seduta: il gettone arriva dal suo lato del banco
+          // con anello luminoso all'atterraggio (vedi globals.css).
+          seat.occupied && (align === 'far' ? 'table-sit-far' : 'table-sit-near'),
+          seat.occupied && 'table-sit-chip',
           clickable && 'cursor-pointer hover:border-primary/40',
           !clickable && 'pointer-events-none cursor-default',
         )}
