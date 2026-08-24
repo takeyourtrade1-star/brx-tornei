@@ -14,21 +14,35 @@ interface TableStageProps {
   far: TableSeatInfo;
   near: TableSeatInfo;
   tone: 'empty' | 'open' | 'mine' | 'live';
+  /** Feltro 3D ridotto, senza gettoni giocatore — tavolo libero. */
+  compact?: boolean;
 }
 
 /** Tavolo TCG in prospettiva: feltro, spessore e giocatori ai due capi. */
-export function TableStage({ far, near, tone }: TableStageProps) {
+export function TableStage({ far, near, tone, compact = false }: TableStageProps) {
+  if (compact) {
+    return (
+      <div className="table-stage table-stage--mini relative mx-auto">
+        <div className={cn('table-3d table-3d--mini', `table-3d--${tone}`)}>
+          <div className="table-3d-felt" aria-hidden />
+          <span className="table-3d-invite" aria-hidden>
+            <UserPlus className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="table-stage relative mx-auto w-full max-w-md">
       <TablePlayerToken seat={far} align="far" />
 
       <div className={cn('table-3d', `table-3d--${tone}`)}>
-        <div className="table-3d-felt" aria-hidden />
-        <div className="table-3d-overlay" aria-hidden>
+        <div className="table-3d-felt" aria-hidden>
           <span className="table-3d-card table-3d-card--l" />
           <span className="table-3d-card table-3d-card--r" />
-          <span className="table-3d-vs">vs</span>
         </div>
+        <span className="table-3d-vs">vs</span>
       </div>
 
       <TablePlayerToken seat={near} align="near" />
