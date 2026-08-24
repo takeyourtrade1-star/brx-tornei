@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { QRCodeSVG } from 'qrcode.react';
-import { X } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Share2, X } from 'lucide-react';
 import { buildFriendInviteUrl } from '@/lib/friend-invite';
 
 const QR_MARK_SRC = '/logo-pwa.svg';
@@ -19,6 +19,9 @@ interface FriendQrModalProps {
 export function FriendQrModal({ open, onClose, gamertag }: FriendQrModalProps) {
   const [mounted, setMounted] = useState(false);
   const [origin, setOrigin] = useState('');
+  const [sharing, setSharing] = useState(false);
+  const [shareHint, setShareHint] = useState<string | null>(null);
+  const qrCaptureRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -27,6 +30,7 @@ export function FriendQrModal({ open, onClose, gamertag }: FriendQrModalProps) {
 
   useEffect(() => {
     if (!open) return;
+    setShareHint(null);
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
@@ -38,6 +42,27 @@ export function FriendQrModal({ open, onClose, gamertag }: FriendQrModalProps) {
     () => (gamertag && origin ? buildFriendInviteUrl(origin, gamertag) : ''),
     [gamertag, origin],
   );
+
+  const handleShare = async () => {
+    if (!inviteUrl || !gamertag || sharing) return;
+    setSharing(true);
+    setShareHint(null);
+    try {
+      const title = `Aggiungi ${gamertag} su BRX Tornei`;
+      const text = `${gamertag} ti invita su BRX Tornei. Apri il link per aggiungere l'amicizia.`;
+      const qrFile = await canvasToPngFile(
+        qrCaptureRef.current?.querySelector('canvas') ?? null,
+        `brx-${gamertag}-qr.png`,
+      );
+      const shared = await shareInvite({ title, text, url: inviteUrl, file: qrFile });
+      if (shared === 'copied') setShareHint('Link copiato negli appunti.');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setShareHint('Impossibile condividere. Copia il link a mano.');
+    } finally {
+      setSharing(false);
+    }
+  };
 
   if (!open || !mounted) return null;
 
@@ -78,8 +103,8 @@ export function FriendQrModal({ open, onClose, gamertag }: FriendQrModalProps) {
         {inviteUrl ? (
           <div className="relative space-y-5">
             <div className="mx-auto w-fit rounded-[1.75rem] bg-gradient-to-br from-[#FF7300] via-[#e0564d] to-[#3D65C6] p-[3px] shadow-[0_12px_40px_-12px_rgba(255,115,0,0.65)]">
-              <div className="rounded-[1.55rem] bg-white p-3.5">
-                <QRCodeSVG
+              <div ref={qrCaptureRef} className="rounded-[1.55rem] bg-white p-3.5">
+                <QRCodeCanvas
                   value={inviteUrl}
                   size={QR_SIZE}
                   level="H"
@@ -103,6 +128,18 @@ export function FriendQrModal({ open, onClose, gamertag }: FriendQrModalProps) {
                 amicizia già pronta.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => void handleShare()}
+              disabled={sharing}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-xs font-black uppercase tracking-wider text-white shadow-md hover:brightness-105 disabled:opacity-60"
+            >
+              <Share2 className="h-4 w-4" />
+              {sharing ? 'Condivisione…' : 'Condividi'}
+            </button>
+            {shareHint ? (
+              <p className="text-center text-[12px] font-semibold text-white/65">{shareHint}</p>
+            ) : null}
           </div>
         ) : (
           <p className="py-8 text-center text-sm font-semibold text-white/60">
@@ -113,4 +150,39 @@ export function FriendQrModal({ open, onClose, gamertag }: FriendQrModalProps) {
     </div>,
     document.body,
   );
+}
+
+async function canvasToPngFile(canvas: HTMLCanvasElement | null, filename: string): Promise<File | null> {
+  if (!canvas) return null;
+  const blob = await new Promise<Blob | null>((resolve) => {
+    try {
+      canvas.toBlob((next) => resolve(next), 'image/png');
+    } catch {
+      resolve(null);
+    }
+  });
+  if (!blob) return null;
+  return new File([blob], filename, { type: 'image/png' });
+}
+
+async function shareInvite(input: {
+  title: string;
+  text: string;
+  url: string;
+  file: File | null;
+}): Promise<'shared' | 'copied'> {
+  const withFile =
+    input.file &&
+    typeof navigator.canShare === 'function' &&
+    navigator.canShare({ files: [input.file] });
+  if (typeof navigator.share === 'function') {
+    await navigator.share(
+      withFile && input.file
+        ? { title: input.title, text: `${input.text}\n${input.url}`, files: [input.file] }
+        : { title: input.title, text: input.text, url: input.url },
+    );
+    return 'shared';
+  }
+  await navigator.clipboard.writeText(input.url);
+  return 'copied';
 }
