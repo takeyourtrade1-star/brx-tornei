@@ -99,21 +99,13 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
       onClick={handlePrimary}
       onKeyDown={onCardKeyDown}
       className={cn(
-        'arena-panel arena-table-card group cursor-pointer p-4 transition hover:border-white/25 active:scale-[0.995] sm:p-5',
-        isMine && 'ring-1 ring-primary/25 hover:border-primary/40',
+        'arena-panel arena-table-card group cursor-pointer p-4 transition active:scale-[0.995] sm:p-5',
+        tone === 'mine' && 'border-primary/40 hover:border-primary/60',
+        tone === 'live' && 'border-emerald-400/35 hover:border-emerald-400/55',
+        tone === 'open' && 'border-white/15 hover:border-white/28',
         busy && 'cursor-not-allowed opacity-60',
       )}
     >
-      {isMine && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#FF7300] via-amber-500 to-[#e0564d]"
-        />
-      )}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-marquee/35 to-transparent"
-      />
 
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">

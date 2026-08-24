@@ -22,7 +22,7 @@ interface TableStageProps {
 export function TableStage({ far, near, tone, compact = false }: TableStageProps) {
   if (compact) {
     return (
-      <div className="table-stage table-stage--mini relative mx-auto">
+      <div className="table-stage table-stage--mini relative mx-auto shrink-0 sm:mx-0">
         <div className={cn('table-3d table-3d--mini', `table-3d--${tone}`)}>
           <div className="table-3d-felt" aria-hidden />
           <span className="table-3d-invite" aria-hidden>

@@ -12,7 +12,7 @@ interface EmptyTableCardProps {
   onSit: (table: LobbyTable) => void;
 }
 
-/** Tavolo libero: stesso feltro 3D, card compatta, senza posti. */
+/** Tavolo libero: striscia tratteggiata, non una card piena come gli occupati. */
 export function EmptyTableCard({ table, busy, createLocked = false, onSit }: EmptyTableCardProps) {
   if (createLocked) {
     return (
@@ -44,40 +44,32 @@ export function EmptyTableCard({ table, busy, createLocked = false, onSit }: Emp
         }
       }}
       className={cn(
-        'arena-panel arena-table-card group cursor-pointer border-dashed border-primary/40 px-4 py-3 transition hover:border-primary/70 hover:bg-primary/5 active:scale-[0.995] sm:px-5',
+        'arena-table-card group flex cursor-pointer flex-col items-stretch gap-3 rounded-2xl border-2 border-dashed border-white/25 bg-white/[0.03] px-3.5 py-2.5 backdrop-blur-sm transition',
+        'hover:border-primary/55 hover:bg-primary/[0.06] active:scale-[0.995] sm:flex-row sm:items-center sm:gap-4 sm:px-4',
         busy && 'cursor-not-allowed opacity-60',
       )}
     >
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Tavolo libero</p>
-          <h3 className="truncate font-display text-sm font-black leading-snug text-white sm:text-base">
-            Siediti e apri una sfida
-          </h3>
-        </div>
-        <span className="rounded-full border border-dashed border-primary/40 bg-primary/10 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary">
-          Vuoto
-        </span>
-      </header>
+      <TableStage
+        far={{ occupied: false, label: 'Giocatore 1' }}
+        near={{ occupied: false, label: 'Giocatore 2' }}
+        tone="empty"
+        compact
+      />
 
-      <div className="mt-2">
-        <TableStage
-          far={{ occupied: false, label: 'Giocatore 1' }}
-          near={{ occupied: false, label: 'Giocatore 2' }}
-          tone="empty"
-          compact
-        />
+      <div className="min-w-0 flex-1 text-center sm:text-left">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Tavolo libero</p>
+        <h3 className="truncate font-display text-sm font-black leading-snug text-white sm:text-base">
+          Siediti e apri una sfida
+        </h3>
       </div>
 
-      <div className="mt-1 flex justify-center">
-        <span
-          aria-hidden
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black text-white shadow-sm"
-        >
-          <UserPlus className="h-3.5 w-3.5" />
-          Siediti
-        </span>
-      </div>
+      <span
+        aria-hidden
+        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 text-xs font-black text-white shadow-sm sm:self-auto"
+      >
+        <UserPlus className="h-3.5 w-3.5" />
+        Siediti
+      </span>
     </article>
   );
 }
