@@ -249,6 +249,149 @@
 
 }
 
+/* ------------------------------------------------------------------ */
+/* HUD 3D stile Fortnite / Brawl Stars: estrusione, bevel, schiacciata. */
+/* ------------------------------------------------------------------ */
+
+.game-nav-btn {
+  --game-nav-face: #ff8a18;
+  --game-nav-face-2: #e05600;
+  --game-nav-depth: #8a3200;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  width: 7.65rem;
+  min-height: 5.7rem;
+  padding: 0.7rem 0.45rem 0.55rem;
+  appearance: none;
+  cursor: pointer;
+  user-select: none;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 1.2rem;
+  border: 2px solid rgba(255, 255, 255, 0.42);
+  background: linear-gradient(180deg, var(--game-nav-face) 0%, var(--game-nav-face-2) 100%);
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.48),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.22),
+    0 8px 0 var(--game-nav-depth),
+    0 14px 22px rgba(0, 0, 0, 0.45);
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 0.12s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.12s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.12s ease;
+}
+
+.game-nav-btn--gold {
+  --game-nav-face: #f3c14a;
+  --game-nav-face-2: #d48912;
+  --game-nav-depth: #8a5a08;
+}
+
+.game-nav-btn--blue {
+  --game-nav-face: #4d7adf;
+  --game-nav-face-2: #2a4ea8;
+  --game-nav-depth: #16306c;
+}
+
+.game-nav-btn--compact {
+  width: 6.4rem;
+  min-height: 4.35rem;
+  padding: 0.5rem 0.35rem 0.4rem;
+  border-radius: 1rem;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
+    0 6px 0 var(--game-nav-depth),
+    0 10px 16px rgba(0, 0, 0, 0.4);
+}
+
+.game-nav-btn:hover {
+  filter: brightness(1.08);
+  transform: translate3d(0, -2px, 0);
+}
+
+.game-nav-btn:active {
+  transform: translate3d(0, 7px, 0);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.28),
+    0 2px 0 var(--game-nav-depth),
+    0 6px 10px rgba(0, 0, 0, 0.35);
+}
+
+.game-nav-btn--compact:active {
+  transform: translate3d(0, 5px, 0);
+}
+
+.game-nav-btn--active {
+  outline: 2px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 3px;
+  filter: saturate(1.12) brightness(1.06);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.22),
+    0 8px 0 var(--game-nav-depth),
+    0 0 22px color-mix(in srgb, var(--game-nav-face) 55%, transparent),
+    0 14px 22px rgba(0, 0, 0, 0.45);
+}
+
+.game-nav-btn-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.28));
+}
+
+.game-nav-btn-label {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.game-nav-btn--compact .game-nav-btn-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.game-nav-btn-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  display: grid;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  place-items: center;
+  padding: 0 0.28rem;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-nav-btn,
+  .game-nav-btn:hover,
+  .game-nav-btn:active {
+    transition: none;
+    transform: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
