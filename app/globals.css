@@ -88,7 +88,18 @@
     rgba(255, 248, 240, 0.22) 78%,
     rgba(255, 248, 240, 0) 100%
   );
-  transition: background 0.35s ease;
+}
+
+/* Velo pieno sopra il gradiente quando la barra è espansa. Resta un fade di
+   opacity (mai interpolazione gradiente→tinta: causava un flash di barra
+   trasparente all'avvio dell'animazione). */
+.header-brand-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgb(255, 248, 240);
+  opacity: 0;
+  transition: opacity 0.18s ease;
 }
 
 /* Punta del pennello: riflesso bagnato che cavalca il bordo destro del fill
@@ -141,8 +152,12 @@
 
 .header-brand-glass[data-expanded='true'] {
   width: 100%;
-  background: rgb(255, 248, 240);
   animation: header-brush-in 0.72s cubic-bezier(0.2, 0.9, 0.24, 1) both;
+}
+/* il velo "si asciuga" mentre la pennellata chiude la passata */
+.header-brand-glass[data-expanded='true']::before {
+  opacity: 1;
+  transition: opacity 0.3s ease 0.42s;
 }
 .header-brand-glass[data-expanded='true']::after {
   animation: header-brush-tip 0.72s ease-out both;
@@ -160,6 +175,9 @@
   .header-brand-glass[data-expanded='true'],
   .header-brand-glass[data-expanded='false'] {
     animation: none;
+    transition: none;
+  }
+  .header-brand-glass::before {
     transition: none;
   }
   .header-brand-glass::after {
