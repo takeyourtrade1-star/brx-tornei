@@ -1,4 +1,5 @@
 import type {
+  DirectGameChallenge,
   FriendPresenceStatus,
   FriendRequestItem,
   FriendshipRelation,
@@ -158,5 +159,38 @@ export function mapPublicPlayerProfile(raw: unknown): PublicPlayerProfile | null
     isBot: pickBoolean(obj, 'is_bot', 'isBot'),
     ebartexUsername: pickString(obj, 'ebartex_username', 'ebartexUsername') ?? null,
     showEbartexProfile: pickBoolean(obj, 'show_ebartex_profile', 'showEbartexProfile'),
+  };
+}
+
+const CHALLENGE_STATUSES: readonly DirectGameChallenge['status'][] = [
+  'pending',
+  'accepted',
+  'declined',
+  'expired',
+];
+
+const CHALLENGE_BEST_OF: readonly DirectGameChallenge['bestOf'][] = ['BO1', 'BO3', 'BO5'];
+
+export function mapGameChallenge(raw: unknown): DirectGameChallenge | null {
+  const obj = asRecord(raw);
+  if (!obj) return null;
+  const id = pickString(obj, 'id');
+  const challengerGamertag = pickString(obj, 'challenger_gamertag', 'challengerGamertag');
+  const recipientGamertag = pickString(obj, 'recipient_gamertag', 'recipientGamertag');
+  const format = pickString(obj, 'format');
+  if (!id || !challengerGamertag || !recipientGamertag || !format) return null;
+  const status = pickEnum(obj, CHALLENGE_STATUSES, 'expired', 'status');
+  const cancelled = pickString(obj, 'status') === 'cancelled';
+  return {
+    id,
+    challengerGamertag,
+    challengerAvatarId: pickString(obj, 'challenger_avatar_id', 'challengerAvatarId') ?? 'crown',
+    recipientGamertag,
+    format,
+    bestOf: pickEnum(obj, CHALLENGE_BEST_OF, 'BO3', 'best_of', 'bestOf'),
+    tableId: pickString(obj, 'table_id', 'tableId'),
+    expiresAt: pickNumber(obj, 'expires_at', 'expiresAt') ?? 0,
+    status: cancelled ? 'declined' : status,
+    isBot: pickBoolean(obj, 'is_bot', 'isBot') ?? false,
   };
 }

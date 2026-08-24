@@ -14,6 +14,7 @@ interface FriendsListPanelProps {
   onChallenge: (gamertag: string) => void;
   onRemove: (gamertag: string) => void;
   onRecentAdded?: () => void;
+  myGamertag?: string | null;
 }
 
 export function FriendsListPanel({
@@ -27,6 +28,7 @@ export function FriendsListPanel({
   onChallenge,
   onRemove,
   onRecentAdded,
+  myGamertag,
 }: FriendsListPanelProps) {
   if (loading) {
     return (
@@ -36,8 +38,10 @@ export function FriendsListPanel({
     );
   }
 
-  const onlineFriends = friends.filter((f) => f.presence === 'online' || f.presence === 'in_game');
-  const otherFriends = friends.filter((f) => f.presence !== 'online' && f.presence !== 'in_game');
+  const selfTag = myGamertag?.trim().toLowerCase() ?? '';
+  const visibleFriends = friends.filter((f) => f.gamertag.trim().toLowerCase() !== selfTag);
+  const onlineFriends = visibleFriends.filter((f) => f.presence === 'online' || f.presence === 'in_game');
+  const otherFriends = visibleFriends.filter((f) => f.presence !== 'online' && f.presence !== 'in_game');
   const pendingGamertags = requests.map((request) => request.gamertag);
   const friendGamertags = friends.map((friend) => friend.gamertag);
   const friendSet = new Set(friendGamertags.map((tag) => tag.toLowerCase()));
@@ -55,7 +59,7 @@ export function FriendsListPanel({
         onAdded={onRecentAdded}
       />
 
-      {friends.length === 0 && addableRecent.length === 0 && (
+      {visibleFriends.length === 0 && addableRecent.length === 0 && (
         <FriendsEmptyState onSearch={onSearch} onShowQr={onShowQr} />
       )}
 

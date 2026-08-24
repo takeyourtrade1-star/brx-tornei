@@ -195,9 +195,15 @@ export function FriendsDrawer({
               onSearch={() => setTab('search')}
               onShowQr={() => setQrOpen(true)}
               onOpenProfile={onOpenProfile}
-              onChallenge={onChallenge}
+              onChallenge={(gamertag) => {
+                if (myGamertag && gamertag.trim().toLowerCase() === myGamertag.trim().toLowerCase()) {
+                  return;
+                }
+                onChallenge(gamertag);
+              }}
               onRemove={handleRemoveFriend}
               onRecentAdded={() => void loadData()}
+              myGamertag={myGamertag}
             />
           )}
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Swords, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { checkIncomingChallengeAction, respondGameChallengeAction } from '@/actions/social-challenges';
 import type { DirectGameChallenge } from '@/types/social';
 import { getAvatarById } from '@/lib/avatars';
@@ -13,18 +13,28 @@ export function IncomingChallengeToast() {
   const [challenge, setChallenge] = useState<DirectGameChallenge | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(60);
   const [acting, setActing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Polling rapido ogni 3 secondi per verificare sfide in arrivo
-    const interval = setInterval(async () => {
-      if (challenge) return;
+    if (challenge) return;
+    let cancelled = false;
+    const poll = async () => {
       const res = await checkIncomingChallengeAction();
+      if (cancelled || challenge) return;
       if (res.ok && res.data) {
         setChallenge(res.data);
+        setError(null);
       }
+    };
+    void poll();
+    const interval = setInterval(() => {
+      void poll();
     }, 3_000);
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [challenge]);
 
   useEffect(() => {
@@ -49,14 +59,15 @@ export function IncomingChallengeToast() {
 
   const handleAccept = async () => {
     setActing(true);
+    setError(null);
     const res = await respondGameChallengeAction(challenge.id, 'accept');
     setActing(false);
-    setChallenge(null);
     if (res.ok && res.data?.tableId) {
+      setChallenge(null);
       router.push(`/tornei/${res.data.tableId}/live`);
-    } else {
-      router.push('/tornei');
+      return;
     }
+    setError(res.error ?? 'Impossibile avviare la partita. Riprova.');
   };
 
   const handleDecline = async () => {
@@ -99,6 +110,10 @@ export function IncomingChallengeToast() {
             </p>
           </div>
         </div>
+
+        {error ? (
+          <p className="mt-2 text-[11px] font-semibold text-red-300">{error}</p>
+        ) : null}
 
         <div className="mt-3.5 flex items-center gap-2">
           <Button

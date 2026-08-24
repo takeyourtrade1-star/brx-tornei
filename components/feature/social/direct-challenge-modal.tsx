@@ -54,14 +54,13 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
     if (!activeChallengeId || challengeStatus !== 'waiting') return;
 
     let cancelled = false;
-    const interval = setInterval(async () => {
+    const poll = async () => {
       if (cancelled) return;
       const res = await checkOutgoingChallengeStatusAction(activeChallengeId);
       if (cancelled || !res.ok || !res.data) return;
 
       if (res.data.status === 'accepted' && res.data.tableId) {
         const tableId = res.data.tableId;
-        clearInterval(interval);
         setChallengeStatus('accepted');
         setStatusMessage('Sfida accettata! Ingresso al tavolo in corso…');
         setTimeout(() => {
@@ -69,14 +68,17 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
           router.push(`/tornei/${tableId}/live`);
         }, 1200);
       } else if (res.data.status === 'declined') {
-        clearInterval(interval);
         setChallengeStatus('declined');
         setStatusMessage(`${targetGamertag} ha rifiutato la sfida.`);
       } else if (res.data.status === 'expired') {
-        clearInterval(interval);
         setChallengeStatus('expired');
         setStatusMessage('La sfida è scaduta senza risposta.');
       }
+    };
+
+    void poll();
+    const interval = setInterval(() => {
+      void poll();
     }, 1500);
 
     return () => {

@@ -19,6 +19,10 @@ import {
 import { formatIdSchema } from '@/lib/validations/selection';
 import type { DirectGameChallenge, SocialActionState } from '@/types/social';
 
+function sameGamertag(left: string, right: string): boolean {
+  return left.trim().toLowerCase() === right.trim().toLowerCase();
+}
+
 export async function sendGameChallengeAction(
   targetGamertag: string,
   format: string,
@@ -31,8 +35,11 @@ export async function sendGameChallengeAction(
   if (!parsed.success) return { ok: false, error: 'Parametri sfida non validi.' };
 
   try {
-    const myGamertag = (await fetchMyGamertag().catch(() => null)) ?? session.user.name ?? 'Player';
-    if (myGamertag.toLowerCase() === parsed.data.targetGamertag.toLowerCase()) {
+    const myGamertag = await fetchMyGamertag().catch(() => null);
+    if (!myGamertag) {
+      return { ok: false, error: 'Imposta un gamertag prima di giocare.' };
+    }
+    if (sameGamertag(myGamertag, parsed.data.targetGamertag)) {
       return { ok: false, error: 'Non puoi sfidare te stesso.' };
     }
 
@@ -43,7 +50,6 @@ export async function sendGameChallengeAction(
       };
     }
 
-    const isBot = isMockBot(parsed.data.targetGamertag);
     const challenge = await postCreateGameChallenge({
       challengerGamertag: myGamertag,
       challengerAvatarId: 'crown',
@@ -52,15 +58,15 @@ export async function sendGameChallengeAction(
       bestOf: parsed.data.bestOf,
     });
 
-    // Se è un Bot per test, crea automaticamente il tavolo associato
-    if (isBot) {
+    // Bot solo nel fallback mock locale: il backend non ha giocatori fittizi.
+    if (challenge.isBot && !challenge.tableId && isMockBot(parsed.data.targetGamertag)) {
       const validFormat = formatIdSchema.safeParse(parsed.data.format).data ?? 'modern';
       const tournament = await createTournament(
         {
           format: validFormat,
           mode: 'heads-up',
           bestOf: parsed.data.bestOf,
-          isPrivate: true,
+          isPrivate: false,
           withFriend: true,
           isTournament: false,
           enableScryfallCheck: false,
@@ -91,10 +97,12 @@ export async function checkIncomingChallengeAction(): Promise<SocialActionState<
     const myGamertag = await fetchMyGamertag().catch(() => null);
     if (!myGamertag) return { ok: true, data: null };
 
-    // Se l'utente ha DND attivo, blocca la ricezione delle sfide
     if (isPlayerDnd(myGamertag)) return { ok: true, data: null };
 
     const challenge = await fetchActiveChallengeForUser(myGamertag);
+    if (challenge && sameGamertag(challenge.challengerGamertag, myGamertag)) {
+      return { ok: true, data: null };
+    }
     return { ok: true, data: challenge };
   } catch {
     return { ok: true, data: null };
@@ -112,17 +120,26 @@ export async function respondGameChallengeAction(
   if (!parsed.success) return { ok: false, error: 'Dati sfida non validi.' };
 
   try {
-    const challenge = await fetchChallengeById(parsed.data.challengeId);
-    if (!challenge) return { ok: false, error: 'Sfida non trovata o scaduta.' };
+    const existing = await fetchChallengeById(parsed.data.challengeId);
+    if (!existing) return { ok: false, error: 'Sfida non trovata o scaduta.' };
 
-    if (parsed.data.action === 'accept') {
-      const validFormat = formatIdSchema.safeParse(challenge.format).data ?? 'modern';
+    const myGamertag = await fetchMyGamertag().catch(() => null);
+    if (
+      myGamertag &&
+      sameGamertag(existing.challengerGamertag, myGamertag)
+    ) {
+      return { ok: false, error: 'Non puoi accettare una sfida contro te stesso.' };
+    }
+
+    if (parsed.data.action === 'accept' && !existing.tableId) {
+      // Fallback mock: il tavolo non esiste ancora, va creato pubblico.
+      const validFormat = formatIdSchema.safeParse(existing.format).data ?? 'modern';
       const tournament = await createTournament(
         {
           format: validFormat,
           mode: 'heads-up',
-          bestOf: challenge.bestOf || 'BO3',
-          isPrivate: true,
+          bestOf: existing.bestOf || 'BO3',
+          isPrivate: false,
           withFriend: true,
           isTournament: false,
           enableScryfallCheck: false,
@@ -130,16 +147,18 @@ export async function respondGameChallengeAction(
         },
         {
           id: session.user.id,
-          username: session.user.name ?? session.user.email,
+          username: myGamertag ?? session.user.name ?? session.user.email,
         },
       );
-
-      await postRespondGameChallenge(challenge.id, 'accept', tournament.id);
-      return { ok: true, data: { tableId: tournament.id } };
+      const updated = await postRespondGameChallenge(existing.id, 'accept', tournament.id);
+      return { ok: true, data: { tableId: updated?.tableId ?? tournament.id } };
     }
 
-    await postRespondGameChallenge(challenge.id, 'decline');
-    return { ok: true, data: {} };
+    const challenge = await postRespondGameChallenge(parsed.data.challengeId, parsed.data.action);
+    if (parsed.data.action === 'accept' && !challenge?.tableId) {
+      return { ok: false, error: 'La sfida è stata accettata ma il tavolo non è pronto.' };
+    }
+    return { ok: true, data: { tableId: challenge?.tableId } };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Errore nella gestione della sfida.';
     return { ok: false, error: message };
@@ -159,14 +178,13 @@ export async function checkOutgoingChallengeStatusAction(
     }
 
     if (challenge.status === 'accepted' && challenge.tableId) {
-      // Unisce lo sfidante al tavolo se non già unito
       try {
         await joinTournament(challenge.tableId, {
           id: session.user.id,
           username: session.user.name ?? session.user.email,
         });
       } catch {
-        // Se il join è già avvenuto o implicito, prosegue
+        // Già seduto (lo sfidante ha aperto il tavolo all'invio) o join implicito.
       }
       return { ok: true, data: { status: 'accepted', tableId: challenge.tableId } };
     }

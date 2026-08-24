@@ -25,6 +25,7 @@ vi.mock('@/lib/data/tournament-api-client', () => {
 });
 
 import { fetchFriendsList } from '@/lib/data/social-api-client';
+import { postCreateGameChallenge } from '@/lib/data/social-challenges-client';
 import { postSendFriendRequest } from '@/lib/data/social-friendship-client';
 
 describe('social production boundary', () => {
@@ -43,5 +44,17 @@ describe('social production boundary', () => {
 
   it('non trasforma un GET 404 in una lista mock', async () => {
     await expect(fetchFriendsList('Me')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('non trasforma un POST 404 di sfida in un invito mock riuscito', async () => {
+    await expect(
+      postCreateGameChallenge({
+        challengerGamertag: 'Me',
+        challengerAvatarId: 'crown',
+        recipientGamertag: 'Opponent',
+        format: 'modern',
+        bestOf: 'BO3',
+      }),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });

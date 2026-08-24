@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   mapFriendRequestList,
   mapFriendSummaryList,
+  mapGameChallenge,
   mapPublicPlayerProfile,
 } from '@/lib/data/social-api-mapper';
 
@@ -73,6 +74,39 @@ describe('social API mapper', () => {
   it('se presence manca, last-seen assente diventa offline e non online', () => {
     const result = mapFriendSummaryList([{ gamertag: 'GhostPlayer' }]);
     expect(result?.[0]?.presence).toBe('offline');
+  });
+
+  it('mappa una sfida diretta snake_case e ignora lo status cancelled come declined', () => {
+    expect(
+      mapGameChallenge({
+        id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+        challenger_gamertag: 'Alice_TCG',
+        challenger_avatar_id: 'swords',
+        recipient_gamertag: 'Bob_Magic',
+        format: 'modern',
+        best_of: 'BO1',
+        table_id: 't-1',
+        expires_at: 1_700_000_000_000,
+        status: 'pending',
+      }),
+    ).toMatchObject({
+      challengerGamertag: 'Alice_TCG',
+      recipientGamertag: 'Bob_Magic',
+      bestOf: 'BO1',
+      tableId: 't-1',
+      status: 'pending',
+    });
+
+    expect(mapGameChallenge({ status: 'pending' })).toBeNull();
+    expect(
+      mapGameChallenge({
+        id: 'ch-1',
+        challenger_gamertag: 'Alice_TCG',
+        recipient_gamertag: 'Bob_Magic',
+        format: 'modern',
+        status: 'cancelled',
+      })?.status,
+    ).toBe('declined');
   });
 
   it('ricalcola la presenza da last_seen_minutes se presence è assente', () => {
