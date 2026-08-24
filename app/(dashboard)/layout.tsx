@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
+import { ArenaAtmosphere } from '@/components/layout/arena-atmosphere';
 import { ReturnToMatchBanner } from '@/components/feature/tornei/return-to-match-banner';
 import { AddFriendFromQuery } from '@/components/feature/social/add-friend-from-query';
 
@@ -10,13 +11,16 @@ import { AddFriendFromQuery } from '@/components/feature/social/add-friend-from-
  */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen">
-      {children}
-      {/* Richiamo globale alla partita in corso, nascosto nella pagina live. */}
-      <ReturnToMatchBanner />
-      <Suspense fallback={null}>
-        <AddFriendFromQuery />
-      </Suspense>
+    <div className="relative min-h-screen">
+      <ArenaAtmosphere />
+      <div className="relative z-[1]">
+        {children}
+        {/* Richiamo globale alla partita in corso, nascosto nella pagina live. */}
+        <ReturnToMatchBanner />
+        <Suspense fallback={null}>
+          <AddFriendFromQuery />
+        </Suspense>
+      </div>
     </div>
   );
 }

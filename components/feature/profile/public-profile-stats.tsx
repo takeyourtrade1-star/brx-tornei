@@ -21,17 +21,17 @@ export function PublicProfileStats({ stats, honorBadges }: PublicProfileStatsPro
     <div className="space-y-4">
       {/* Griglia Statistiche di Battaglia */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="rounded-xl border border-slate-900/[0.08] bg-slate-50/80 p-3 text-center">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Giocate</p>
-          <p className="mt-0.5 text-lg font-black text-slate-800">{stats.played}</p>
+        <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-center">
+          <p className="text-[10px] font-black uppercase tracking-wider text-white/45">Giocate</p>
+          <p className="mt-0.5 text-lg font-black text-white">{stats.played}</p>
         </div>
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-50/60 p-3 text-center">
-          <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Vittorie</p>
-          <p className="mt-0.5 text-lg font-black text-emerald-700">{stats.wins}</p>
+        <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 text-center">
+          <p className="text-[10px] font-black uppercase tracking-wider text-emerald-300">Vittorie</p>
+          <p className="mt-0.5 text-lg font-black text-emerald-200">{stats.wins}</p>
         </div>
-        <div className="rounded-xl border border-amber-500/20 bg-amber-50/60 p-3 text-center">
-          <p className="text-[10px] font-black uppercase tracking-wider text-amber-600">Win Rate</p>
-          <p className="mt-0.5 text-lg font-black text-amber-700">{winRate}%</p>
+        <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-center">
+          <p className="text-[10px] font-black uppercase tracking-wider text-amber-300">Win Rate</p>
+          <p className="mt-0.5 text-lg font-black text-amber-200">{winRate}%</p>
         </div>
       </div>
 
@@ -42,10 +42,10 @@ export function PublicProfileStats({ stats, honorBadges }: PublicProfileStatsPro
             <Flame className="h-4 w-4 animate-pulse" />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-black text-slate-800">
+            <p className="text-xs font-black text-white">
               Serie di {stats.winStreak} vittorie consecutive!
             </p>
-            <p className="text-[10px] font-medium text-slate-500">
+            <p className="text-[10px] font-medium text-white/50">
               {stats.winStreak >= 3 ? 'Giocatore in stato ON FIRE 🔥' : 'In ottima forma sul campo'}
             </p>
           </div>
@@ -53,20 +53,20 @@ export function PublicProfileStats({ stats, honorBadges }: PublicProfileStatsPro
       )}
 
       {/* Badge d'Onore Assegnati dalla Community */}
-      <section className="rounded-2xl border border-slate-900/[0.08] bg-slate-50/80 p-3.5">
-        <div className="flex items-center justify-between mb-2.5">
-          <h4 className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
+        <div className="mb-2.5 flex items-center justify-between">
+          <h4 className="text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
             Medaglie d&rsquo;Onore Ricevute
           </h4>
           {totalBadges > 0 && (
-            <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-black text-slate-700">
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-white/80">
               {totalBadges} totali
             </span>
           )}
         </div>
 
         {totalBadges === 0 ? (
-          <p className="py-2 text-center text-xs font-medium text-slate-400">
+          <p className="py-2 text-center text-xs font-medium text-white/40">
             Nessuna medaglia d&rsquo;onore ricevuta finora.
           </p>
         ) : (
@@ -114,10 +114,10 @@ function HonorBadgeChip({
 }) {
   if (!count || count <= 0) return null;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-sm">
+    <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-bold text-white/80 shadow-sm">
       {icon}
       <span>{label}</span>
-      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">
+      <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-black text-white/70">
         {count}
       </span>
     </span>

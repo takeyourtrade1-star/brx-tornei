@@ -119,26 +119,30 @@ export function FriendsDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Amici e Duellanti"
-        className="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-white shadow-2xl transition-all"
+        className="profile-drawer-panel absolute inset-y-0 right-0 flex w-full max-w-lg flex-col border-l border-white/10 bg-[#0a0f1d] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b border-slate-200/80 bg-white px-7 py-5">
-          <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-900 text-white shadow-md">
+        <header className="relative flex items-center justify-between border-b border-white/10 px-7 py-5">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(280px_120px_at_0%_0%,rgba(255,115,0,0.16),transparent_70%)]"
+          />
+          <div className="relative flex items-center gap-3">
+            <span className="swords-emblem grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-[#FF7300] to-[#e0564d] text-white shadow-lg shadow-orange-950/40">
               <Users className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Social & Duelli</p>
-              <h2 className="text-xl font-black tracking-tight text-header-bg">Amici & Giocatori</h2>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">Social & Duelli</p>
+              <h2 className="font-display text-xl font-black tracking-tight text-white">Amici & Giocatori</h2>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="relative flex items-center gap-2">
             <button
               type="button"
               onClick={() => setQrOpen(true)}
               aria-label="Mostra il tuo QR amici"
               title="Il tuo QR amici"
-              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 transition"
+              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white/60 transition hover:border-white/30 hover:bg-white/10 hover:text-white"
             >
               <QrCode className="h-4 w-4" />
             </button>
@@ -147,7 +151,7 @@ export function FriendsDrawer({
               onClick={() => setSettingsOpen(true)}
               aria-label="Impostazioni Social"
               title="Impostazioni Social e Profilo Ebartex"
-              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 transition"
+              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white/60 transition hover:border-white/30 hover:bg-white/10 hover:text-white"
             >
               <Settings className="h-4.5 w-4.5" />
             </button>
@@ -155,14 +159,14 @@ export function FriendsDrawer({
               type="button"
               onClick={onClose}
               aria-label="Chiudi"
-              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-800 transition"
+              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white/60 transition hover:border-white/30 hover:bg-white/10 hover:text-white"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
         </header>
 
-        <div className="border-b border-slate-200/80 bg-white px-7 pt-3">
+        <div className="border-b border-white/10 px-7 pt-3">
           <nav className="flex space-x-3">
             <SocialTabButton active={tab === 'friends'} onClick={() => setTab('friends')} label="Amici" badge={friends.length} />
             <SocialTabButton
@@ -176,7 +180,7 @@ export function FriendsDrawer({
           </nav>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-7 py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#080d1a] px-7 py-6">
           {loadError && <SocialErrorNotice message={loadError} />}
           {tab === 'friends' && (
             <FriendsListPanel

@@ -119,10 +119,10 @@ export function DeckCardSearch({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="font-display text-xs font-black uppercase tracking-wide text-header-bg">
+        <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
           Cerca carte
         </p>
-        <div className="flex gap-0.5 rounded-lg border border-slate-900/10 bg-slate-100 p-0.5">
+        <div className="flex gap-0.5 rounded-lg border border-white/15 bg-white/5 p-0.5">
           {SEARCH_LANGS.map(({ id, label }) => (
             <button
               key={id}
@@ -130,7 +130,7 @@ export function DeckCardSearch({
               onClick={() => setLang(id)}
               className={cn(
                 'rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase transition-colors',
-                lang === id ? 'bg-[#FF7300] text-white' : 'text-slate-500 hover:text-header-bg'
+                lang === id ? 'bg-[#FF7300] text-white' : 'text-white/50 hover:text-white'
               )}
             >
               {label}
@@ -149,37 +149,37 @@ export function DeckCardSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Nome carta in qualsiasi lingua…"
-          className="w-full rounded-xl border border-slate-900/15 bg-white py-2 pl-9 pr-3 text-xs text-header-bg placeholder:text-slate-400 focus:border-[#FF7300] focus:outline-none"
+          className="w-full rounded-xl border border-white/15 bg-white/5 py-2 pl-9 pr-3 text-xs text-white placeholder:text-white/35 focus:border-[#FF7300] focus:outline-none"
           autoComplete="off"
         />
       </div>
 
       {loading && debounced ? (
-        <p className="flex items-center gap-2 text-xs text-slate-500" role="status">
+        <p className="flex items-center gap-2 text-xs text-white/50" role="status">
           <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
           Ricerca in corso…
         </p>
       ) : null}
 
       {error && debounced ? (
-        <p className="rounded-lg border border-red-500/30 bg-red-50 px-3 py-2 text-xs text-red-600" role="alert">
+        <p className="rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-300" role="alert">
           {error}
         </p>
       ) : null}
 
       {!loading && debounced && !error && hits.length === 0 ? (
-        <p className="text-center text-xs text-slate-400">Nessun risultato per &quot;{debounced}&quot;</p>
+        <p className="text-center text-xs text-white/40">Nessun risultato per &quot;{debounced}&quot;</p>
       ) : null}
 
       {!debounced ? (
-        <p className="text-center text-xs text-slate-400">
+        <p className="text-center text-xs text-white/40">
           Cerca nel catalogo Ebartex (Meilisearch) e aggiungi le carte al mazzo.
         </p>
       ) : null}
 
       {hits.length > 0 ? (
         <div className="flex min-h-0 flex-1 flex-col">
-          <ul className="min-h-0 flex-1 overflow-auto rounded-xl border border-slate-900/10 bg-white">
+          <ul className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-black/20">
             {hits.map((hit) => (
               <SearchHitRow
                 key={hit.id}
@@ -198,7 +198,7 @@ export function DeckCardSearch({
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-900/10 bg-white py-2 text-[10px] font-bold uppercase text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 py-2 text-[10px] font-bold uppercase text-white/75 transition hover:bg-white/10 disabled:opacity-50"
             >
               {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
               Carica altri

@@ -23,7 +23,7 @@ export function FriendsListPanel({
 }: FriendsListPanelProps) {
   if (loading) {
     return (
-      <div className="py-12 text-center text-xs font-bold text-slate-400 animate-pulse">
+      <div className="animate-pulse py-12 text-center text-xs font-bold text-white/40">
         Caricamento amici…
       </div>
     );
@@ -40,7 +40,7 @@ export function FriendsListPanel({
     <div className="space-y-6">
       {onlineFriends.length > 0 && (
         <section>
-          <h3 className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
+          <h3 className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
             Online ({onlineFriends.length})
           </h3>
           <ul className="space-y-2.5">
@@ -59,7 +59,7 @@ export function FriendsListPanel({
 
       {otherFriends.length > 0 && (
         <section>
-          <h3 className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+          <h3 className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white/45">
             Non al tavolo ({otherFriends.length})
           </h3>
           <ul className="space-y-2.5">

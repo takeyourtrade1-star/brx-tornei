@@ -55,12 +55,12 @@ export function DeckBuilder({
   const isSizeLegal = mainCount >= minMain && sideCount <= maxSide;
 
   const legalityBadge = (() => {
-    if (legal === true) return 'bg-emerald-500/20 text-emerald-600';
-    if (legal === false) return 'bg-red-500/20 text-red-600';
+    if (legal === true) return 'bg-emerald-500/20 text-emerald-300';
+    if (legal === false) return 'bg-red-500/20 text-red-300';
     if (deck.legalityErrors && deck.legalityErrors.length > 0) {
       return 'bg-amber-500/20 text-amber-300';
     }
-    return 'bg-slate-100 text-slate-400';
+    return 'bg-white/10 text-white/45';
   })();
 
   const legalityLabel = (() => {
@@ -104,16 +104,16 @@ export function DeckBuilder({
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+              className="arena-back !rounded-xl px-3 py-1.5"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Indietro
             </button>
-            <h2 className="truncate font-display text-lg font-black uppercase text-header-bg">
+            <h2 className="truncate font-display text-lg font-black uppercase text-white">
               {deck.name}
             </h2>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-white/50">
             {format?.name ?? deck.formatId} · {archetype?.name ?? deck.archetypeId}
           </p>
         </div>
@@ -123,7 +123,7 @@ export function DeckBuilder({
           </span>
           <span
             className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${
-              isSizeLegal ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-300'
+              isSizeLegal ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
             }`}
           >
             {isSizeLegal ? 'Dimensioni OK' : 'In costruzione'}
@@ -140,7 +140,7 @@ export function DeckBuilder({
           <button
             type="button"
             onClick={onDeleteDeck}
-            className="rounded-lg bg-red-500/10 px-3 py-1 text-xs font-bold uppercase text-red-600"
+            className="rounded-lg bg-red-500/10 px-3 py-1 text-xs font-bold uppercase text-red-300"
           >
             Elimina
           </button>
@@ -150,7 +150,7 @@ export function DeckBuilder({
       <DeckLegalityPanel issues={legalityIssues} loading={isPending} legal={legal} />
 
       <div className="grid min-h-[420px] grid-cols-1 gap-4 lg:grid-cols-3 lg:min-h-[520px]">
-        <div className="flex min-h-[280px] flex-col rounded-2xl border border-slate-900/10 bg-slate-50 p-3 lg:min-h-0">
+        <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-3 lg:min-h-0">
           <DeckCardSearch
             formatId={deck.formatId}
             main={deck.main}
@@ -160,18 +160,18 @@ export function DeckBuilder({
           />
         </div>
 
-        <div className="flex min-h-[280px] flex-col rounded-2xl border border-slate-900/10 bg-slate-50 p-3 lg:min-h-0">
+        <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-3 lg:min-h-0">
           <div className="mb-1 flex items-center justify-between">
-            <p className="font-display text-xs font-black uppercase tracking-wide text-slate-700">
+            <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
               Main deck
             </p>
             <span
-              className={`text-[11px] font-bold ${mainCount >= minMain ? 'text-emerald-600' : 'text-slate-500'}`}
+              className={`text-[11px] font-bold ${mainCount >= minMain ? 'text-emerald-300' : 'text-white/50'}`}
             >
               {mainCount}/{minMain}
             </span>
           </div>
-          <div className="mb-2 h-1 overflow-hidden rounded-full bg-slate-100">
+          <div className="mb-2 h-1 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full transition-all"
               style={{
@@ -182,7 +182,7 @@ export function DeckBuilder({
           </div>
           <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
             {deck.main.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-400">
+              <p className="py-6 text-center text-xs text-white/40">
                 Cerca una carta e aggiungila al main deck
               </p>
             ) : (
@@ -205,20 +205,20 @@ export function DeckBuilder({
           </div>
         </div>
 
-        <div className="flex min-h-[280px] flex-col rounded-2xl border border-slate-900/10 bg-slate-50 p-3 lg:min-h-0">
+        <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-3 lg:min-h-0">
           <div className="mb-2 flex items-center justify-between">
-            <p className="font-display text-xs font-black uppercase tracking-wide text-slate-700">
+            <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
               Sideboard
             </p>
-            <span className="text-[11px] font-bold text-slate-500">
+            <span className="text-[11px] font-bold text-white/50">
               {sideCount}/{maxSide > 0 ? maxSide : '—'}
             </span>
           </div>
           <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
             {maxSide === 0 ? (
-              <p className="text-center text-xs text-slate-400">Commander non usa sideboard</p>
+              <p className="text-center text-xs text-white/40">Commander non usa sideboard</p>
             ) : deck.side.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-400">
+              <p className="py-6 text-center text-xs text-white/40">
                 Aggiungi carte al sideboard dalla ricerca
               </p>
             ) : (

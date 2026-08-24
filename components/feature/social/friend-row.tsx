@@ -28,13 +28,13 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
     in_game: 'bg-purple-500 ring-purple-400/30',
     dnd: 'bg-amber-500 ring-amber-400/30',
     recent: 'bg-amber-400 ring-amber-300/30',
-    offline: 'bg-slate-300 ring-slate-200',
+    offline: 'bg-slate-500 ring-slate-400/30',
   }[friend.presence];
 
   const defaultStatusText = presenceStatusText(friend.presence);
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4">
+    <li className="arena-card flex items-center justify-between gap-3 p-3.5 sm:p-4">
       <button
         type="button"
         onClick={() => onOpenProfile(friend.gamertag)}
@@ -51,7 +51,7 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
           </div>
           <span
             className={cn(
-              'absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-white',
+              'absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-[#0a0f1d]',
               presenceDot,
             )}
           />
@@ -59,11 +59,11 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="truncate text-sm font-black text-slate-900 sm:text-base">
+            <span className="truncate text-sm font-black text-white sm:text-base">
               {friend.gamertag}
             </span>
             {friend.isBot && (
-              <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 shrink-0">
+              <span className="shrink-0 rounded-md border border-purple-400/30 bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-300">
                 BOT | Test
               </span>
             )}
@@ -76,7 +76,7 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
           <p
             className={cn(
               'truncate text-xs font-semibold',
-              isDnd ? 'text-amber-600' : 'text-slate-500',
+              isDnd ? 'text-amber-300' : 'text-white/50',
             )}
           >
             {friend.statusText ?? defaultStatusText}
@@ -86,8 +86,8 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
 
       <div className="flex items-center gap-2 shrink-0">
         {confirmingRemove ? (
-          <div className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/80 p-1.5 animate-in fade-in duration-150">
-            <span className="text-[11px] font-black text-red-700 pl-1">Rimuovere?</span>
+          <div className="flex animate-in fade-in items-center gap-1.5 rounded-xl border border-red-400/25 bg-red-500/10 p-1.5 duration-150">
+            <span className="pl-1 text-[11px] font-black text-red-300">Rimuovere?</span>
             <button
               type="button"
               onClick={() => {
@@ -103,7 +103,7 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
               type="button"
               onClick={() => setConfirmingRemove(false)}
               title="Annulla"
-              className="grid h-7 w-7 place-items-center rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
+              className="grid h-7 w-7 place-items-center rounded-lg bg-white/10 text-white/70 transition hover:bg-white/20"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -131,7 +131,7 @@ export function FriendRow({ friend, onOpenProfile, onChallenge, onRemove }: Frie
                 onClick={() => setConfirmingRemove(true)}
                 title="Rimuovi amico"
                 aria-label={`Rimuovi ${friend.gamertag} dagli amici`}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-white/15 text-white/40 transition hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-300"
               >
                 <UserMinus className="h-4 w-4" />
               </button>

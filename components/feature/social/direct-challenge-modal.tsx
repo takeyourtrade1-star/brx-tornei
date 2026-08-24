@@ -126,24 +126,24 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
         role="dialog"
         aria-modal="true"
         aria-label={`Sfida ${targetGamertag}`}
-        className="relative w-full max-w-sm rounded-2xl border border-slate-900/[0.1] bg-white p-5 shadow-2xl transition-all sm:p-6"
+        className="arena-panel relative w-full max-w-sm p-5 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <header className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-orange-500/10 text-orange-600">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-orange-500/15 text-primary">
               <Swords className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <h3 className="text-sm font-black text-slate-900">Sfida a Duello</h3>
-              <p className="text-[11px] font-bold text-slate-400">vs {targetGamertag}</p>
+              <h3 className="text-sm font-black text-white">Sfida a Duello</h3>
+              <p className="text-[11px] font-bold text-white/45">vs {targetGamertag}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={challengeStatus === 'waiting' ? handleCancel : onClose}
             aria-label="Chiudi"
-            className="grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:text-slate-700"
+            className="grid h-8 w-8 place-items-center rounded-full text-white/40 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
@@ -151,40 +151,40 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
 
         {challengeStatus === 'waiting' ? (
           <div className="py-7 text-center space-y-3 animate-in fade-in duration-200">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-orange-50 text-[#FF7300]">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-orange-500/15 text-[#FF7300]">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
             <div>
-              <p className="text-sm font-black text-slate-900">In attesa di {targetGamertag}…</p>
-              <p className="mt-1 text-xs font-medium text-slate-500">
+              <p className="text-sm font-black text-white">In attesa di {targetGamertag}…</p>
+              <p className="mt-1 text-xs font-medium text-white/50">
                 Riceverai la connessione automatica al tavolo appena accetta.
               </p>
             </div>
             <button
               type="button"
               onClick={handleCancel}
-              className="mt-2 text-xs font-bold text-slate-400 hover:text-red-600 transition"
+              className="mt-2 text-xs font-bold text-white/40 transition hover:text-red-300"
             >
               Annulla sfida
             </button>
           </div>
         ) : challengeStatus === 'accepted' ? (
           <div className="py-8 text-center space-y-2 animate-in fade-in duration-200">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-500/15 text-emerald-300">
               <Check className="h-6 w-6" />
             </div>
-            <p className="text-sm font-black text-slate-900">{statusMessage}</p>
+            <p className="text-sm font-black text-white">{statusMessage}</p>
           </div>
         ) : challengeStatus === 'declined' || challengeStatus === 'expired' || challengeStatus === 'error' ? (
           <div className="py-7 text-center space-y-3 animate-in fade-in duration-200">
-            <p className="text-sm font-bold text-slate-800">{statusMessage}</p>
+            <p className="text-sm font-bold text-white">{statusMessage}</p>
             <Button
               type="button"
               onClick={() => {
                 setChallengeStatus('idle');
                 setStatusMessage(null);
               }}
-              className="h-9 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white hover:bg-slate-800"
+              className="h-9 rounded-xl bg-white/10 px-4 text-xs font-bold text-white hover:bg-white/20"
             >
               Riprova
             </Button>
@@ -192,13 +192,13 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
         ) : (
           <div className="mt-4 space-y-4">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-white/45">
                 Formato di Gioco
               </label>
               <select
                 value={format}
                 onChange={(e) => setFormat(e.target.value)}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-800 focus:border-primary focus:bg-white focus:outline-none"
+                className="h-10 w-full rounded-xl border border-white/15 bg-white/5 px-3 text-xs font-bold text-white focus:border-primary focus:outline-none"
               >
                 {FORMATS.map((f) => (
                   <option key={f.id} value={f.id}>
@@ -209,7 +209,7 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-white/45">
                 Formula del Match
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -221,7 +221,7 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
                     className={`h-9 rounded-xl border text-xs font-black transition ${
                       bestOf === rule
                         ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        : 'border-white/15 bg-white/5 text-white/65 hover:bg-white/10'
                     }`}
                   >
                     {rule}

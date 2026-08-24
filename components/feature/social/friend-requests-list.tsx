@@ -28,11 +28,11 @@ export function FriendRequestsList({
   if (requests.length === 0) {
     return (
       <div className="py-16 text-center">
-        <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-white border border-slate-200 text-slate-400 shadow-sm">
+        <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-white/15 bg-white/5 text-white/40">
           <UserPlus className="h-7 w-7" />
         </span>
-        <p className="text-base font-bold text-slate-800">Nessuna richiesta pendente</p>
-        <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-slate-500">
+        <p className="font-display text-base font-bold text-white">Nessuna richiesta pendente</p>
+        <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-white/50">
           Non hai richieste di amicizia in attesa, né ricevute né inviate.
         </p>
       </div>
@@ -42,15 +42,15 @@ export function FriendRequestsList({
   return (
     <div className="space-y-5">
       {/* Sub-filtri per vedere Ricevute ed Inviate */}
-      <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+      <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 p-1">
         <button
           type="button"
           onClick={() => setFilter('all')}
           className={cn(
             'flex-1 rounded-lg py-1.5 text-xs font-black transition',
             filter === 'all'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-900',
+              ? 'bg-primary text-white shadow-sm'
+              : 'text-white/50 hover:text-white',
           )}
         >
           Tutte ({requests.length})
@@ -61,8 +61,8 @@ export function FriendRequestsList({
           className={cn(
             'flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-black transition',
             filter === 'incoming'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-900',
+              ? 'bg-primary text-white shadow-sm'
+              : 'text-white/50 hover:text-white',
           )}
         >
           <Inbox className="h-3.5 w-3.5" />
@@ -74,8 +74,8 @@ export function FriendRequestsList({
           className={cn(
             'flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-black transition',
             filter === 'outgoing'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-900',
+              ? 'bg-primary text-white shadow-sm'
+              : 'text-white/50 hover:text-white',
           )}
         >
           <Send className="h-3.5 w-3.5" />
@@ -86,7 +86,7 @@ export function FriendRequestsList({
       {/* Sezione Richieste Ricevute */}
       {(filter === 'all' || filter === 'incoming') && incoming.length > 0 && (
         <div>
-          <h3 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
+          <h3 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
             <Inbox className="h-3.5 w-3.5" />
             <span>Richieste Ricevute ({incoming.length})</span>
           </h3>
@@ -98,7 +98,7 @@ export function FriendRequestsList({
               return (
                 <li
                   key={req.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4"
+                  className="arena-card flex items-center justify-between gap-3 p-3.5 sm:p-4"
                 >
                   <button
                     type="button"
@@ -110,14 +110,14 @@ export function FriendRequestsList({
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                        <p className="truncate text-sm font-black text-white">{req.gamertag}</p>
                         {req.isBot && (
-                          <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 shrink-0">
+                          <span className="shrink-0 rounded-md border border-purple-400/30 bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-300">
                             BOT | Test
                           </span>
                         )}
                       </div>
-                      <p className="text-xs font-semibold text-slate-400">{req.createdAtText}</p>
+                      <p className="text-xs font-semibold text-white/40">{req.createdAtText}</p>
                     </div>
                   </button>
 
@@ -134,7 +134,7 @@ export function FriendRequestsList({
                       type="button"
                       onClick={() => onRespond(req.id, 'decline')}
                       aria-label="Rifiuta richiesta"
-                      className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                      className="grid h-9 w-9 place-items-center rounded-xl border border-white/15 text-white/40 transition hover:bg-white/10 hover:text-white"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -149,7 +149,7 @@ export function FriendRequestsList({
       {/* Sezione Richieste Inviate */}
       {(filter === 'all' || filter === 'outgoing') && outgoing.length > 0 && (
         <div>
-          <h3 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+          <h3 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-white/45">
             <Send className="h-3.5 w-3.5" />
             <span>Richieste Inviate da te ({outgoing.length})</span>
           </h3>
@@ -161,7 +161,7 @@ export function FriendRequestsList({
               return (
                 <li
                   key={req.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4"
+                  className="arena-card flex items-center justify-between gap-3 p-3.5 sm:p-4"
                 >
                   <button
                     type="button"
@@ -173,14 +173,14 @@ export function FriendRequestsList({
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <p className="truncate text-sm font-black text-slate-900">{req.gamertag}</p>
+                        <p className="truncate text-sm font-black text-white">{req.gamertag}</p>
                         {req.isBot && (
-                          <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 shrink-0">
+                          <span className="shrink-0 rounded-md border border-purple-400/30 bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-300">
                             BOT | Test
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
                         <Clock className="h-3.5 w-3.5" />
                         <span>In attesa di risposta ({req.createdAtText})</span>
                       </div>
@@ -191,7 +191,7 @@ export function FriendRequestsList({
                     <button
                       type="button"
                       onClick={() => onCancel(req.id)}
-                      className="inline-flex h-9 items-center gap-1 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition shrink-0"
+                      className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl border border-white/15 px-3 text-xs font-bold text-white/50 transition hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-300"
                     >
                       <X className="h-3.5 w-3.5" />
                       <span>Annulla</span>

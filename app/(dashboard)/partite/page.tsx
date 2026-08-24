@@ -15,16 +15,6 @@ import { fetchMyMatchFeedback } from '@/lib/data/match-feedback';
 
 export const metadata: Metadata = { title: 'Le mie partite' };
 
-/** Brace dell'arena: particelle fluttuanti con ritmo bilanciato. */
-const EMBERS = [
-  { left: '8%', delay: '0s', duration: '9s', size: 'h-1 w-1', color: 'bg-primary/80' },
-  { left: '20%', delay: '2.5s', duration: '11s', size: 'h-[3px] w-[3px]', color: 'bg-marquee/70' },
-  { left: '38%', delay: '1.2s', duration: '8.5s', size: 'h-1.5 w-1.5', color: 'bg-primary/60' },
-  { left: '55%', delay: '4.8s', duration: '10s', size: 'h-[3px] w-[3px]', color: 'bg-marquee/80' },
-  { left: '72%', delay: '1.8s', duration: '11.5s', size: 'h-1 w-1', color: 'bg-primary/70' },
-  { left: '88%', delay: '3.4s', duration: '9.5s', size: 'h-1.5 w-1.5', color: 'bg-marquee/60' },
-];
-
 /** Storico completo delle partite: arena del duellante con stats, cronache e medaglie. */
 export default async function PartitePage() {
   const session = await getSession();
@@ -35,51 +25,27 @@ export default async function PartitePage() {
   const matchFeedback = await fetchMyMatchFeedback().catch(() => null);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#080d1a]">
-      {/* Texture d'atmosfera con glow discreti */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(800px_350px_at_15%_0%,rgba(255,115,0,0.10),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(900px_400px_at_85%_10%,rgba(243,199,106,0.07),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(1000px_500px_at_50%_100%,rgba(255,115,0,0.06),transparent_65%)]" />
-        <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:40px_40px] [mask-image:radial-gradient(circle_at_50%_30%,black,transparent_75%)]" />
-        {EMBERS.map((ember, index) => (
-          <span
-            key={index}
-            className={`pt-ember ${ember.size} ${ember.color}`}
-            style={{
-              left: ember.left,
-              animationDelay: ember.delay,
-              animationDuration: ember.duration,
-            }}
-          />
-        ))}
-      </div>
+    <div className="relative min-h-screen">
+      <DashboardHeader user={session.user} displayName={gamertag} reputation={reputation} />
 
-      <div className="relative">
-        <DashboardHeader user={session.user} displayName={gamertag} reputation={reputation} />
+      <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-6">
+        <h1 className="sr-only">Le mie partite</h1>
 
-        <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-6">
-          <h1 className="sr-only">Le mie partite</h1>
+        <div className="mb-4">
+          <Link href="/tornei" className="arena-back">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Torna ai tornei
+          </Link>
+        </div>
 
-          <div className="mb-4">
-            <Link
-              href="/tornei"
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white/80 backdrop-blur-md transition hover:border-white/30 hover:bg-white/20 hover:text-white active:scale-95"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Torna ai tornei
-            </Link>
-          </div>
-
-          <div className="flex flex-col gap-5 sm:gap-6">
-            <PartiteHero gamertag={gamertag} reputation={reputation} />
-            <PartiteStatsGrid reputation={reputation} />
-            <PartiteBattleLog reputation={reputation} />
-            <PartiteMedals reputation={reputation} />
-            <PartiteInGameRatings feedback={matchFeedback} />
-          </div>
-        </main>
-      </div>
+        <div className="flex flex-col gap-5 sm:gap-6">
+          <PartiteHero gamertag={gamertag} reputation={reputation} />
+          <PartiteStatsGrid reputation={reputation} />
+          <PartiteBattleLog reputation={reputation} />
+          <PartiteMedals reputation={reputation} />
+          <PartiteInGameRatings feedback={matchFeedback} />
+        </div>
+      </main>
     </div>
   );
 }

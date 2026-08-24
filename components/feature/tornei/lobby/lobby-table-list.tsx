@@ -60,7 +60,7 @@ export function LobbyTableList({
 
         {/* Card unica dei selettori: Formato (1) e Modalità (2) vivono nello
             stesso contenitore glass, separati da un divider sottile. */}
-        <div className="relative z-30 my-5 divide-y divide-white/10 rounded-2xl border border-white/15 bg-white/10 shadow-md backdrop-blur-md">
+        <div className="arena-panel relative z-30 my-5 divide-y divide-white/10">
           <section className="w-full px-4 py-4 sm:px-5">
             <div className="w-full md:hidden">
               <FormatSelectorGrid
@@ -99,7 +99,7 @@ export function LobbyTableList({
             banda, indicatore tavoli con legenda nella seconda. */}
         <section
           aria-label="Contesto sfide e categorie tavoli"
-          className="mb-4 overflow-hidden rounded-2xl border border-white/15 bg-white/10 shadow-sm backdrop-blur-md"
+          className="arena-panel mb-4"
         >
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
             <div>
@@ -145,7 +145,7 @@ export function LobbyTableList({
         {error && (
           <p
             role="alert"
-            className="mt-4 rounded-xl border border-red-700/30 bg-red-100/80 px-3 py-2.5 text-sm font-semibold text-red-900"
+            className="mt-4 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2.5 text-sm font-semibold text-red-200"
           >
             {error}
           </p>

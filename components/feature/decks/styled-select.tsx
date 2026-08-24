@@ -109,7 +109,7 @@ export function StyledSelect<T extends string>({
         id={`${id}-menu`}
         role="listbox"
         aria-labelledby={`${id}-btn`}
-        className="fixed z-[9999] m-0 list-none overflow-y-auto rounded-xl border border-slate-900/[0.08] bg-white p-1.5 text-header-bg shadow-[0_18px_44px_-14px_rgba(15,23,42,0.28)]"
+        className="fixed z-[9999] m-0 list-none overflow-y-auto rounded-xl border border-white/10 bg-[#0e1626] p-1.5 text-white shadow-[0_18px_44px_-14px_rgba(0,0,0,0.55)]"
         style={{
           top: pos.top,
           left: pos.left,
@@ -137,9 +137,9 @@ export function StyledSelect<T extends string>({
                 }
               }}
               className={cn(
-                'relative flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-slate-700 outline-none transition-colors',
-                'hover:bg-primary/[0.08] hover:text-header-bg focus:bg-primary/[0.08] focus:text-header-bg',
-                selected && 'bg-primary/10 text-primary'
+                'relative flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-white/80 outline-none transition-colors',
+                'hover:bg-primary/15 hover:text-white focus:bg-primary/15 focus:text-white',
+                selected && 'bg-primary/15 text-primary'
               )}
             >
               {selected && (
@@ -151,7 +151,7 @@ export function StyledSelect<T extends string>({
               {opt.icon ? (
                 <span
                   className={cn(
-                    'grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500',
+                    'grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/10 text-white/60',
                     selected && 'bg-primary/10 text-primary'
                   )}
                   aria-hidden
@@ -193,9 +193,9 @@ export function StyledSelect<T extends string>({
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold text-header-bg transition-colors',
-          'border-slate-900/12 bg-white shadow-sm',
-          'hover:border-primary/45 hover:bg-slate-50',
+          'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold text-white transition-colors',
+          'border-white/15 bg-white/5 shadow-sm',
+          'hover:border-primary/45 hover:bg-white/10',
           'disabled:cursor-not-allowed disabled:opacity-50',
           open && 'border-primary ring-2 ring-primary/20',
           triggerClassName

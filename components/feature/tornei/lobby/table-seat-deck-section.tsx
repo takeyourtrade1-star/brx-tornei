@@ -34,11 +34,11 @@ export function TableSeatDeckSection({
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-primary">Passaggio 1</p>
-          <h3 id="seat-deck-heading" className="mt-1 text-base font-black text-header-bg">
+          <h3 id="seat-deck-heading" className="mt-1 text-base font-black text-white">
             Scegli il mazzo
           </h3>
         </div>
-        <span className="text-xs font-bold text-slate-400">{formatName}</span>
+        <span className="text-xs font-bold text-white/45">{formatName}</span>
       </div>
 
       <div className="space-y-2">
@@ -49,7 +49,7 @@ export function TableSeatDeckSection({
           onChange={() => onSelect(ignoreDeckValue)}
         />
         {loading && decks.length === 0 && (
-          <p className="px-1 py-2 text-sm font-medium text-slate-400">Carico i tuoi mazzi…</p>
+          <p className="px-1 py-2 text-sm font-medium text-white/40">Carico i tuoi mazzi…</p>
         )}
         {decks.map((deck) => (
           <DeckOption
@@ -61,8 +61,8 @@ export function TableSeatDeckSection({
         ))}
       </div>
 
-      <div className="mt-3 rounded-2xl border border-slate-900/[0.08] bg-slate-50/60 p-3">
-        <label htmlFor="quick-deck-name" className="text-xs font-extrabold text-slate-600">
+      <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+        <label htmlFor="quick-deck-name" className="text-xs font-extrabold text-white/70">
           Oppure crea un mazzo al volo
         </label>
         <div className="mt-2 flex items-center gap-2">
@@ -79,20 +79,20 @@ export function TableSeatDeckSection({
             }}
             placeholder="Nome del nuovo mazzo"
             maxLength={60}
-            className="h-11 min-w-0 flex-1 rounded-xl border border-slate-900/[0.1] bg-white px-3 text-sm font-semibold text-header-bg placeholder:text-slate-400 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
+            className="h-11 min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 text-sm font-semibold text-white placeholder:text-white/35 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15"
           />
           <button
             type="button"
             onClick={onCreate}
             disabled={creating || !newDeckName.trim()}
-            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-slate-900/[0.1] bg-white px-4 text-xs font-extrabold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 text-xs font-extrabold text-white/80 transition hover:bg-white/10 disabled:opacity-40"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Crea
           </button>
         </div>
         {createError && (
-          <p role="alert" className="mt-2 text-xs font-semibold text-red-600">
+          <p role="alert" className="mt-2 text-xs font-semibold text-red-300">
             {createError}
           </p>
         )}
@@ -118,8 +118,8 @@ function DeckOption({
         'flex cursor-pointer items-center gap-3 rounded-2xl border px-3.5 py-3 transition',
         'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary',
         checked
-          ? 'border-primary/50 bg-primary/[0.06] ring-1 ring-primary/20'
-          : 'border-slate-900/[0.08] bg-white hover:border-slate-900/[0.14] hover:bg-slate-50/80',
+          ? 'border-primary/50 bg-primary/15 ring-1 ring-primary/20'
+          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]',
       )}
     >
       <input
@@ -133,13 +133,13 @@ function DeckOption({
       <span
         className={cn(
           'grid h-5 w-5 shrink-0 place-items-center rounded-full border',
-          checked ? 'border-primary bg-primary text-white' : 'border-slate-900/20',
+          checked ? 'border-primary bg-primary text-white' : 'border-white/25',
         )}
       >
         {checked && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-bold text-header-bg">{title}</span>
-      {detail && <span className="shrink-0 text-xs font-semibold text-slate-400">{detail}</span>}
+      <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{title}</span>
+      {detail && <span className="shrink-0 text-xs font-semibold text-white/40">{detail}</span>}
     </label>
   );
 }

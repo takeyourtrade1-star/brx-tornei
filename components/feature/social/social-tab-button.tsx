@@ -26,7 +26,7 @@ export function SocialTabButton({
         'relative flex items-center gap-1.5 border-b-2 px-3 pb-3 text-xs font-black transition-all focus-visible:outline-none',
         active
           ? 'border-primary text-primary'
-          : 'border-transparent text-slate-500 hover:text-slate-900',
+          : 'border-transparent text-white/45 hover:text-white',
       )}
     >
       {Icon && <Icon className="h-3.5 w-3.5" />}
@@ -35,7 +35,7 @@ export function SocialTabButton({
         <span
           className={cn(
             'rounded-full px-1.5 py-0.2 text-[10px] font-black',
-            badgeHighlight ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600',
+            badgeHighlight ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/70',
           )}
         >
           {badge}

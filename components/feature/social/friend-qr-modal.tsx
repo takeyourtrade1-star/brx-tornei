@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { QrCode, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { buildFriendInviteUrl } from '@/lib/friend-invite';
 
-const QR_MARK_SRC = '/images/brx-qr-mark.svg';
+const QR_MARK_SRC = '/logo-pwa.svg';
+const QR_SIZE = 240;
+const QR_MARK_SIZE = 58;
 
 interface FriendQrModalProps {
   open: boolean;
@@ -49,7 +51,7 @@ export function FriendQrModal({ open, onClose, gamertag }: FriendQrModalProps) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="QR code amici"
+        aria-label="Aggiungi amici"
         className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/15 bg-slate-900/95 p-6 text-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
@@ -57,51 +59,48 @@ export function FriendQrModal({ open, onClose, gamertag }: FriendQrModalProps) {
         <div className="pointer-events-none absolute -bottom-16 -right-12 h-40 w-40 rounded-full bg-[#3D65C6]/30 blur-3xl" />
 
         <header className="relative mb-5 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl border border-white/15 bg-white/10 text-[#FF7300]">
-              <QrCode className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/45">
-                BRX Tornei
-              </p>
-              <h2 className="text-lg font-black tracking-tight">Il tuo QR amici</h2>
-            </div>
+          <div className="min-w-0 pr-2">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/45">
+              BRX Tornei
+            </p>
+            <h2 className="font-display text-xl font-black tracking-tight">Aggiungi amici</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Chiudi"
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white/70 hover:bg-white/10 hover:text-white"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white/70 hover:bg-white/10 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
 
         {inviteUrl ? (
-          <div className="relative space-y-4">
+          <div className="relative space-y-5">
             <div className="mx-auto w-fit rounded-[1.75rem] bg-gradient-to-br from-[#FF7300] via-[#e0564d] to-[#3D65C6] p-[3px] shadow-[0_12px_40px_-12px_rgba(255,115,0,0.65)]">
               <div className="rounded-[1.55rem] bg-white p-3.5">
                 <QRCodeSVG
                   value={inviteUrl}
-                  size={220}
+                  size={QR_SIZE}
                   level="H"
                   bgColor="#ffffff"
                   fgColor="#0F172A"
                   imageSettings={{
                     src: QR_MARK_SRC,
-                    height: 44,
-                    width: 44,
+                    height: QR_MARK_SIZE,
+                    width: QR_MARK_SIZE,
                     excavate: true,
                   }}
                 />
               </div>
             </div>
             <div className="text-center">
-              <p className="truncate text-base font-black tracking-tight">{gamertag}</p>
-              <p className="mt-1 text-xs font-semibold leading-relaxed text-white/60">
-                Fai inquadrare questo codice: si apre Tornei con la richiesta
-                per aggiungerti agli amici.
+              <p className="truncate font-display text-lg font-black tracking-tight text-white">
+                {gamertag}
+              </p>
+              <p className="mx-auto mt-1.5 max-w-[16.5rem] text-[13px] font-semibold leading-relaxed text-white/70">
+                Fai inquadrare il codice: si apre Tornei con la richiesta di
+                amicizia già pronta.
               </p>
             </div>
           </div>

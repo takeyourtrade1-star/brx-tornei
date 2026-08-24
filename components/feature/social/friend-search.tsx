@@ -83,7 +83,7 @@ export function FriendSearch({
             setErrorMsg(null);
           }}
           placeholder="Cerca qualsiasi giocatore per gamertag…"
-          className="h-12 w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-10 text-sm font-bold text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+          className="h-12 w-full rounded-2xl border border-white/15 bg-white/5 pl-11 pr-10 text-sm font-bold text-white placeholder:text-white/35 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
         {query && (
           <button
@@ -92,7 +92,7 @@ export function FriendSearch({
               setQuery('');
               setErrorMsg(null);
             }}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-white/40 transition hover:bg-white/10 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
@@ -100,14 +100,14 @@ export function FriendSearch({
       </div>
 
       {errorMsg && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700 animate-in fade-in duration-150">
+        <div className="flex animate-in fade-in items-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 p-3 text-xs font-bold text-red-300 duration-150">
           <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="py-12 text-center text-xs font-bold text-slate-400 animate-pulse">
+        <div className="animate-pulse py-12 text-center text-xs font-bold text-white/40">
           Ricerca giocatori in corso…
         </div>
       ) : results.length > 0 ? (
@@ -125,7 +125,7 @@ export function FriendSearch({
             return (
               <li
                 key={player.gamertag}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition hover:border-slate-300 hover:shadow-md sm:p-4"
+                className="arena-card flex items-center justify-between gap-3 p-3.5 sm:p-4"
               >
                 <button
                   type="button"
@@ -137,14 +137,14 @@ export function FriendSearch({
                   </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="truncate text-sm font-black text-slate-900">{player.gamertag}</p>
+                      <p className="truncate text-sm font-black text-white">{player.gamertag}</p>
                       {player.isBot && (
-                        <span className="rounded-md border border-purple-300 bg-purple-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 shrink-0">
+                        <span className="shrink-0 rounded-md border border-purple-400/30 bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-300">
                           BOT | Test
                         </span>
                       )}
                     </div>
-                    <p className="text-xs font-semibold text-slate-500">{player.statusText}</p>
+                    <p className="text-xs font-semibold text-white/50">{player.statusText}</p>
                   </div>
                 </button>
 
@@ -162,11 +162,11 @@ export function FriendSearch({
           })}
         </ul>
       ) : query.trim().length >= 2 ? (
-        <div className="py-12 text-center text-xs font-bold text-slate-400">
+        <div className="py-12 text-center text-xs font-bold text-white/40">
           Nessun giocatore trovato con questo gamertag.
         </div>
       ) : (
-        <div className="py-8 text-center text-xs font-medium text-slate-400">
+        <div className="py-8 text-center text-xs font-medium text-white/40">
           Digita almeno 2 caratteri per trovare qualsiasi duellante o amico.
         </div>
       )}

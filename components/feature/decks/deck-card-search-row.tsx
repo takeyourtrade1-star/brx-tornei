@@ -50,8 +50,8 @@ export function SearchHitRow({
   const { primary, secondary } = getCardDisplayNames(hit, lang);
 
   return (
-    <li className="flex items-stretch gap-3 border-b border-slate-900/5 px-2.5 py-2 transition-colors hover:bg-slate-50/80 last:border-b-0">
-      <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-slate-100">
+    <li className="flex items-stretch gap-3 border-b border-white/5 px-2.5 py-2 transition-colors hover:bg-white/[0.04] last:border-b-0">
+      <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md bg-white/10">
         {imgUrl ? (
           <img src={imgUrl} alt={primary} className="h-full w-full object-cover" loading="lazy" />
         ) : (
@@ -71,9 +71,9 @@ export function SearchHitRow({
       ) : null}
 
       <div className="min-w-0 flex-1 self-center">
-        <p className="truncate text-xs font-bold text-header-bg">{primary}</p>
-        {secondary ? <p className="truncate text-[10px] text-slate-500">{secondary}</p> : null}
-        <p className="truncate text-[10px] text-slate-400">{hit.set_name}</p>
+        <p className="truncate text-xs font-bold text-white">{primary}</p>
+        {secondary ? <p className="truncate text-[10px] text-white/55">{secondary}</p> : null}
+        <p className="truncate text-[10px] text-white/40">{hit.set_name}</p>
       </div>
 
       <div className="flex shrink-0 flex-col justify-center gap-1.5 self-center">
@@ -90,7 +90,7 @@ export function SearchHitRow({
             type="button"
             disabled={!canAddSide}
             onClick={onAddSide}
-            className="rounded-md border border-slate-900/10 bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase text-slate-700 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase text-white/80 transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
           >
             + Side
           </button>
