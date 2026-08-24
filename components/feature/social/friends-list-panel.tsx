@@ -39,18 +39,23 @@ export function FriendsListPanel({
   const onlineFriends = friends.filter((f) => f.presence === 'online' || f.presence === 'in_game');
   const otherFriends = friends.filter((f) => f.presence !== 'online' && f.presence !== 'in_game');
   const pendingGamertags = requests.map((request) => request.gamertag);
+  const friendGamertags = friends.map((friend) => friend.gamertag);
+  const friendSet = new Set(friendGamertags.map((tag) => tag.toLowerCase()));
+  const addableRecent = recentOpponents.filter(
+    (opponent) => !friendSet.has(opponent.gamertag.toLowerCase()),
+  );
 
   return (
     <div className="space-y-6">
       <RecentOpponentsList
-        opponents={recentOpponents}
-        friendGamertags={friends.map((friend) => friend.gamertag)}
+        opponents={addableRecent}
+        friendGamertags={friendGamertags}
         pendingGamertags={pendingGamertags}
         onOpenProfile={onOpenProfile}
         onAdded={onRecentAdded}
       />
 
-      {friends.length === 0 && recentOpponents.length === 0 && (
+      {friends.length === 0 && addableRecent.length === 0 && (
         <FriendsEmptyState onSearch={onSearch} onShowQr={onShowQr} />
       )}
 

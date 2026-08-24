@@ -10,7 +10,7 @@ export function GameHudOffset({ children }: { children: ReactNode }) {
   const live = pathname.includes('/live');
 
   return (
-    <div className={cn(!live && 'pb-28 md:pb-8 md:pr-[9.25rem]')}>
+    <div className={cn(!live && 'pb-24 md:pb-8 md:pr-[8rem]')}>
       {children}
     </div>
   );

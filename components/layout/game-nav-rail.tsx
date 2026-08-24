@@ -1,7 +1,8 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Layers, Swords, Users } from 'lucide-react';
+import { Layers, Swords } from 'lucide-react';
+import { FriendsNavIcon } from '@/components/layout/friends-nav-icon';
 import { GameNavButton } from '@/components/layout/game-nav-button';
 
 interface GameNavRailProps {
@@ -103,7 +104,7 @@ function Buttons({
       <GameNavButton
         label="Amici"
         ariaLabel="Apri amici e duellanti"
-        icon={Users}
+        icon={FriendsNavIcon}
         tone="blue"
         active={friendsOpen}
         compact={compact}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Gamepad2 } from 'lucide-react';
+import { Gamepad2 } from 'lucide-react';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 import { GameNavRail } from '@/components/layout/game-nav-rail';
 import { ProfileDrawer } from '@/components/feature/profile/profile-drawer';
@@ -95,9 +95,9 @@ export function DashboardHeader({
 
   return (
     <>
-    <header className="sticky top-0 z-40 w-full font-sans text-white">
-      <div className="flex items-center justify-between gap-3 px-3 py-2 sm:px-5">
-        <div className="flex items-center gap-2 py-1">
+    <header className="sticky top-0 z-40 w-full overflow-visible font-sans text-white">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 pb-5 pt-3 sm:px-6">
+        <div className="flex items-center justify-start gap-2">
           <ProfileRankBadge
             avatarId={avatarId}
             gamertag={shownName}
@@ -118,25 +118,23 @@ export function DashboardHeader({
           )}
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" variant="light" />
-            <span className="hidden truncate font-sans text-lg font-black uppercase tracking-wide text-primary sm:inline sm:text-xl">
-              Tournaments
-            </span>
-          </div>
+        <div className="flex min-w-0 items-center justify-center gap-1.5 sm:gap-2">
+          <BrxHeaderLogo href={DEFAULT_TOURNAMENTS_PATH} ariaLabel="Tornei" variant="light" />
+          <span className="truncate font-sans text-base font-black uppercase tracking-wide text-primary sm:text-xl">
+            Tournaments
+          </span>
+        </div>
+
+        <div className="flex items-center justify-end">
           <a
             href={publicConfig.app.mainSiteUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Torna al marketplace Ebartex"
             title="Torna al marketplace Ebartex"
-            className="group relative flex h-9 items-center gap-2 rounded-full border border-white/20 bg-white/[0.12] px-3.5 text-xs font-black uppercase tracking-wider text-white shadow-sm backdrop-blur-md transition-all duration-200 hover:border-orange-400/60 hover:bg-white/20 hover:shadow-[0_0_15px_rgba(255,115,0,0.35)]"
+            className="max-w-[9.5rem] text-right text-[11px] font-bold leading-snug text-white/70 transition hover:text-white sm:max-w-none sm:text-xs"
           >
-            <span className="grid h-5 w-5 place-items-center rounded-full bg-white/15 text-white transition-transform duration-200 group-hover:-translate-x-0.5">
-              <ArrowLeft className="h-3 w-3 stroke-[2.5]" />
-            </span>
-            <span className="hidden sm:inline">Ebartex</span>
+            torna su Ebartex
           </a>
         </div>
       </div>

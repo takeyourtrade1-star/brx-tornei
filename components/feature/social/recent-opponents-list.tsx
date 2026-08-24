@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { sendFriendRequestAction } from '@/actions/social';
 import { getAvatarById } from '@/lib/avatars';
 import type { RecentOpponent } from '@/types/social';
@@ -33,10 +33,11 @@ export function RecentOpponentsList({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (opponents.length === 0) return null;
+  const friendSet = new Set(friendGamertags.map((tag) => tag.toLowerCase()));
+  const visible = opponents.filter((opponent) => !friendSet.has(opponent.gamertag.toLowerCase()));
 
-  const isFriend = (gamertag: string) =>
-    friendGamertags.some((tag) => tag.toLowerCase() === gamertag.toLowerCase());
+  if (visible.length === 0) return null;
+
   const isPending = (gamertag: string) =>
     sent[gamertag] || pendingGamertags.some((tag) => tag.toLowerCase() === gamertag.toLowerCase());
 
@@ -64,11 +65,10 @@ export function RecentOpponentsList({
         </p>
       )}
       <ul className="space-y-2.5">
-        {opponents.map((opponent) => {
+        {visible.map((opponent) => {
           const avatar = getAvatarById();
           const AvatarIcon = avatar.icon;
           const outcome = OUTCOME_META[opponent.lastOutcome];
-          const friend = isFriend(opponent.gamertag);
           const pending = isPending(opponent.gamertag);
           const matchesLabel =
             opponent.matches > 1 ? `${opponent.matches} partite` : '1 partita';
@@ -95,33 +95,26 @@ export function RecentOpponentsList({
                 </span>
               </button>
 
-              {friend ? (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-emerald-300">
-                  <Check className="h-3.5 w-3.5" />
-                  Amico
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={pending || busy === opponent.gamertag}
-                  onClick={() => void handleQuickAdd(opponent.gamertag)}
-                  className={cn(
-                    'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[11px] font-black uppercase tracking-wide transition',
-                    pending
-                      ? 'border border-white/15 bg-white/5 text-white/50'
-                      : 'bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-sm hover:brightness-105',
-                  )}
-                >
-                  {pending ? (
-                    'In attesa'
-                  ) : (
-                    <>
-                      <UserPlus className="h-3.5 w-3.5" />
-                      Aggiunta rapida
-                    </>
-                  )}
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={pending || busy === opponent.gamertag}
+                onClick={() => void handleQuickAdd(opponent.gamertag)}
+                className={cn(
+                  'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[11px] font-black uppercase tracking-wide transition',
+                  pending
+                    ? 'border border-white/15 bg-white/5 text-white/50'
+                    : 'bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-white shadow-sm hover:brightness-105',
+                )}
+              >
+                {pending ? (
+                  'In attesa'
+                ) : (
+                  <>
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Aggiunta rapida
+                  </>
+                )}
+              </button>
             </li>
           );
         })}

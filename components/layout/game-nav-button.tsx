@@ -1,7 +1,7 @@
 'use client';
 
+import type { ComponentType } from 'react';
 import Link from 'next/link';
-import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type GameNavTone = 'orange' | 'gold' | 'blue';
@@ -9,7 +9,7 @@ export type GameNavTone = 'orange' | 'gold' | 'blue';
 interface GameNavButtonBase {
   label: string;
   ariaLabel: string;
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
   tone: GameNavTone;
   active?: boolean;
   badge?: number;
@@ -42,11 +42,11 @@ export function GameNavButton({
 
   const inner = (
     <>
-      <span className="game-nav-btn-icon">
-        <Icon className={compact ? 'h-5 w-5' : 'h-7 w-7'} strokeWidth={2.4} aria-hidden />
-        {onlineDot && (
-          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-black/40" />
-        )}
+      <span className="game-nav-btn-icon-wrap">
+        <span className="game-nav-btn-icon">
+          <Icon className={compact ? 'h-5 w-5' : 'h-6 w-6'} />
+        </span>
+        {onlineDot && <span className="game-nav-online-pip" />}
       </span>
       <span className="game-nav-btn-label">{label}</span>
       {typeof badge === 'number' && badge > 0 && (

@@ -255,100 +255,164 @@
 
 .game-nav-btn {
   --game-nav-face: #ff8a18;
-  --game-nav-face-2: #e05600;
-  --game-nav-depth: #8a3200;
+  --game-nav-face-2: #d14a00;
+  --game-nav-depth: #6a2400;
+  --game-nav-depth-hi: #9a3a00;
+  --game-nav-shift-x: 5px;
+  --game-nav-shift-y: 8px;
+  isolation: isolate;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.28rem;
-  width: 7.65rem;
-  min-height: 5.7rem;
-  padding: 0.7rem 0.45rem 0.55rem;
+  gap: 0.22rem;
+  width: 6.35rem;
+  min-height: 4.85rem;
+  padding: 0.55rem 0.35rem 0.45rem;
   appearance: none;
   cursor: pointer;
   user-select: none;
   font-family: inherit;
   -webkit-tap-highlight-color: transparent;
-  border-radius: 1.2rem;
-  border: 2px solid rgba(255, 255, 255, 0.42);
-  background: linear-gradient(180deg, var(--game-nav-face) 0%, var(--game-nav-face-2) 100%);
+  border-radius: 0.7rem;
+  border: 2.5px solid rgba(255, 255, 255, 0.32);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0) 34%),
+    linear-gradient(180deg, var(--game-nav-face) 0%, var(--game-nav-face-2) 100%);
   color: #fff;
   text-decoration: none;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.48),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.22),
-    0 8px 0 var(--game-nav-depth),
-    0 14px 22px rgba(0, 0, 0, 0.45);
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.28);
   transform: translate3d(0, 0, 0);
   transition:
-    transform 0.12s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.12s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.12s ease;
+    transform 0.1s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.1s ease;
+}
+
+.game-nav-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  border: 2px solid rgba(0, 0, 0, 0.4);
+  background: linear-gradient(180deg, var(--game-nav-depth-hi) 0%, var(--game-nav-depth) 100%);
+  transform: translate3d(var(--game-nav-shift-x), var(--game-nav-shift-y), 0);
+  box-shadow: 0 10px 16px rgba(0, 0, 0, 0.48);
+  transition: transform 0.1s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .game-nav-btn--gold {
-  --game-nav-face: #f3c14a;
-  --game-nav-face-2: #d48912;
-  --game-nav-depth: #8a5a08;
+  --game-nav-face: #f0bc3d;
+  --game-nav-face-2: #c47a0c;
+  --game-nav-depth: #6d4706;
+  --game-nav-depth-hi: #9a680c;
 }
 
 .game-nav-btn--blue {
-  --game-nav-face: #4d7adf;
-  --game-nav-face-2: #2a4ea8;
-  --game-nav-depth: #16306c;
+  --game-nav-face: #4a76d8;
+  --game-nav-face-2: #234898;
+  --game-nav-depth: #10224e;
+  --game-nav-depth-hi: #1b3a7a;
 }
 
 .game-nav-btn--compact {
-  width: 6.4rem;
-  min-height: 4.35rem;
-  padding: 0.5rem 0.35rem 0.4rem;
-  border-radius: 1rem;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
-    0 6px 0 var(--game-nav-depth),
-    0 10px 16px rgba(0, 0, 0, 0.4);
+  --game-nav-shift-x: 4px;
+  --game-nav-shift-y: 6px;
+  width: 5.6rem;
+  min-height: 3.95rem;
+  padding: 0.4rem 0.28rem 0.32rem;
+  border-radius: 0.6rem;
 }
 
 .game-nav-btn:hover {
-  filter: brightness(1.08);
-  transform: translate3d(0, -2px, 0);
+  filter: brightness(1.1);
+  transform: translate3d(-1px, -2px, 0);
+}
+
+.game-nav-btn:hover::before {
+  transform: translate3d(7px, 11px, 0);
 }
 
 .game-nav-btn:active {
-  transform: translate3d(0, 7px, 0);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.28),
-    0 2px 0 var(--game-nav-depth),
-    0 6px 10px rgba(0, 0, 0, 0.35);
+  filter: brightness(0.96);
+  transform: translate3d(var(--game-nav-shift-x), var(--game-nav-shift-y), 0);
 }
 
-.game-nav-btn--compact:active {
-  transform: translate3d(0, 5px, 0);
+.game-nav-btn:active::before {
+  transform: translate3d(var(--game-nav-shift-x), var(--game-nav-shift-y), 0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.game-nav-btn--compact:hover::before {
+  transform: translate3d(6px, 9px, 0);
 }
 
 .game-nav-btn--active {
-  outline: 2px solid rgba(255, 255, 255, 0.55);
-  outline-offset: 3px;
-  filter: saturate(1.12) brightness(1.06);
+  filter: saturate(1.14) brightness(1.08);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.22),
-    0 8px 0 var(--game-nav-depth),
-    0 0 22px color-mix(in srgb, var(--game-nav-face) 55%, transparent),
-    0 14px 22px rgba(0, 0, 0, 0.45);
+    inset 0 2px 0 rgba(255, 255, 255, 0.58),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+    0 0 0 2px rgba(255, 255, 255, 0.55),
+    0 0 18px color-mix(in srgb, var(--game-nav-face) 60%, transparent);
+}
+
+.game-nav-btn-icon-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
+.game-nav-btn--compact .game-nav-btn-icon-wrap {
+  width: 1.55rem;
+  height: 1.55rem;
 }
 
 .game-nav-btn-icon {
-  position: relative;
   display: grid;
   place-items: center;
   color: #fff;
   filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.28));
+}
+
+.game-nav-online-pip {
+  position: absolute;
+  right: -2px;
+  bottom: -1px;
+  width: 0.58rem;
+  height: 0.58rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 32% 28%, #bbf7d0 0%, #4ade80 42%, #16a34a 100%);
+  box-shadow:
+    0 0 0 2px #17357a,
+    0 0 8px rgba(74, 222, 128, 0.85);
+  animation: game-nav-online-pulse 1.8s ease-in-out infinite;
+}
+
+.game-nav-btn--compact .game-nav-online-pip {
+  width: 0.5rem;
+  height: 0.5rem;
+  right: -1px;
+  bottom: -1px;
+}
+
+@keyframes game-nav-online-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px #17357a,
+      0 0 6px rgba(74, 222, 128, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px #17357a,
+      0 0 11px rgba(74, 222, 128, 1);
+  }
 }
 
 .game-nav-btn-label {
@@ -385,10 +449,16 @@
 
 @media (prefers-reduced-motion: reduce) {
   .game-nav-btn,
+  .game-nav-btn::before,
   .game-nav-btn:hover,
-  .game-nav-btn:active {
+  .game-nav-btn:hover::before,
+  .game-nav-btn:active,
+  .game-nav-btn:active::before {
     transition: none;
     transform: none;
+  }
+  .game-nav-online-pip {
+    animation: none;
   }
 }
 
