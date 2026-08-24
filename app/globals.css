@@ -66,83 +66,85 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-/* Pennello liquid glass sotto logo + Tournaments.
-   A riposo: rettangolo chiaro che sfuma a destra.
-   Allo scroll: si espande a tutto l'header. */
-.header-brand-glass {
-  isolation: isolate;
-  position: absolute;
-  z-index: 0;
-  pointer-events: none;
-  left: 0.75rem;
-  top: 0.6rem;
-  width: min(20.5rem, 82%);
-  height: 3.15rem;
-  border-radius: 0.7rem;
-  background: linear-gradient(
-    105deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(255, 250, 244, 0.52) 52%,
-    rgba(255, 255, 255, 0.1) 78%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  backdrop-filter: blur(18px) saturate(1.6);
-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  -webkit-mask-image: linear-gradient(
-    90deg,
-    #000 0%,
-    #000 56%,
-    rgba(0, 0, 0, 0.4) 80%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    90deg,
-    #000 0%,
-    #000 56%,
-    rgba(0, 0, 0, 0.4) 80%,
-    transparent 100%
-  );
-  transform: translateZ(0);
-  transition:
-    left 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    top 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    background 0.4s ease,
-    box-shadow 0.4s ease;
+/* Pennello luminoso sotto logo + Tournaments: niente box, sfuma in
+   tutte le direzioni. Allo scroll l'alone si allarga a tutto l'header. */
+@property --brand-brush-w {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 11.5rem;
+}
+@property --brand-brush-h {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 1.7rem;
+}
+@property --brand-brush-x {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 7.4rem;
+}
+@property --brand-brush-y {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 2.15rem;
 }
 
-@media (min-width: 640px) {
-  .header-brand-glass {
-    left: 1.25rem;
-    top: 0.7rem;
-    width: min(24rem, 58%);
-    height: 3.4rem;
-  }
+.header-brand-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  --brand-brush-w: 11.5rem;
+  --brand-brush-h: 1.7rem;
+  --brand-brush-x: 7.4rem;
+  --brand-brush-y: 2.15rem;
+  background: radial-gradient(
+    ellipse var(--brand-brush-w) var(--brand-brush-h) at var(--brand-brush-x) var(--brand-brush-y),
+    rgba(255, 251, 244, 0.94) 0%,
+    rgba(255, 236, 214, 0.5) 42%,
+    rgba(255, 255, 255, 0.12) 68%,
+    transparent 82%
+  );
+  transition:
+    --brand-brush-w 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    --brand-brush-h 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    --brand-brush-x 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    --brand-brush-y 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.45s ease,
+    backdrop-filter 0.45s ease,
+    -webkit-backdrop-filter 0.45s ease,
+    box-shadow 0.45s ease;
+}
+
+.header-brand-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 7rem 0.9rem at 6.2rem 1.7rem,
+    rgba(255, 255, 255, 0.55) 0%,
+    transparent 72%
+  );
+  transition: opacity 0.4s ease, background 0.45s ease;
 }
 
 .header-brand-glass[data-expanded='true'] {
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.64) 0%,
-    rgba(248, 250, 252, 0.5) 100%
-  );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    0 12px 28px -18px rgba(0, 0, 0, 0.45);
-  -webkit-mask-image: linear-gradient(#000, #000);
-  mask-image: linear-gradient(#000, #000);
+  --brand-brush-w: 80rem;
+  --brand-brush-h: 4.6rem;
+  --brand-brush-x: 50%;
+  --brand-brush-y: 50%;
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.header-brand-glass[data-expanded='true']::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, transparent 42%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .header-brand-glass {
+  .header-brand-glass,
+  .header-brand-glass::after {
     transition: none;
   }
 }
