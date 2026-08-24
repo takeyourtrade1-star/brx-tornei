@@ -56,6 +56,15 @@ export interface FriendSummary {
   ebartexUsername?: string | null;
 }
 
+/** Duellante recente dalla reputazione, per l'aggiunta rapida in tab Amici. */
+export interface RecentOpponent {
+  gamertag: string;
+  lastOutcome: 'win' | 'loss' | 'abandoned' | 'disputed';
+  /** "Oggi", "Ieri", "Recente" — niente timestamp precisi. */
+  lastPlayedText: string;
+  matches: number;
+}
+
 export interface FriendRequestItem {
   id: string;
   gamertag: string;

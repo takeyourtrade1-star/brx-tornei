@@ -10,7 +10,8 @@ import {
   removeFriendAction,
   respondFriendRequestAction,
 } from '@/actions/social';
-import type { FriendRequestItem, FriendSummary } from '@/types/social';
+import { getRecentOpponentsAction } from '@/actions/social-recent';
+import type { FriendRequestItem, FriendSummary, RecentOpponent } from '@/types/social';
 import { FriendSearch } from './friend-search';
 import { FriendRequestsList } from './friend-requests-list';
 import { FriendsListPanel } from './friends-list-panel';
@@ -41,6 +42,7 @@ export function FriendsDrawer({
   const [tab, setTab] = useState<TabType>('friends');
   const [friends, setFriends] = useState<FriendSummary[]>([]);
   const [requests, setRequests] = useState<FriendRequestItem[]>([]);
+  const [recentOpponents, setRecentOpponents] = useState<RecentOpponent[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -64,12 +66,14 @@ export function FriendsDrawer({
     setLoading(true);
     setLoadError(null);
     try {
-      const [friendsRes, reqRes] = await Promise.all([
+      const [friendsRes, reqRes, recentRes] = await Promise.all([
         getFriendsListAction(),
         getFriendRequestsAction(),
+        getRecentOpponentsAction(),
       ]);
       if (friendsRes.ok && friendsRes.data) setFriends(friendsRes.data);
       if (reqRes.ok && reqRes.data) setRequests(reqRes.data);
+      if (recentRes.ok && recentRes.data) setRecentOpponents(recentRes.data);
       const error = !friendsRes.ok ? friendsRes.error : !reqRes.ok ? reqRes.error : null;
       if (error) setLoadError(error);
     } catch {
@@ -186,11 +190,14 @@ export function FriendsDrawer({
             <FriendsListPanel
               loading={loading}
               friends={friends}
+              requests={requests}
+              recentOpponents={recentOpponents}
               onSearch={() => setTab('search')}
               onShowQr={() => setQrOpen(true)}
               onOpenProfile={onOpenProfile}
               onChallenge={onChallenge}
               onRemove={handleRemoveFriend}
+              onRecentAdded={() => void loadData()}
             />
           )}
 
