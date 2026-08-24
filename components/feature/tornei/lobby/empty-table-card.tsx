@@ -44,8 +44,8 @@ export function EmptyTableCard({ table, busy, createLocked = false, onSit }: Emp
         }
       }}
       className={cn(
-        'arena-table-card group flex cursor-pointer flex-col items-stretch gap-3 rounded-2xl border-2 border-dashed border-white/25 bg-white/[0.03] px-3.5 py-2.5 backdrop-blur-sm transition',
-        'hover:border-primary/55 hover:bg-primary/[0.06] active:scale-[0.995] sm:flex-row sm:items-center sm:gap-4 sm:px-4',
+        'arena-table-card group flex cursor-pointer flex-col items-stretch gap-2.5 rounded-2xl border-2 border-dashed border-white/25 bg-white/[0.02] px-3 py-2 backdrop-blur-sm transition',
+        'hover:border-primary/55 hover:bg-primary/[0.05] active:scale-[0.995] sm:flex-row sm:items-center sm:gap-3.5 sm:px-4',
         busy && 'cursor-not-allowed opacity-60',
       )}
     >

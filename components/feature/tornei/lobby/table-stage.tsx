@@ -26,7 +26,7 @@ export function TableStage({ far, near, tone, compact = false }: TableStageProps
         <div className={cn('table-3d table-3d--mini', `table-3d--${tone}`)}>
           <div className="table-3d-felt" aria-hidden />
           <span className="table-3d-invite" aria-hidden>
-            <UserPlus className="h-3.5 w-3.5" />
+            <UserPlus className="h-4 w-4" />
           </span>
         </div>
       </div>
@@ -38,6 +38,8 @@ export function TableStage({ far, near, tone, compact = false }: TableStageProps
       <TablePlayerToken seat={far} align="far" />
 
       <div className={cn('table-3d', `table-3d--${tone}`)}>
+        <span className="table-3d-glow" aria-hidden />
+        <div className="table-3d-rail" aria-hidden />
         <div className="table-3d-felt" aria-hidden>
           <span className="table-3d-card table-3d-card--l" />
           <span className="table-3d-card table-3d-card--r" />
