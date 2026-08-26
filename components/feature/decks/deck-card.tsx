@@ -7,9 +7,13 @@ interface DeckCardProps {
   card: DeckCardType;
   maxQuantity: number;
   onChangeQuantity: (quantity: number) => void;
-  onMove: () => void;
+  onMove?: () => void;
   onRemove: () => void;
-  moveLabel: string;
+  moveLabel?: string;
+  commanderControl?: {
+    selected: boolean;
+    onSelect: () => void;
+  };
 }
 
 export function DeckCard({
@@ -19,6 +23,7 @@ export function DeckCard({
   onMove,
   onRemove,
   moveLabel,
+  commanderControl,
 }: DeckCardProps) {
   const imageUrl = getCardImageUrl(card.image);
   return (
@@ -64,13 +69,25 @@ export function DeckCard({
       </div>
 
       <div className="flex shrink-0 flex-col gap-1.5">
-        <button
-          type="button"
-          onClick={onMove}
-          className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase text-white/80 transition-colors hover:bg-white/20"
-        >
-          {moveLabel}
-        </button>
+        {commanderControl ? (
+          <button
+            type="button"
+            onClick={commanderControl.onSelect}
+            disabled={commanderControl.selected || card.quantity !== 1}
+            title={card.quantity !== 1 ? 'Il comandante deve essere una singola carta' : undefined}
+            className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold uppercase text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {commanderControl.selected ? 'Comandante' : 'Imposta'}
+          </button>
+        ) : onMove && moveLabel ? (
+          <button
+            type="button"
+            onClick={onMove}
+            className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase text-white/80 transition-colors hover:bg-white/20"
+          >
+            {moveLabel}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onRemove}

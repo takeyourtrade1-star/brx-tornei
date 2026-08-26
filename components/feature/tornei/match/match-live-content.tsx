@@ -31,6 +31,7 @@ import { reconnectingLabel } from './match-live-parts';
 import { MatchReadyPanel } from './match-ready-panel';
 import { MatchResultPendingPanel } from './match-result-pending';
 import { MatchVideoGrid } from './match-video-grid';
+import { OpponentDeckReveal } from './opponent-deck-reveal';
 
 interface MatchLiveContentProps {
   tournament: Tournament; me: string; userId: string; isHost: boolean;
@@ -164,12 +165,15 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
             resultScore={resultScore}
           >
             {isPlayer && (
-              <MatchEndFeedback
-                matchId={tournament.matchId ?? null}
-                endReason={tournament.endReason}
-                didIWin={didIWin}
-                opponentName={remote.username}
-              />
+              <>
+                <OpponentDeckReveal opponent={remote} formatName={formatName} />
+                <MatchEndFeedback
+                  matchId={tournament.matchId ?? null}
+                  endReason={tournament.endReason}
+                  didIWin={didIWin}
+                  opponentName={remote.username}
+                />
+              </>
             )}
           </MatchEndedPanel>
         </>

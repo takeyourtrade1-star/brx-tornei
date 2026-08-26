@@ -3,9 +3,11 @@ import type {
   BuyIn,
   ConnectionQuality,
   Participant,
+  ParticipantDeck,
   Tournament,
   TournamentStatus,
 } from '@/types/tournament';
+import type { DeckCard } from '@/types/deck';
 import type { FormatId, ModeId } from '@/lib/data/catalog';
 
 const VALID_STATUS: TournamentStatus[] = ['in_registrazione', 'iniziata', 'terminata'];
@@ -41,6 +43,49 @@ function pickNumber(obj: Record<string, unknown>, ...keys: string[]): number | u
     if (typeof value === 'number' && Number.isFinite(value)) return value;
   }
   return undefined;
+}
+
+function mapParticipantDeckCard(raw: unknown): DeckCard | null {
+  const obj = asRecord(raw);
+  if (!obj) return null;
+  const id = pickString(obj, 'id');
+  const name = pickString(obj, 'name');
+  const quantity = pickNumber(obj, 'quantity');
+  if (!id || !name || !quantity || !Number.isInteger(quantity) || quantity < 1) return null;
+  return {
+    id,
+    name,
+    quantity,
+    image: pickString(obj, 'image') ?? null,
+    setName: pickString(obj, 'set_name', 'setName'),
+    setCode: pickString(obj, 'set_code', 'setCode'),
+    rarity: pickString(obj, 'rarity'),
+    collectorNumber: pickString(obj, 'collector_number', 'collectorNumber'),
+    oracleId: pickString(obj, 'oracle_id', 'oracleId'),
+    scryfallId: pickString(obj, 'scryfall_id', 'scryfallId'),
+    isCommander: pickBool(obj, 'is_commander', 'isCommander'),
+  };
+}
+
+function mapParticipantDeckCards(raw: unknown): DeckCard[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.map(mapParticipantDeckCard).filter((card): card is DeckCard => card !== null);
+}
+
+function mapParticipantDeck(raw: unknown): ParticipantDeck | undefined {
+  const obj = asRecord(raw);
+  if (!obj) return undefined;
+  const name = pickString(obj, 'name');
+  if (!name) return undefined;
+  const verification = pickString(obj, 'verification_status', 'verificationStatus');
+  return {
+    id: pickString(obj, 'id'),
+    name,
+    archetype: pickString(obj, 'archetype', 'archetype_id', 'archetypeId'),
+    verified: pickBool(obj, 'verified') ?? verification === 'verified',
+    main: mapParticipantDeckCards(obj.main),
+    side: mapParticipantDeckCards(obj.side),
+  };
 }
 
 function pickEnum<T extends string>(
@@ -84,6 +129,7 @@ function mapParticipant(raw: unknown): Participant | null {
     username,
     ready: pickBool(obj, 'ready', 'is_ready') ?? false,
     connection,
+    deck: mapParticipantDeck(obj.deck),
   };
 }
 

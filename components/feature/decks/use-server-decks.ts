@@ -1,11 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
-import { createDeckAction, deleteDeckAction, updateDeckAction } from '@/actions/decks';
+import {
+  confirmDeckAction,
+  createDeckAction,
+  deleteDeckAction,
+  updateDeckAction,
+} from '@/actions/decks';
 import {
   addCardToDeck,
   moveCardInDeck,
   removeCardFromDeck,
+  setCommanderInDeck,
   updateCardQtyInDeck,
 } from '@/lib/data/deck-mutations';
 import type { Deck } from '@/types/deck';
@@ -31,7 +37,7 @@ export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOpti
   const [dirtyDeckIds, setDirtyDeckIds] = useState<ReadonlySet<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
+  const [isConfirming, setIsConfirming] = useState(false);
   const clearError = useCallback(() => setError(null), []);
 
   const decksRef = useRef(decks);
@@ -193,21 +199,52 @@ export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOpti
     [patchDeck]
   );
 
+  const setCommander = useCallback(
+    (deckId: string, blueprintId: number) => {
+      patchDeck(deckId, (deck) => setCommanderInDeck(deck, blueprintId));
+    },
+    [patchDeck],
+  );
+
+  const confirmDeck = useCallback(async (deckId: string) => {
+    const deck = decksRef.current.find((item) => item.id === deckId);
+    if (!deck || isTempDeckId(deck.id)) {
+      const message = 'Attendi la creazione del mazzo prima di confermare.';
+      setError(message);
+      return { error: message };
+    }
+
+    setError(null);
+    setIsConfirming(true);
+    setDirtyDeckIds((previous) => {
+      if (!previous.has(deckId)) return previous;
+      const next = new Set(previous);
+      next.delete(deckId);
+      return next;
+    });
+    let result: Awaited<ReturnType<typeof confirmDeckAction>>;
+    try {
+      result = await confirmDeckAction({ deckId, main: deck.main, side: deck.side });
+    } catch {
+      result = { error: 'Impossibile confermare il mazzo. Riprova.' };
+    } finally {
+      setIsConfirming(false);
+    }
+    if ('error' in result) {
+      setError(result.error);
+      onError?.(result.error);
+      return result;
+    }
+    setDecks((previous) => previous.map((item) => item.id === deckId ? result.deck : item));
+    return result;
+  }, [onError]);
+
   const getDeck = useCallback((deckId: string) => decks.find((d) => d.id === deckId), [decks]);
   const setDeckState = useCallback((next: Deck[]) => setDecks(next), []);
 
   return {
-    decks,
-    error,
-    clearError,
-    isPending,
-    createDeck,
-    deleteDeck,
-    addCard,
-    removeCard,
-    updateQuantity,
-    moveCard,
-    getDeck,
-    setDeckState,
+    decks, error, clearError, isPending, isConfirming,
+    createDeck, deleteDeck, addCard, removeCard, updateQuantity, moveCard,
+    setCommander, confirmDeck, getDeck, setDeckState,
   };
 }

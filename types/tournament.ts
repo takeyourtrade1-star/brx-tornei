@@ -1,5 +1,6 @@
 import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { BuyIn } from '@/lib/data/buy-in';
+import type { DeckCard } from '@/types/deck';
 
 /** "Forma" dal mockup: best-of (2/3 = BO3, 3/5 = BO5). */
 export type BestOf = 'BO1' | 'BO3' | 'BO5';
@@ -8,11 +9,15 @@ export type TournamentStatus = 'in_registrazione' | 'iniziata' | 'terminata';
 
 /** Mazzo dichiarato/verificato dal giocatore per la partita (se disponibile). */
 export interface ParticipantDeck {
+  id?: string;
   name: string;
   /** Archetipo/tipologia (es. "Aggro"), se noto. */
   archetype?: string;
   /** Stato verifica del mazzo per questa partita. */
   verified?: boolean;
+  /** Snapshot delle carte usate; esposto ai due giocatori solo a partita finita. */
+  main?: DeckCard[];
+  side?: DeckCard[];
 }
 
 export type ConnectionQualityLevel = 'good' | 'fair' | 'poor';

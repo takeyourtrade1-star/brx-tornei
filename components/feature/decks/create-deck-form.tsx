@@ -41,7 +41,7 @@ export const FORMAT_META: Record<FormatId, { color: string; hint: string }> = {
   standard: { color: '#9aa3ad', hint: 'rotazione biennale' },
   legacy: { color: '#a855f7', hint: 'tutte le carte, no banlist ristretta' },
   pauper: { color: '#78d64b', hint: 'solo carte comuni · 60 carte' },
-  commander: { color: '#22c55e', hint: '100 carte · multiplayer' },
+  commander: { color: '#22c55e', hint: '99 carte + 1 comandante' },
 };
 
 const ARCHETYPE_ICON_CLASS = 'h-3.5 w-3.5';

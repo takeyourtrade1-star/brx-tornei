@@ -19,6 +19,7 @@ interface TableSeatModalProps {
   formatName: string;
   myUsername: string;
   opponentUsername?: string | null;
+  currentDeckId?: string;
   busy?: boolean;
   error?: string | null;
   onClose: () => void;
@@ -35,6 +36,7 @@ export function TableSeatModal({
   formatName,
   myUsername,
   opponentUsername,
+  currentDeckId,
   busy = false,
   error,
   onClose,
@@ -52,17 +54,22 @@ export function TableSeatModal({
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    if (!open || mode === 'host') return;
+    if (!open) return;
     setCreateError(null);
     startLoad(async () => {
       const result = await listDecksAction();
       if ('decks' in result) {
         const compatible = result.decks.filter((deck) => deck.formatId === formatId);
         setDecks(compatible);
-        setSelected(compatible[0]?.id ?? IGNORE_DECK);
+        const currentIsCompatible = compatible.some((deck) => deck.id === currentDeckId);
+        setSelected(
+          currentIsCompatible
+            ? currentDeckId!
+            : mode === 'join' ? (compatible[0]?.id ?? IGNORE_DECK) : IGNORE_DECK,
+        );
       }
     });
-  }, [open, mode, formatId]);
+  }, [open, mode, formatId, currentDeckId]);
 
   useLobbyModal(open && mounted, dialogRef, onClose, busy);
 
@@ -115,7 +122,7 @@ export function TableSeatModal({
           descriptionId="table-seat-description"
           title={isHost ? 'Il tuo posto è pronto' : 'Siediti al tavolo'}
           description={isHost
-            ? 'Controlla il tavolo e resta qui mentre aspetti il tuo avversario.'
+            ? 'Associa il mazzo che userai e resta qui mentre aspetti il tuo avversario.'
             : 'Scegli il mazzo e controlla i posti prima di entrare.'}
           meta={[formatName, 'Best of 3', '2 giocatori']}
           onClose={onClose}
@@ -123,21 +130,19 @@ export function TableSeatModal({
         />
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
-          {!isHost && (
-            <TableSeatDeckSection
-              formatName={formatName}
-              decks={decks}
-              selected={selected}
-              ignoreDeckValue={IGNORE_DECK}
-              loading={loadingDecks}
-              newDeckName={newDeckName}
-              creating={creating}
-              createError={createError}
-              onSelect={setSelected}
-              onNameChange={setNewDeckName}
-              onCreate={() => void handleCreateDeck()}
-            />
-          )}
+          <TableSeatDeckSection
+            formatName={formatName}
+            decks={decks}
+            selected={selected}
+            ignoreDeckValue={IGNORE_DECK}
+            loading={loadingDecks}
+            newDeckName={newDeckName}
+            creating={creating}
+            createError={createError}
+            onSelect={setSelected}
+            onNameChange={setNewDeckName}
+            onCreate={() => void handleCreateDeck()}
+          />
           <TableSeatBoard
             myUsername={myUsername}
             opponentUsername={opponentUsername}
@@ -164,9 +169,9 @@ export function TableSeatModal({
               </button>
               <PrimaryAction
                 busy={busy}
-                onClick={onClose}
-                label="Torna alla lobby"
-                busyLabel="Attendi…"
+                onClick={() => onConfirmJoin?.(deckIdToSubmit)}
+                label="Salva mazzo e torna"
+                busyLabel="Salvataggio…"
                 initialFocus
               />
             </div>

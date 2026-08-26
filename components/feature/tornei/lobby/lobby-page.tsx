@@ -267,8 +267,9 @@ export function LobbyPage({
       }
 
       if (table.kind === 'joinable' && table.tournament) {
-        // Seduta diretta, nessun modale intermedio: ci si siede e basta.
-        sitAtNewTable(table.tournament.id);
+        // Il mazzo è facoltativo, ma va associato prima della seduta per poter
+        // mostrare lo snapshot all'avversario solo a partita conclusa.
+        setModal({ mode: 'join', tournamentId: table.tournament.id });
         return;
       }
 
@@ -381,6 +382,11 @@ export function LobbyPage({
         formatName={formatName}
         myUsername={myUsername}
         opponentUsername={modal ? opponentFor(modal.tournamentId) : null}
+        currentDeckId={modal
+          ? tournaments
+              .find((tournament) => tournament.id === modal.tournamentId)
+              ?.participants.find((participant) => participant.id === user.id)?.deck?.id
+          : undefined}
         busy={busy}
         error={error}
         onClose={() => {

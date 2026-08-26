@@ -128,7 +128,7 @@ export async function joinTournamentAction(
     const result = await joinTournament(tournamentId, {
       id: session.user.id,
       username: session.user.name ?? session.user.email,
-    });
+    }, parsed.data.deckId || undefined);
     revalidatePath('/tornei');
     revalidatePath(`/tornei/${tournamentId}/live`);
     return {

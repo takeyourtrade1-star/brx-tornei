@@ -15,12 +15,18 @@ export const deckCardSchema = z.object({
   oracleId: z.string().max(128).optional(),
   scryfallId: z.string().max(128).optional(),
   tournamentLegalities: z.custom<TournamentLegalities>().optional(),
+  isCommander: z.boolean().optional(),
 });
 
 export const updateDeckSchema = z.object({
   deckId: z.string().min(1),
   main: z.array(deckCardSchema).max(250).optional(),
   side: z.array(deckCardSchema).max(100).optional(),
+});
+
+export const confirmDeckSchema = updateDeckSchema.extend({
+  main: z.array(deckCardSchema).max(250),
+  side: z.array(deckCardSchema).max(100),
 });
 
 export const validateLegalitySchema = z.object({

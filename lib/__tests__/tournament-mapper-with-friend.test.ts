@@ -47,4 +47,38 @@ describe('mapTournamentFromApi with_friend', () => {
     expect(mapped?.resultRound).toBe(2);
     expect(mapped?.resultReselectionRequired).toBe(true);
   });
+
+  it('mappa lo snapshot del mazzo e il comandante dell’avversario', () => {
+    const mapped = mapTournamentFromApi({
+      ...baseTournament,
+      participants: [
+        {
+          id: 'player-2',
+          username: 'Opponent',
+          deck: {
+            id: 'deck-2',
+            name: 'Verde Commander',
+            archetypeId: 'ramp',
+            verificationStatus: 'verified',
+            main: [
+              { id: 'card-1', name: 'Atraxa', quantity: 1, isCommander: true },
+              { id: 'card-2', name: 'Forest', quantity: 99 },
+            ],
+            side: [],
+          },
+        },
+      ],
+    });
+
+    expect(mapped?.participants[0]?.deck).toMatchObject({
+      id: 'deck-2',
+      name: 'Verde Commander',
+      archetype: 'ramp',
+      verified: true,
+    });
+    expect(mapped?.participants[0]?.deck?.main?.[0]).toMatchObject({
+      name: 'Atraxa',
+      isCommander: true,
+    });
+  });
 });

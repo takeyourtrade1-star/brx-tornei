@@ -1,17 +1,16 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { ArrowLeft, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { validateDeckLegalityAction } from '@/actions/decks';
 import { getFormat } from '@/lib/data/catalog';
 import { getDeckArchetype } from '@/lib/data/deck-archetypes';
-import { getMaxQuantityForDeckRow } from '@/lib/deck-copy-limits';
-import { countCards, getMainDeckMinSize, getSideboardMaxSize } from '@/lib/data/deck-utils';
+import { countCards, getMainDeckMinSize } from '@/lib/data/deck-utils';
+import { getDeckStructureIssues } from '@/lib/deck-structure';
 import type { CardCatalogHit } from '@/types/card';
 import type { DeckLegalityIssue } from '@/types/card-legality';
 import type { Deck } from '@/types/deck';
-import { DeckCard } from './deck-card';
-import { DeckCardSearch } from './deck-card-search';
+import { DeckBuilderSections } from './deck-builder-sections';
 import { DeckLegalityPanel } from './deck-legality-panel';
 
 interface DeckBuilderProps {
@@ -26,8 +25,12 @@ interface DeckBuilderProps {
   ) => void;
   onMoveCard: (blueprintId: number, from: 'main' | 'side', to: 'main' | 'side') => void;
   onRemoveCard: (blueprintId: number, section: 'main' | 'side') => void;
+  onSetCommander?: (blueprintId: number) => void;
+  onConfirmDeck?: () => void;
   onDeleteDeck: () => void;
   onDeckPatched?: (deck: Deck) => void;
+  confirming?: boolean;
+  saveError?: string | null;
 }
 
 export function DeckBuilder({
@@ -37,8 +40,12 @@ export function DeckBuilder({
   onUpdateQuantity,
   onMoveCard,
   onRemoveCard,
+  onSetCommander,
+  onConfirmDeck,
   onDeleteDeck,
   onDeckPatched,
+  confirming = false,
+  saveError,
 }: DeckBuilderProps) {
   const [legalityIssues, setLegalityIssues] = useState<DeckLegalityIssue[]>(
     deck.legalityErrors ?? []
@@ -49,10 +56,9 @@ export function DeckBuilder({
   const format = getFormat(deck.formatId);
   const archetype = getDeckArchetype(deck.archetypeId);
   const mainCount = countCards(deck.main);
-  const sideCount = countCards(deck.side);
-  const minMain = getMainDeckMinSize(deck.formatId);
-  const maxSide = getSideboardMaxSize(deck.formatId);
-  const isSizeLegal = mainCount >= minMain && sideCount <= maxSide;
+  const targetMain = getMainDeckMinSize(deck.formatId);
+  const structureIssues = getDeckStructureIssues(deck);
+  const structureComplete = structureIssues.length === 0;
 
   const legalityBadge = (() => {
     if (legal === true) return 'bg-emerald-500/20 text-emerald-300';
@@ -79,22 +85,6 @@ export function DeckBuilder({
       if (res.deck) onDeckPatched?.(res.deck);
     });
   };
-
-  const mainMaxQty = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const card of deck.main) {
-      map.set(Number(card.id), getMaxQuantityForDeckRow(deck.formatId, card, deck.main, deck.side, 'main'));
-    }
-    return map;
-  }, [deck.formatId, deck.main, deck.side]);
-
-  const sideMaxQty = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const card of deck.side) {
-      map.set(Number(card.id), getMaxQuantityForDeckRow(deck.formatId, card, deck.main, deck.side, 'side'));
-    }
-    return map;
-  }, [deck.formatId, deck.main, deck.side]);
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -123,10 +113,10 @@ export function DeckBuilder({
           </span>
           <span
             className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${
-              isSizeLegal ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+              structureComplete ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
             }`}
           >
-            {isSizeLegal ? 'Dimensioni OK' : 'In costruzione'}
+            {structureComplete ? `${mainCount}/${targetMain} pronto` : 'In costruzione'}
           </span>
           <button
             type="button"
@@ -144,103 +134,44 @@ export function DeckBuilder({
           >
             Elimina
           </button>
+          <button
+            type="button"
+            onClick={onConfirmDeck}
+            disabled={!onConfirmDeck || !structureComplete || confirming || deck.id.startsWith('temp-')}
+            title={structureIssues[0]?.message}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-3 py-1.5 text-xs font-black uppercase text-white shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {confirming ? 'Salvataggio…' : 'Conferma mazzo'}
+          </button>
         </div>
       </div>
 
-      <DeckLegalityPanel issues={legalityIssues} loading={isPending} legal={legal} />
+      {!structureComplete && (
+        <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100">
+          {structureIssues[0]?.message}
+        </p>
+      )}
+      {saveError && (
+        <p role="alert" className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200">
+          {saveError}
+        </p>
+      )}
 
-      <div className="grid min-h-[420px] grid-cols-1 gap-4 lg:grid-cols-3 lg:min-h-[520px]">
-        <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-3 lg:min-h-0">
-          <DeckCardSearch
-            formatId={deck.formatId}
-            main={deck.main}
-            side={deck.side}
-            sideCount={sideCount}
-            onAddCard={onAddCard}
-          />
-        </div>
+      <DeckLegalityPanel
+        issues={legalityIssues}
+        loading={isPending}
+        legal={legal}
+      />
 
-        <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-3 lg:min-h-0">
-          <div className="mb-1 flex items-center justify-between">
-            <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
-              Main deck
-            </p>
-            <span
-              className={`text-[11px] font-bold ${mainCount >= minMain ? 'text-emerald-300' : 'text-white/50'}`}
-            >
-              {mainCount}/{minMain}
-            </span>
-          </div>
-          <div className="mb-2 h-1 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${minMain > 0 ? Math.min(100, Math.round((mainCount / minMain) * 100)) : 100}%`,
-                backgroundColor: mainCount >= minMain ? '#34d399' : '#FF7300',
-              }}
-            />
-          </div>
-          <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
-            {deck.main.length === 0 ? (
-              <p className="py-6 text-center text-xs text-white/40">
-                Cerca una carta e aggiungila al main deck
-              </p>
-            ) : (
-              deck.main.map((card) => {
-                const bp = Number(card.id);
-                const max = mainMaxQty.get(bp) ?? 4;
-                return (
-                  <DeckCard
-                    key={bp}
-                    card={card}
-                    maxQuantity={max}
-                    onChangeQuantity={(q) => onUpdateQuantity(bp, 'main', q, max)}
-                    onMove={() => onMoveCard(bp, 'main', 'side')}
-                    onRemove={() => onRemoveCard(bp, 'main')}
-                    moveLabel="→ Side"
-                  />
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-3 lg:min-h-0">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">
-              Sideboard
-            </p>
-            <span className="text-[11px] font-bold text-white/50">
-              {sideCount}/{maxSide > 0 ? maxSide : '—'}
-            </span>
-          </div>
-          <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
-            {maxSide === 0 ? (
-              <p className="text-center text-xs text-white/40">Commander non usa sideboard</p>
-            ) : deck.side.length === 0 ? (
-              <p className="py-6 text-center text-xs text-white/40">
-                Aggiungi carte al sideboard dalla ricerca
-              </p>
-            ) : (
-              deck.side.map((card) => {
-                const bp = Number(card.id);
-                const max = sideMaxQty.get(bp) ?? 4;
-                return (
-                  <DeckCard
-                    key={bp}
-                    card={card}
-                    maxQuantity={max}
-                    onChangeQuantity={(q) => onUpdateQuantity(bp, 'side', q, max)}
-                    onMove={() => onMoveCard(bp, 'side', 'main')}
-                    onRemove={() => onRemoveCard(bp, 'side')}
-                    moveLabel="→ Main"
-                  />
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
+      <DeckBuilderSections
+        deck={deck}
+        onAddCard={onAddCard}
+        onUpdateQuantity={onUpdateQuantity}
+        onMoveCard={onMoveCard}
+        onRemoveCard={onRemoveCard}
+        onSetCommander={onSetCommander ?? (() => undefined)}
+      />
     </div>
   );
 }

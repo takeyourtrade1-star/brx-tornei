@@ -29,6 +29,8 @@ export interface DeckArchetype {
 
 export interface DeckCard extends CardCatalogHit {
   quantity: number;
+  /** Una sola carta del main può essere il comandante nei mazzi Commander. */
+  isCommander?: boolean;
 }
 
 export interface Deck {

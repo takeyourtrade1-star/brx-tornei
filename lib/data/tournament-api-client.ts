@@ -194,10 +194,13 @@ export async function postCreateTournament(
   return tournament;
 }
 
-export async function postJoinTournament(id: string): Promise<JoinTournamentResult> {
+export async function postJoinTournament(
+  id: string,
+  deckId?: string,
+): Promise<JoinTournamentResult> {
   const { ok, status, body } = await tournamentFetch(
     `/api/v1/tournaments/${encodeURIComponent(id)}/join`,
-    { method: 'POST', body: JSON.stringify({}) },
+    { method: 'POST', body: JSON.stringify({ deckId: deckId || null }) },
   );
   if (!ok) {
     throw extractApiError(body, status, 'Impossibile partecipare al torneo');

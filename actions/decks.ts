@@ -14,14 +14,10 @@ import {
 } from '@/lib/data/decks';
 import { TournamentApiError } from '@/lib/data/tournament-api-client';
 import { validateDeckLegalityWithScryfall } from '@/lib/deck-legality-with-scryfall';
+import { getDeckStructureIssues } from '@/lib/deck-structure';
 import { deckDiffIsClean, diffDeckVsScanned } from '@/lib/deck-verification';
 import { createDeckSchema } from '@/lib/validations/deck';
-import {
-  saveVerificationSchema,
-  updateDeckSchema,
-  validateLegalitySchema,
-  defaultPlaymatSchema,
-} from '@/lib/validations/deck-actions';
+import * as deckActionSchemas from '@/lib/validations/deck-actions';
 import { PLAYMAT_PREFERENCE_COOKIE } from '@/lib/playmat-preference';
 import type { Deck } from '@/types/deck';
 import type { DeckLegalityIssue } from '@/types/card-legality';
@@ -76,7 +72,7 @@ export async function updateDeckAction(
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
 
-  const parsed = updateDeckSchema.safeParse(input);
+  const parsed = deckActionSchemas.updateDeckSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }
@@ -92,6 +88,39 @@ export async function updateDeckAction(
     return { deck };
   } catch (error) {
     return deckActionError(error, 'Impossibile aggiornare il mazzo.');
+  }
+}
+
+/** Salvataggio esplicito finale: ricontrolla sul server quantità e comandante. */
+export async function confirmDeckAction(
+  input: unknown,
+): Promise<{ deck: Deck } | { error: string }> {
+  const session = await getSession();
+  if (!session) return { error: 'Sessione scaduta.' };
+
+  const parsed = deckActionSchemas.confirmDeckSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
+  }
+
+  try {
+    const current = await getDeckById(session.user.id, parsed.data.deckId);
+    if (!current) return { error: 'Mazzo non trovato.' };
+    const snapshot = { ...current, main: parsed.data.main, side: parsed.data.side };
+    const issue = getDeckStructureIssues(snapshot)[0];
+    if (issue) return { error: issue.message };
+
+    const deck = await saveDeckCards(
+      session.user.id,
+      parsed.data.deckId,
+      parsed.data.main,
+      parsed.data.side,
+    );
+    if (!deck) return { error: 'Mazzo non trovato.' };
+    revalidatePath('/mazzi');
+    return { deck };
+  } catch (error) {
+    return deckActionError(error, 'Impossibile confermare il mazzo.');
   }
 }
 
@@ -111,13 +140,11 @@ export async function deleteDeckAction(deckId: string): Promise<{ ok: true } | {
 
 export async function validateDeckLegalityAction(
   input: unknown
-): Promise<
-  { legal: boolean; issues: DeckLegalityIssue[]; deck?: Deck } | { error: string }
-> {
+): Promise<{ legal: boolean; issues: DeckLegalityIssue[]; deck?: Deck } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
 
-  const parsed = validateLegalitySchema.safeParse(input);
+  const parsed = deckActionSchemas.validateLegalitySchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }
@@ -178,7 +205,7 @@ export async function saveDeckVerificationAction(
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
 
-  const parsed = saveVerificationSchema.safeParse(input);
+  const parsed = deckActionSchemas.saveVerificationSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }
@@ -205,7 +232,7 @@ export async function saveDefaultPlaymatAction(
   const session = await getSession();
   if (!session) return { error: 'Sessione scaduta.' };
 
-  const parsed = defaultPlaymatSchema.safeParse(input);
+  const parsed = deckActionSchemas.defaultPlaymatSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }

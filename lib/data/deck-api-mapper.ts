@@ -7,7 +7,7 @@ import type { Deck } from '@/types/deck';
 const modeIds = [MODES[0].id, ...MODES.slice(1).map((mode) => mode.id)] as const;
 
 const legalityIssueSchema = z.object({
-  blueprintId: z.number().int().positive(),
+  blueprintId: z.number().int().nonnegative(),
   cardName: z.string().min(1).max(256),
   formatId: createDeckSchema.shape.formatId,
   status: z.enum(['legal', 'not_legal', 'restricted', 'banned']),

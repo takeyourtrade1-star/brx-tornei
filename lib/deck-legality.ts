@@ -1,5 +1,5 @@
 import type { FormatId } from '@/lib/data/catalog';
-import { countCards, getMainDeckMinSize, getSideboardMaxSize } from '@/lib/data/deck-utils';
+import { getDeckStructureIssues } from '@/lib/deck-structure';
 import { isLegalInFormatStatus, legalityLabel } from '@/lib/card-legality-label';
 import { getMaxCopiesForCard, getOracleKey } from '@/lib/deck-copy-limits';
 import type { DeckLegalityIssue } from '@/types/card-legality';
@@ -74,28 +74,11 @@ export function validateDeckLegality(deck: Deck, formatId: FormatId = deck.forma
   issues: DeckLegalityIssue[];
 } {
   const issues: DeckLegalityIssue[] = [];
-  const minMain = getMainDeckMinSize(formatId);
-  const maxSide = getSideboardMaxSize(formatId);
-  const mainCount = countCards(deck.main);
-  const sideCount = countCards(deck.side);
-
-  if (mainCount < minMain) {
+  for (const issue of getDeckStructureIssues({ ...deck, formatId })) {
     issues.push({
-      blueprintId: 0,
-      cardName: '—',
+      ...issue,
       formatId,
       status: 'not_legal',
-      message: `Main deck incompleto: ${mainCount}/${minMain} carte`,
-    });
-  }
-
-  if (sideCount > maxSide) {
-    issues.push({
-      blueprintId: 0,
-      cardName: '—',
-      formatId,
-      status: 'not_legal',
-      message: `Sideboard eccessivo: ${sideCount}/${maxSide} carte`,
     });
   }
 

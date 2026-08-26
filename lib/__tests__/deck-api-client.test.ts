@@ -78,6 +78,11 @@ describe('Deck API client', () => {
     });
     expect(mapDeckFromApi({ ...apiDeck, formatId: 'inventato' })).toBeNull();
     expect(mapDeckFromApi({ ...apiDeck, main: 'non-array' })).toBeNull();
+    expect(mapDeckFromApi({
+      ...apiDeck,
+      formatId: 'commander',
+      main: [{ id: 'commander', name: 'Atraxa', quantity: 1, isCommander: true }],
+    })?.main[0]?.isCommander).toBe(true);
   });
 
   it('carica la lista annidata in data', async () => {

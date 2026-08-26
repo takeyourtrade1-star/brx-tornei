@@ -34,6 +34,8 @@ export function MazziWorkspace({
 }: MazziWorkspaceProps) {
   const [deckView, setDeckView] = useState<'list' | 'builder'>('list');
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
+  const [createAnother, setCreateAnother] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleDeckIdRemap = useCallback((fromId: string, toId: string) => {
     setEditingDeckId((current) => (current === fromId ? toId : current));
@@ -49,9 +51,12 @@ export function MazziWorkspace({
     removeCard,
     updateQuantity,
     moveCard,
+    setCommander,
+    confirmDeck,
     getDeck,
     setDeckState,
     isPending,
+    isConfirming,
   } = useServerDecks(initialDecks, { onDeckIdRemap: handleDeckIdRemap });
 
   const editingDeck = useMemo(
@@ -61,9 +66,21 @@ export function MazziWorkspace({
 
   const handleCreateDeck = (input: CreateDeckInput) => {
     clearError();
+    setSuccessMessage(null);
+    setCreateAnother(false);
     const deck = createDeck(input);
     setEditingDeckId(deck.id);
     setDeckView('builder');
+  };
+
+  const handleConfirmDeck = async (deck: Deck) => {
+    clearError();
+    const result = await confirmDeck(deck.id);
+    if ('error' in result) return;
+    setSuccessMessage(`Mazzo “${deck.name}” salvato correttamente.`);
+    setCreateAnother(decks.length < MAX_DECKS_PER_USER);
+    setDeckView('list');
+    setEditingDeckId(null);
   };
 
   const handleDeckPatched = (deck: Deck) => {
@@ -165,6 +182,10 @@ export function MazziWorkspace({
               }
               onMoveCard={(bp, from, to) => moveCard(editingDeck.id, bp, from, to)}
               onRemoveCard={(bp, section) => removeCard(editingDeck.id, bp, section)}
+              onSetCommander={(bp) => setCommander(editingDeck.id, bp)}
+              onConfirmDeck={() => void handleConfirmDeck(editingDeck)}
+              confirming={isConfirming}
+              saveError={error}
               onDeleteDeck={() => {
                 deleteDeck(editingDeck.id);
                 setDeckView('list');
@@ -184,6 +205,10 @@ export function MazziWorkspace({
               isCreating={isPending}
               error={error}
               onClearError={clearError}
+              successMessage={successMessage}
+              onClearSuccess={() => setSuccessMessage(null)}
+              autoCreate={createAnother}
+              onAutoCreateConsumed={() => setCreateAnother(false)}
             />
           )}
         </div>

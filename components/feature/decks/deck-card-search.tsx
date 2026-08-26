@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import { getRemainingCopies } from '@/lib/deck-copy-limits';
 import { searchHitToCatalogHit } from '@/lib/search/catalog-hit-from-meili';
-import { getSideboardMaxSize } from '@/lib/data/deck-utils';
+import { countCards, getMainDeckMinSize, getSideboardMaxSize } from '@/lib/data/deck-utils';
 import type { CardCatalogHit } from '@/types/card';
 import type { FormatId } from '@/lib/data/catalog';
 import type { DeckCard } from '@/types/deck';
@@ -47,6 +47,8 @@ export function DeckCardSearch({
   const [error, setError] = useState<string | null>(null);
 
   const maxSide = getSideboardMaxSize(formatId);
+  const mainCount = countCards(main);
+  const mainTarget = getMainDeckMinSize(formatId);
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebounced(query.trim()), 350);
@@ -107,10 +109,11 @@ export function DeckCardSearch({
       const catalog = searchHitToCatalogHit(hit);
       const remaining = getRemainingCopies(formatId, catalog, main, side);
       if (remaining <= 0) return false;
+      if (section === 'main' && mainCount >= mainTarget) return false;
       if (section === 'side' && maxSide > 0 && sideCount >= maxSide) return false;
       return true;
     };
-  }, [formatId, main, side, maxSide, sideCount]);
+  }, [formatId, main, side, mainCount, mainTarget, maxSide, sideCount]);
 
   const handleAdd = (hit: SearchHit, section: 'main' | 'side') => {
     onAddCard(searchHitToCatalogHit(hit), section);

@@ -3,11 +3,16 @@ import { validateDeckLegality } from '@/lib/deck-legality';
 import { card, deck, legalities } from './test-helpers';
 
 describe('validateDeckLegality — taglie', () => {
-  it('main sotto la soglia minima', () => {
+  it('main sotto le 60 carte esatte', () => {
     const d = deck([card('Forest', 59, { oracleId: 'forest' })]);
     const { legal, issues } = validateDeckLegality(d);
     expect(legal).toBe(false);
-    expect(issues.some((i) => i.message.includes('Main deck incompleto'))).toBe(true);
+    expect(issues.some((i) => i.message.includes('esattamente 60'))).toBe(true);
+  });
+
+  it('main oltre le 60 carte non passa', () => {
+    const d = deck([card('Forest', 61, { oracleId: 'forest' })]);
+    expect(validateDeckLegality(d).legal).toBe(false);
   });
 
   it('sideboard oltre il massimo', () => {
@@ -19,14 +24,22 @@ describe('validateDeckLegality — taglie', () => {
     expect(issues.some((i) => i.message.includes('Sideboard eccessivo'))).toBe(true);
   });
 
-  it('Commander: min 100 e niente sideboard', () => {
+  it('Commander: 100 esatte, un comandante e niente sideboard', () => {
     const d = deck(
-      [card('Forest', 100, { oracleId: 'forest' })],
+      [
+        card('Commander Card', 1, { oracleId: 'commander', isCommander: true }),
+        card('Forest', 99, { oracleId: 'forest' }),
+      ],
       [card('Island', 1, { oracleId: 'island' })],
       'commander'
     );
     const { issues } = validateDeckLegality(d);
     expect(issues.some((i) => i.message.includes('Sideboard eccessivo'))).toBe(true);
+  });
+
+  it('Commander: senza comandante non passa anche con 100 carte', () => {
+    const d = deck([card('Forest', 100, { oracleId: 'forest' })], [], 'commander');
+    expect(validateDeckLegality(d).issues.some((i) => i.message.includes('imposta una carta'))).toBe(true);
   });
 });
 
@@ -69,7 +82,8 @@ describe('validateDeckLegality — limiti copie', () => {
     const d = deck(
       [
         card('Relentless Rats', 30, { oracleId: 'rats' }),
-        card('Swamp', 70, { oracleId: 'swamp' }),
+        card('Swamp', 69, { oracleId: 'swamp' }),
+        card('Commander Card', 1, { oracleId: 'commander', isCommander: true }),
       ],
       [],
       'commander'
@@ -79,14 +93,22 @@ describe('validateDeckLegality — limiti copie', () => {
 
   it('Seven Dwarves: 7 ok, 8 no — e il messaggio non è quello singleton', () => {
     const ok = deck(
-      [card('Seven Dwarves', 7, { oracleId: 'dwarves' }), card('Forest', 93, { oracleId: 'forest' })],
+      [
+        card('Seven Dwarves', 7, { oracleId: 'dwarves' }),
+        card('Forest', 92, { oracleId: 'forest' }),
+        card('Commander Card', 1, { oracleId: 'commander', isCommander: true }),
+      ],
       [],
       'commander'
     );
     expect(validateDeckLegality(ok).legal).toBe(true);
 
     const ko = deck(
-      [card('Seven Dwarves', 8, { oracleId: 'dwarves' }), card('Forest', 92, { oracleId: 'forest' })],
+      [
+        card('Seven Dwarves', 8, { oracleId: 'dwarves' }),
+        card('Forest', 91, { oracleId: 'forest' }),
+        card('Commander Card', 1, { oracleId: 'commander', isCommander: true }),
+      ],
       [],
       'commander'
     );
@@ -99,7 +121,11 @@ describe('validateDeckLegality — limiti copie', () => {
 
   it('Commander: seconda copia di una carta normale viola il singleton', () => {
     const d = deck(
-      [card('Sol Ring', 2, { oracleId: 'sol-ring' }), card('Forest', 98, { oracleId: 'forest' })],
+      [
+        card('Sol Ring', 2, { oracleId: 'sol-ring' }),
+        card('Forest', 97, { oracleId: 'forest' }),
+        card('Commander Card', 1, { oracleId: 'commander', isCommander: true }),
+      ],
       [],
       'commander'
     );

@@ -39,8 +39,9 @@ export async function createTournament(
 export async function joinTournament(
   id: string,
   _participant: Participant,
+  deckId?: string,
 ): Promise<JoinTournamentResult> {
-  return postJoinTournament(id);
+  return postJoinTournament(id, deckId);
 }
 
 export async function leaveTournament(id: string): Promise<void> {
