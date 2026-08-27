@@ -117,21 +117,17 @@ export function DashboardHeader({
   return (
     <>
       <header className="relative sticky top-0 z-40 w-full overflow-visible font-sans text-white">
-        <div
-          className="header-brand-glass"
-          data-expanded={scrolled ? 'true' : 'false'}
-          aria-hidden
-        />
         <div className="relative z-10 flex items-center justify-between gap-3 px-3 pb-5 pt-3 sm:px-5 sm:pt-3.5">
           <Link
             href={DEFAULT_TOURNAMENTS_PATH}
             aria-label="Tornei"
-            className="inline-flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-80"
+            className="header-scroll-brand min-w-0"
+            data-compact={scrolled ? 'true' : 'false'}
           >
-            <span className="hidden sm:inline-flex">
-              <BrxHeaderLogo variant="dark" size="compact" linked={false} />
+            <span className="header-scroll-brand-logo hidden sm:inline-flex">
+              <BrxHeaderLogo variant="light" size="compact" linked={false} />
             </span>
-            <span className="truncate font-display text-lg font-black uppercase tracking-[0.14em] text-primary sm:text-2xl">
+            <span className="header-scroll-brand-title truncate font-display font-black uppercase text-primary">
               Tournaments
             </span>
           </Link>
@@ -158,10 +154,7 @@ export function DashboardHeader({
               rel="noopener noreferrer"
               aria-label="Torna al marketplace Ebartex"
               title="Torna al marketplace Ebartex"
-              className={cn(
-                'inline-flex items-center gap-1 text-[11px] font-bold tracking-wide transition sm:text-xs',
-                scrolled ? 'text-slate-600 hover:text-slate-900' : 'text-white/40 hover:text-white/80',
-              )}
+              className="header-marketplace-glass inline-flex items-center gap-1 text-[11px] font-bold tracking-wide sm:text-xs"
             >
               <span>Ebartex</span>
               <ExternalLink className="h-3 w-3 opacity-70" aria-hidden />

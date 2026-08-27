@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { ArenaAtmosphere } from '@/components/layout/arena-atmosphere';
 import { runAuthBridgeFlow } from '@/lib/auth/bridge-client-flow';
 
 const runs = new Map<string, Promise<'next' | 'login'>>();
@@ -25,10 +26,11 @@ export function AuthBridgeRefresh({
   }, [loginPath, nextPath, nonce]);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-header-bg px-6 text-center text-white">
-      <div className="space-y-3">
+    <main className="relative grid min-h-screen place-items-center overflow-hidden px-6 text-center text-white">
+      <ArenaAtmosphere />
+      <div className="relative z-[1] space-y-3">
         <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
-        <p className="text-sm font-bold">Rinnovo sicuro della sessione…</p>
+        <p className="text-sm font-bold">Bentornato! Carico i tuoi tornei…</p>
       </div>
     </main>
   );

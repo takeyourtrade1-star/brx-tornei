@@ -51,6 +51,7 @@ export function DeckBuilder({
     deck.legalityErrors ?? []
   );
   const [legal, setLegal] = useState<boolean | undefined>(undefined);
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const format = getFormat(deck.formatId);
@@ -77,9 +78,14 @@ export function DeckBuilder({
   })();
 
   const runLegalityCheck = () => {
+    setCheckError(null);
     startTransition(async () => {
       const res = await validateDeckLegalityAction({ deckId: deck.id, formatId: deck.formatId });
-      if ('error' in res) return;
+      if ('error' in res) {
+        // L'errore va mostrato: senza feedback il bottone sembra morto/finto.
+        setCheckError(res.error);
+        return;
+      }
       setLegalityIssues(res.issues);
       setLegal(res.legal);
       if (res.deck) onDeckPatched?.(res.deck);
@@ -162,6 +168,7 @@ export function DeckBuilder({
         issues={legalityIssues}
         loading={isPending}
         legal={legal}
+        error={checkError}
       />
 
       <DeckBuilderSections

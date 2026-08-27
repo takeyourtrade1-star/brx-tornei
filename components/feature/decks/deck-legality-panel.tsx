@@ -6,13 +6,26 @@ interface DeckLegalityPanelProps {
   issues: DeckLegalityIssue[];
   loading?: boolean;
   legal?: boolean;
+  /** Errore dell'ultima verifica (sessione, rete, backend): mai silenzioso. */
+  error?: string | null;
 }
 
-export function DeckLegalityPanel({ issues, loading, legal }: DeckLegalityPanelProps) {
+export function DeckLegalityPanel({ issues, loading, legal, error }: DeckLegalityPanelProps) {
   if (loading) {
     return (
       <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/50">
         Verifica legalità Asso Vision in corso…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-200"
+      >
+        Verifica non completata: {error}
       </div>
     );
   }
