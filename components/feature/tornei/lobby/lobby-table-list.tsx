@@ -56,6 +56,26 @@ export function LobbyTableList({
         tabIndex={-1}
         className="mx-auto mt-6 flex w-full max-w-content animate-auth-enter flex-col px-4 pb-16 focus:outline-none sm:px-6"
       >
+        <div
+          role="note"
+          aria-label="Nei tornei puoi usare proxy a colori, purché siano copie 1:1 delle carte reali e perfettamente leggibili."
+          className="proxy-marquee mb-4 overflow-hidden rounded-full border border-marquee/25 bg-header-bg/70 text-[9px] font-bold uppercase tracking-[0.16em] text-marquee backdrop-blur-sm whitespace-nowrap sm:text-[10px]"
+        >
+          <div className="proxy-marquee-track flex w-max" aria-hidden="true">
+            {[0, 1].map((copy) => (
+              <span
+                key={copy}
+                className="inline-flex shrink-0 items-center gap-3 px-5 py-1.5 sm:px-7"
+              >
+                <span className="text-primary">Proxy OK</span>
+                <span className="text-white/30">·</span>
+                <span>Nei tornei puoi usare proxy a colori, purché siano copie 1:1 delle carte reali e perfettamente leggibili.</span>
+                <span className="text-white/30">✦</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
         <ReputationSummary reputation={reputation} />
 
         {/* Card unica dei selettori: Formato (1) e Modalità (2) vivono nello

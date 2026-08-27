@@ -290,6 +290,20 @@
     animation: toolbar-expand-settle 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  @keyframes proxy-marquee {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  .proxy-marquee-track {
+    animation: proxy-marquee 32s linear infinite;
+    will-change: transform;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .tournaments-toolbar-ease,
     .tournaments-toolbar-section-collapse {
@@ -298,6 +312,11 @@
     .animate-toolbar-compact-settle,
     .animate-toolbar-expand-settle {
       animation: none;
+    }
+
+    .proxy-marquee-track {
+      animation: none;
+      transform: none;
     }
   }
 
