@@ -67,7 +67,15 @@ export function LobbyTableList({
                 key={copy}
                 className="inline-flex shrink-0 items-center px-5 py-1.5 sm:px-7"
               >
-                <span>Uso delle Proxy: È consentito l&apos;impiego di proxy a colori, a condizione che siano riproduzioni in scala 1:1 perfettamente leggibili delle carte originali.</span>
+                <span className="font-display font-black text-primary">
+                  Uso delle Proxy:
+                </span>
+                <span className="ml-2">
+                  È consentito l&apos;impiego di proxy a colori, a condizione che siano riproduzioni in scala 1:1 perfettamente leggibili delle carte originali.
+                </span>
+                <span className="ml-6 text-primary/75" aria-hidden="true">
+                  •
+                </span>
               </span>
             ))}
           </div>
