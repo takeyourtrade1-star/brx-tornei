@@ -87,7 +87,9 @@ export function DashboardHeader({
   }, []);
 
   useEffect(() => {
-    const onScroll = () => {
+    let animationFrame: number | null = null;
+
+    const updateScrolledState = () => {
       const y = window.scrollY;
       const prev = scrolledRef.current;
       const next = prev ? y > HEADER_GLASS_OFF : y > HEADER_GLASS_ON;
@@ -95,9 +97,23 @@ export function DashboardHeader({
       scrolledRef.current = next;
       setScrolled(next);
     };
-    onScroll();
+
+    // Allinea il cambio di stato al frame successivo: la transizione CSS non
+    // compete con il lavoro sincrono dell'evento scroll.
+    const onScroll = () => {
+      if (animationFrame !== null) return;
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = null;
+        updateScrolledState();
+      });
+    };
+
+    updateScrolledState();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    };
   }, []);
 
   useEffect(() => {
