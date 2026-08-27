@@ -31,6 +31,7 @@ function isIPLiteral(hostname: string): boolean {
 
 const DEFAULT_TRUSTED_HOSTS = new Set([
   'api.ebartex.com',
+  'auction.ebartex.com',
   'sync.ebartex.com',
   'api-tornei.ebartex.com',
 ]);
@@ -110,6 +111,12 @@ const getAuthApiURL = (): string => {
   return trustedUpstreamOrigin(envUrl);
 };
 
+/** URL del servizio Auction che ospita il feed notifiche condiviso. */
+const getNotificationsApiURL = (): string => {
+  const envUrl = process.env.AUCTION_API_URL || 'https://auction.ebartex.com';
+  return trustedUpstreamOrigin(envUrl);
+};
+
 /** URL del microservizio Sync (BRX Sync) — usato per l'inventario utente. */
 const getSyncApiURL = (): string => {
   const envUrl = process.env.SYNC_API_URL || 'https://sync.ebartex.com';
@@ -154,6 +161,9 @@ function getMeilisearchConfig() {
 export const config = {
   api: {
     baseURL: getAuthApiURL(),
+    // Il feed notifiche vive su Auction ed è condiviso con il marketplace.
+    // Il route handler locale resta l'unico punto raggiungibile dal browser.
+    notificationsBaseURL: getNotificationsApiURL(),
     syncBaseURL: getSyncApiURL(),
     tournamentsBaseURL: getTournamentsApiURL(),
     tournamentsWebSocketOrigin: getTournamentsWebSocketOrigin(),

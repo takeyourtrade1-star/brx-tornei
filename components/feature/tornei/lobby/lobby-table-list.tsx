@@ -8,6 +8,7 @@ import type { SessionUser } from '@/types/auth';
 import type { FormatFilter, Selection } from '@/lib/validations/selection';
 import type { LobbyTable } from '@/lib/lobby';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
+import type { NotificationSnapshot } from '@/types/notification';
 import { ReputationSummary } from './reputation-summary';
 import { TableCard } from './table-card';
 
@@ -23,6 +24,7 @@ interface LobbyTableListProps {
   busy: boolean;
   error: string | null;
   reputation: ReputationSummaryData | null;
+  initialNotifications: NotificationSnapshot;
   /** Su "Tutti i formati" i tavoli vuoti non sono creabili. */
   createLocked: boolean;
   onSit: (table: LobbyTable) => void;
@@ -42,6 +44,7 @@ export function LobbyTableList({
   busy,
   error,
   reputation,
+  initialNotifications,
   createLocked,
   onSit,
   onOpen,
@@ -50,7 +53,12 @@ export function LobbyTableList({
 }: LobbyTableListProps) {
   return (
     <>
-      <DashboardHeader user={user} displayName={gamertag} reputation={reputation} />
+      <DashboardHeader
+        user={user}
+        displayName={gamertag}
+        reputation={reputation}
+        initialNotifications={initialNotifications}
+      />
       <main
         data-lobby-focus-fallback="true"
         tabIndex={-1}

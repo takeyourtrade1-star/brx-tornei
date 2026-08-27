@@ -6,6 +6,7 @@ import { requireGamertag } from '@/lib/auth/require-gamertag';
 import { fetchMyReputation } from '@/lib/data/player-api-client';
 import { listDecks } from '@/lib/data/decks';
 import { getDefaultPlaymatId } from '@/lib/playmat-preference';
+import { fetchNotificationSnapshot } from '@/lib/data/notifications';
 
 export const metadata: Metadata = { title: 'Crea mazzo' };
 
@@ -14,10 +15,11 @@ export default async function MazziPage() {
   if (!session) redirect('/login');
   const gamertag = await requireGamertag('/mazzi');
 
-  const [decks, defaultPlaymatId, reputation] = await Promise.all([
+  const [decks, defaultPlaymatId, reputation, notifications] = await Promise.all([
     listDecks(session.user.id),
     getDefaultPlaymatId(),
     fetchMyReputation().catch(() => null),
+    fetchNotificationSnapshot(),
   ]);
 
   return (
@@ -27,6 +29,7 @@ export default async function MazziPage() {
       gamertag={gamertag}
       defaultPlaymatId={defaultPlaymatId}
       reputation={reputation}
+      initialNotifications={notifications}
     />
   );
 }

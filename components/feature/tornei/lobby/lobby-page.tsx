@@ -13,6 +13,7 @@ import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { FormatFilter, Selection } from '@/lib/validations/selection';
 import type { SessionUser } from '@/types/auth';
 import type { Tournament } from '@/types/tournament';
+import type { NotificationSnapshot } from '@/types/notification';
 import { TableSeatModal } from './table-seat-modal';
 import { LobbyTableList } from './lobby-table-list';
 import { AcceptMatchModal } from './accept-match-modal';
@@ -30,6 +31,7 @@ interface LobbyPageProps {
   formatName: string;
   modeName: string;
   reputation: ReputationSummary | null;
+  initialNotifications: NotificationSnapshot;
 }
 
 type ModalState = { mode: 'host' | 'join'; tournamentId: string } | null;
@@ -43,6 +45,7 @@ export function LobbyPage({
   formatName,
   modeName,
   reputation,
+  initialNotifications,
 }: LobbyPageProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>(null);
@@ -368,6 +371,7 @@ export function LobbyPage({
         busy={busy}
         error={error}
         reputation={reputation}
+        initialNotifications={initialNotifications}
         createLocked={selection.format === 'all'}
         onSit={handleSit}
         onOpen={handleOpen}

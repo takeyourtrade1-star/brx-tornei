@@ -10,12 +10,13 @@ import {
 const validProductionEnvironment = {
   NODE_ENV: 'production',
   TRUSTED_HTTPS_HOSTNAMES:
-    'auth.example.com,sync.example.com,tournaments.example.com,app.example.com,www.example.com,redis-test.upstash.io,match.example.com',
+    'auth.example.com,auction.example.com,sync.example.com,tournaments.example.com,app.example.com,www.example.com,redis-test.upstash.io,match.example.com',
   TRUSTED_UPSTREAM_HOSTS:
-    'auth.example.com,sync.example.com,tournaments.example.com',
+    'auth.example.com,auction.example.com,sync.example.com,tournaments.example.com',
   AUTH_API_URL: 'https://auth.example.com',
   SYNC_API_URL: 'https://sync.example.com',
   TOURNAMENTS_API_URL: 'https://tournaments.example.com',
+  AUCTION_API_URL: 'https://auction.example.com',
   NEXT_PUBLIC_TOURNAMENTS_WS_ORIGIN: 'wss://tournaments.example.com',
   NEXT_PUBLIC_SITE_URL: 'https://app.example.com',
   NEXT_PUBLIC_MAIN_SITE_URL: 'https://www.example.com',
@@ -137,6 +138,7 @@ describe('validazione ambiente di build', () => {
       'NEXT_PUBLIC_AUTH_API_URL',
       'NEXT_PUBLIC_SYNC_API_URL',
       'NEXT_PUBLIC_TOURNAMENTS_API_URL',
+      'NEXT_PUBLIC_AUCTION_API_URL',
       'NEXT_PUBLIC_MEILISEARCH_URL',
       'NEXT_PUBLIC_MEILISEARCH_API_KEY',
     ]) {

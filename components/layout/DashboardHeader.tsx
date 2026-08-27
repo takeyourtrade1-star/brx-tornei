@@ -11,6 +11,7 @@ import { PublicProfileModal } from '@/components/feature/profile/public-profile-
 import { FriendsDrawer } from '@/components/feature/social/friends-drawer';
 import { DirectChallengeModal } from '@/components/feature/social/direct-challenge-modal';
 import { IncomingChallengeToast } from '@/components/feature/social/incoming-challenge-toast';
+import { NotificationBell } from '@/components/feature/notifications/NotificationBell';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { getFriendsListAction, getFriendRequestsAction } from '@/actions/social';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
@@ -20,6 +21,7 @@ import { publicConfig } from '@/lib/public-config';
 import { cn } from '@/lib/utils';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { SessionUser } from '@/types/auth';
+import type { NotificationSnapshot } from '@/types/notification';
 
 const HEADER_GLASS_ON = 24;
 const HEADER_GLASS_OFF = 8;
@@ -30,6 +32,7 @@ interface DashboardHeaderProps {
   showMinigameBack?: boolean;
   onBackToMinigame?: () => void;
   reputation?: ReputationSummary | null;
+  initialNotifications: NotificationSnapshot;
 }
 
 let lastKnownReputation: ReputationSummary | null = null;
@@ -40,6 +43,7 @@ export function DashboardHeader({
   showMinigameBack,
   onBackToMinigame,
   reputation,
+  initialNotifications,
 }: DashboardHeaderProps) {
   const shownName = displayName ?? user.name ?? user.email;
   const [profileOpen, setProfileOpen] = useState(false);
@@ -175,6 +179,7 @@ export function DashboardHeader({
               <span>Ebartex</span>
               <ExternalLink className="h-3 w-3 opacity-70" aria-hidden />
             </a>
+            <NotificationBell initialNotifications={initialNotifications} />
             <ProfileRankBadge
               avatarId={avatarId}
               gamertag={shownName}

@@ -7,6 +7,7 @@ import { getTournaments } from '@/lib/data/tournaments';
 import { parseSelection } from '@/lib/validations/selection';
 import { parseFriendInviteGamertag } from '@/lib/friend-invite';
 import { getFormat, getMode } from '@/lib/data/catalog';
+import { fetchNotificationSnapshot } from '@/lib/data/notifications';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { LobbyPage } from '@/components/feature/tornei/lobby/lobby-page';
 
@@ -38,9 +39,10 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   // Fetch aggregato (tutti i formati): i MIEI tavoli devono restare visibili
   // anche quando sono in un altro formato, altrimenti il backend rifiuterebbe
   // di sedermi altrove (ALREADY_SEATED) senza che io possa abbandonarli.
-  const [tournaments, reputation] = await Promise.all([
+  const [tournaments, reputation, notifications] = await Promise.all([
     getTournaments({ format: 'all', mode: selection.mode }),
     fetchMyReputation().catch(() => null),
+    fetchNotificationSnapshot(),
   ]);
 
   return (
@@ -53,6 +55,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
       formatName={formatName}
       modeName={modeName}
       reputation={reputation}
+      initialNotifications={notifications}
     />
   );
 }

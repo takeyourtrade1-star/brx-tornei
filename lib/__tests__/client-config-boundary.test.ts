@@ -27,7 +27,7 @@ describe('client/server configuration boundary', () => {
   it('keeps REST origins and credentials out of public config', () => {
     const publicSource = readFileSync(path.join(ROOT, 'lib/public-config.ts'), 'utf8');
     expect(publicSource).not.toMatch(
-      /AUTH_API_URL|SYNC_API_URL|TOURNAMENTS_API_URL|MEILISEARCH|UPSTASH|INTERNAL_TOKEN|SEARCH_KEY/,
+      /AUTH_API_URL|SYNC_API_URL|TOURNAMENTS_API_URL|AUCTION_API_URL|MEILISEARCH|UPSTASH|INTERNAL_TOKEN|SEARCH_KEY/,
     );
     const serverSource = readFileSync(path.join(ROOT, 'lib/config.ts'), 'utf8');
     expect(serverSource).toContain("import 'server-only'");

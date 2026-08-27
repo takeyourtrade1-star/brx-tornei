@@ -12,6 +12,7 @@ import { getSession } from '@/lib/auth/session';
 import { requireGamertag } from '@/lib/auth/require-gamertag';
 import { fetchMyReputationPage } from '@/lib/data/player-api-client';
 import { fetchMyMatchFeedback } from '@/lib/data/match-feedback';
+import { fetchNotificationSnapshot } from '@/lib/data/notifications';
 
 export const metadata: Metadata = { title: 'Le mie partite' };
 
@@ -21,12 +22,20 @@ export default async function PartitePage() {
   if (!session) redirect('/login');
   const gamertag = await requireGamertag('/partite');
 
-  const reputation = await fetchMyReputationPage().catch(() => null);
-  const matchFeedback = await fetchMyMatchFeedback().catch(() => null);
+  const [reputation, matchFeedback, notifications] = await Promise.all([
+    fetchMyReputationPage().catch(() => null),
+    fetchMyMatchFeedback().catch(() => null),
+    fetchNotificationSnapshot(),
+  ]);
 
   return (
     <div className="relative min-h-screen">
-      <DashboardHeader user={session.user} displayName={gamertag} reputation={reputation} />
+      <DashboardHeader
+        user={session.user}
+        displayName={gamertag}
+        reputation={reputation}
+        initialNotifications={notifications}
+      />
 
       <main className="mx-auto w-full max-w-content px-4 py-5 sm:px-6 sm:py-6">
         <h1 className="sr-only">Le mie partite</h1>

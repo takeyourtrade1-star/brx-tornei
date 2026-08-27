@@ -8,6 +8,7 @@ import { parseLiveViewSearch } from '@/lib/validations/live';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { MatchLiveView } from '@/components/feature/tornei/match/match-live-view';
 import { getDefaultPlaymatId } from '@/lib/playmat-preference';
+import { fetchNotificationSnapshot } from '@/lib/data/notifications';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Partita live' };
@@ -23,10 +24,11 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   if (!session) redirect('/login');
   const gamertag = await requireGamertag(`/tornei/${id}/live`);
 
-  const [tournament, reputation, defaultPlaymatId] = await Promise.all([
+  const [tournament, reputation, defaultPlaymatId, notifications] = await Promise.all([
     getTournamentById(id),
     fetchMyReputation().catch(() => null),
     getDefaultPlaymatId(),
+    fetchNotificationSnapshot(),
   ]);
   if (!tournament) notFound();
 
@@ -51,7 +53,12 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <div className="shrink-0">
-        <DashboardHeader user={session.user} displayName={gamertag} reputation={reputation} />
+        <DashboardHeader
+          user={session.user}
+          displayName={gamertag}
+          reputation={reputation}
+          initialNotifications={notifications}
+        />
       </div>
       <MatchLiveView
         tournament={tournament}

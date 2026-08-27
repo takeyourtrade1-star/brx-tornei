@@ -10,6 +10,7 @@ import type { Deck } from '@/types/deck';
 import type { CreateDeckInput } from '@/lib/validations/deck';
 import type { PlaymatId } from '@/lib/playmats';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
+import type { NotificationSnapshot } from '@/types/notification';
 import { MAX_DECKS_PER_USER } from '@/lib/deck-limits';
 import { DeckBuilder } from './deck-builder';
 import { DeckList } from './deck-list';
@@ -23,6 +24,7 @@ interface MazziWorkspaceProps {
   gamertag?: string;
   defaultPlaymatId: PlaymatId;
   reputation?: ReputationSummary | null;
+  initialNotifications: NotificationSnapshot;
 }
 
 export function MazziWorkspace({
@@ -31,6 +33,7 @@ export function MazziWorkspace({
   gamertag,
   defaultPlaymatId,
   reputation,
+  initialNotifications,
 }: MazziWorkspaceProps) {
   const [deckView, setDeckView] = useState<'list' | 'builder'>('list');
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
@@ -103,7 +106,12 @@ export function MazziWorkspace({
 
   return (
     <div className="relative min-h-screen">
-      <DashboardHeader user={user} displayName={gamertag} reputation={reputation} />
+      <DashboardHeader
+        user={user}
+        displayName={gamertag}
+        reputation={reputation}
+        initialNotifications={initialNotifications}
+      />
 
       <div className="mx-auto w-full max-w-content px-4 py-5 sm:px-6 sm:py-6">
         {!inBuilder && (
