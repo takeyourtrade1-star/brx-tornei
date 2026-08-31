@@ -19,8 +19,8 @@ describe('middleware CSP', () => {
       "script-src 'self' 'nonce-abc123' 'strict-dynamic' 'wasm-unsafe-eval'",
     );
     expect(csp).toContain("script-src-attr 'none'");
-    expect(csp).toContain("style-src 'self'");
-    expect(csp).toContain("style-src-elem 'self'");
+    expect(csp).toContain("style-src 'self' 'nonce-abc123'");
+    expect(csp).toContain("style-src-elem 'self' 'nonce-abc123'");
     expect(csp).toContain("style-src-attr 'unsafe-inline'");
     expect(csp).not.toMatch(/style-src(?!-(?:elem|attr))[^;]*'unsafe-inline'/);
     expect(csp).toContain("object-src 'none'");

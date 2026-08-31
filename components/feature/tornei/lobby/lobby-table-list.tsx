@@ -27,6 +27,7 @@ interface LobbyTableListProps {
   initialNotifications: NotificationSnapshot;
   /** Su "Tutti i formati" i tavoli vuoti non sono creabili. */
   createLocked: boolean;
+  onOpenMinigame: () => void;
   onSit: (table: LobbyTable) => void;
   onOpen: (table: LobbyTable) => void;
   onLeave: (table: LobbyTable) => void;
@@ -46,6 +47,7 @@ export function LobbyTableList({
   reputation,
   initialNotifications,
   createLocked,
+  onOpenMinigame,
   onSit,
   onOpen,
   onLeave,
@@ -58,6 +60,7 @@ export function LobbyTableList({
         displayName={gamertag}
         reputation={reputation}
         initialNotifications={initialNotifications}
+        onOpenMinigame={onOpenMinigame}
       />
       <main
         data-lobby-focus-fallback="true"

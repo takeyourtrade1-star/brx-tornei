@@ -14,10 +14,11 @@
  *   onCreateTournament  (t)=>{}  — chiamata alla pubblicazione di un torneo
  *   onJoinTournament    (id)=>{} — chiamata all'iscrizione a un torneo
  *
- * Rendering: Canvas 2D puro, grafica 100% procedurale (nessun asset esterno,
- * solo Google Font "Press Start 2P" per i titoli). Niente localStorage.
+ * Rendering: Canvas 2D puro, grafica 100% procedurale e senza asset esterni.
+ * Le sole preferenze persistenti sono tutorial e qualità grafica locali.
  */
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
+import { getCspNonce } from "./csp-nonce";
 import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-config";
 import { DecksModal } from "@/components/feature/decks/decks-modal";
 import { StyledSelect } from "./styled-select";
@@ -6167,15 +6168,10 @@ function injectCss() {
   if (!document.getElementById("irg-css")) {
     const s = document.createElement("style");
     s.id = "irg-css";
+    const nonce = getCspNonce();
+    if (nonce) s.setAttribute("nonce", nonce);
     s.textContent = CSS_TEXT;
     document.head.appendChild(s);
-  }
-  if (!document.getElementById("irg-font")) {
-    const l = document.createElement("link");
-    l.id = "irg-font";
-    l.rel = "stylesheet";
-    l.href = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
-    document.head.appendChild(l);
   }
 }
 function removeCss() {
@@ -6183,9 +6179,7 @@ function removeCss() {
   if (cssRefs <= 0 && typeof document !== "undefined") {
     cssRefs = 0;
     const s = document.getElementById("irg-css");
-    const f = document.getElementById("irg-font");
     if (s) s.remove();
-    if (f) f.remove();
   }
 }
 
@@ -6703,24 +6697,15 @@ const EBX_COUNTRIES = [
   { code: "GB", flag: "🇬🇧", name: "Regno Unito" },
 ];
 
-const EBX_DECKS = {
-  "old-school": ["The Deck", "Mono Black Control", "Erhnam Geddon", "Atog Burn"],
-  premodern: ["Elves", "Goblins", "Replenish", "Landstill", "Trix"],
-  pioneer: ["Rakdos Midrange", "Mono White Humans", "Lotus Field Combo", "Azorius Control"],
-  modern: ["Izzet Murktide", "Temur Rhinos", "Amulet Titan", "Mono Black Coffers"],
-  standard: ["Esper Midrange", "Red Deck Wins", "Domain Control", "Golgari Midrange"],
-  legacy: ["Delver of Secrets", "Reanimator", "Death and Taxes", "Initiative Stompy"],
-  commander: ["Atraxa, Praetors' Voice", "Urza, Lord High Artificer", "Krenko, Mob Boss", "Kenrith, the Returned King"],
-};
-
-/** Dettagli mockup stabili basati su username e formato (stessa logica del frontend). */
-function participantDetails(username, format) {
+/** Dettagli visivi stabili; il nome del mazzo arriva solo dal dato dichiarato. */
+function participantDetails(username, declaredDeckName) {
   let hash = 0;
   for (let i = 0; i < username.length; i++) hash = username.charCodeAt(i) + ((hash << 5) - hash);
   const index = Math.abs(hash);
   const country = EBX_COUNTRIES[index % EBX_COUNTRIES.length];
-  const decks = EBX_DECKS[format] || ["Mono Red Burn", "Blue-White Control", "Green Stompy"];
-  return { country, deck: decks[index % decks.length] };
+  // Non inventiamo mai il nome del mazzo: il servizio può esporre lo snapshot
+  // solo dopo la seduta o a partita conclusa.
+  return { country, deck: declaredDeckName || "Mazzo dichiarato dal giocatore" };
 }
 
 /* icone inline (equivalenti di lucide: clock, check, eye, lock, plus, user-plus) */
@@ -6854,7 +6839,7 @@ function PcModal({ tournaments, onJoin, onObserve, me, formatId, modeId, formatN
                             ) : (
                               <ul className="irg-plist">
                                 {shown.map((p) => {
-                                  const { country, deck } = participantDetails(p.username, t.format);
+                                  const { country, deck } = participantDetails(p.username, p.deck && p.deck.name);
                                   return (
                                     <li key={p.id} className="irg-ppill irg-tip">
                                       {p.username}
@@ -7178,7 +7163,9 @@ export default function IsoRoomGame({
   onJoinTournament,
   onObserveTournament,
   onCreateDeck,
+  onOpenDecks,
   onExitToSimple,
+  integrationMode = "prototype",
   quality: qualityProp = "auto",
   __debug,
 }) {
@@ -7274,6 +7261,14 @@ export default function IsoRoomGame({
   /* sync con le props (se fornite dal backend) */
   useEffect(() => { if (pTournaments) setData((d) => ({ ...d, tournaments: pTournaments })); }, [pTournaments]);
   useEffect(() => { if (pInventory) setData((d) => ({ ...d })); }, [pInventory]);
+
+  /* Il sito attuale possiede già il builder server-backed: dalla stanza lo
+     apriamo come pagina primaria invece di montare il vecchio editor locale. */
+  useEffect(() => {
+    if (modal !== "decks" || !onOpenDecks) return;
+    setModal(null);
+    onOpenDecks();
+  }, [modal, onOpenDecks]);
 
   /* eventi diegetici: nuovi tornei o tornei appena iniziati → citofono / alert PC */
   const prevTRef = useRef(null);
@@ -7442,7 +7437,7 @@ export default function IsoRoomGame({
     if (gameRef.current && gameRef.current.drawLookPreview) gameRef.current.drawLookPreview(canvasEl, lk);
   }, []);
 
-  /* "Vista semplice": spegne lo schermo (animazione CRT) e passa alla pagina classica */
+  /* Spegne lo schermo (animazione CRT) e torna alla superficie principale. */
   const handleSimpleView = useCallback(() => {
     setPowering((on) => {
       if (on) return on;
@@ -7451,6 +7446,11 @@ export default function IsoRoomGame({
       return true;
     });
   }, [onExitToSimple]);
+
+  const simpleViewLabel = integrationMode === "site" ? "Torna alla lobby" : "Vista semplice";
+  const simpleViewAriaLabel = integrationMode === "site"
+    ? "Torna alla lobby principale"
+    : "Passa alla vista semplice, senza mini-gioco";
 
   const handlePublish = useCallback((form) => {
     const t = {
@@ -7472,26 +7472,30 @@ export default function IsoRoomGame({
       dataInizio: itDate(form.data),
       premio: form.premio,
     };
-    setData((d) => ({ ...d, tournaments: [t, ...d.tournaments] }));
+    if (integrationMode !== "site") {
+      setData((d) => ({ ...d, tournaments: [t, ...d.tournaments] }));
+    }
     playSfx("pin");
     if (onCreateTournament) onCreateTournament(t);
     return t;
-  }, [onCreateTournament, playSfx, username]);
+  }, [integrationMode, onCreateTournament, playSfx, username]);
 
   const handleJoin = useCallback((id) => {
     /* il bottone è visibile solo se l'iscrizione è valida (aperta, non pieno, non già dentro) */
-    setData((d) => ({
-      ...d,
-      tournaments: d.tournaments.map((t) => {
-        if (t.id !== id || t.status !== "in_registrazione") return t;
-        if (t.participants.length >= t.maxPlayers || t.participants.some((p) => p.username === username)) return t;
-        const participants = [...t.participants, { id: "me-" + id, username }];
-        return { ...t, participants, status: participants.length >= t.maxPlayers ? "iniziata" : t.status };
-      }),
-    }));
+    if (integrationMode !== "site") {
+      setData((d) => ({
+        ...d,
+        tournaments: d.tournaments.map((t) => {
+          if (t.id !== id || t.status !== "in_registrazione") return t;
+          if (t.participants.length >= t.maxPlayers || t.participants.some((p) => p.username === username)) return t;
+          const participants = [...t.participants, { id: "me-" + id, username }];
+          return { ...t, participants, status: participants.length >= t.maxPlayers ? "iniziata" : t.status };
+        }),
+      }));
+    }
     playSfx("success");
     if (onJoinTournament) onJoinTournament(id);
-  }, [onJoinTournament, playSfx, username]);
+  }, [integrationMode, onJoinTournament, playSfx, username]);
 
   const handleObserve = useCallback((id) => {
     playSfx("success");
@@ -7582,18 +7586,18 @@ export default function IsoRoomGame({
         </button>
       </div>
 
-      {/* passa alla vista semplice (pagina classica, senza mini-gioco) */}
+      {/* torna alla lobby principale (oppure alla vista semplice nel prototipo) */}
       <button
         type="button"
         className="irg-simple-btn"
         onClick={handleSimpleView}
-        aria-label="Passa alla vista semplice, senza mini-gioco"
+        aria-label={simpleViewAriaLabel}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
           <rect x="2" y="2.5" width="12" height="11" rx="1.6" />
           <path d="M2 6h12M5 9.2h6M5 11.2h4" strokeLinecap="round" />
         </svg>
-        Vista semplice
+        {simpleViewLabel}
       </button>
 
       {/* tutorial guidato: cartello di benvenuto al centro che poi vola in alto
@@ -7623,7 +7627,7 @@ export default function IsoRoomGame({
                   <button type="button" className="irg-tut-btn irg-tut-no" onClick={repeatTutorial}>No</button>
                 </div>
                 <button type="button" className="irg-tut-btn irg-tut-simple" onClick={handleSimpleView}>
-                  Passa alla modalità semplificata
+                  {simpleViewLabel}
                 </button>
               </div>
             ) : (
@@ -7660,7 +7664,7 @@ export default function IsoRoomGame({
           <BoardModal onPublish={handlePublish} onClose={closeModal} playSfx={playSfx} />
         </ModalShell>
       )}
-      {modal === "decks" && (
+      {modal === "decks" && !onOpenDecks && (
         <ModalShell id="decks" closing={closing} onClose={closeModal} className="irg-m-decks irg-m-decks-wide">
           <DecksModal inventory={inventory} />
         </ModalShell>
@@ -7688,22 +7692,22 @@ export default function IsoRoomGame({
       {/* Sala Arcade — modali dei cabinati e del tavolo kakegurui */}
       {modal === "arcade1" && (
         <ModalShell id="arcade1" closing={closing} onClose={closeModal} className="irg-m-arcade">
-          <ArcadeGameModal gameId="arcade1" onExit={closeModal} username={username} />
+          <ArcadeGameModal gameId="arcade1" onExit={closeModal} username={username} integrationMode={integrationMode} />
         </ModalShell>
       )}
       {modal === "arcade2" && (
         <ModalShell id="arcade2" closing={closing} onClose={closeModal} className="irg-m-arcade">
-          <ArcadeGameModal gameId="arcade2" onExit={closeModal} username={username} />
+          <ArcadeGameModal gameId="arcade2" onExit={closeModal} username={username} integrationMode={integrationMode} />
         </ModalShell>
       )}
       {modal === "arcade3" && (
         <ModalShell id="arcade3" closing={closing} onClose={closeModal} className="irg-m-arcade">
-          <ArcadeGameModal gameId="arcade3" onExit={closeModal} username={username} />
+          <ArcadeGameModal gameId="arcade3" onExit={closeModal} username={username} integrationMode={integrationMode} />
         </ModalShell>
       )}
       {modal === "kakegurui" && (
         <ModalShell id="kakegurui" closing={closing} onClose={closeModal} className="irg-m-arcade">
-          <ArcadeGameModal gameId="kakegurui" onExit={closeModal} username={username} />
+          <ArcadeGameModal gameId="kakegurui" onExit={closeModal} username={username} integrationMode={integrationMode} />
         </ModalShell>
       )}
 

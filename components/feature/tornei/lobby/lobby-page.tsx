@@ -20,6 +20,7 @@ import { AcceptMatchModal } from './accept-match-modal';
 import { FeedbackNotices } from './feedback-notices';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
 import { useTournamentRealtimeRefresh } from '@/hooks/use-tournament-realtime-refresh';
+import { ArcadeRoomLauncher } from './arcade-room-launcher';
 
 interface LobbyPageProps {
   tournaments: Tournament[];
@@ -32,9 +33,15 @@ interface LobbyPageProps {
   modeName: string;
   reputation: ReputationSummary | null;
   initialNotifications: NotificationSnapshot;
+  /** Apertura una tantum della modale richiesta da una superficie secondaria. */
+  focusTableId?: string;
+  openCreate?: boolean;
 }
 
-type ModalState = { mode: 'host' | 'join'; tournamentId: string } | null;
+type ModalState =
+  | { mode: 'create' }
+  | { mode: 'host' | 'join'; tournamentId: string }
+  | null;
 
 export function LobbyPage({
   tournaments,
@@ -46,9 +53,12 @@ export function LobbyPage({
   modeName,
   reputation,
   initialNotifications,
+  focusTableId,
+  openCreate = false,
 }: LobbyPageProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>(null);
+  const [arcadeOpen, setArcadeOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approvalPhase, setApprovalPhase] = useState<'accepting' | 'declined' | null>(null);
   const [busy, startTransition] = useTransition();
@@ -62,6 +72,53 @@ export function LobbyPage({
     active: Boolean(monitoredTable),
   });
   const measuredQuality = useServerConnectionQuality(monitoredTable?.webcamSessionId);
+  const focusHandledRef = useRef<string | null>(null);
+  const focusKey = openCreate ? 'create' : focusTableId ? `table:${focusTableId}` : null;
+
+  const clearArcadeFocus = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    params.delete('focusTable');
+    params.delete('focusCreate');
+    const query = params.toString();
+    router.replace(`${window.location.pathname}${query ? `?${query}` : ''}`, { scroll: false });
+  }, [router]);
+
+  useEffect(() => {
+    if (!focusKey) {
+      focusHandledRef.current = null;
+      return;
+    }
+    if (focusHandledRef.current === focusKey) return;
+
+    if (openCreate) {
+      focusHandledRef.current = focusKey;
+      setError(null);
+      if (selection.format === 'all') {
+        setError('Seleziona un formato specifico per creare un tavolo.');
+      } else {
+        setModal({ mode: 'create' });
+      }
+      clearArcadeFocus();
+      return;
+    }
+
+    if (!focusTableId) return;
+    const target = tournaments.find((tournament) => tournament.id === focusTableId);
+    if (!target) return;
+
+    focusHandledRef.current = focusKey;
+    setError(null);
+    const mine = target.participants.some((participant) => participant.id === user.id);
+    if (mine) {
+      setModal({ mode: 'host', tournamentId: target.id });
+    } else if (target.status === 'in_registrazione' && target.participants.length < target.maxPlayers) {
+      setModal({ mode: 'join', tournamentId: target.id });
+    } else {
+      setError('Questo tavolo non è più disponibile.');
+    }
+    clearArcadeFocus();
+  }, [clearArcadeFocus, focusKey, focusTableId, openCreate, selection.format, tournaments, user.id]);
   const tables = useMemo(
     () =>
       buildLobbyTables({ tournaments, userId: user.id, format: selection.format }).map((table) => ({
@@ -230,30 +287,6 @@ export function LobbyPage({
     [tournaments, user.id],
   );
 
-  /** Seduta diretta a un tavolo nuovo esistente, senza scelta deck né modali. */
-  const sitAtNewTable = useCallback(
-    (tournamentId: string) => {
-      setError(null);
-      startTransition(async () => {
-        const res = await joinTournamentAction(tournamentId);
-        if (res.error) {
-          setError(res.error);
-          return;
-        }
-        if (res.matchId) {
-          // Match già partito (es. tavolo pieno con entrambi pronti):
-          // si va direttamente alla schermata live.
-          goLiveTo(tournamentId);
-          return;
-        }
-        // Tavolo pieno in attesa di congedo: l'accettazione stile LoL
-        // appare in lobby, nessun redirect esplicito.
-        router.refresh();
-      });
-    },
-    [router, goLiveTo],
-  );
-
   const handleSit = useCallback(
     (table: LobbyTable) => {
       setError(null);
@@ -270,16 +303,14 @@ export function LobbyPage({
       }
 
       if (table.kind === 'joinable' && table.tournament) {
-        // Il mazzo è facoltativo, ma va associato prima della seduta per poter
-        // mostrare lo snapshot all'avversario solo a partita conclusa.
+        // La dichiarazione del mazzo precede sempre la seduta.
         setModal({ mode: 'join', tournamentId: table.tournament.id });
         return;
       }
 
       if (table.kind === 'empty') {
-        // Tavolo nuovo: seduta immediata, nessun modale intermedio.
         if (table.tournament) {
-          sitAtNewTable(table.tournament.id);
+          setModal({ mode: 'join', tournamentId: table.tournament.id });
           return;
         }
         // "Tutti i formati" è solo una vista: il tavolo vuoto richiede un formato
@@ -288,26 +319,28 @@ export function LobbyPage({
           setError('Seleziona un formato specifico per creare un tavolo.');
           return;
         }
-        setError(null);
-        startTransition(async () => {
-          const res = await createTableAction(selection.format, selection.mode);
-          if (res.error || !res.createdId) {
-            setError(res.error ?? 'Impossibile creare il tavolo.');
-            return;
-          }
-          router.refresh();
-        });
+        setModal({ mode: 'create' });
       }
     },
-    [tournaments, user.id, myUsername, selection.format, selection.mode, sitAtNewTable, router],
+    [tournaments, user.id, myUsername, selection.format],
   );
 
   const handleConfirmJoin = useCallback(
     (deckId: string) => {
       if (!modal) return;
-      const tournamentId = modal.tournamentId;
       setError(null);
       startTransition(async () => {
+        if (modal.mode === 'create') {
+          const res = await createTableAction(selection.format, selection.mode, deckId);
+          if (res.error || !res.createdId) {
+            setError(res.error ?? 'Impossibile creare il tavolo.');
+            return;
+          }
+          setModal({ mode: 'host', tournamentId: res.createdId });
+          router.refresh();
+          return;
+        }
+        const tournamentId = modal.tournamentId;
         const res = await joinTournamentAction(tournamentId, deckId);
         if (res.error) {
           setError(res.error);
@@ -325,7 +358,7 @@ export function LobbyPage({
         }
       });
     },
-    [modal, router, goLiveTo],
+    [modal, router, goLiveTo, selection.format, selection.mode],
   );
 
   const handleLeave = useCallback(
@@ -358,6 +391,13 @@ export function LobbyPage({
     [goLiveTo],
   );
 
+  const modalTournament = modal && modal.mode !== 'create'
+    ? tournaments.find((tournament) => tournament.id === modal.tournamentId)
+    : null;
+  const modalFormatId = modal?.mode === 'create' && selection.format !== 'all'
+    ? selection.format
+    : (modalTournament?.format ?? 'modern');
+
   return (
     <>
       <LobbyTableList
@@ -373,6 +413,7 @@ export function LobbyPage({
         reputation={reputation}
         initialNotifications={initialNotifications}
         createLocked={selection.format === 'all'}
+        onOpenMinigame={() => setArcadeOpen(true)}
         onSit={handleSit}
         onOpen={handleOpen}
         onLeave={handleLeave}
@@ -382,15 +423,12 @@ export function LobbyPage({
       <TableSeatModal
         open={modal !== null}
         mode={modal?.mode ?? 'host'}
-        formatId={(modal && tournaments?.find((t) => t.id === modal.tournamentId)?.format) ?? 'modern'}
+        formatId={modalFormatId}
         formatName={formatName}
         myUsername={myUsername}
-        opponentUsername={modal ? opponentFor(modal.tournamentId) : null}
-        currentDeckId={modal
-          ? tournaments
-              .find((tournament) => tournament.id === modal.tournamentId)
-              ?.participants.find((participant) => participant.id === user.id)?.deck?.id
-          : undefined}
+        opponentUsername={modalTournament ? opponentFor(modalTournament.id) : null}
+        currentDeckId={modalTournament
+          ?.participants.find((participant) => participant.id === user.id)?.deck?.id}
         busy={busy}
         error={error}
         onClose={() => {
@@ -398,7 +436,7 @@ export function LobbyPage({
           setModal(null);
         }}
         onLeave={() => {
-          const t = tournaments.find((x) => x.id === modal?.tournamentId);
+          const t = modalTournament;
           if (t) handleLeave({ key: t.id, kind: 'mine', tournament: t, seats: [{ occupied: false }, { occupied: false }], started: false });
         }}
         onConfirmJoin={handleConfirmJoin}
@@ -428,6 +466,16 @@ export function LobbyPage({
         userId={user.id}
         negativeNotice={reputation?.negativeFeedbackNotice ?? null}
         positiveNotice={reputation?.positiveFeedbackNotice ?? null}
+      />
+      <ArcadeRoomLauncher
+        open={arcadeOpen}
+        onClose={() => setArcadeOpen(false)}
+        tournaments={tournaments}
+        gamertag={gamertag}
+        formatId={formatId}
+        formatName={formatName}
+        modeId={selection.mode}
+        modeName={modeName}
       />
     </>
   );

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { getCspNonce } from "../csp-nonce";
 
 /* ============================================================================
    Card Memory — abbina le coppie di sigilli prima che scada il tempo.
@@ -166,7 +167,7 @@ export default function CardMemoryGame({ onExit, onResult }) {
 
   return (
     <div className="ag-root" style={{ "--accent": ACCENT }}>
-      <style>{MEM_CSS}</style>
+      <style nonce={getCspNonce()}>{MEM_CSS}</style>
       <div className="ag-top">
         <button type="button" className="ag-back" onClick={() => onExit && onExit()}>← Sala</button>
         <div className="ag-title">CARD MEMORY</div>

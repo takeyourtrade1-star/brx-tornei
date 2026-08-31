@@ -21,6 +21,23 @@ export const selectionSchema = z.object({
 
 export type Selection = z.infer<typeof selectionSchema>;
 
+const lobbyFocusTableSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128);
+
+/**
+ * Azioni di rientro nella lobby avviate da superfici secondarie (es. Sala
+ * Arcade). Restano query opzionali e non cambiano la selezione del torneo.
+ */
+export const lobbyFocusSchema = z.object({
+  tableId: lobbyFocusTableSchema.optional(),
+  create: z.literal('1').optional(),
+});
+
+export type LobbyFocus = z.infer<typeof lobbyFocusSchema>;
+
 /**
  * Parsing tollerante dei searchParams (server-side).
  * Ritorna null se la selezione è assente o invalida → la pagina fa redirect allo step giusto.
@@ -33,4 +50,14 @@ export function parseSelection(
     mode: searchParams.mode,
   });
   return result.success ? result.data : null;
+}
+
+export function parseLobbyFocus(
+  searchParams: Record<string, string | string[] | undefined>,
+): LobbyFocus {
+  const result = lobbyFocusSchema.safeParse({
+    tableId: searchParams.focusTable,
+    create: searchParams.focusCreate,
+  });
+  return result.success ? result.data : {};
 }

@@ -61,9 +61,11 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "script-src-attr 'none'",
     // React usa ancora attributi style per dimensioni/avanzamento dinamici.
     // Gli elementi <style>, che permetterebbero regole e selettori arbitrari,
-    // restano invece limitati ai soli fogli serviti dalla stessa origine.
-    "style-src 'self'",
-    "style-src-elem 'self'",
+    // richiedono lo stesso nonce per poter essere montati da componenti
+    // interattivi (inclusa la Sala Arcade), senza riaprire style-src a inline
+    // arbitrari.
+    `style-src 'self' 'nonce-${nonce}'`,
+    `style-src-elem 'self' 'nonce-${nonce}'`,
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https://di0y87a9s8da9.cloudfront.net https://cards.scryfall.io https://svgs.scryfall.io",
     "font-src 'self' data:",

@@ -5,7 +5,7 @@ Minigioco isometrico pixel-art per React: una stanza in stile classico-iso con a
 ## File
 
 - `IsoRoomGame.jsx` — l'intero gioco, un solo file, default export.
-- `demo.html` — anteprima immediata senza build: nella cartella esegui `python -m http.server 8000` (o `npx serve .`) e apri `http://localhost:8000/demo.html`. I callback loggano in console.
+- `demo.html` — anteprima immediata senza build: nella cartella esegui `python -m http.server 8000` (o `npx serve .`) e apri `http://localhost:8000/demo.html`. React, ReactDOM e Babel sono fissati a versioni esatte con SRI; aggiornare insieme URL e hash. I callback loggano in console.
 
 ## Integrazione
 
@@ -18,7 +18,30 @@ import IsoRoomGame from "./IsoRoomGame";
 </div>
 ```
 
-Nient'altro da configurare. Il componente inietta da sé il proprio CSS e il font "Press Start 2P" (Google Fonts, unico asset esterno; con font bloccati usa il fallback monospace). Niente localStorage. Cleanup completo allo smontaggio (rAF, listener, ResizeObserver, AudioContext).
+Nient'altro da configurare. Il componente inietta da sé il proprio CSS con il nonce
+della pagina (quando la CSP è attiva) e usa un fallback monospace senza asset
+esterni. Salva solo le preferenze locali di tutorial e qualità grafica; non salva
+sessioni, token o mazzi. Cleanup completo allo smontaggio (rAF, listener,
+ResizeObserver, AudioContext).
+
+## Integrazione nella lobby Tornei
+
+Nel sito la stanza viene aperta dal pulsante secondario **Sala Arcade** presente
+nella lobby moderna. La lobby e il backend correnti restano la fonte autorevole:
+
+- PC e bacheca riportano alla lobby con il formato/modalità selezionati;
+- la lobby attuale richiede il mazzo dichiarato prima di creare o raggiungere un tavolo;
+- il tavolo può aprire la partita live in modalità osservatore;
+- l'oggetto Tavolo/Deck apre la pagina Mazzi server-backed, senza usare l'editor
+  locale storico.
+
+La prop `integrationMode="site"` disattiva gli aggiornamenti locali fittizi del
+prototipo. La modalità predefinita `prototype` resta disponibile per la demo
+standalone.
+
+Il duello WebRTC con signaling manuale resta disponibile solo in `prototype`:
+la superficie autenticata del sito non apre connessioni P2P sperimentali e offre
+il tavolo locale come minigioco secondario.
 
 ## Props (tutte opzionali)
 
@@ -29,11 +52,15 @@ Nient'altro da configurare. Il componente inietta da sé il proprio CSS e il fon
   tournaments={[...]}     // sovrascrive i mock
   decks={[...]}
   cards={[...]}
-  onCreateTournament={(t) => api.post("/tournaments", t)}
-  onJoinTournament={(id) => api.post(`/tournaments/${id}/join`)}
-  onCreateDeck={(d) => api.post("/decks", d)}
+  onCreateTournament={(draft) => console.info("Bozza torneo", draft)}
+  onJoinTournament={(id) => console.info("Richiesta iscrizione", id)}
+  onCreateDeck={(deck) => console.info("Bozza mazzo", deck)}
 />
 ```
+
+In produzione questi callback non devono chiamare API dal browser: la lobby
+moderna li collega a Server Action e data layer. La modalità `integrationMode="site"`
+usa già quel percorso e non considera autorevoli le mutazioni locali del prototipo.
 
 Shape dei dati (i tornei usano la stessa shape di `tournaments-live-frontend/types/tournament.ts`):
 

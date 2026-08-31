@@ -31,6 +31,8 @@ interface DashboardHeaderProps {
   displayName?: string;
   showMinigameBack?: boolean;
   onBackToMinigame?: () => void;
+  /** Apre la Sala Arcade storica come superficie secondaria della lobby. */
+  onOpenMinigame?: () => void;
   reputation?: ReputationSummary | null;
   initialNotifications: NotificationSnapshot;
 }
@@ -42,10 +44,11 @@ export function DashboardHeader({
   displayName,
   showMinigameBack,
   onBackToMinigame,
+  onOpenMinigame,
   reputation,
   initialNotifications,
 }: DashboardHeaderProps) {
-  const shownName = displayName ?? user.name ?? user.email;
+  const shownName = displayName ?? user.name ?? user.username ?? user.email;
   const [profileOpen, setProfileOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [publicProfileTarget, setPublicProfileTarget] = useState<string | null>(null);
@@ -168,6 +171,23 @@ export function DashboardHeader({
                 <Gamepad2 className="h-4 w-4" />
               </button>
             )}
+            {onOpenMinigame && (
+              <button
+                type="button"
+                onClick={onOpenMinigame}
+                aria-label="Apri Sala Arcade"
+                title="Apri Sala Arcade"
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors sm:px-3',
+                  scrolled
+                    ? 'border border-slate-900/10 bg-white/50 text-slate-700 hover:bg-white/80 hover:text-primary'
+                    : 'border border-white/15 bg-white/10 text-white/80 hover:border-primary/40 hover:bg-primary/15 hover:text-white',
+                )}
+              >
+                <Gamepad2 className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">Sala Arcade</span>
+              </button>
+            )}
             <a
               href={publicConfig.app.mainSiteUrl}
               target="_blank"
@@ -191,8 +211,8 @@ export function DashboardHeader({
           </div>
         </div>
 
-        <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} gamertag={shownName} ebartexUsername={user.name} initialReputation={currentReputation} />
-        <FriendsDrawer open={friendsOpen} onClose={() => setFriendsOpen(false)} onOpenProfile={setPublicProfileTarget} onChallenge={setChallengeTarget} myGamertag={shownName} myEbartexUsername={user.name} />
+        <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} gamertag={shownName} ebartexUsername={user.username} initialReputation={currentReputation} />
+        <FriendsDrawer open={friendsOpen} onClose={() => setFriendsOpen(false)} onOpenProfile={setPublicProfileTarget} onChallenge={setChallengeTarget} myGamertag={shownName} myEbartexUsername={user.username} />
         <PublicProfileModal gamertag={publicProfileTarget} open={Boolean(publicProfileTarget)} onClose={() => setPublicProfileTarget(null)} onChallenge={setChallengeTarget} />
         <DirectChallengeModal targetGamertag={challengeTarget} open={Boolean(challengeTarget)} onClose={() => setChallengeTarget(null)} />
         <IncomingChallengeToast />

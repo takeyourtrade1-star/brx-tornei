@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useP2PRoom } from "./useP2PRoom";
+import { getCspNonce } from "../csp-nonce";
 
 /* ============================================================================
    Tavolo Duello (Kakegurui) — Sasso/Carta/Forbice, best-of-3, timer 7s/turno.
@@ -34,7 +35,7 @@ function cpuPick(history) {
   return rndMove();
 }
 
-export default function KakeguruiGame({ onExit, onResult }) {
+export default function KakeguruiGame({ onExit, onResult, integrationMode = "prototype" }) {
   const [mode, setMode] = useState(null); // null | 'sp' | 'mp'
   const netMsgRef = useRef(null);
   const [room, actions] = useP2PRoom((m) => netMsgRef.current && netMsgRef.current(m));
@@ -75,7 +76,7 @@ export default function KakeguruiGame({ onExit, onResult }) {
   /* menu modalità */
   return (
     <div className="ag-root" style={{ "--accent": ACCENT }}>
-      <style>{KAK_CSS}</style>
+      <style nonce={getCspNonce()}>{KAK_CSS}</style>
       <div className="ag-top">
         <button type="button" className="ag-back" onClick={() => onExit && onExit()}>← Sala</button>
         <div className="ag-title">TAVOLO DUELLO</div>
@@ -87,7 +88,9 @@ export default function KakeguruiGame({ onExit, onResult }) {
           <p>Sasso batte Forbice · Forbice batte Carta · Carta batte Sasso. Primo a <b>{WIN_TARGET}</b> round vince.</p>
           <div className="ag-btns">
             <button type="button" className="ag-btn" onClick={() => setMode("sp")}>🎮 Single Player</button>
-            <button type="button" className="ag-btn" onClick={() => setMode("mp")}>⚔️ 1v1 in rete</button>
+            {integrationMode !== "site" && (
+              <button type="button" className="ag-btn" onClick={() => setMode("mp")}>⚔️ 1v1 in rete</button>
+            )}
           </div>
         </div>
       </div>
@@ -111,7 +114,7 @@ function Lobby({ room, actions, onExit, onBack }) {
 
   return (
     <div className="ag-root" style={{ "--accent": ACCENT }}>
-      <style>{KAK_CSS}</style>
+      <style nonce={getCspNonce()}>{KAK_CSS}</style>
       <div className="ag-top">
         <button type="button" className="ag-back" onClick={onBack}>← Modalità</button>
         <div className="ag-title">1V1 IN RETE</div>
@@ -308,7 +311,7 @@ function Duel({ net, onExit, onBack, onResult }) {
 
   return (
     <div className="ag-root" style={{ "--accent": ACCENT }}>
-      <style>{KAK_CSS}</style>
+      <style nonce={getCspNonce()}>{KAK_CSS}</style>
       <div className="ag-top">
         <button type="button" className="ag-back" onClick={escExit}>← {isMp ? "Esci" : "Sala"}</button>
         <div className="ag-title">{isMp ? "DUELLO 1V1" : "TAVOLO DUELLO"}</div>

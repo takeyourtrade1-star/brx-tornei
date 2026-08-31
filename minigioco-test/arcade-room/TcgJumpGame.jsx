@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useArcadeCanvas, clamp, rr } from "./game-kit";
+import { getCspNonce } from "../csp-nonce";
 
 /* ============================================================================
    TCG Jump — platformer stile Mario, 3 livelli di test. ← → muovi, SPAZIO
@@ -215,7 +216,7 @@ export default function TcgJumpGame({ onExit, onResult }) {
 
   return (
     <div className="ag-root" style={{ "--accent": ACCENT }}>
-      <style>{JUMP_CSS}</style>
+      <style nonce={getCspNonce()}>{JUMP_CSS}</style>
       <div className="ag-top">
         <button type="button" className="ag-back" onClick={() => onExit && onExit()}>← Sala</button>
         <div className="ag-title">TCG JUMP</div>

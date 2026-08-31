@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth/session';
 import { requireGamertag } from '@/lib/auth/require-gamertag';
 import { fetchMyReputation } from '@/lib/data/player-api-client';
 import { getTournaments } from '@/lib/data/tournaments';
-import { parseSelection } from '@/lib/validations/selection';
+import { parseLobbyFocus, parseSelection } from '@/lib/validations/selection';
 import { parseFriendInviteGamertag } from '@/lib/friend-invite';
 import { getFormat, getMode } from '@/lib/data/catalog';
 import { fetchNotificationSnapshot } from '@/lib/data/notifications';
@@ -27,6 +27,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   const inviteQuery = invite ? `&add=${encodeURIComponent(invite)}` : '';
   const selection = parseSelection(params);
   if (!selection) redirect(`${DEFAULT_TOURNAMENTS_PATH}${inviteQuery}`);
+  const lobbyFocus = parseLobbyFocus(params);
 
   const session = await getSession();
   if (!session) redirect('/login');
@@ -56,6 +57,8 @@ export default async function TorneiPage({ searchParams }: PageProps) {
       modeName={modeName}
       reputation={reputation}
       initialNotifications={notifications}
+      focusTableId={lobbyFocus.tableId}
+      openCreate={lobbyFocus.create === '1'}
     />
   );
 }
