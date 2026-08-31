@@ -1,6 +1,5 @@
 import 'server-only';
 
-import { headers } from 'next/headers';
 import { config } from '@/lib/config';
 import {
   applyTrustedDeviceResponse,
@@ -8,11 +7,6 @@ import {
 } from '@/lib/auth/trusted-device';
 import { validateSuccessfulAuthResponse } from '@/lib/auth/auth-bff-contract';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
-import { getRateLimitClientIpFromHeaders } from '@/lib/security/client-ip';
-import {
-  enforceServerRateLimit,
-  statusForServerRateLimitError,
-} from '@/lib/security/server-rate-limit';
 
 function unwrap(payload: unknown): Record<string, unknown> {
   if (!payload || typeof payload !== 'object') return {};
@@ -28,33 +22,10 @@ export function extractAuthError(body: Record<string, unknown>, fallback: string
   );
 }
 
-export async function authRateLimitError(
-  scope: string,
-  subject: string,
-  identityLimit: number,
-  ipLimit: number,
-): Promise<string | null> {
-  try {
-    await enforceServerRateLimit({
-      scope: `${scope}:identity`,
-      subject,
-      limit: identityLimit,
-      requireDistributedStore: true,
-    });
-    await enforceServerRateLimit({
-      scope: `${scope}:ip`,
-      subject: getRateLimitClientIpFromHeaders(await headers()),
-      limit: ipLimit,
-      requireDistributedStore: true,
-    });
-    return null;
-  } catch (error) {
-    return statusForServerRateLimitError(error) === 429
-      ? 'Troppi tentativi. Attendi un minuto e riprova.'
-      : 'Servizio di autenticazione temporaneamente non disponibile.';
-  }
-}
-
+/**
+ * Il rate limit delle operazioni Auth resta responsabilità del backend Auth.
+ * Il frontend non deve introdurre una dipendenza Upstash davanti al login.
+ */
 export async function authFetch(
   path: string,
   body: Record<string, unknown>,

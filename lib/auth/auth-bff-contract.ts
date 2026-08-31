@@ -26,22 +26,6 @@ const SESSION_TOKEN_ISSUERS = new Set([
   'login', 'login/code/verify', 'refresh', 'verify-mfa',
 ]);
 const PREAUTH_TOKEN_ISSUERS = new Set(['login', 'login/code/verify']);
-const AUTH_RATE_LIMITS: Readonly<Record<string, number>> = {
-  login: 10,
-  'login/code/request': 5,
-  'login/code/verify': 10,
-  register: 5,
-  refresh: 30,
-  logout: 30,
-  'verify-mfa': 10,
-};
-const DISTRIBUTED_RATE_LIMIT_PATHS = new Set([
-  'login',
-  'login/code/request',
-  'login/code/verify',
-  'register',
-  'verify-mfa',
-]);
 
 const EXACT_CREDENTIAL_FIELDS = new Set([
   'access_token', 'refresh_token', 'pre_auth_token',
@@ -96,14 +80,6 @@ function containsUnexpectedCredentialField(
 
 export function isAllowedAuthRoute(path: string, method: string): boolean {
   return EXACT_AUTH_ROUTES[path]?.includes(method as AllowedMethod) === true;
-}
-
-export function authRateLimitForPath(path: string): number | undefined {
-  return AUTH_RATE_LIMITS[path];
-}
-
-export function requiresDistributedAuthRateLimit(path: string): boolean {
-  return DISTRIBUTED_RATE_LIMIT_PATHS.has(path);
 }
 
 export function validateSuccessfulAuthResponse(

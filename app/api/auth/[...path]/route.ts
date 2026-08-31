@@ -3,9 +3,7 @@ import { config } from '@/lib/config';
 import { projectAuthPayload } from '@/lib/auth/bff-redaction';
 import { isValidAuthCookieToken } from '@/lib/auth/auth-token';
 import {
-  authRateLimitForPath,
   isAllowedAuthRoute,
-  requiresDistributedAuthRateLimit,
   validateSuccessfulAuthResponse,
   type ValidatedAuthResponse,
 } from '@/lib/auth/auth-bff-contract';
@@ -27,11 +25,6 @@ import {
 } from '@/lib/auth/trusted-device-cookie';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 import { isSameOriginMutation } from '@/lib/security/request-origin';
-import { getRateLimitClientIp } from '@/lib/security/client-ip';
-import {
-  enforceServerRateLimit,
-  statusForServerRateLimitError,
-} from '@/lib/security/server-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,29 +66,8 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Next
   if (Number.isFinite(declaredLength) && declaredLength > MAX_AUTH_BODY_BYTES) {
     return authJson({ detail: 'Payload too large' }, 413);
   }
-  const localLimit = authRateLimitForPath(path);
-  if (localLimit !== undefined) {
-    try {
-      await enforceServerRateLimit({
-        scope: `auth-proxy:${path}`,
-        subject: getRateLimitClientIp(request),
-        limit: localLimit,
-        requireDistributedStore: requiresDistributedAuthRateLimit(path),
-      });
-    } catch (error) {
-      const status = statusForServerRateLimitError(error);
-      const responseHeaders = new Headers(
-        status === 429 ? { 'Retry-After': '60' } : {},
-      );
-      if (path === 'logout') appendSessionDeletions(responseHeaders);
-      return authJson(
-        { detail: status === 429 ? 'Too many attempts' : 'Auth service unavailable' },
-        status,
-        responseHeaders,
-      );
-    }
-  }
-
+  // Il backend Auth applica già il rate limit alle proprie operazioni: il BFF
+  // mantiene solo i confini di origine, allowlist, dimensione e timeout.
   if (!config.api.baseURL) {
     if (path === 'logout') {
       const responseHeaders = new Headers();

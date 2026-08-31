@@ -20,7 +20,6 @@ vi.mock('@/lib/auth/pre-auth-cookie', () => ({
 }));
 vi.mock('@/lib/data/auth-action-client', () => ({
   authFetch: vi.fn(),
-  authRateLimitError: vi.fn(),
   extractAuthError: vi.fn(),
 }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));

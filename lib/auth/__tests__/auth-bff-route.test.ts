@@ -2,10 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/security/server-rate-limit', () => ({
-  enforceServerRateLimit: vi.fn().mockResolvedValue(undefined),
-  statusForServerRateLimitError: vi.fn(() => 503),
-}));
 
 const SITE = 'https://tornei.ebartex.com';
 

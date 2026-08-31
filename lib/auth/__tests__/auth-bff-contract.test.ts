@@ -3,9 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 
 import {
-  authRateLimitForPath,
   isAllowedAuthRoute,
-  requiresDistributedAuthRateLimit,
   validateSuccessfulAuthResponse,
 } from '@/lib/auth/auth-bff-contract';
 import { config } from '@/lib/config';
@@ -18,25 +16,6 @@ describe('auth BFF contract', () => {
     expect(isAllowedAuthRoute('me', 'POST')).toBe(false);
     expect(isAllowedAuthRoute('login/extra', 'POST')).toBe(false);
     expect(isAllowedAuthRoute('password/reset', 'POST')).toBe(false);
-  });
-
-  it('assegna un limite locale a ogni mutazione pubblica ammessa', () => {
-    for (const path of [
-      'login',
-      'login/code/request',
-      'login/code/verify',
-      'register',
-      'refresh',
-      'logout',
-      'verify-mfa',
-    ]) {
-      expect(authRateLimitForPath(path)).toBeTypeOf('number');
-    }
-    expect(authRateLimitForPath('me')).toBeUndefined();
-    expect(requiresDistributedAuthRateLimit('login')).toBe(true);
-    expect(requiresDistributedAuthRateLimit('register')).toBe(true);
-    expect(requiresDistributedAuthRateLimit('refresh')).toBe(false);
-    expect(requiresDistributedAuthRateLimit('logout')).toBe(false);
   });
 
   it('accetta una coppia sessione completa soltanto dagli issuer reali e clampa il TTL', () => {

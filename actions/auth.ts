@@ -19,7 +19,6 @@ import {
 } from '@/lib/auth/auth-token';
 import {
   authFetch,
-  authRateLimitError,
   extractAuthError,
 } from '@/lib/data/auth-action-client';
 import {
@@ -45,14 +44,6 @@ export async function loginAction(formData: FormData): Promise<AuthActionState> 
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi' };
   }
-  const rateError = await authRateLimitError(
-    'auth-login',
-    parsed.data.identifier.trim().toLowerCase(),
-    5,
-    20,
-  );
-  if (rateError) return { error: rateError };
-
   const destination = sanitizeRedirect(parsed.data.redirect ?? null);
   const { ok, body: response } = await authFetch('/api/auth/login', buildLoginPayload(parsed.data));
 
@@ -94,9 +85,6 @@ export async function verifyMfaAction(formData: FormData): Promise<AuthActionSta
   if (!preAuthToken) {
     return { error: 'Sessione MFA scaduta. Accedi di nuovo.' };
   }
-  const rateError = await authRateLimitError('auth-verify-mfa', preAuthToken, 5, 20);
-  if (rateError) return { error: rateError };
-
   const destination = sanitizeRedirect(parsed.data.redirect ?? null);
   const { ok, body: response } = await authFetch('/api/auth/verify-mfa', {
     pre_auth_token: preAuthToken,
@@ -126,14 +114,6 @@ export async function requestLoginCodeAction(formData: FormData): Promise<AuthAc
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Email non valida' };
   }
-  const rateError = await authRateLimitError(
-    'auth-login-code-request',
-    parsed.data.email.trim().toLowerCase(),
-    5,
-    10,
-  );
-  if (rateError) return { error: rateError };
-
   const { ok, body } = await authFetch('/api/auth/login/code/request', {
     email: parsed.data.email,
   });
@@ -155,14 +135,6 @@ export async function verifyLoginCodeAction(formData: FormData): Promise<AuthAct
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Codice non valido' };
   }
-  const rateError = await authRateLimitError(
-    'auth-login-code-verify',
-    parsed.data.email.trim().toLowerCase(),
-    10,
-    30,
-  );
-  if (rateError) return { error: rateError };
-
   const destination = sanitizeRedirect(parsed.data.redirect ?? null);
   const { ok, body: response } = await authFetch('/api/auth/login/code/verify', {
     email: parsed.data.email,

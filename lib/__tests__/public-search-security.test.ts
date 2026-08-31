@@ -39,13 +39,23 @@ describe('public search abuse boundary', () => {
     expect(route).toContain("'Retry-After': '60'");
   });
 
-  it('applies both identity and infrastructure-IP quotas to auth actions', () => {
+  it('does not introduce an Upstash dependency into auth actions', () => {
     const client = readFileSync(
       new URL('../data/auth-action-client.ts', import.meta.url),
       'utf8',
     );
-    expect(client).toContain('`${scope}:identity`');
-    expect(client).toContain('`${scope}:ip`');
-    expect(client).toContain('getRateLimitClientIpFromHeaders(await headers())');
+    const actions = readFileSync(
+      new URL('../../actions/auth.ts', import.meta.url),
+      'utf8',
+    );
+    const route = readFileSync(
+      new URL('../../app/api/auth/[...path]/route.ts', import.meta.url),
+      'utf8',
+    );
+    expect(client).not.toContain('server-rate-limit');
+    expect(client).not.toContain('getRateLimitClientIpFromHeaders');
+    expect(actions).not.toContain('authRateLimitError');
+    expect(route).not.toContain('auth-bff-rate-limit');
+    expect(route).not.toContain('server-rate-limit');
   });
 });
