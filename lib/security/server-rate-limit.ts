@@ -90,6 +90,9 @@ export async function enforceServerRateLimit({
     }
   }
   if (!redisConfigured) {
+    if (process.env.NODE_ENV === 'production' && requireDistributedStore) {
+      throw new ServerRateLimitUnavailable('Store distribuito non disponibile');
+    }
     if (process.env.NODE_ENV === 'production') {
       warnProductionMemoryFallbackOnce();
     }

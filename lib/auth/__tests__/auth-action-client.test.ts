@@ -71,4 +71,41 @@ describe('auth action client response boundary', () => {
       }),
     );
   });
+
+  it('non installa trusted-device da una risposta Auth non riuscita', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      detail: 'Credenziali non valide',
+    }), {
+      status: 401,
+      headers: {
+        'content-type': 'application/json',
+        'set-cookie': '__Host-ebartex_mfa_trust=must-not-apply; Max-Age=3600',
+      },
+    })));
+    const { authFetch } = await import('@/lib/data/auth-action-client');
+    const result = await authFetch('/api/auth/login', { password: 'wrong' });
+
+    expect(result.ok).toBe(false);
+    expect(cookieStore.set).not.toHaveBeenCalled();
+  });
+
+  it('propaga una revoca trusted-device anche su risposta Auth non riuscita', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      detail: 'Dispositivo revocato',
+    }), {
+      status: 401,
+      headers: {
+        'content-type': 'application/json',
+        'set-cookie': '__Host-ebartex_mfa_trust=; Max-Age=0',
+      },
+    })));
+    const { authFetch } = await import('@/lib/data/auth-action-client');
+    await authFetch('/api/auth/login', { password: 'wrong' });
+
+    expect(cookieStore.set).toHaveBeenCalledWith(
+      '__Host-ebartex_mfa_trust',
+      '',
+      expect.objectContaining({ maxAge: 0 }),
+    );
+  });
 });

@@ -7,6 +7,7 @@ import {
   getSetCookieHeaders,
   MFA_TRUST_COOKIE,
   parseTrustedDeviceSetCookies,
+  shouldApplyTrustedDeviceUpdate,
 } from '@/lib/auth/trusted-device-cookie';
 
 /** Cookie trusted-device e User-Agent originali da inoltrare all'Auth API. */
@@ -30,12 +31,13 @@ export async function getTrustedDeviceForwardHeaders(
 /** Applica al browser una emissione, rotazione o revoca decisa dall'Auth API. */
 export async function applyTrustedDeviceResponse(
   path: string,
-  headers: Headers
+  headers: Headers,
+  allowPositive: boolean,
 ): Promise<void> {
   if (!getTrustedDeviceAuthPolicy(path).acceptSetCookie) return;
 
   const update = parseTrustedDeviceSetCookies(getSetCookieHeaders(headers));
-  if (!update) return;
+  if (!update || !shouldApplyTrustedDeviceUpdate(update, allowPositive)) return;
 
   const cookieStore = await cookies();
   cookieStore.set(MFA_TRUST_COOKIE, update.value, {

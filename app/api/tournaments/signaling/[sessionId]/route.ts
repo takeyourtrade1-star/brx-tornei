@@ -5,6 +5,7 @@ import {
   parseSignalingPostBody,
 } from '@/lib/webrtc/tournament-signaling-proxy';
 import { config } from '@/lib/config';
+import { isCanonicalUuid } from '@/lib/security/internal-service-headers';
 import { isSameOriginMutation } from '@/lib/security/request-origin';
 
 export const runtime = 'nodejs';
@@ -19,11 +20,19 @@ export async function POST(
     return NextResponse.json({ error: 'cross-site request rejected' }, { status: 403 });
   }
   const { sessionId } = await ctx.params;
-  const body = await parseSignalingPostBody(req);
-  if (body.tooLarge) {
-    return NextResponse.json({ error: 'payload too large' }, { status: 413 });
+  if (!isCanonicalUuid(sessionId)) {
+    return NextResponse.json({ error: 'invalid session' }, { status: 400 });
   }
-  return handleTournamentSignalingPost(sessionId, body);
+  const body = await parseSignalingPostBody(req);
+  if (!body.ok) {
+    const error = body.status === 408
+      ? 'request body timed out'
+      : body.status === 413
+        ? 'payload too large'
+        : 'invalid signal';
+    return NextResponse.json({ error }, { status: body.status });
+  }
+  return handleTournamentSignalingPost(sessionId, body.value);
 }
 
 export async function GET(
@@ -34,8 +43,20 @@ export async function GET(
   if (Buffer.byteLength(req.nextUrl.search, 'utf8') > 2048) {
     return NextResponse.json({ error: 'query too large' }, { status: 414 });
   }
-  const rawSince = Number(req.nextUrl.searchParams.get('since') ?? '0');
-  const since = Number.isSafeInteger(rawSince) && rawSince >= 0 ? rawSince : 0;
-  const role = req.nextUrl.searchParams.get('role') ?? 'host';
+  if (!isCanonicalUuid(sessionId)) {
+    return NextResponse.json({ error: 'invalid session' }, { status: 400 });
+  }
+  const rawSince = req.nextUrl.searchParams.get('since') ?? '0';
+  if (!/^\d{1,16}$/.test(rawSince)) {
+    return NextResponse.json({ error: 'invalid since' }, { status: 400 });
+  }
+  const since = Number(rawSince);
+  if (!Number.isSafeInteger(since)) {
+    return NextResponse.json({ error: 'invalid since' }, { status: 400 });
+  }
+  const role = req.nextUrl.searchParams.get('role');
+  if (role !== 'host' && role !== 'guest') {
+    return NextResponse.json({ error: 'invalid role' }, { status: 400 });
+  }
   return handleTournamentSignalingGet(sessionId, role, since);
 }

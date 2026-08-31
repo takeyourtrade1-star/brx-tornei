@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { config } from '@/lib/config';
 import { getAccessToken } from '@/lib/auth/session';
 import {
@@ -13,10 +14,25 @@ import { privateJson } from '@/lib/security/private-json';
 
 const MAX_SIGNAL_BODY_BYTES = 65 * 1024;
 
+export type SignalRole = 'host' | 'guest';
+export type SignalKind = 'offer' | 'answer' | 'candidate' | 'bye' | 'offline';
+
+export interface SignalingPostBody {
+  from: SignalRole;
+  kind: SignalKind;
+  data?: unknown;
+}
+
+const signalingPostSchema = z.object({
+  from: z.enum(['host', 'guest']),
+  kind: z.enum(['offer', 'answer', 'candidate', 'bye', 'offline']),
+  data: z.unknown().optional(),
+}).strict();
+
 /** Inoltra signaling al Tournament Service o usa store locale in dev. */
 export async function handleTournamentSignalingGet(
   sessionId: string,
-  role: string,
+  role: SignalRole,
   since: number,
 ): Promise<NextResponse> {
   const base = config.api.tournamentsBaseURL;
@@ -52,10 +68,9 @@ export async function handleTournamentSignalingGet(
   if (process.env.NODE_ENV !== 'development') {
     return privateJson({ error: 'signaling service unavailable' }, { status: 503 });
   }
-  const safeRole = role === 'guest' ? 'guest' : 'host';
   const { exists, messages } = await listSignalingMessages(
     sessionId,
-    safeRole,
+    role,
     since,
   );
   if (!exists) return privateJson({ exists: false, messages: [] });
@@ -64,12 +79,8 @@ export async function handleTournamentSignalingGet(
 
 export async function handleTournamentSignalingPost(
   sessionId: string,
-  body: { from?: 'host' | 'guest'; kind?: string; data?: unknown },
+  body: SignalingPostBody,
 ): Promise<NextResponse> {
-  if (!body.from || !body.kind) {
-    return privateJson({ error: 'missing from/kind' }, { status: 400 });
-  }
-
   const base = config.api.tournamentsBaseURL;
   if (base) {
     const token = await getAccessToken();
@@ -114,11 +125,14 @@ export async function handleTournamentSignalingPost(
 
 export async function parseSignalingPostBody(
   req: NextRequest,
-): Promise<{ from?: 'host' | 'guest'; kind?: string; data?: unknown; tooLarge?: boolean }> {
+): Promise<
+  | { ok: true; value: SignalingPostBody }
+  | { ok: false; status: 400 | 408 | 413 }
+> {
   const decoded = await readBoundedJson(req, MAX_SIGNAL_BODY_BYTES);
-  if (!decoded.ok) return decoded.status === 413 ? { tooLarge: true } : {};
-  if (!decoded.value || typeof decoded.value !== 'object' || Array.isArray(decoded.value)) {
-    return {};
-  }
-  return decoded.value as { from?: 'host' | 'guest'; kind?: string; data?: unknown };
+  if (!decoded.ok) return decoded;
+  const parsed = signalingPostSchema.safeParse(decoded.value);
+  return parsed.success
+    ? { ok: true, value: parsed.data }
+    : { ok: false, status: 400 };
 }

@@ -6,6 +6,7 @@ import {
   statusForServerRateLimitError,
 } from '@/lib/security/server-rate-limit';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+import { readBoundedBytes } from '@/lib/security/bounded-json';
 import {
   buildInternalServiceHeaders,
   isCanonicalUuid,
@@ -21,6 +22,7 @@ export const dynamic = 'force-dynamic';
 
 const MAX_CAPABILITIES_BYTES = 64 * 1024;
 const MAX_ONNX_MODEL_BYTES = 96 * 1024 * 1024;
+const REQUEST_BODY_TIMEOUT_MS = 10_000;
 
 type Rule = {
   method: 'GET' | 'POST';
@@ -123,47 +125,6 @@ function upstreamBase(): URL | null {
     configured.origin === allowed.origin
   ) return configured;
   return null;
-}
-
-async function readCappedBody(
-  req: NextRequest,
-  maxBytes: number,
-): Promise<Uint8Array | null> {
-  const declared = Number(req.headers.get('content-length') ?? '0');
-  const declaredRaw = req.headers.get('content-length');
-  if (
-    declaredRaw !== null &&
-    (!/^\d{1,20}$/.test(declaredRaw) ||
-      !Number.isSafeInteger(declared) ||
-      declared > maxBytes)
-  ) return null;
-  const reader = req.body?.getReader();
-  if (!reader) return new Uint8Array();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  let chunkCount = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunkCount += 1;
-    if (chunkCount > 1024) {
-      await reader.cancel();
-      return null;
-    }
-    total += value.byteLength;
-    if (total > maxBytes) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(value);
-  }
-  const body = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    body.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return body;
 }
 
 interface EdgeModelDescriptor {
@@ -399,11 +360,25 @@ async function proxy(
 
   let body: Uint8Array | undefined;
   if (rule.method === 'POST') {
-    const capped = await readCappedBody(req, rule.maxBodyBytes);
-    if (capped === null) {
-      return NextResponse.json({ error: 'payload too large' }, { status: 413 });
+    const capped = await readBoundedBytes(req, rule.maxBodyBytes, {
+      timeoutMs: REQUEST_BODY_TIMEOUT_MS,
+      maxChunks: 1024,
+    });
+    if (!capped.ok) {
+      const error = capped.status === 408
+        ? 'request body timed out'
+        : capped.status === 413
+          ? 'payload too large'
+          : 'invalid request body';
+      return NextResponse.json(
+        { error },
+        {
+          status: capped.status,
+          headers: { 'Cache-Control': 'private, no-store' },
+        },
+      );
     }
-    body = capped;
+    body = capped.value;
   }
 
   try {

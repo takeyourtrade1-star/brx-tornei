@@ -23,6 +23,7 @@ import {
   MFA_TRUST_COOKIE,
   parseTrustedDeviceSetCookies,
   serializeTrustedDeviceCookie,
+  shouldApplyTrustedDeviceUpdate,
 } from '@/lib/auth/trusted-device-cookie';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 import { isSameOriginMutation } from '@/lib/security/request-origin';
@@ -150,7 +151,18 @@ async function proxy(request: NextRequest, pathSegments: string[]): Promise<Next
 
     const trustedUpdate = policy.acceptSetCookie
       ? parseTrustedDeviceSetCookies(getSetCookieHeaders(upstream.headers)) : null;
-    if (trustedUpdate) responseHeaders.append('Set-Cookie', serializeTrustedDeviceCookie(trustedUpdate));
+    if (
+      trustedUpdate &&
+      shouldApplyTrustedDeviceUpdate(
+        trustedUpdate,
+        upstream.ok && validated.outcome !== 'none',
+      )
+    ) {
+      responseHeaders.append(
+        'Set-Cookie',
+        serializeTrustedDeviceCookie(trustedUpdate),
+      );
+    }
 
     if (path === 'login' || path === 'login/code/verify') {
       responseHeaders.append(

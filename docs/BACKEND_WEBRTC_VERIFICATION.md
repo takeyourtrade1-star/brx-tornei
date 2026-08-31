@@ -73,10 +73,14 @@ contiene anche un `attemptId`; non deve essere trasformato dal backend.
 
 ### 1. Autorizzare la sessione, non soltanto il JWT
 
-Attualmente `app/api/v1_signaling.py` verifica il JWT ma non verifica che il
-richiedente appartenga alla sessione. Inoltre accetta il ruolo dichiarato dal
-client. Un utente autenticato che conosce un UUID potrebbe quindi leggere o
-iniettare offer, answer e candidati ICE.
+Stato codice verificato il 31 agosto 2026: il Tournament Service applica il
+controllo in `app/api/v1_signaling.py` tramite
+`TournamentRepository.get_signaling_access_for_user()`. GET e POST risolvono
+la sessione, limitano l'accesso ai partecipanti attivi e confrontano il ruolo
+dichiarato con quello derivato lato server. Questa verifica statica non prova
+che la stessa revisione sia già distribuita nell'ambiente di produzione.
+
+Il contratto da mantenere è:
 
 - tipizzare `session_id` come `UUID`, non come stringa arbitraria;
 - risolvere sia la sessione lobby sia la sessione match;

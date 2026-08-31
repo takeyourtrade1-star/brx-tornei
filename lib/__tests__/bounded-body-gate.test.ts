@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const BOUNDED_HANDLER_FILES = [
+  'app/brx-match/[...path]/route.ts',
   'app/api/auth/[...path]/route.ts',
   'app/api/cards-by-blueprints/route.ts',
   'app/api/cards/resolve-scan/route.ts',
@@ -17,7 +18,7 @@ describe('bounded request-body gate', () => {
       new URL(`../../${relativePath}`, import.meta.url),
       'utf8',
     );
-    expect(source).toMatch(/(?:readBounded(?:Json|Text)|readAuthRequestBody)\(/);
+    expect(source).toMatch(/(?:readBounded(?:Bytes|Json|Text)|readAuthRequestBody)\(/);
     expect(source).not.toMatch(/\b(?:request|req)\.(?:text|json|arrayBuffer)\(/);
   });
 });

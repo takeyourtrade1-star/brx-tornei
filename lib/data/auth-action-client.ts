@@ -82,13 +82,20 @@ export async function authFetch(
       await readBoundedResponseJson(response, 512 * 1024).catch(() => ({})),
     );
     const contractPath = path.replace(/^\/api\/auth\//, '');
-    if (response.ok && !validateSuccessfulAuthResponse(contractPath, parsed).valid) {
+    const validated = response.ok
+      ? validateSuccessfulAuthResponse(contractPath, parsed)
+      : null;
+    if (validated && !validated.valid) {
       return {
         ok: false,
         body: { message: 'Risposta del servizio di autenticazione non valida' },
       };
     }
-    await applyTrustedDeviceResponse(path, response.headers);
+    await applyTrustedDeviceResponse(
+      path,
+      response.headers,
+      Boolean(validated?.valid && validated.outcome !== 'none'),
+    );
     return { ok: response.ok, body: parsed };
   } catch {
     return {

@@ -123,6 +123,44 @@ describe('auth BFF route hardening', () => {
     expect(JSON.stringify(await response.json())).not.toContain('camel-access');
   });
 
+  it('non installa trusted-device da una risposta Auth non riuscita', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      detail: 'Credenziali non valide',
+    }), {
+      status: 401,
+      headers: {
+        'content-type': 'application/json',
+        'set-cookie': '__Host-ebartex_mfa_trust=must-not-apply; Max-Age=3600',
+      },
+    })));
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+    const response = await POST(postRequest('/api/auth/login', {}), context('login'));
+
+    expect(response.status).toBe(401);
+    expect(response.headers.getSetCookie().join('\n')).not.toContain(
+      '__Host-ebartex_mfa_trust=',
+    );
+  });
+
+  it('propaga la revoca trusted-device da una risposta Auth non riuscita', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      detail: 'Dispositivo revocato',
+    }), {
+      status: 401,
+      headers: {
+        'content-type': 'application/json',
+        'set-cookie': '__Host-ebartex_mfa_trust=; Max-Age=0',
+      },
+    })));
+    const { POST } = await import('@/app/api/auth/[...path]/route');
+    const response = await POST(postRequest('/api/auth/login', {}), context('login'));
+
+    expect(response.status).toBe(401);
+    expect(response.headers.getSetCookie().join('\n')).toContain(
+      '__Host-ebartex_mfa_trust=;',
+    );
+  });
+
   it('accetta pre-auth solo da login, con TTL 300 e senza esporlo', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       pre_auth_token: 'pre.auth-token',

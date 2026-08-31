@@ -78,6 +78,29 @@ describe('validazione ambiente di build', () => {
     ).toThrow('must not contain credentials');
   });
 
+  it.each([
+    'https://build-user:build-password@auth.example.com',
+    'https://auth.example.com?token=build-query-secret',
+    'not-a-url?token=build-invalid-secret',
+  ])('non include valori origin sensibili nella diagnostica: %s', (value) => {
+    let message = '';
+    try {
+      validateProductionEnvironment({
+        ...validProductionEnvironment,
+        AUTH_API_URL: value,
+      });
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toContain('AUTH_API_URL');
+    expect(message).not.toContain(value);
+    expect(message).not.toContain('build-user');
+    expect(message).not.toContain('build-password');
+    expect(message).not.toContain('build-query-secret');
+    expect(message).not.toContain('build-invalid-secret');
+  });
+
   it('rifiuta un endpoint Redis non Upstash anche se inserito nella allowlist generale', () => {
     expect(() =>
       validateProductionEnvironment({

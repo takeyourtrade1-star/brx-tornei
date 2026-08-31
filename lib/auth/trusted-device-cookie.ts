@@ -84,6 +84,17 @@ export function parseTrustedDeviceSetCookies(
   return null;
 }
 
+/**
+ * Una revoca può accompagnare anche un errore Auth; emissione e rotazione
+ * richiedono invece un esito autenticato validato dal caller.
+ */
+export function shouldApplyTrustedDeviceUpdate(
+  update: TrustedDeviceCookieUpdate,
+  allowPositive: boolean,
+): boolean {
+  return update.maxAge === 0 || allowPositive;
+}
+
 export function getSetCookieHeaders(headers: Headers): string[] {
   const withGetSetCookie = headers as Headers & { getSetCookie?: () => string[] };
   const values = withGetSetCookie.getSetCookie?.();

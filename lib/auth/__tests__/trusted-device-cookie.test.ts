@@ -6,6 +6,7 @@ import {
   MFA_TRUST_MAX_AGE,
   parseTrustedDeviceSetCookies,
   serializeTrustedDeviceCookie,
+  shouldApplyTrustedDeviceUpdate,
 } from '@/lib/auth/trusted-device-cookie';
 
 describe('trusted-device cookie MFA', () => {
@@ -77,6 +78,18 @@ describe('trusted-device cookie MFA', () => {
         `${MFA_TRUST_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly`,
       ])
     ).toEqual({ value: '', maxAge: 0 });
+  });
+
+  it('consente sempre la revoca ma richiede un esito positivo per emissione e rotazione', () => {
+    expect(
+      shouldApplyTrustedDeviceUpdate({ value: '', maxAge: 0 }, false),
+    ).toBe(true);
+    expect(
+      shouldApplyTrustedDeviceUpdate({ value: 'new-trust', maxAge: 3600 }, false),
+    ).toBe(false);
+    expect(
+      shouldApplyTrustedDeviceUpdate({ value: 'new-trust', maxAge: 3600 }, true),
+    ).toBe(true);
   });
 
   it('ignora ogni Set-Cookie non appartenente al contratto MFA', () => {

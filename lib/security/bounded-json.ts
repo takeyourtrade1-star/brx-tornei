@@ -8,6 +8,10 @@ export type BoundedTextResult =
   | { ok: true; value: string }
   | { ok: false; status: 400 | 408 | 413 };
 
+export type BoundedBytesResult =
+  | { ok: true; value: Uint8Array }
+  | { ok: false; status: 400 | 408 | 413 };
+
 export interface BoundedBodyReadOptions {
   timeoutMs?: number;
   maxChunks?: number;
@@ -68,15 +72,16 @@ export function isJsonContentType(value: string | null): boolean {
 }
 
 /**
- * Parse JSON without ever buffering more than `maxBytes` from a chunked body.
+ * Buffer a request without ever reading more than `maxBytes` or `maxChunks`.
  * Content-Length is only an early rejection: the streaming ceiling remains
  * authoritative because clients can omit or lie about that header.
  */
-export async function readBoundedText(
+async function readBoundedBytesInternal(
   request: Request,
   maxBytes: number,
   options: BoundedBodyReadOptions = {},
-): Promise<BoundedTextResult> {
+  allowMissingBody = false,
+): Promise<BoundedBytesResult> {
   const rawLength = request.headers.get('content-length');
   if (rawLength !== null) {
     if (!/^\d+$/.test(rawLength)) return { ok: false, status: 400 };
@@ -84,7 +89,11 @@ export async function readBoundedText(
   }
 
   const reader = request.body?.getReader();
-  if (!reader) return { ok: false, status: 400 };
+  if (!reader) {
+    return allowMissingBody
+      ? { ok: true, value: new Uint8Array() }
+      : { ok: false, status: 400 };
+  }
 
   const timeoutMs =
     typeof options.timeoutMs === 'number' &&
@@ -133,11 +142,30 @@ export async function readBoundedText(
     raw.set(chunk, offset);
     offset += chunk.byteLength;
   }
+  return { ok: true, value: raw };
+}
+
+/** Legge un body binario con deadline totale e cap di byte/chunk. */
+export async function readBoundedBytes(
+  request: Request,
+  maxBytes: number,
+  options: BoundedBodyReadOptions = {},
+): Promise<BoundedBytesResult> {
+  return readBoundedBytesInternal(request, maxBytes, options, true);
+}
+
+export async function readBoundedText(
+  request: Request,
+  maxBytes: number,
+  options: BoundedBodyReadOptions = {},
+): Promise<BoundedTextResult> {
+  const body = await readBoundedBytesInternal(request, maxBytes, options);
+  if (!body.ok) return body;
 
   try {
     return {
       ok: true,
-      value: new TextDecoder('utf-8', { fatal: true }).decode(raw),
+      value: new TextDecoder('utf-8', { fatal: true }).decode(body.value),
     };
   } catch {
     return { ok: false, status: 400 };
