@@ -32,35 +32,29 @@ describe('footer dual-hub layout and conditional footer contract', () => {
     expect(footerSource).toContain('Tournaments');
   });
 
-  it('contains locked language selector on the marketplace half', () => {
+  it('contains the marketplace half with only essential links', () => {
     const footerSource = readFileSync(
       new URL('../../components/layout/Footer.tsx', import.meta.url),
       'utf8',
     );
 
-    expect(footerSource).toContain("title: 'Lingua del sito'");
-    expect(footerSource).toContain("label: 'Italiano', href: '#', active: true");
-    expect(footerSource).toContain("label: 'English', href: '#', disabled: true");
-    expect(footerSource).toContain("label: 'Deutsch', href: '#', disabled: true");
-    expect(footerSource).toContain("label: 'Español', href: '#', disabled: true");
-    expect(footerSource).toContain("label: 'Français', href: '#', disabled: true");
-    expect(footerSource).toContain("label: 'Português', href: '#', disabled: true");
-    expect(footerSource).toContain('cursor-not-allowed');
-    expect(footerSource).toContain('In arrivo');
+    expect(footerSource).toContain("title: 'Marketplace'");
+    expect(footerSource).toContain("label: 'Compra carte'");
+    expect(footerSource).toContain("label: 'Aste live'");
+    expect(footerSource).toContain("title: 'Supporto & legale'");
+    expect(footerSource).toContain("label: 'Condizioni generali'");
   });
 
-  it('contains tournament-specific columns on the right half', () => {
+  it('contains tournament-specific links on the right half', () => {
     const footerSource = readFileSync(
       new URL('../../components/layout/Footer.tsx', import.meta.url),
       'utf8',
     );
 
-    expect(footerSource).toContain("title: 'Arena & Sfide'");
-    expect(footerSource).toContain("title: 'Regole & Fair Play'");
-    expect(footerSource).toContain("title: 'Community & Social'");
-    expect(footerSource).toContain('Lobby Tornei');
-    expect(footerSource).toContain('Le mie partite');
-    expect(footerSource).toContain('Deck Builder & Mazzi');
+    expect(footerSource).toContain("title: 'Gioca'");
+    expect(footerSource).toContain("label: 'Lobby tornei'");
+    expect(footerSource).toContain("label: 'I miei mazzi'");
+    expect(footerSource).toContain("label: 'Le mie partite'");
     expect(footerSource).toContain('Fatto col ❤️ a Ivrea, terra di idee iconiche.');
   });
 
