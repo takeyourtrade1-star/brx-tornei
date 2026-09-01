@@ -315,7 +315,7 @@ export function LobbyPage({
       }
 
       if (table.kind === 'joinable' && table.tournament) {
-        // La dichiarazione del mazzo precede sempre la seduta.
+        // La scelta del mazzo è facoltativa sui tavoli casuali.
         setModal({ mode: 'join', tournamentId: table.tournament.id });
         return;
       }
@@ -456,7 +456,7 @@ export function LobbyPage({
 
       <TableSeatModal
         open={modal !== null}
-        mode={modal?.mode === 'create' ? 'join' : (modal?.mode ?? 'host')}
+        mode={modal?.mode ?? 'host'}
         formatId={modalFormatId}
         formatName={modalFormatName}
         myUsername={myUsername}

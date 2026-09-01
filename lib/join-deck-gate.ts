@@ -20,10 +20,14 @@ export type JoinDeckGateResult =
   | { ok: false; error: string };
 
 export function requiresDeclaredDeckForJoin(tournament: Tournament): boolean {
-  // La dichiarazione è sempre richiesta: i flag di verifica non fanno parte
-  // del contratto storico del Tournament Service e non sono un confine sicuro.
-  void tournament;
-  return true;
+  // I tavoli casuali restano giocabili anche senza un mazzo. Un torneo o un
+  // controllo esplicito, invece, ha bisogno di una dichiarazione per poter
+  // applicare la relativa verifica server-side.
+  return Boolean(
+    tournament.isTournament ||
+    tournament.enableScryfallCheck ||
+    tournament.enablePhysicalVerification,
+  );
 }
 
 export async function assertDeclaredDeckRequirements(

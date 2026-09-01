@@ -34,13 +34,20 @@ const declaredDeckIdSchema = z.string({
   .min(1, 'Dichiara il mazzo con cui vuoi partecipare.')
   .max(128);
 
+const optionalDeckIdSchema = z.preprocess(
+  (value) => value === '' || (typeof value === 'string' && value.trim() === '')
+    ? undefined
+    : value,
+  declaredDeckIdSchema.optional(),
+);
+
 export const createTableSchema = createTournamentSchema.extend({
-  deckId: declaredDeckIdSchema,
+  deckId: optionalDeckIdSchema,
 });
 
 export const joinTournamentSchema = z.object({
   tournamentId: z.string().min(1).max(128),
-  deckId: declaredDeckIdSchema,
+  deckId: optionalDeckIdSchema,
 });
 
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;

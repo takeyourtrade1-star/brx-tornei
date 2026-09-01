@@ -6,6 +6,7 @@ interface TableSeatDeckSectionProps {
   formatName: string;
   decks: Deck[];
   selected: string;
+  ignoreDeckValue: string;
   loading: boolean;
   newDeckName: string;
   creating: boolean;
@@ -19,6 +20,7 @@ export function TableSeatDeckSection({
   formatName,
   decks,
   selected,
+  ignoreDeckValue,
   loading,
   newDeckName,
   creating,
@@ -40,6 +42,12 @@ export function TableSeatDeckSection({
       </div>
 
       <div className="space-y-2">
+        <DeckOption
+          checked={selected === ignoreDeckValue}
+          title="Gioca senza associare un mazzo"
+          detail="Scelta rapida"
+          onChange={() => onSelect(ignoreDeckValue)}
+        />
         {loading && decks.length === 0 && (
           <p className="px-1 py-2 text-sm font-medium text-white/40">Carico i tuoi mazzi…</p>
         )}
@@ -96,10 +104,12 @@ export function TableSeatDeckSection({
 function DeckOption({
   checked,
   title,
+  detail,
   onChange,
 }: {
   checked: boolean;
   title: string;
+  detail?: string;
   onChange: () => void;
 }) {
   return (
@@ -129,6 +139,7 @@ function DeckOption({
         {checked && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{title}</span>
+      {detail && <span className="shrink-0 text-xs font-semibold text-white/40">{detail}</span>}
     </label>
   );
 }

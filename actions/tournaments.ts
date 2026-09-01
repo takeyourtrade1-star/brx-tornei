@@ -53,6 +53,7 @@ function mapApiError(err: unknown, fallback: string): TournamentActionState {
 /**
  * Crea un nuovo tavolo (torneo 1v1) per il formato/modalità correnti e vi
  * siede l'utente come primo giocatore. Best of 3 fisso, pubblico, casual.
+ * Il mazzo è facoltativo.
  */
 export async function createTableAction(
   format: string,
@@ -79,12 +80,14 @@ export async function createTableAction(
     return { error: parsed.error.errors[0]?.message ?? 'Selezione non valida' };
   }
 
-  const gate = await assertDeclaredDeckRequirements(session.user.id, {
-    deckId: parsed.data.deckId,
-    format: parsed.data.format,
-    requireScryfall: false,
-  });
-  if (!gate.ok) return { error: gate.error };
+  if (parsed.data.deckId) {
+    const gate = await assertDeclaredDeckRequirements(session.user.id, {
+      deckId: parsed.data.deckId,
+      format: parsed.data.format,
+      requireScryfall: false,
+    });
+    if (!gate.ok) return { error: gate.error };
+  }
 
   let createdId: string | null = null;
   try {
@@ -114,8 +117,8 @@ export async function createTableAction(
 /**
  * Siede l'utente a un tavolo esistente. A tavolo pieno si apre il ready check:
  * il match parte solo dopo la conferma esplicita di entrambi i giocatori.
- * Il mazzo dichiarato è sempre obbligatorio; sarà l'avversario a controllare
- * che le carte giocate corrispondano alla dichiarazione.
+ * `deckId` è opzionale: vuoto = gioco senza associare un mazzo. Se il tavolo
+ * richiede una verifica, la dichiarazione resta obbligatoria.
  */
 export async function joinTournamentAction(
   tournamentId: string,
@@ -140,13 +143,15 @@ export async function joinTournamentAction(
     return { error: 'Dichiara il mazzo con cui vuoi partecipare.' };
   }
 
-  const gate = await assertJoinDeckRequirements(
-    session.user.id,
-    tournament,
-    parsed.data.deckId,
-  );
-  if (!gate.ok) {
-    return { error: gate.error };
+  if (parsed.data.deckId) {
+    const gate = await assertJoinDeckRequirements(
+      session.user.id,
+      tournament,
+      parsed.data.deckId,
+    );
+    if (!gate.ok) {
+      return { error: gate.error };
+    }
   }
 
   try {

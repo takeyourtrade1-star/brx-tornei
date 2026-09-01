@@ -27,6 +27,8 @@ interface TableSeatModalProps {
   onConfirmJoin?: (deckId: string) => void;
 }
 
+const IGNORE_DECK = '__ignore__';
+
 export function TableSeatModal({
   open,
   mode,
@@ -43,7 +45,7 @@ export function TableSeatModal({
 }: TableSeatModalProps) {
   const [mounted, setMounted] = useState(false);
   const [decks, setDecks] = useState<Deck[]>([]);
-  const [selected, setSelected] = useState('');
+  const [selected, setSelected] = useState(IGNORE_DECK);
   const [newDeckName, setNewDeckName] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function TableSeatModal({
         setSelected(
           currentIsCompatible
             ? currentDeckId!
-            : (compatible[0]?.id ?? ''),
+            : mode === 'join' ? (compatible[0]?.id ?? IGNORE_DECK) : IGNORE_DECK,
         );
       }
     });
@@ -88,7 +90,7 @@ export function TableSeatModal({
   };
 
   if (!open || !mounted) return null;
-  const deckIdToSubmit = selected;
+  const deckIdToSubmit = selected === IGNORE_DECK ? '' : selected;
   const isHost = mode === 'host';
   const isCreate = mode === 'create';
 
@@ -121,10 +123,10 @@ export function TableSeatModal({
           descriptionId="table-seat-description"
           title={isHost ? 'Il tuo posto è pronto' : isCreate ? 'Crea il tavolo' : 'Siediti al tavolo'}
           description={isHost
-            ? 'Associa il mazzo che userai e resta qui mentre aspetti il tuo avversario.'
+            ? 'Associa il mazzo che userai oppure gioca senza mazzo.'
             : isCreate
-              ? 'Dichiara il mazzo prima di creare e occupare il tavolo.'
-            : 'Scegli il mazzo e controlla i posti prima di entrare.'}
+              ? 'Scegli un mazzo oppure crea il tavolo e gioca senza mazzo.'
+            : 'Scegli un mazzo oppure siediti e gioca senza mazzo.'}
           meta={[formatName, 'Best of 3', '2 giocatori']}
           onClose={onClose}
           closeDisabled={busy}
@@ -135,6 +137,7 @@ export function TableSeatModal({
             formatName={formatName}
             decks={decks}
             selected={selected}
+            ignoreDeckValue={IGNORE_DECK}
             loading={loadingDecks}
             newDeckName={newDeckName}
             creating={creating}
@@ -169,9 +172,8 @@ export function TableSeatModal({
               </button>
               <PrimaryAction
                 busy={busy}
-                disabled={!deckIdToSubmit}
                 onClick={() => onConfirmJoin?.(deckIdToSubmit)}
-                label="Salva mazzo e torna"
+                label="Salva scelta e torna"
                 busyLabel="Salvataggio…"
                 initialFocus
               />
@@ -188,9 +190,8 @@ export function TableSeatModal({
               </button>
               <PrimaryAction
                 busy={busy}
-                disabled={!deckIdToSubmit}
                 onClick={() => onConfirmJoin?.(deckIdToSubmit)}
-                label={isCreate ? 'Dichiara mazzo e crea' : 'Siediti e gioca'}
+                label={isCreate ? 'Crea tavolo' : 'Siediti e gioca'}
                 busyLabel={isCreate ? 'Creazione…' : 'Mi siedo…'}
               />
             </div>
@@ -204,14 +205,12 @@ export function TableSeatModal({
 
 function PrimaryAction({
   busy,
-  disabled = false,
   onClick,
   label,
   busyLabel,
   initialFocus = false,
 }: {
   busy: boolean;
-  disabled?: boolean;
   onClick: () => void;
   label: string;
   busyLabel: string;
@@ -221,7 +220,7 @@ function PrimaryAction({
     <button
       type="button"
       onClick={onClick}
-      disabled={busy || disabled}
+      disabled={busy}
       data-modal-initial-focus={initialFocus ? 'true' : undefined}
       className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-black text-white shadow-[0_8px_20px_-8px_rgba(255,115,0,0.45)] transition hover:opacity-95 disabled:opacity-50"
     >
