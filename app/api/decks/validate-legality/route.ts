@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { getDeckById } from '@/lib/data/decks';
+import {
+  resolveTrustedDeck,
+  resolveTrustedDeckCards,
+} from '@/lib/deck-card-boundary';
 import { validateDeckLegalityWithScryfall } from '@/lib/deck-legality-with-scryfall';
+import { enforceDeckLegalityRateLimit } from '@/lib/deck-legality-rate-limit';
 import { validateLegalitySchema } from '@/lib/validations/deck-actions';
 import { config } from '@/lib/config';
 import { isJsonContentType, readBoundedJson } from '@/lib/security/bounded-json';
 import { isSameOriginMutation } from '@/lib/security/request-origin';
 import {
-  enforceServerRateLimit,
   statusForServerRateLimitError,
 } from '@/lib/security/server-rate-limit';
 import type { Deck } from '@/types/deck';
@@ -33,11 +37,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await enforceServerRateLimit({
-      scope: 'deck-legality',
-      subject: session.user.id,
-      limit: 12,
-    });
+    await enforceDeckLegalityRateLimit(session.user.id);
   } catch (error) {
     const status = statusForServerRateLimitError(error);
     return NextResponse.json(
@@ -66,31 +66,45 @@ export async function POST(request: Request) {
   }
 
   let deck: Deck | null = null;
-  if (parsed.data.deckId) {
-    deck = await getDeckById(session.user.id, parsed.data.deckId);
-    if (!deck) {
-      return NextResponse.json({ error: 'Mazzo non trovato' }, { status: 404 });
+  try {
+    if (parsed.data.deckId) {
+      const stored = await getDeckById(session.user.id, parsed.data.deckId);
+      deck = stored ? await resolveTrustedDeck(stored) : null;
+      if (!deck) {
+        return NextResponse.json({ error: 'Mazzo non trovato' }, { status: 404 });
+      }
+    } else if (parsed.data.deckSnapshot) {
+      const [main, side] = await Promise.all([
+        resolveTrustedDeckCards(parsed.data.deckSnapshot.main),
+        resolveTrustedDeckCards(parsed.data.deckSnapshot.side),
+      ]);
+      deck = {
+        id: 'snapshot',
+        name: 'Snapshot',
+        formatId: parsed.data.deckSnapshot.formatId,
+        archetypeId: 'aggro',
+        main,
+        side,
+        createdAt: new Date().toISOString(),
+        verificationStatus: 'none',
+      };
+    } else {
+      return NextResponse.json({ error: 'deckId o deckSnapshot richiesto' }, { status: 400 });
     }
-  } else if (parsed.data.deckSnapshot) {
-    deck = {
-      id: 'snapshot',
-      name: 'Snapshot',
-      formatId: parsed.data.deckSnapshot.formatId as Deck['formatId'],
-      archetypeId: 'aggro',
-      main: parsed.data.deckSnapshot.main as Deck['main'],
-      side: parsed.data.deckSnapshot.side as Deck['side'],
-      createdAt: new Date().toISOString(),
-      verificationStatus: 'none',
-    };
-  } else {
-    return NextResponse.json({ error: 'deckId o deckSnapshot richiesto' }, { status: 400 });
+  } catch {
+    return NextResponse.json(
+      { error: 'Impossibile verificare le carte del mazzo' },
+      { status: 422, headers: { 'Cache-Control': 'no-store' } },
+    );
   }
 
   if (!deck) {
     return NextResponse.json({ error: 'Mazzo non trovato' }, { status: 404 });
   }
 
-  const formatId = (parsed.data.formatId ?? deck.formatId) as Deck['formatId'];
+  const formatId = parsed.data.deckId
+    ? deck.formatId
+    : (parsed.data.formatId ?? deck.formatId);
   const result = await validateDeckLegalityWithScryfall(deck, formatId);
   return NextResponse.json(
     { legal: result.legal, issues: result.issues },

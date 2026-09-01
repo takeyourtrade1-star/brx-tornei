@@ -71,6 +71,13 @@ describe('social API mapper', () => {
     expect(mapPublicPlayerProfile({ presence: 'online' })).toBeNull();
   });
 
+  it('non interpreta il campo username generico come username Ebartex', () => {
+    expect(mapPublicPlayerProfile({
+      gamertag: 'TournamentTag',
+      username: 'TournamentTag',
+    })?.ebartexUsername).toBeNull();
+  });
+
   it('se presence manca, last-seen assente diventa offline e non online', () => {
     const result = mapFriendSummaryList([{ gamertag: 'GhostPlayer' }]);
     expect(result?.[0]?.presence).toBe('offline');

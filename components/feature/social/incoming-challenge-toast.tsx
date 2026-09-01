@@ -7,6 +7,9 @@ import { checkIncomingChallengeAction, respondGameChallengeAction } from '@/acti
 import type { DirectGameChallenge } from '@/types/social';
 import { getAvatarById } from '@/lib/avatars';
 import { Button } from '@/components/ui/button';
+import { listDecksAction } from '@/actions/decks';
+import { ChallengeDeckSelect } from './challenge-deck-select';
+import type { Deck } from '@/types/deck';
 
 export function IncomingChallengeToast() {
   const router = useRouter();
@@ -14,6 +17,9 @@ export function IncomingChallengeToast() {
   const [secondsLeft, setSecondsLeft] = useState(60);
   const [acting, setActing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [deckId, setDeckId] = useState('');
+  const [loadingDecks, setLoadingDecks] = useState(false);
 
   useEffect(() => {
     if (challenge) return;
@@ -39,6 +45,22 @@ export function IncomingChallengeToast() {
 
   useEffect(() => {
     if (!challenge) return;
+    let cancelled = false;
+    setLoadingDecks(true);
+    void listDecksAction().then((result) => {
+      if (cancelled) return;
+      const compatible = 'decks' in result
+        ? result.decks.filter((deck) => deck.formatId === challenge.format)
+        : [];
+      setDecks(compatible);
+      setDeckId(compatible[0]?.id ?? '');
+      setLoadingDecks(false);
+    });
+    return () => { cancelled = true; };
+  }, [challenge]);
+
+  useEffect(() => {
+    if (!challenge) return;
     const updateCountdown = () => {
       const remaining = Math.max(0, Math.round((challenge.expiresAt - Date.now()) / 1000));
       setSecondsLeft(remaining);
@@ -60,7 +82,7 @@ export function IncomingChallengeToast() {
   const handleAccept = async () => {
     setActing(true);
     setError(null);
-    const res = await respondGameChallengeAction(challenge.id, 'accept');
+    const res = await respondGameChallengeAction(challenge.id, 'accept', deckId);
     setActing(false);
     if (res.ok && res.data?.tableId) {
       setChallenge(null);
@@ -115,10 +137,20 @@ export function IncomingChallengeToast() {
           <p className="mt-2 text-[11px] font-semibold text-red-300">{error}</p>
         ) : null}
 
+        <div className="mt-3">
+          <ChallengeDeckSelect
+            id="incoming-challenge-deck"
+            decks={decks}
+            selectedDeckId={deckId}
+            loading={loadingDecks}
+            onSelect={setDeckId}
+          />
+        </div>
+
         <div className="mt-3.5 flex items-center gap-2">
           <Button
             type="button"
-            disabled={acting}
+            disabled={acting || loadingDecks || !deckId}
             onClick={handleAccept}
             className="h-8 flex-1 gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-xs font-black uppercase tracking-wider text-white shadow-sm hover:brightness-105"
           >

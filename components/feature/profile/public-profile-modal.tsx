@@ -72,8 +72,12 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
   const presence = profile ? presenceConfig[profile.presence] : presenceConfig.offline;
   const isDnd = profile?.presence === 'dnd';
   const isSelf = profile?.friendship === 'self';
+  const ebartexUsername = profile?.ebartexUsername?.trim() || null;
   const hasEbartexCards = Boolean(
-    profile?.ebartexUsername && profile?.showEbartexProfile !== false,
+    ebartexUsername && profile?.showEbartexProfile !== false,
+  );
+  const ebartexLinkUnavailable = Boolean(
+    !ebartexUsername && (isSelf || profile?.showEbartexProfile !== false),
   );
 
   return createPortal(
@@ -182,9 +186,9 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
                   </>
                 )}
 
-                {isSelf ? (
+                {isSelf && ebartexUsername ? (
                   <a
-                    href={getEbartexProfileUrl(profile.ebartexUsername, profile.gamertag)}
+                    href={getEbartexProfileUrl(ebartexUsername)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 text-xs font-bold text-white/80 shadow-sm transition hover:border-white/30 hover:bg-white/10 hover:text-white"
@@ -194,7 +198,7 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
                   </a>
                 ) : hasEbartexCards ? (
                   <a
-                    href={getEbartexProfileUrl(profile.ebartexUsername)}
+                    href={getEbartexProfileUrl(ebartexUsername)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 text-xs font-bold text-white/80 shadow-sm transition hover:border-white/30 hover:bg-white/10 hover:text-white"
@@ -205,9 +209,9 @@ export function PublicProfileModal({ gamertag, open, onClose, onChallenge }: Pub
                 ) : (
                   <span
                     className="inline-flex h-10 select-none items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-white/45"
-                    title="Questo utente non ha carte in vendita su Ebartex"
+                    title={ebartexLinkUnavailable ? 'Username Ebartex non disponibile' : 'Questo utente non ha carte in vendita su Ebartex'}
                   >
-                    <span>L&apos;utente non ha carte in vendita</span>
+                    <span>{ebartexLinkUnavailable ? 'Profilo Ebartex non collegato' : 'L&apos;utente non ha carte in vendita'}</span>
                   </span>
                 )}
               </div>

@@ -5,6 +5,7 @@ import type {
   GapProtectionSnapshot,
 } from '@/lib/gap-recording/types';
 import { UNAUTHORIZED_UPLOAD_DESTINATION } from '@/lib/gap-recording/upload-transport';
+import { GAP_MAX_BYTES } from '@/lib/gap-recording/policy';
 
 interface NewIncidentInput {
   id: string;
@@ -14,6 +15,25 @@ interface NewIncidentInput {
   matchUserKey: string;
   detectedAt: number;
   captureStartedAt: number;
+}
+
+export async function createReservedGapIncident(
+  store: GapRecordingStore,
+  input: NewIncidentInput,
+  maxIncidents: number,
+): Promise<GapIncidentRecord | null> {
+  if (!await store.tryReserveIncident(input.matchUserKey, maxIncidents, input.detectedAt)) {
+    return null;
+  }
+  const incident = newGapIncident(input);
+  await store.putIncident(incident);
+  await store.assignWindow(
+    input.matchUserKey,
+    incident.id,
+    incident.captureStartedAt,
+    null,
+  );
+  return incident;
 }
 
 export function newGapIncident(input: NewIncidentInput): GapIncidentRecord {
@@ -48,6 +68,22 @@ export function withClipSummary(
     byteLength: clips.reduce((total, clip) => total + clip.byteLength, 0),
     updatedAt,
   };
+}
+
+export async function refreshGapIncidentSummary(
+  store: GapRecordingStore,
+  incident: GapIncidentRecord,
+  now: number,
+): Promise<GapIncidentRecord> {
+  const clips = await store.listIncidentClips(incident.id);
+  const refreshed = withClipSummary(incident, clips, now);
+  if (refreshed.byteLength >= GAP_MAX_BYTES) {
+    refreshed.captureCapped = true;
+    refreshed.captureEndedAt = clips.at(-1)?.endedAt ?? now;
+  } else {
+    await store.putIncident(refreshed);
+  }
+  return refreshed;
 }
 
 export async function recoverInterruptedIncidents(
@@ -118,6 +154,8 @@ export async function buildGapSnapshot(
       (incident.uploadConsentVersion !== 'peer-gap-review-v1' ||
         typeof incident.uploadConsentedAt !== 'number'),
   );
+  const consentRequest = [...consentRequired]
+    .sort((left, right) => left.detectedAt - right.detectedAt)[0] ?? null;
   const retrying = incidents.filter(
     (incident) => incident.status === 'retrying' ||
       (incident.status === 'failed' && incident.nextRetryAt !== null),
@@ -145,6 +183,16 @@ export async function buildGapSnapshot(
     status,
     pendingIncidents: pending.length,
     consentRequiredIncidents: consentRequired.length,
+    consentRequest: consentRequest ? {
+      incidentId: consentRequest.id,
+      detectedAt: consentRequest.detectedAt,
+      byteLength: consentRequest.byteLength,
+      durationMs: Math.max(
+        0,
+        (consentRequest.captureEndedAt ?? consentRequest.updatedAt) -
+          consentRequest.captureStartedAt,
+      ),
+    } : null,
     retryingIncidents: retrying.length,
     failedIncidents: failed.length,
     retryableFailedIncidents: retryableFailed.length,

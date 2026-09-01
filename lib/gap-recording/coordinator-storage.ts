@@ -18,23 +18,27 @@ function consentMissing(incident: GapIncidentRecord): boolean {
 export async function grantPendingGapConsent(
   store: GapRecordingStore,
   matchUserKey: string,
+  incidentId: string,
   consentedAt: number,
 ): Promise<void> {
-  const incidents = await store.listIncidents(matchUserKey);
-  for (const incident of incidents) {
-    if (!consentMissing(incident) || !CONSENTABLE_STATUSES.has(incident.status)) continue;
-    await store.putIncident({
-      ...incident,
-      status: 'queued',
-      uploadConsentedAt: consentedAt,
-      uploadConsentVersion: MATCH_GAP_NOTICE_VERSION,
-      retryCount: 0,
-      nextRetryAt: null,
-      lastError: null,
-      failureKind: null,
-      updatedAt: consentedAt,
-    });
-  }
+  const incident = await store.getIncident(incidentId);
+  if (
+    !incident ||
+    incident.matchUserKey !== matchUserKey ||
+    !consentMissing(incident) ||
+    !CONSENTABLE_STATUSES.has(incident.status)
+  ) return;
+  await store.putIncident({
+    ...incident,
+    status: 'queued',
+    uploadConsentedAt: consentedAt,
+    uploadConsentVersion: MATCH_GAP_NOTICE_VERSION,
+    retryCount: 0,
+    nextRetryAt: null,
+    lastError: null,
+    failureKind: null,
+    updatedAt: consentedAt,
+  });
 }
 
 export async function retryFailedGapUploads(
@@ -63,12 +67,16 @@ export async function retryFailedGapUploads(
 export async function declinePendingGapUploads(
   store: GapRecordingStore,
   matchUserKey: string,
+  incidentId: string,
 ): Promise<void> {
-  const incidents = await store.listIncidents(matchUserKey);
-  for (const incident of incidents) {
-    if (consentMissing(incident) && CONSENTABLE_STATUSES.has(incident.status)) {
-      await store.deleteIncidentData(incident.id);
-    }
+  const incident = await store.getIncident(incidentId);
+  if (
+    incident &&
+    incident.matchUserKey === matchUserKey &&
+    consentMissing(incident) &&
+    CONSENTABLE_STATUSES.has(incident.status)
+  ) {
+    await store.deleteIncidentData(incident.id);
   }
 }
 

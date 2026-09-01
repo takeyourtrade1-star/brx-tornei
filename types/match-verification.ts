@@ -28,11 +28,13 @@ export function resolveMatchContextFromInput(input: {
 export function getDeckVerificationPolicy(context: MatchContext): DeckVerificationPolicy {
   switch (context) {
     case 'friendly':
-      return { scryfallLegality: 'optional', physicalScan: 'optional' };
+      return { scryfallLegality: 'optional', physicalScan: 'off' };
     case 'public':
-      return { scryfallLegality: 'optional', physicalScan: 'optional' };
+      return { scryfallLegality: 'optional', physicalScan: 'off' };
     case 'tournament':
-      return { scryfallLegality: 'required', physicalScan: 'required' };
+      // Il mazzo va dichiarato e resta verificabile dall'avversario; una scansione
+      // fisica auto-attestata non è un requisito di ammissione al torneo.
+      return { scryfallLegality: 'required', physicalScan: 'off' };
     default: {
       const _exhaustive: never = context;
       return _exhaustive;
@@ -53,14 +55,14 @@ export function normalizeVerificationFlags(input: {
       isTournament: true,
       isPrivate,
       enableScryfallCheck: true,
-      enablePhysicalVerification: true,
+      enablePhysicalVerification: false,
     };
   }
   return {
     isTournament: false,
     isPrivate,
     enableScryfallCheck: Boolean(input.enableScryfallCheck),
-    enablePhysicalVerification: Boolean(input.enablePhysicalVerification),
+    enablePhysicalVerification: false,
   };
 }
 

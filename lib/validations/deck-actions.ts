@@ -1,10 +1,48 @@
 import { z } from 'zod';
 import { isPlaymatId } from '@/lib/playmats';
-import type { TournamentLegalities } from '@/types/card-legality';
 import { createDeckSchema } from './deck';
 
+const legalityStatusSchema = z.enum(['legal', 'not_legal', 'restricted', 'banned']);
+
+const tournamentLegalitiesSchema = z.object({
+  standard: legalityStatusSchema,
+  pioneer: legalityStatusSchema,
+  modern: legalityStatusSchema,
+  legacy: legalityStatusSchema,
+  pauper: legalityStatusSchema,
+  commander: legalityStatusSchema,
+  premodern: legalityStatusSchema,
+  'old-school': legalityStatusSchema,
+}).partial().transform((value) => ({
+  standard: value.standard ?? 'not_legal',
+  pioneer: value.pioneer ?? 'not_legal',
+  modern: value.modern ?? 'not_legal',
+  legacy: value.legacy ?? 'not_legal',
+  pauper: value.pauper ?? 'not_legal',
+  commander: value.commander ?? 'not_legal',
+  premodern: value.premodern ?? 'not_legal',
+  'old-school': value['old-school'] ?? 'not_legal',
+}));
+
+const blueprintIdSchema = z.string().trim().max(16).refine((value) => {
+  if (!/^[1-9]\d*$/.test(value)) return false;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0;
+}, 'Carta non valida.');
+
+/**
+ * Confine browser -> server: i metadati di catalogo/Scryfall vengono ignorati.
+ * Zod rimuove le chiavi sconosciute e il server ricostruisce la carta dall'id.
+ */
+export const deckCardInputSchema = z.object({
+  id: blueprintIdSchema,
+  quantity: z.number().int().min(1).max(100),
+  isCommander: z.boolean().optional(),
+});
+
+/** Schema difensivo per le carte restituite dal Tournament Service. */
 export const deckCardSchema = z.object({
-  id: z.string().min(1).max(128),
+  id: blueprintIdSchema,
   name: z.string().min(1).max(256),
   quantity: z.number().int().min(1).max(100),
   image: z.string().max(2048).nullable().optional(),
@@ -14,29 +52,29 @@ export const deckCardSchema = z.object({
   collectorNumber: z.string().max(64).optional(),
   oracleId: z.string().max(128).optional(),
   scryfallId: z.string().max(128).optional(),
-  tournamentLegalities: z.custom<TournamentLegalities>().optional(),
+  tournamentLegalities: tournamentLegalitiesSchema.optional(),
   isCommander: z.boolean().optional(),
 });
 
 export const updateDeckSchema = z.object({
-  deckId: z.string().min(1),
-  main: z.array(deckCardSchema).max(250).optional(),
-  side: z.array(deckCardSchema).max(100).optional(),
+  deckId: z.string().min(1).max(128),
+  main: z.array(deckCardInputSchema).max(250).optional(),
+  side: z.array(deckCardInputSchema).max(100).optional(),
 });
 
 export const confirmDeckSchema = updateDeckSchema.extend({
-  main: z.array(deckCardSchema).max(250),
-  side: z.array(deckCardSchema).max(100),
+  main: z.array(deckCardInputSchema).max(250),
+  side: z.array(deckCardInputSchema).max(100),
 });
 
 export const validateLegalitySchema = z.object({
-  deckId: z.string().optional(),
-  formatId: z.string().optional(),
+  deckId: z.string().min(1).max(128).optional(),
+  formatId: createDeckSchema.shape.formatId.optional(),
   deckSnapshot: z
     .object({
-      formatId: z.string(),
-      main: z.array(deckCardSchema).max(250),
-      side: z.array(deckCardSchema).max(100),
+      formatId: createDeckSchema.shape.formatId,
+      main: z.array(deckCardInputSchema).max(250),
+      side: z.array(deckCardInputSchema).max(100),
     })
     .optional(),
 });

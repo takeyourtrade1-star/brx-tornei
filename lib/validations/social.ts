@@ -42,9 +42,28 @@ export const sendGameChallengeSchema = z.object({
     .max(20, 'Gamertag non valido'),
   format: z.enum(formatKeys as [string, ...string[]]),
   bestOf: z.enum(['BO1', 'BO3', 'BO5']),
+  deckId: z.string().trim().min(1, 'Dichiara il mazzo della sfida.').max(128),
 });
 
 export const respondGameChallengeSchema = z.object({
   challengeId: z.string().min(1, 'ID sfida mancante'),
   action: z.enum(['accept', 'decline']),
+  deckId: z.string().trim().min(1).max(128).optional(),
+}).superRefine((value, context) => {
+  if (value.action === 'accept' && !value.deckId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['deckId'],
+      message: 'Dichiara il mazzo con cui vuoi accettare la sfida.',
+    });
+  }
 });
+
+export const socialDndPreferenceSchema = z.object({
+  active: z.boolean(),
+  durationMinutes: z.literal(60),
+}).strict();
+
+export const socialVisibilityPreferenceSchema = z.object({
+  visible: z.boolean(),
+}).strict();

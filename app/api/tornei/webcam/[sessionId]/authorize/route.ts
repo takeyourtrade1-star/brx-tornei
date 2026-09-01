@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAccessToken } from '@/lib/auth/session';
+import { getAccessToken, getSession } from '@/lib/auth/session';
 import { config } from '@/lib/config';
 import {
   isValidWebcamSessionId,
@@ -9,6 +9,11 @@ import {
   webcamRelayCookieName,
 } from '@/lib/webrtc/webcam-relay-auth';
 import { isSameOriginMutation } from '@/lib/security/request-origin';
+import { getRateLimitClientIp } from '@/lib/security/client-ip';
+import {
+  enforceServerRateLimit,
+  statusForServerRateLimitError,
+} from '@/lib/security/server-rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,8 +30,60 @@ export async function POST(
   if (!isValidWebcamSessionId(sessionId)) {
     return NextResponse.json({ error: 'invalid session' }, { status: 400 });
   }
+  try {
+    await enforceServerRateLimit({
+      scope: 'webcam-authorize:ip',
+      subject: getRateLimitClientIp(request),
+      limit: 20,
+      requireDistributedStore: true,
+    });
+  } catch (error) {
+    const status = statusForServerRateLimitError(error);
+    return NextResponse.json(
+      { error: status === 429 ? 'rate limit' : 'webcam relay unavailable' },
+      {
+        status,
+        headers: {
+          'Cache-Control': 'private, no-store',
+          ...(status === 429 ? { 'Retry-After': '60' } : {}),
+        },
+      },
+    );
+  }
   const accessToken = await getAccessToken();
   if (!accessToken) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  try {
+    await Promise.all([
+      enforceServerRateLimit({
+        scope: 'webcam-authorize:user',
+        subject: session.user.id,
+        limit: 12,
+        windowSeconds: 600,
+        requireDistributedStore: true,
+      }),
+      enforceServerRateLimit({
+        scope: 'webcam-authorize:user-session',
+        subject: `${session.user.id}:${sessionId}`,
+        limit: 6,
+        windowSeconds: 600,
+        requireDistributedStore: true,
+      }),
+    ]);
+  } catch (error) {
+    const status = statusForServerRateLimitError(error);
+    return NextResponse.json(
+      { error: status === 429 ? 'rate limit' : 'webcam relay unavailable' },
+      {
+        status,
+        headers: {
+          'Cache-Control': 'private, no-store',
+          ...(status === 429 ? { 'Retry-After': '600' } : {}),
+        },
+      },
+    );
+  }
   if (!config.api.tournamentsBaseURL) {
     return NextResponse.json({ error: 'webcam authorization unavailable' }, { status: 503 });
   }

@@ -11,17 +11,19 @@ export function MatchGapProtectionNotice({
   onRetry,
 }: {
   snapshot: GapProtectionSnapshot;
-  onConsent: () => Promise<void>;
-  onDecline: () => Promise<void>;
+  onConsent: (incidentId: string) => Promise<void>;
+  onDecline: (incidentId: string) => Promise<void>;
   onRetry: () => Promise<void>;
 }) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (snapshot.consentRequiredIncidents === 0) setAcknowledged(false);
-  }, [snapshot.consentRequiredIncidents]);
+    setAcknowledged(false);
+  }, [snapshot.consentRequest?.incidentId]);
   if (snapshot.status === 'disabled' || snapshot.status === 'unsupported') return null;
   if (snapshot.consentRequiredIncidents > 0) {
+    const request = snapshot.consentRequest;
+    if (!request) return null;
     const act = async (operation: () => Promise<void>) => {
       setBusy(true);
       try {
@@ -46,6 +48,11 @@ export function MatchGapProtectionNotice({
                 verificare cosa è successo. Verrà cancellata automaticamente dopo la verifica
                 (o al massimo entro 3 giorni). Non salviamo mai la partita completa.
               </p>
+              <p className="mt-2 text-xs font-bold text-slate-200">
+                Incidente 1 di {snapshot.consentRequiredIncidents} ·{' '}
+                {(request.byteLength / (1024 * 1024)).toFixed(1)} MB ·{' '}
+                {Math.ceil(request.durationMs / 1_000)} secondi
+              </p>
             </div>
             <label className="flex cursor-pointer items-start gap-2.5 text-xs font-semibold text-slate-200">
               <input
@@ -64,7 +71,7 @@ export function MatchGapProtectionNotice({
                 type="button"
                 className="rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 py-2 text-xs font-black uppercase tracking-wider text-white shadow-sm transition hover:brightness-110 disabled:opacity-45"
                 disabled={!acknowledged || busy}
-                onClick={() => void act(onConsent)}
+                onClick={() => void act(() => onConsent(request.incidentId))}
               >
                 Invia all’avversario
               </button>
@@ -72,7 +79,7 @@ export function MatchGapProtectionNotice({
                 type="button"
                 className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-wider text-white/80 transition hover:bg-white/15 disabled:opacity-45"
                 disabled={busy}
-                onClick={() => void act(onDecline)}
+                onClick={() => void act(() => onDecline(request.incidentId))}
               >
                 No, cancella la registrazione
               </button>

@@ -13,6 +13,17 @@ import type {
 class MemoryGapStore implements GapRecordingStore {
   readonly clips = new Map<string, GapClipRecord>();
   readonly incidents = new Map<string, GapIncidentRecord>();
+  readonly reservations = new Map<string, { count: number; updatedAt: number }>();
+
+  async tryReserveIncident(matchUserKey: string, maxIncidents: number, reservedAt: number) {
+    const current = this.reservations.get(matchUserKey);
+    if ((current?.count ?? 0) >= maxIncidents) return false;
+    this.reservations.set(matchUserKey, {
+      count: (current?.count ?? 0) + 1,
+      updatedAt: reservedAt,
+    });
+    return true;
+  }
 
   async putClip(clip: GapClipRecord) {
     this.clips.set(clip.id, clip);
@@ -92,6 +103,7 @@ class MemoryGapStore implements GapRecordingStore {
     for (const incident of [...this.incidents.values()]) {
       if (incident.updatedAt < before) await this.deleteIncidentData(incident.id);
     }
+    // Le prenotazioni restano monotone anche quando il filmato locale scade.
   }
 }
 
@@ -168,12 +180,63 @@ describe('gap recording coordinator', () => {
     expect(snapshots.at(-1)?.consentRequiredIncidents).toBe(1);
 
     now.value = 30_000;
-    await coordinator.grantUploadConsent();
+    await coordinator.grantUploadConsent(incident.id);
     expect(store.incidents.get(incident.id)).toMatchObject({
       status: 'queued',
       uploadConsentedAt: 30_000,
       uploadConsentVersion: 'peer-gap-review-v1',
     });
+  });
+
+  it('consente un solo incidente e conserva gli altri in attesa', async () => {
+    const now = { value: 20_000 };
+    const { coordinator, store } = setup(now);
+    await coordinator.initialize();
+    await coordinator.observePeer('connected');
+    await coordinator.observePeer('reconnecting');
+    await coordinator.acceptClip(recordedClip('clip-a', 1, 10_000, 20_000));
+    await coordinator.finish();
+
+    now.value = 40_000;
+    await coordinator.observePeer('connected');
+    await coordinator.observePeer('reconnecting');
+    await coordinator.acceptClip(recordedClip('clip-b', 2, 30_000, 40_000));
+    await coordinator.finish();
+
+    await coordinator.grantUploadConsent('incident-1');
+    expect(store.incidents.get('incident-1')?.status).toBe('queued');
+    expect(store.incidents.get('incident-2')?.status).toBe('awaiting-consent');
+    await coordinator.declineUpload('incident-2');
+    expect(store.incidents.has('incident-2')).toBe(false);
+  });
+
+  it('mantiene il limite cumulativo di cinque incidenti anche dopo il rifiuto', async () => {
+    const now = { value: 20_000 };
+    const { coordinator, store } = setup(now);
+    await coordinator.initialize();
+    for (let index = 1; index <= 6; index += 1) {
+      now.value += 20_000;
+      await coordinator.observePeer('connected');
+      await coordinator.observePeer('reconnecting');
+      await coordinator.acceptClip(recordedClip(
+        `clip-${index}`,
+        index,
+        now.value - 5_000,
+        now.value,
+      ));
+      await coordinator.finish();
+      await coordinator.declineUpload(`incident-${index}`);
+    }
+    expect(store.reservations.get(makeMatchUserKey('match-id', 'user-id'))?.count).toBe(5);
+    expect(store.incidents.size).toBe(0);
+
+    now.value += 73 * 60 * 60 * 1_000;
+    await store.deleteExpired(now.value - 72 * 60 * 60 * 1_000);
+    expect(await store.tryReserveIncident(
+      makeMatchUserKey('match-id', 'user-id'),
+      5,
+      now.value,
+    )).toBe(false);
   });
 
   it('recovers an open browser incident as interrupted without inventing footage', async () => {

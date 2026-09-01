@@ -65,16 +65,24 @@ export async function clearSessionCookies(): Promise<void> {
   store.set(config.auth.refreshCookie, '', cookieOptions(0));
 }
 
-function normalizeUser(payload: unknown): SessionUser | null {
+function optionalString(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+export function normalizeSessionUser(payload: unknown): SessionUser | null {
   if (!payload || typeof payload !== 'object') return null;
   const raw = (payload as Record<string, unknown>).user ?? (payload as Record<string, unknown>).data ?? payload;
   if (!raw || typeof raw !== 'object') return null;
   const u = raw as Record<string, unknown>;
   if (u.id === undefined && u.email === undefined) return null;
+  const username = optionalString(u.username);
   return {
     id: String(u.id ?? ''),
     email: String(u.email ?? ''),
-    name: (u.name as string) ?? (u.username as string) ?? null,
+    username,
+    name: optionalString(u.name) ?? username,
   };
 }
 
@@ -99,7 +107,7 @@ export const getSession = cache(async (): Promise<Session | null> => {
     });
     if (!res.ok) return null;
 
-    const user = normalizeUser(
+    const user = normalizeSessionUser(
       await readBoundedResponseJson(res, 256 * 1024).catch(() => null),
     );
     return user ? { user } : null;

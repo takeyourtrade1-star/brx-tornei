@@ -48,6 +48,22 @@ export function peerTransportIsLost(
     iceState === 'failed'
   );
 }
+
+/** Heartbeat/offline remoto è solo un indizio: serve anche perdita locale ICE/P2P. */
+export function peerPresenceSignalShouldReportLoss(
+  connectionState: RTCPeerConnectionState,
+  iceState: RTCIceConnectionState,
+): boolean {
+  return peerTransportIsLost(connectionState, iceState);
+}
+
+export function peerFailureStateShouldReportLoss(
+  hasConnectedTransport: boolean,
+  connectionState: RTCPeerConnectionState,
+  iceState: RTCIceConnectionState,
+): boolean {
+  return !hasConnectedTransport || peerTransportIsLost(connectionState, iceState);
+}
 export function createMatchPeerLink(
   sessionId: string,
   role: PeerRole,
@@ -70,14 +86,22 @@ export function createMatchPeerLink(
   let peerLossReported = false;
   let qualityTimer: ReturnType<typeof setInterval> | null = null;
   let currentTransport: PeerTransport = 'unknown';
+  let hasConnectedTransport = false;
   const isCurrent = (connection: RTCPeerConnection | null): connection is RTCPeerConnection => !stopped && connection !== null && pc === connection;
+  const transportLocallyLost = () => Boolean(
+    pc && peerPresenceSignalShouldReportLoss(pc.connectionState, pc.iceConnectionState),
+  );
   const fail = (message: string) => {
     if (stopped) return;
     handlers.onError?.(message);
-    handlers.onState?.('failed');
+    if (!pc || peerFailureStateShouldReportLoss(
+      hasConnectedTransport,
+      pc.connectionState,
+      pc.iceConnectionState,
+    )) handlers.onState?.('failed');
   };
   const markPeerLost = () => {
-    if (stopped) return;
+    if (stopped || !transportLocallyLost()) return;
     const firstLossSignal = !peerLossReported;
     sig?.setConnected(false);
     handlers.onState?.('reconnecting');
@@ -92,7 +116,12 @@ export function createMatchPeerLink(
     peerLossReported = true;
   };
   const markPeerAlive = () => {
-    if (stopped) return;
+    if (
+      stopped ||
+      !pc ||
+      !peerTransportIsConnected(pc.connectionState, pc.iceConnectionState)
+    ) return;
+    hasConnectedTransport = true;
     const recovered = peerLossReported;
     peerLossReported = false;
     watchdogs.clear('disconnect');
@@ -130,12 +159,12 @@ export function createMatchPeerLink(
     const sendPulse = () => {
       if (stopped || channel.readyState !== 'open') return;
       if (lastHeartbeatAt > 0 && Date.now() - lastHeartbeatAt > HEARTBEAT_TIMEOUT_MS) {
-        markPeerLost();
+        if (transportLocallyLost()) markPeerLost();
       }
       try {
         channel.send('p');
       } catch {
-        markPeerLost();
+        if (transportLocallyLost()) markPeerLost();
       }
     };
     channel.onopen = () => {
@@ -147,13 +176,13 @@ export function createMatchPeerLink(
     channel.onmessage = () => {
       if (heartbeatChannel !== channel || stopped) return;
       lastHeartbeatAt = Date.now();
-      if (peerLossReported && pc?.connectionState === 'connected') markPeerAlive();
+      if (peerLossReported) markPeerAlive();
     };
     channel.onclose = () => {
-      if (heartbeatChannel === channel) markPeerLost();
+      if (heartbeatChannel === channel && transportLocallyLost()) markPeerLost();
     };
     channel.onerror = () => {
-      if (heartbeatChannel === channel) markPeerLost();
+      if (heartbeatChannel === channel && transportLocallyLost()) markPeerLost();
     };
   };
   const sendSignal = (kind: SignalMessage['kind'], payload: unknown) => {
@@ -208,7 +237,9 @@ export function createMatchPeerLink(
       if (stream) deliverRemote(stream);
       e.track.onmute = () => {
         watchdogs.arm('media', () => {
-          if (isCurrent(nextPeer) && e.track.muted) markPeerLost();
+          if (!isCurrent(nextPeer) || !e.track.muted) return;
+          if (transportLocallyLost()) markPeerLost();
+          else handlers.onError?.('Il video remoto è temporaneamente sospeso.');
         }, 5_000);
       };
       e.track.onunmute = () => {
@@ -218,7 +249,9 @@ export function createMatchPeerLink(
         }
       };
       e.track.onended = () => {
-        if (isCurrent(nextPeer)) markPeerLost();
+        if (!isCurrent(nextPeer)) return;
+        if (transportLocallyLost()) markPeerLost();
+        else handlers.onError?.('Il flusso video remoto è terminato.');
       };
     };
     nextPeer.onicecandidate = (e) => {
@@ -276,7 +309,11 @@ export function createMatchPeerLink(
     nextPeer.oniceconnectionstatechange = handleConnectionState;
     nextPeer.ondatachannel = (event) => {
       if (event.channel.label === 'brx-presence' && isCurrent(nextPeer)) {
-        attachHeartbeat(event.channel);
+        if (heartbeatChannel && heartbeatChannel.readyState !== 'closed') {
+          event.channel.close();
+        } else {
+          attachHeartbeat(event.channel);
+        }
       }
     };
     if (role === 'host') {
@@ -353,7 +390,7 @@ export function createMatchPeerLink(
           shutdown('peer-left');
         }
       } else if (m.kind === 'offline') {
-        markPeerLost();
+        if (transportLocallyLost()) markPeerLost();
       }
     }, basePath, () => {
       if (stopped) return;

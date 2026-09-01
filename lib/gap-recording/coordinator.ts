@@ -2,7 +2,7 @@ import {
   captureCapAt,
   GAP_CLIP_DURATION_MS,
   GAP_LOCAL_TTL_MS,
-  GAP_MAX_BYTES,
+  GAP_MAX_INCIDENTS_PER_MATCH,
   GAP_POST_ROLL_MS,
   GAP_PRE_ROLL_MS,
   isGapConnectedState,
@@ -18,10 +18,10 @@ import {
 } from '@/lib/gap-recording/coordinator-storage';
 import {
   buildGapSnapshot,
+  createReservedGapIncident,
   finalizeGapIncident,
-  newGapIncident,
+  refreshGapIncidentSummary,
   recoverInterruptedIncidents,
-  withClipSummary,
 } from '@/lib/gap-recording/incidents';
 import type { GapCoordinatorOptions, GapIncidentRecord, GapProtectionSnapshot, RecordedClip } from '@/lib/gap-recording/types';
 import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
@@ -110,28 +110,26 @@ export class GapRecordingCoordinator {
     this.lastError = message;
     void this.enqueue(() => this.publishSnapshot());
   }
-
   refresh(): Promise<void> {
     return this.enqueue(() => this.publishSnapshot());
   }
-
-  grantUploadConsent(): Promise<void> {
-    return this.enqueue(async () => {
-      await grantPendingGapConsent(this.store, this.matchUserKey, this.now());
-      await this.publishSnapshot();
-    });
+  grantUploadConsent(incidentId: string): Promise<void> {
+    return this.enqueue(() => this.updateConsent(incidentId, true));
   }
-
-  declineUpload(): Promise<void> {
-    return this.enqueue(async () => {
-      await declinePendingGapUploads(this.store, this.matchUserKey);
-      await this.publishSnapshot();
-    });
+  declineUpload(incidentId: string): Promise<void> {
+    return this.enqueue(() => this.updateConsent(incidentId, false));
   }
-
   async retryUpload(): Promise<void> {
     await retryFailedGapUploads(this.store, this.matchUserKey, this.now());
     await this.refresh();
+  }
+  private async updateConsent(incidentId: string, granted: boolean): Promise<void> {
+    if (granted) {
+      await grantPendingGapConsent(this.store, this.matchUserKey, incidentId, this.now());
+    } else {
+      await declinePendingGapUploads(this.store, this.matchUserKey, incidentId);
+    }
+    await this.publishSnapshot();
   }
   private enqueue(operation: () => Promise<void>): Promise<void> {
     const next = this.work.then(operation, operation);
@@ -145,7 +143,7 @@ export class GapRecordingCoordinator {
 
   private async openIncident(): Promise<void> {
     const detectedAt = this.now();
-    const incident = newGapIncident({
+    const incident = await createReservedGapIncident(this.store, {
       id: this.makeId(),
       matchId: this.matchId,
       webcamSessionId: this.webcamSessionId,
@@ -153,15 +151,12 @@ export class GapRecordingCoordinator {
       matchUserKey: this.matchUserKey,
       detectedAt,
       captureStartedAt: detectedAt - GAP_PRE_ROLL_MS,
-    });
+    }, GAP_MAX_INCIDENTS_PER_MATCH);
+    if (!incident) {
+      this.suppressUntilReconnect = true;
+      return;
+    }
     this.activeIncident = incident;
-    await this.store.putIncident(incident);
-    await this.store.assignWindow(
-      this.matchUserKey,
-      incident.id,
-      incident.captureStartedAt,
-      null,
-    );
     await this.refreshActiveIncident();
     const capDelay = Math.max(0, captureCapAt(incident.captureStartedAt) - this.now());
     this.capTimer = setTimeout(() => void this.capIncident(), capDelay);
@@ -224,16 +219,15 @@ export class GapRecordingCoordinator {
   private async refreshActiveIncident(): Promise<void> {
     const incident = this.activeIncident;
     if (!incident) return;
-    const clips = await this.store.listIncidentClips(incident.id);
-    this.activeIncident = withClipSummary(incident, clips, this.now());
-    if (this.activeIncident.byteLength >= GAP_MAX_BYTES) {
-      this.activeIncident.captureCapped = true;
-      this.activeIncident.captureEndedAt = clips.at(-1)?.endedAt ?? this.now();
+    this.activeIncident = await refreshGapIncidentSummary(
+      this.store,
+      incident,
+      this.now(),
+    );
+    if (this.activeIncident.captureCapped) {
       this.suppressUntilReconnect = true;
       await this.finalizeActive();
-      return;
     }
-    await this.store.putIncident(this.activeIncident);
   }
 
   private async publishSnapshot(): Promise<void> {

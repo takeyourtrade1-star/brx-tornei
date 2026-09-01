@@ -89,7 +89,7 @@ export async function fetchPublicProfile(
         punctual: realFeedbackMap['punctual'] ?? 0,
       };
     }
-    if (isSelf && myEbartexUsername) {
+    if ((isSelf || data.friendship === 'self') && myEbartexUsername) {
       data.ebartexUsername = myEbartexUsername;
     }
     return data;

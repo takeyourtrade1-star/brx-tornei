@@ -19,6 +19,7 @@ const DISABLED: GapProtectionSnapshot = {
   status: 'disabled',
   pendingIncidents: 0,
   consentRequiredIncidents: 0,
+  consentRequest: null,
   retryingIncidents: 0,
   failedIncidents: 0,
   retryableFailedIncidents: 0,
@@ -190,12 +191,12 @@ export function useMatchGapRecorder({
     void coordinatorRef.current?.observePeer(peerState);
   }, [peerState]);
 
-  const grantUploadConsent = useCallback(async () => {
-    await coordinatorRef.current?.grantUploadConsent();
+  const grantUploadConsent = useCallback(async (incidentId: string) => {
+    await coordinatorRef.current?.grantUploadConsent(incidentId);
     uploadRef.current();
   }, []);
-  const declineUpload = useCallback(async () => {
-    await coordinatorRef.current?.declineUpload();
+  const declineUpload = useCallback(async (incidentId: string) => {
+    await coordinatorRef.current?.declineUpload(incidentId);
   }, []);
   const retryUpload = useCallback(async () => {
     await coordinatorRef.current?.retryUpload();

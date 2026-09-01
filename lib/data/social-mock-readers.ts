@@ -3,6 +3,7 @@ import 'server-only';
 import {
   getAvatarIdForGamertag,
   isMockBot,
+  KNOWN_EBARTEX_USERNAMES,
   loadStateFromDisk,
   mockFriendsStore,
   mockRawRequests,
@@ -31,6 +32,7 @@ export function fetchMockFriendsList(myGamertag?: string | null): FriendSummary[
       winStreak: 0,
       dailyWins: 0,
       isBot: isMockBot(tag),
+      ebartexUsername: KNOWN_EBARTEX_USERNAMES.get(tag.toLowerCase()) ?? null,
     };
   });
 }
@@ -83,5 +85,6 @@ export function searchMockPlayers(query: string, myGamertag?: string | null): Fr
     winStreak: 0,
     dailyWins: 0,
     isBot: isMockBot(tag),
+    ebartexUsername: KNOWN_EBARTEX_USERNAMES.get(tag.toLowerCase()) ?? null,
   }));
 }

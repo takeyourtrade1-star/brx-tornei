@@ -26,10 +26,21 @@ export const createTournamentSchema = selectionSchema.omit({ format: true }).ext
   ),
 });
 
+const declaredDeckIdSchema = z.string({
+  required_error: 'Dichiara il mazzo con cui vuoi partecipare.',
+  invalid_type_error: 'Dichiara il mazzo con cui vuoi partecipare.',
+})
+  .trim()
+  .min(1, 'Dichiara il mazzo con cui vuoi partecipare.')
+  .max(128);
+
+export const createTableSchema = createTournamentSchema.extend({
+  deckId: declaredDeckIdSchema,
+});
+
 export const joinTournamentSchema = z.object({
-  tournamentId: z.string().min(1),
-  // Deck facoltativo: stringa vuota = "Ignora deck".
-  deckId: z.string().default(''),
+  tournamentId: z.string().min(1).max(128),
+  deckId: declaredDeckIdSchema,
 });
 
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;

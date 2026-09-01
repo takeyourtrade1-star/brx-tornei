@@ -4,6 +4,19 @@ import {
   executeUpstashPipeline,
   isUpstashRedisConfigured,
 } from '@/lib/security/upstash-rest';
+import { memoryAppend, memoryList } from '@/lib/webrtc/signaling-memory-store';
+import type { SigMsg } from '@/lib/webrtc/signaling-errors';
+import {
+  SignalingRateLimitError,
+  SignalingSessionLimitError,
+  SignalingStoreUnavailableError,
+} from '@/lib/webrtc/signaling-errors';
+export type { SigMsg } from '@/lib/webrtc/signaling-errors';
+export {
+  SignalingRateLimitError,
+  SignalingSessionLimitError,
+  SignalingStoreUnavailableError,
+} from '@/lib/webrtc/signaling-errors';
 
 /**
  * Store condiviso per il relay di signaling webcam (offer/answer + ICE).
@@ -11,109 +24,12 @@ import {
  * Lambda/Amplify vedono gli stessi messaggi.
  */
 
-export interface SigMsg {
-  seq: number;
-  from: 'host' | 'guest';
-  kind: string;
-  data: unknown;
-}
-
 const SESSION_TTL_SEC = 600;
 const MAX_MESSAGES = 300;
 export const MAX_SIGNALING_RESPONSE_MESSAGES = 50;
 export const MAX_SIGNALING_RESPONSE_BYTES = 512 * 1024;
-const MAX_ACTIVE_MEMORY_SESSIONS = 200;
 const MAX_REQUESTS_PER_MINUTE = 240;
 const KEY_PREFIX = 'webcam:sig:';
-
-export class SignalingStoreUnavailableError extends Error {}
-export class SignalingRateLimitError extends Error {}
-export class SignalingSessionLimitError extends Error {}
-
-interface MemorySession {
-  seq: number;
-  messages: SigMsg[];
-  createdAt: number;
-}
-
-interface MemoryRate {
-  count: number;
-  resetAt: number;
-}
-
-const memoryStore: Map<string, MemorySession> =
-  (globalThis as unknown as { __webcamSig?: Map<string, MemorySession> }).__webcamSig ??
-  new Map<string, MemorySession>();
-(globalThis as unknown as { __webcamSig?: Map<string, MemorySession> }).__webcamSig =
-  memoryStore;
-const memoryRates = new Map<string, MemoryRate>();
-
-function memoryGc(): void {
-  const now = Date.now();
-  for (const [id, s] of memoryStore) {
-    if (now - s.createdAt > SESSION_TTL_SEC * 1000) memoryStore.delete(id);
-  }
-  for (const [key, rate] of memoryRates) {
-    if (rate.resetAt <= now) memoryRates.delete(key);
-  }
-}
-
-function checkMemoryRate(sessionId: string, role: 'host' | 'guest'): void {
-  memoryGc();
-  const key = `${sessionId}:${role}`;
-  const now = Date.now();
-  const current = memoryRates.get(key);
-  if (!current || current.resetAt <= now) {
-    memoryRates.set(key, { count: 1, resetAt: now + 60_000 });
-    return;
-  }
-  current.count += 1;
-  if (current.count > MAX_REQUESTS_PER_MINUTE) {
-    throw new SignalingRateLimitError();
-  }
-}
-
-function memoryAppend(
-  sessionId: string,
-  from: 'host' | 'guest',
-  kind: string,
-  data: unknown,
-): { seq: number } {
-  checkMemoryRate(sessionId, from);
-  let s = memoryStore.get(sessionId);
-  if (!s) {
-    if (memoryStore.size >= MAX_ACTIVE_MEMORY_SESSIONS) {
-      throw new SignalingStoreUnavailableError('Troppe sessioni webcam attive');
-    }
-    s = { seq: 0, messages: [], createdAt: Date.now() };
-    memoryStore.set(sessionId, s);
-  }
-  if (s.seq >= MAX_MESSAGES) throw new SignalingSessionLimitError();
-  s.seq += 1;
-  s.messages.push({ seq: s.seq, from, kind, data });
-  return { seq: s.seq };
-}
-
-function memoryList(
-  sessionId: string,
-  role: 'host' | 'guest',
-  since: number,
-): { exists: boolean; messages: SigMsg[] } {
-  checkMemoryRate(sessionId, role);
-  const s = memoryStore.get(sessionId);
-  if (!s) return { exists: false, messages: [] };
-  const messages: SigMsg[] = [];
-  let responseBytes = 0;
-  for (const message of s.messages) {
-    if (message.seq <= since) continue;
-    const size = Buffer.byteLength(JSON.stringify(message), 'utf8');
-    if (responseBytes + size > MAX_SIGNALING_RESPONSE_BYTES) break;
-    messages.push(message);
-    responseBytes += size;
-    if (messages.length >= MAX_SIGNALING_RESPONSE_MESSAGES) break;
-  }
-  return { exists: true, messages };
-}
 
 function redisKeys(sessionId: string): { seq: string; msgs: string } {
   const safe = encodeURIComponent(sessionId);
@@ -143,16 +59,26 @@ async function upstashPipeline(commands: (string | number)[][]): Promise<unknown
 
 async function redisAppend(
   sessionId: string,
+  quotaSessionId: string,
   from: 'host' | 'guest',
   kind: string,
   data: unknown,
 ): Promise<{ seq: number }> {
   const { seq: seqKey, msgs: msgsKey } = redisKeys(sessionId);
+  const totalKey = `${KEY_PREFIX}${encodeURIComponent(quotaSessionId)}:total`;
+  const script = [
+    "local total = redis.call('INCR', KEYS[1])",
+    "redis.call('EXPIRE', KEYS[1], ARGV[1])",
+    "if total > tonumber(ARGV[2]) then return -1 end",
+    "local seq = redis.call('INCR', KEYS[2])",
+    "redis.call('EXPIRE', KEYS[2], ARGV[1])",
+    'return seq',
+  ].join('\n');
   const [seqRaw] = await upstashPipeline([
-    ['INCR', seqKey],
-    ['EXPIRE', seqKey, SESSION_TTL_SEC],
+    ['EVAL', script, 2, totalKey, seqKey, SESSION_TTL_SEC, MAX_MESSAGES],
   ]);
   const seq = Number(seqRaw);
+  if (seq === -1) throw new SignalingSessionLimitError();
   if (!Number.isFinite(seq) || seq < 1) {
     throw new Error('Upstash INCR non valido');
   }
@@ -167,12 +93,12 @@ async function redisAppend(
 }
 
 async function checkRedisRate(
-  sessionId: string,
+  quotaSessionId: string,
   role: 'host' | 'guest',
 ): Promise<void> {
   const [countRaw] = await upstashPipeline([
-    ['INCR', rateKey(sessionId, role)],
-    ['EXPIRE', rateKey(sessionId, role), 70],
+    ['INCR', rateKey(quotaSessionId, role)],
+    ['EXPIRE', rateKey(quotaSessionId, role), 70],
   ]);
   if (Number(countRaw) > MAX_REQUESTS_PER_MINUTE) {
     throw new SignalingRateLimitError();
@@ -223,12 +149,13 @@ export async function appendSignalingMessage(
   from: 'host' | 'guest',
   kind: string,
   data: unknown,
+  quotaSessionId = sessionId,
 ): Promise<{ seq: number }> {
   requireProductionStore();
   if (isUpstashRedisConfigured()) {
     try {
-      await checkRedisRate(sessionId, from);
-      return await redisAppend(sessionId, from, kind, data);
+      await checkRedisRate(quotaSessionId, from);
+      return await redisAppend(sessionId, quotaSessionId, from, kind, data);
     } catch (err) {
       if (
         err instanceof SignalingRateLimitError ||
@@ -240,7 +167,7 @@ export async function appendSignalingMessage(
       console.warn('[signaling-store] Upstash fallito, fallback in-memory:', err);
     }
   }
-  return memoryAppend(sessionId, from, kind, data);
+  return memoryAppend(sessionId, quotaSessionId, from, kind, data);
 }
 
 /** Elenca i messaggi con seq > since. */
@@ -248,11 +175,12 @@ export async function listSignalingMessages(
   sessionId: string,
   role: 'host' | 'guest',
   since: number,
+  quotaSessionId = sessionId,
 ): Promise<{ exists: boolean; messages: SigMsg[] }> {
   requireProductionStore();
   if (isUpstashRedisConfigured()) {
     try {
-      await checkRedisRate(sessionId, role);
+      await checkRedisRate(quotaSessionId, role);
       return await redisList(sessionId, since);
     } catch (err) {
       if (err instanceof SignalingRateLimitError) throw err;
@@ -262,5 +190,5 @@ export async function listSignalingMessages(
       console.warn('[signaling-store] Upstash fallito, fallback in-memory:', err);
     }
   }
-  return memoryList(sessionId, role, since);
+  return memoryList(sessionId, quotaSessionId, role, since);
 }

@@ -210,15 +210,17 @@ export function ProfileDrawer({
           <RankLeagueInfo />
 
           {/* Link al profilo marketplace Ebartex */}
-          <a
-            href={getEbartexProfileUrl(ebartexUsername, gamertag)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-900 bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-md transition hover:bg-slate-800"
-          >
-            <span>Mostra il mio profilo Ebartex</span>
-            <ExternalLink className="h-4 w-4 text-slate-400" />
-          </a>
+          {ebartexUsername?.trim() && (
+            <a
+              href={getEbartexProfileUrl(ebartexUsername)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-900 bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-md transition hover:bg-slate-800"
+            >
+              <span>Mostra il mio profilo Ebartex</span>
+              <ExternalLink className="h-4 w-4 text-slate-400" />
+            </a>
+          )}
 
           <button
             type="button"

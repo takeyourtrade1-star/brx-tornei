@@ -7,6 +7,7 @@ function snapshot(overrides: Partial<GapProtectionSnapshot> = {}): GapProtection
     status: 'queued',
     pendingIncidents: 1,
     consentRequiredIncidents: 0,
+    consentRequest: null,
     retryingIncidents: 0,
     failedIncidents: 0,
     retryableFailedIncidents: 0,

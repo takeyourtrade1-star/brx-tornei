@@ -215,6 +215,17 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     readyDeadline: pickString(obj, 'ready_deadline', 'readyDeadline'),
     startsAt: pickString(obj, 'starts_at', 'startsAt'),
     isPrivate: pickBool(obj, 'is_private', 'isPrivate'),
+    isTournament: pickBool(obj, 'is_tournament', 'isTournament'),
+    enableScryfallCheck: pickBool(
+      obj,
+      'enable_scryfall_check',
+      'enableScryfallCheck',
+    ),
+    enablePhysicalVerification: pickBool(
+      obj,
+      'enable_physical_verification',
+      'enablePhysicalVerification',
+    ),
     withFriend: pickBool(obj, 'with_friend', 'withFriend') ?? false,
     webcamSessionId: pickString(obj, 'webcam_session_id', 'webcamSessionId'),
     matchId,

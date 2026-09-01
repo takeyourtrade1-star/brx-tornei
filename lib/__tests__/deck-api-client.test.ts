@@ -81,7 +81,7 @@ describe('Deck API client', () => {
     expect(mapDeckFromApi({
       ...apiDeck,
       formatId: 'commander',
-      main: [{ id: 'commander', name: 'Atraxa', quantity: 1, isCommander: true }],
+      main: [{ id: '123', name: 'Atrxa', quantity: 1, isCommander: true }],
     })?.main[0]?.isCommander).toBe(true);
   });
 
@@ -129,13 +129,13 @@ describe('Deck API client', () => {
         data: {
           ...apiDeck,
           verificationStatus: 'declared',
-          main: [{ id: 'bolt', name: 'Lightning Bolt', quantity: 4 }],
+          main: [{ id: '123', name: 'Lightning Bolt', quantity: 4 }],
         },
       },
     });
 
     await saveDeckCards('ignored', apiDeck.id, [
-      { id: 'bolt', name: 'Lightning Bolt', quantity: 4 },
+      { id: '123', name: 'Lightning Bolt', quantity: 4 },
     ], []);
 
     expect(mocks.tournamentFetch).toHaveBeenCalledWith(
@@ -143,7 +143,7 @@ describe('Deck API client', () => {
       {
         method: 'PATCH',
         body: JSON.stringify({
-          main: [{ id: 'bolt', name: 'Lightning Bolt', quantity: 4 }],
+          main: [{ id: '123', name: 'Lightning Bolt', quantity: 4 }],
           side: [],
           verificationStatus: 'declared',
         }),

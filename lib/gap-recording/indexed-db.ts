@@ -3,12 +3,15 @@ import type {
   GapIncidentRecord,
 } from '@/lib/gap-recording/types';
 import { expiredGapIncidentIds } from '@/lib/gap-recording/retention';
-
-const DATABASE_NAME = 'ebartex-match-gap-v1';
-// La v2 elimina i buffer v1, che potevano contenere una traccia audio.
-const DATABASE_VERSION = 2;
-const CLIPS_STORE = 'clips';
-const INCIDENTS_STORE = 'incidents';
+import {
+  CLIPS_STORE,
+  getAllFromIndex,
+  INCIDENTS_STORE,
+  openGapDatabase,
+  requestResult,
+  RESERVATIONS_STORE,
+  transactionDone,
+} from '@/lib/gap-recording/indexed-db-core';
 
 export interface GapRecordingStore {
   putClip: (clip: GapClipRecord) => Promise<void>;
@@ -26,68 +29,42 @@ export interface GapRecordingStore {
   deleteUnassigned: (matchUserKey: string) => Promise<void>;
   deleteIncidentData: (incidentId: string) => Promise<void>;
   deleteExpired: (before: number) => Promise<void>;
+  tryReserveIncident: (
+    matchUserKey: string,
+    maxIncidents: number,
+    reservedAt: number,
+  ) => Promise<boolean>;
 }
 
-let databasePromise: Promise<IDBDatabase> | null = null;
-
-function requestResult<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('IndexedDB request failed'));
-  });
-}
-
-function transactionDone(transaction: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB transaction failed'));
-    transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB transaction aborted'));
-  });
-}
-
-function openDatabase(): Promise<IDBDatabase> {
-  if (databasePromise) return databasePromise;
-  databasePromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
-    request.onupgradeneeded = (event) => {
-      const database = request.result;
-      const oldVersion = (event as IDBVersionChangeEvent).oldVersion;
-      if (oldVersion === 0) {
-        const clips = database.createObjectStore(CLIPS_STORE, { keyPath: 'id' });
-        clips.createIndex('matchUser', 'matchUserKey', { unique: false });
-        clips.createIndex('incident', 'incidentId', { unique: false });
-        clips.createIndex('endedAt', 'endedAt', { unique: false });
-        const incidents = database.createObjectStore(INCIDENTS_STORE, { keyPath: 'id' });
-        incidents.createIndex('matchUser', 'matchUserKey', { unique: false });
-        incidents.createIndex('status', 'status', { unique: false });
-        incidents.createIndex('updatedAt', 'updatedAt', { unique: false });
-      } else if (oldVersion < 2) {
-        // Le registrazioni v1 non rispettano la policy video-only e non devono
-        // restare disponibili per un upload successivo all'aggiornamento.
-        request.transaction?.objectStore(CLIPS_STORE).clear();
-        request.transaction?.objectStore(INCIDENTS_STORE).clear();
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => {
-      databasePromise = null;
-      reject(request.error ?? new Error('IndexedDB open failed'));
-    };
-  });
-  return databasePromise;
-}
-
-async function getAllFromIndex<T>(
-  store: IDBObjectStore,
-  indexName: string,
-  key: IDBValidKey,
-): Promise<T[]> {
-  return requestResult(store.index(indexName).getAll(IDBKeyRange.only(key)) as IDBRequest<T[]>);
-}
 
 export class IndexedDbGapRecordingStore implements GapRecordingStore {
+  async tryReserveIncident(
+    matchUserKey: string,
+    maxIncidents: number,
+    reservedAt: number,
+  ): Promise<boolean> {
+    const database = await openGapDatabase();
+    const transaction = database.transaction(RESERVATIONS_STORE, 'readwrite');
+    const done = transactionDone(transaction);
+    const store = transaction.objectStore(RESERVATIONS_STORE);
+    const current = await requestResult(store.get(matchUserKey) as IDBRequest<
+      { matchUserKey: string; count: number; updatedAt: number } | undefined
+    >);
+    if ((current?.count ?? 0) >= maxIncidents) {
+      await done;
+      return false;
+    }
+    store.put({
+      matchUserKey,
+      count: (current?.count ?? 0) + 1,
+      updatedAt: reservedAt,
+    });
+    await done;
+    return true;
+  }
+
   async putClip(clip: GapClipRecord): Promise<void> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction(CLIPS_STORE, 'readwrite');
     const done = transactionDone(transaction);
     transaction.objectStore(CLIPS_STORE).put(clip);
@@ -95,7 +72,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
   }
 
   async putIncident(incident: GapIncidentRecord): Promise<void> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction(INCIDENTS_STORE, 'readwrite');
     const done = transactionDone(transaction);
     transaction.objectStore(INCIDENTS_STORE).put(incident);
@@ -103,7 +80,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
   }
 
   async getIncident(incidentId: string): Promise<GapIncidentRecord | undefined> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction(INCIDENTS_STORE, 'readonly');
     const done = transactionDone(transaction);
     const result = await requestResult(
@@ -116,7 +93,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
   }
 
   async listIncidents(matchUserKey: string): Promise<GapIncidentRecord[]> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction(INCIDENTS_STORE, 'readonly');
     const done = transactionDone(transaction);
     const result = await getAllFromIndex<GapIncidentRecord>(
@@ -129,7 +106,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
   }
 
   async listIncidentClips(incidentId: string): Promise<GapClipRecord[]> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction(CLIPS_STORE, 'readonly');
     const done = transactionDone(transaction);
     const result = await getAllFromIndex<GapClipRecord>(
@@ -147,7 +124,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
     from: number,
     until: number | null,
   ): Promise<GapClipRecord[]> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction(CLIPS_STORE, 'readwrite');
     const done = transactionDone(transaction);
     const store = transaction.objectStore(CLIPS_STORE);
@@ -167,7 +144,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
   }
 
   async pruneRolling(matchUserKey: string, cutoff: number): Promise<void> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction(CLIPS_STORE, 'readwrite');
     const done = transactionDone(transaction);
     const store = transaction.objectStore(CLIPS_STORE);
@@ -179,7 +156,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
   }
 
   async deleteUnassigned(matchUserKey: string): Promise<void> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction(CLIPS_STORE, 'readwrite');
     const done = transactionDone(transaction);
     const store = transaction.objectStore(CLIPS_STORE);
@@ -191,7 +168,7 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
   }
 
   async deleteIncidentData(incidentId: string): Promise<void> {
-    const database = await openDatabase();
+    const database = await openGapDatabase();
     const transaction = database.transaction([CLIPS_STORE, INCIDENTS_STORE], 'readwrite');
     const done = transactionDone(transaction);
     const clipStore = transaction.objectStore(CLIPS_STORE);
@@ -202,8 +179,11 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
   }
 
   async deleteExpired(before: number): Promise<void> {
-    const database = await openDatabase();
-    const transaction = database.transaction([CLIPS_STORE, INCIDENTS_STORE], 'readwrite');
+    const database = await openGapDatabase();
+    const transaction = database.transaction(
+      [CLIPS_STORE, INCIDENTS_STORE],
+      'readwrite',
+    );
     const done = transactionDone(transaction);
     const incidentStore = transaction.objectStore(INCIDENTS_STORE);
     const incidents = await requestResult(
@@ -221,6 +201,8 @@ export class IndexedDbGapRecordingStore implements GapRecordingStore {
     if (expiredIds.size > 0) {
       for (const incidentId of expiredIds) incidentStore.delete(incidentId);
     }
+    // Il filmato scade dopo 72 ore; il contatore di sicurezza no. Mantenerlo
+    // monotono impedisce che lo stesso match riapra altri cinque incidenti.
     await done;
   }
 }

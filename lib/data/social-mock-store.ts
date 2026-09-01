@@ -124,17 +124,27 @@ export function saveStateToDisk(): void {
 loadStateFromDisk();
 
 export function isPlayerDnd(gamertag: string): boolean {
-  const expiresAt = mockDndStore.get(gamertag.toLowerCase());
-  if (!expiresAt) return false;
+  return getPlayerDndUntil(gamertag) !== null;
+}
+
+export function getPlayerDndUntil(gamertag: string): number | null {
+  const key = gamertag.toLowerCase();
+  const expiresAt = mockDndStore.get(key);
+  if (!expiresAt) return null;
   if (expiresAt <= Date.now()) {
-    mockDndStore.delete(gamertag.toLowerCase());
-    return false;
+    mockDndStore.delete(key);
+    return null;
   }
-  return true;
+  return expiresAt;
 }
 
 export function setPlayerDnd(gamertag: string, durationMinutes = 60): void {
-  mockDndStore.set(gamertag.toLowerCase(), Date.now() + durationMinutes * 60 * 1000);
+  const key = gamertag.toLowerCase();
+  if (durationMinutes <= 0) {
+    mockDndStore.delete(key);
+    return;
+  }
+  mockDndStore.set(key, Date.now() + durationMinutes * 60 * 1000);
 }
 
 export function isEbartexProfileVisible(gamertag: string): boolean {
@@ -225,9 +235,9 @@ export function buildFallbackPublicProfile(
     isBot: isMockBot(normalized),
     showEbartexProfile: showEbartex,
     ebartexUsername: isSelf
-      ? (myEbartexUsername ?? KNOWN_EBARTEX_USERNAMES.get(normalized.toLowerCase()) ?? normalized)
+      ? myEbartexUsername?.trim() || null
       : showEbartex
-        ? (KNOWN_EBARTEX_USERNAMES.get(normalized.toLowerCase()) ?? normalized)
+        ? KNOWN_EBARTEX_USERNAMES.get(normalized.toLowerCase()) ?? null
         : null,
   };
 }

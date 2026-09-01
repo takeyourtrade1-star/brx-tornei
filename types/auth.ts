@@ -2,7 +2,9 @@
 export interface SessionUser {
   id: string;
   email: string;
-  /** Il backend può esporre `username` senza `name`. */
+  /** Username canonico dell'account sul marketplace Ebartex. */
+  username: string | null;
+  /** Nome visualizzato; non va usato come username Ebartex. */
   name: string | null;
 }
 

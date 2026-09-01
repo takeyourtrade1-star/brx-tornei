@@ -43,7 +43,10 @@ describe('Social Validations, Scalability & Privacy Bucketing', () => {
     expect(respondFriendRequestSchema.safeParse({ requestId: 'r-1', action: 'decline' }).success).toBe(true);
     expect(respondFriendRequestSchema.safeParse({ requestId: 'r-1', action: 'invalid' }).success).toBe(false);
 
-    expect(respondGameChallengeSchema.safeParse({ challengeId: 'ch-1', action: 'accept' }).success).toBe(true);
+    expect(respondGameChallengeSchema.safeParse({ challengeId: 'ch-1', action: 'accept' }).success).toBe(false);
+    expect(respondGameChallengeSchema.safeParse({
+      challengeId: 'ch-1', action: 'accept', deckId: 'deck-1',
+    }).success).toBe(true);
     expect(respondGameChallengeSchema.safeParse({ challengeId: 'ch-1', action: 'decline' }).success).toBe(true);
   });
 
@@ -53,6 +56,7 @@ describe('Social Validations, Scalability & Privacy Bucketing', () => {
         targetGamertag: 'Kurogane',
         format: 'modern',
         bestOf: 'BO3',
+        deckId: 'deck-1',
       }).success,
     ).toBe(true);
 
@@ -61,6 +65,7 @@ describe('Social Validations, Scalability & Privacy Bucketing', () => {
         targetGamertag: 'Kurogane',
         format: 'invalid_format',
         bestOf: 'BO3',
+        deckId: 'deck-1',
       }).success,
     ).toBe(false);
   });
@@ -92,6 +97,11 @@ describe('Social Validations, Scalability & Privacy Bucketing', () => {
     expect(profile.stats.played).toBeGreaterThanOrEqual(0);
     expect(profile.stats.wins).toBeGreaterThanOrEqual(0);
     expect(profile.honorBadges.friendly).toBeGreaterThanOrEqual(0);
+    expect(profile.ebartexUsername).toBeNull();
+
+    expect(
+      buildFallbackPublicProfile('MyGamertag', 'MyGamertag', 'my_ebartex_username').ebartexUsername,
+    ).toBe('my_ebartex_username');
     // Verifica che non esistano campi sensibili esposti
     expect('email' in profile).toBe(false);
     expect('token' in profile).toBe(false);

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { ArrowLeft, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { validateDeckLegalityAction } from '@/actions/decks';
+import { validateDeckLegalityAction } from '@/actions/deck-legality';
 import { getFormat } from '@/lib/data/catalog';
 import { getDeckArchetype } from '@/lib/data/deck-archetypes';
 import { countCards, getMainDeckMinSize } from '@/lib/data/deck-utils';

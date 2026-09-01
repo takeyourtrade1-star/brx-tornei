@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { Check, Loader2, Swords, X } from 'lucide-react';
-import { FORMATS } from '@/lib/data/catalog';
+import { listDecksAction } from '@/actions/decks';
 import {
   cancelGameChallengeAction,
   checkOutgoingChallengeStatusAction,
   sendGameChallengeAction,
 } from '@/actions/social-challenges';
 import { Button } from '@/components/ui/button';
+import type { Deck } from '@/types/deck';
+import { DirectChallengeForm } from './direct-challenge-form';
 
 interface DirectChallengeModalProps {
   targetGamertag: string | null;
@@ -29,6 +31,9 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
   >('idle');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [deckId, setDeckId] = useState('');
+  const [loadingDecks, setLoadingDecks] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -48,6 +53,24 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [open, onClose, challengeStatus]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLoadingDecks(true);
+    void listDecksAction().then((result) => {
+      if (cancelled) return;
+      const compatible = 'decks' in result
+        ? result.decks.filter((deck) => deck.formatId === format)
+        : [];
+      setDecks(compatible);
+      setDeckId((current) => compatible.some((deck) => deck.id === current)
+        ? current
+        : (compatible[0]?.id ?? ''));
+      setLoadingDecks(false);
+    });
+    return () => { cancelled = true; };
+  }, [open, format]);
 
   // Polling per rilevare quando l'amico accetta o rifiuta la sfida
   useEffect(() => {
@@ -90,7 +113,7 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
   const handleSend = async () => {
     setSending(true);
     setStatusMessage(null);
-    const res = await sendGameChallengeAction(targetGamertag, format, bestOf);
+    const res = await sendGameChallengeAction(targetGamertag, format, bestOf, deckId);
     setSending(false);
 
     if (res.ok && res.data) {
@@ -187,58 +210,18 @@ export function DirectChallengeModal({ targetGamertag, open, onClose }: DirectCh
               Riprova
             </Button>
           </div>
-        ) : (
-          <div className="mt-4 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-white/45">
-                Formato di Gioco
-              </label>
-              <select
-                value={format}
-                onChange={(e) => setFormat(e.target.value)}
-                className="h-10 w-full rounded-xl border border-white/15 bg-white/5 px-3 text-xs font-bold text-white focus:border-primary focus:outline-none"
-              >
-                {FORMATS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-white/45">
-                Formula del Match
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['BO1', 'BO3', 'BO5'] as const).map((rule) => (
-                  <button
-                    key={rule}
-                    type="button"
-                    onClick={() => setBestOf(rule)}
-                    className={`h-9 rounded-xl border text-xs font-black transition ${
-                      bestOf === rule
-                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                        : 'border-white/15 bg-white/5 text-white/65 hover:bg-white/10'
-                    }`}
-                  >
-                    {rule}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              disabled={sending}
-              onClick={handleSend}
-              className="mt-2 h-11 w-full gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-xs font-black uppercase tracking-wider text-white shadow-md hover:brightness-105"
-            >
-              <Swords className="h-4 w-4" />
-              <span>{sending ? 'Invio in corso…' : 'Lancia il Guanto di Sfida'}</span>
-            </Button>
-          </div>
-        )}
+        ) : <DirectChallengeForm
+          format={format}
+          bestOf={bestOf}
+          decks={decks}
+          deckId={deckId}
+          loadingDecks={loadingDecks}
+          sending={sending}
+          onFormat={setFormat}
+          onBestOf={setBestOf}
+          onDeck={setDeckId}
+          onSend={() => void handleSend()}
+        />}
       </div>
     </div>,
     document.body,

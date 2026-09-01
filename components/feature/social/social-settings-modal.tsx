@@ -3,14 +3,12 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ExternalLink, X } from 'lucide-react';
+import { getEbartexProfileUrl, type DndStatus } from '@/lib/social-preferences';
 import {
-  getDndStatus,
-  getEbartexProfileUrl,
-  getEbartexVisibility,
-  setDndStatus,
-  setEbartexVisibility,
-} from '@/lib/social-preferences';
-import { setSocialDndAction, setSocialEbartexVisibilityAction } from '@/actions/social';
+  getSocialPreferencesAction,
+  setSocialDndAction,
+  setSocialEbartexVisibilityAction,
+} from '@/actions/social-preferences';
 import { cn } from '@/lib/utils';
 
 interface SocialSettingsModalProps {
@@ -21,10 +19,12 @@ interface SocialSettingsModalProps {
 }
 
 export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSettingsModalProps) {
-  const [dnd, setDnd] = useState(() => getDndStatus());
-  const [showEbartex, setShowEbartex] = useState(() => getEbartexVisibility());
+  const [dnd, setDnd] = useState<DndStatus>({ active: false, minutesRemaining: 0, expiresAt: null });
+  const [showEbartex, setShowEbartex] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [available, setAvailable] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -32,29 +32,66 @@ export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSe
 
   useEffect(() => {
     if (!open) return;
-    setDnd(getDndStatus());
-    setShowEbartex(getEbartexVisibility());
+    let cancelled = false;
+    setSaving(true);
+    setError(null);
+    void getSocialPreferencesAction().then((result) => {
+      if (cancelled) return;
+      setSaving(false);
+      if (!result.ok || !result.data) {
+        setAvailable(false);
+        setError(result.error ?? 'Preferenze social non disponibili.');
+        return;
+      }
+      const expiresAt = result.data.dndUntil;
+      setDnd({
+        active: Boolean(expiresAt && expiresAt > Date.now()),
+        minutesRemaining: expiresAt
+          ? Math.max(1, Math.ceil((expiresAt - Date.now()) / 60_000))
+          : 0,
+        expiresAt,
+      });
+      setShowEbartex(result.data.showEbartexProfile);
+      setAvailable(true);
+    });
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('keydown', handleKey);
+    };
   }, [open, onClose]);
 
   if (!open || !mounted) return null;
 
   const handleToggleDnd = async (enable: boolean) => {
     setSaving(true);
-    const updated = setDndStatus(enable, 60);
-    setDnd(updated);
-    await setSocialDndAction(enable, 60);
+    setError(null);
+    const result = await setSocialDndAction({ active: enable, durationMinutes: 60 });
+    if (result.ok && result.data) {
+      const expiresAt = result.data.dndUntil;
+      setDnd({
+        active: Boolean(expiresAt && expiresAt > Date.now()),
+        minutesRemaining: expiresAt
+          ? Math.max(1, Math.ceil((expiresAt - Date.now()) / 60_000))
+          : 0,
+        expiresAt,
+      });
+    } else {
+      setError(result.error ?? 'Impossibile aggiornare lo stato.');
+    }
     setSaving(false);
   };
 
   const handleToggleEbartexVisibility = async (visible: boolean) => {
-    setShowEbartex(visible);
-    setEbartexVisibility(visible);
-    await setSocialEbartexVisibilityAction(visible);
+    setSaving(true);
+    setError(null);
+    const result = await setSocialEbartexVisibilityAction({ visible });
+    if (result.ok && result.data) setShowEbartex(result.data.showEbartexProfile);
+    else setError(result.error ?? 'Impossibile aggiornare la visibilità.');
+    setSaving(false);
   };
 
   const ebartexUrl = getEbartexProfileUrl(ebartexUsername);
@@ -101,12 +138,14 @@ export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSe
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <ChoiceCard
                 active={showEbartex}
+                disabled={!available || saving}
                 onClick={() => handleToggleEbartexVisibility(true)}
                 title="Visibile"
                 description="Le carte in vendita appaiono sul profilo duellante."
               />
               <ChoiceCard
                 active={!showEbartex}
+                disabled={!available || saving}
                 onClick={() => handleToggleEbartexVisibility(false)}
                 title="Nascosto"
                 description="Gli altri vedono solo le statistiche di torneo."
@@ -139,20 +178,25 @@ export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSe
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <ChoiceCard
                 active={!dnd.active}
-                disabled={saving}
+                disabled={!available || saving}
                 onClick={() => handleToggleDnd(false)}
                 title="Disponibile"
                 description="Gli amici possono inviarti sfide 1v1."
               />
               <ChoiceCard
                 active={dnd.active}
-                disabled={saving}
+                disabled={!available || saving}
                 onClick={() => handleToggleDnd(true)}
                 title="Non disturbare"
                 description="Niente inviti per 60 minuti."
               />
             </div>
           </section>
+          {error && (
+            <p role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-100">
+              {error}
+            </p>
+          )}
         </div>
       </div>
     </div>,

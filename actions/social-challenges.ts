@@ -11,7 +11,12 @@ import {
   postRespondGameChallenge,
 } from '@/lib/data/social-api-client';
 import { isMockBot, isPlayerDnd } from '@/lib/data/social-mock-store';
-import { createTournament } from '@/lib/data/tournaments';
+import { leaveTournament } from '@/lib/data/tournaments';
+import { assertDeclaredDeckRequirements } from '@/lib/join-deck-gate';
+import {
+  attachChallengeDeck,
+  createChallengeTableWithDeck,
+} from '@/lib/social-challenge-deck';
 import {
   respondGameChallengeSchema,
   sendGameChallengeSchema,
@@ -27,11 +32,12 @@ export async function sendGameChallengeAction(
   targetGamertag: string,
   format: string,
   bestOf: 'BO1' | 'BO3' | 'BO5',
+  deckId: string,
 ): Promise<SocialActionState<DirectGameChallenge>> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Sessione non valida.' };
 
-  const parsed = sendGameChallengeSchema.safeParse({ targetGamertag, format, bestOf });
+  const parsed = sendGameChallengeSchema.safeParse({ targetGamertag, format, bestOf, deckId });
   if (!parsed.success) return { ok: false, error: 'Parametri sfida non validi.' };
 
   try {
@@ -42,6 +48,14 @@ export async function sendGameChallengeAction(
     if (sameGamertag(myGamertag, parsed.data.targetGamertag)) {
       return { ok: false, error: 'Non puoi sfidare te stesso.' };
     }
+
+    const validFormat = formatIdSchema.parse(parsed.data.format);
+    const gate = await assertDeclaredDeckRequirements(session.user.id, {
+      deckId: parsed.data.deckId,
+      format: validFormat,
+      requireScryfall: false,
+    });
+    if (!gate.ok) return { ok: false, error: gate.error };
 
     if (isPlayerDnd(parsed.data.targetGamertag)) {
       return {
@@ -58,26 +72,35 @@ export async function sendGameChallengeAction(
       bestOf: parsed.data.bestOf,
     });
 
+    if (challenge.tableId) {
+      try {
+        await attachChallengeDeck(challenge.tableId, {
+          userId: session.user.id,
+          username: myGamertag,
+          deckId: parsed.data.deckId,
+        });
+      } catch (error) {
+        await postCancelGameChallenge(challenge.id).catch(() => {});
+        throw error;
+      }
+    }
+
     // Bot solo nel fallback mock locale: il backend non ha giocatori fittizi.
     if (challenge.isBot && !challenge.tableId && isMockBot(parsed.data.targetGamertag)) {
-      const validFormat = formatIdSchema.safeParse(parsed.data.format).data ?? 'modern';
-      const tournament = await createTournament(
-        {
-          format: validFormat,
-          mode: 'heads-up',
-          bestOf: parsed.data.bestOf,
-          isPrivate: false,
-          withFriend: true,
-          isTournament: false,
-          enableScryfallCheck: false,
-          enablePhysicalVerification: false,
-        },
-        {
-          id: session.user.id,
-          username: myGamertag,
-        },
-      );
-      await postRespondGameChallenge(challenge.id, 'accept', tournament.id);
+      const tournament = await createChallengeTableWithDeck({
+        userId: session.user.id,
+        username: myGamertag,
+        deckId: parsed.data.deckId,
+        format: validFormat,
+        bestOf: parsed.data.bestOf,
+      });
+      try {
+        await postRespondGameChallenge(challenge.id, 'accept', tournament.id);
+      } catch (error) {
+        await leaveTournament(tournament.id).catch(() => {});
+        await postCancelGameChallenge(challenge.id).catch(() => {});
+        throw error;
+      }
       challenge.status = 'accepted';
       challenge.tableId = tournament.id;
     }
@@ -112,11 +135,12 @@ export async function checkIncomingChallengeAction(): Promise<SocialActionState<
 export async function respondGameChallengeAction(
   challengeId: string,
   action: 'accept' | 'decline',
+  deckId?: string,
 ): Promise<SocialActionState<{ tableId?: string }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Sessione non valida.' };
 
-  const parsed = respondGameChallengeSchema.safeParse({ challengeId, action });
+  const parsed = respondGameChallengeSchema.safeParse({ challengeId, action, deckId });
   if (!parsed.success) return { ok: false, error: 'Dati sfida non validi.' };
 
   try {
@@ -131,32 +155,49 @@ export async function respondGameChallengeAction(
       return { ok: false, error: 'Non puoi accettare una sfida contro te stesso.' };
     }
 
+    const validFormat = formatIdSchema.safeParse(existing.format).data ?? 'modern';
+    if (parsed.data.action === 'accept') {
+      const gate = await assertDeclaredDeckRequirements(session.user.id, {
+        deckId: parsed.data.deckId!,
+        format: validFormat,
+        requireScryfall: false,
+      });
+      if (!gate.ok) return { ok: false, error: gate.error };
+    }
+
     if (parsed.data.action === 'accept' && !existing.tableId) {
       // Fallback mock: il tavolo non esiste ancora, va creato pubblico.
-      const validFormat = formatIdSchema.safeParse(existing.format).data ?? 'modern';
-      const tournament = await createTournament(
-        {
-          format: validFormat,
-          mode: 'heads-up',
-          bestOf: existing.bestOf || 'BO3',
-          isPrivate: false,
-          withFriend: true,
-          isTournament: false,
-          enableScryfallCheck: false,
-          enablePhysicalVerification: false,
-        },
-        {
-          id: session.user.id,
-          username: myGamertag ?? session.user.name ?? session.user.email,
-        },
-      );
-      const updated = await postRespondGameChallenge(existing.id, 'accept', tournament.id);
-      return { ok: true, data: { tableId: updated?.tableId ?? tournament.id } };
+      const tournament = await createChallengeTableWithDeck({
+        userId: session.user.id,
+        username: myGamertag ?? session.user.name ?? session.user.email,
+        deckId: parsed.data.deckId!,
+        format: validFormat,
+        bestOf: existing.bestOf || 'BO3',
+      });
+      try {
+        const updated = await postRespondGameChallenge(existing.id, 'accept', tournament.id);
+        return { ok: true, data: { tableId: updated?.tableId ?? tournament.id } };
+      } catch (error) {
+        await leaveTournament(tournament.id).catch(() => {});
+        throw error;
+      }
     }
 
     const challenge = await postRespondGameChallenge(parsed.data.challengeId, parsed.data.action);
     if (parsed.data.action === 'accept' && !challenge?.tableId) {
       return { ok: false, error: 'La sfida è stata accettata ma il tavolo non è pronto.' };
+    }
+    if (parsed.data.action === 'accept' && challenge?.tableId) {
+      try {
+        await attachChallengeDeck(challenge.tableId, {
+          userId: session.user.id,
+          username: myGamertag ?? session.user.name ?? session.user.email,
+          deckId: parsed.data.deckId!,
+        });
+      } catch (error) {
+        await leaveTournament(challenge.tableId).catch(() => {});
+        throw error;
+      }
     }
     return { ok: true, data: { tableId: challenge?.tableId } };
   } catch (err) {

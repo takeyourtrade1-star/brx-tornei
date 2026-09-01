@@ -14,7 +14,7 @@ import modalFont from '../tournament-modal-font.module.css';
 
 interface TableSeatModalProps {
   open: boolean;
-  mode: 'host' | 'join';
+  mode: 'create' | 'host' | 'join';
   formatId: FormatId;
   formatName: string;
   myUsername: string;
@@ -26,8 +26,6 @@ interface TableSeatModalProps {
   onLeave?: () => void;
   onConfirmJoin?: (deckId: string) => void;
 }
-
-const IGNORE_DECK = '__ignore__';
 
 export function TableSeatModal({
   open,
@@ -45,7 +43,7 @@ export function TableSeatModal({
 }: TableSeatModalProps) {
   const [mounted, setMounted] = useState(false);
   const [decks, setDecks] = useState<Deck[]>([]);
-  const [selected, setSelected] = useState(IGNORE_DECK);
+  const [selected, setSelected] = useState('');
   const [newDeckName, setNewDeckName] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -65,7 +63,7 @@ export function TableSeatModal({
         setSelected(
           currentIsCompatible
             ? currentDeckId!
-            : mode === 'join' ? (compatible[0]?.id ?? IGNORE_DECK) : IGNORE_DECK,
+            : (compatible[0]?.id ?? ''),
         );
       }
     });
@@ -90,8 +88,9 @@ export function TableSeatModal({
   };
 
   if (!open || !mounted) return null;
-  const deckIdToSubmit = selected === IGNORE_DECK ? '' : selected;
+  const deckIdToSubmit = selected;
   const isHost = mode === 'host';
+  const isCreate = mode === 'create';
 
   return createPortal(
     <div
@@ -120,9 +119,11 @@ export function TableSeatModal({
           eyebrow={isHost ? 'Tavolo creato' : 'Ultimo passaggio'}
           titleId="table-seat-title"
           descriptionId="table-seat-description"
-          title={isHost ? 'Il tuo posto è pronto' : 'Siediti al tavolo'}
+          title={isHost ? 'Il tuo posto è pronto' : isCreate ? 'Crea il tavolo' : 'Siediti al tavolo'}
           description={isHost
             ? 'Associa il mazzo che userai e resta qui mentre aspetti il tuo avversario.'
+            : isCreate
+              ? 'Dichiara il mazzo prima di creare e occupare il tavolo.'
             : 'Scegli il mazzo e controlla i posti prima di entrare.'}
           meta={[formatName, 'Best of 3', '2 giocatori']}
           onClose={onClose}
@@ -134,7 +135,6 @@ export function TableSeatModal({
             formatName={formatName}
             decks={decks}
             selected={selected}
-            ignoreDeckValue={IGNORE_DECK}
             loading={loadingDecks}
             newDeckName={newDeckName}
             creating={creating}
@@ -169,6 +169,7 @@ export function TableSeatModal({
               </button>
               <PrimaryAction
                 busy={busy}
+                disabled={!deckIdToSubmit}
                 onClick={() => onConfirmJoin?.(deckIdToSubmit)}
                 label="Salva mazzo e torna"
                 busyLabel="Salvataggio…"
@@ -187,9 +188,10 @@ export function TableSeatModal({
               </button>
               <PrimaryAction
                 busy={busy}
+                disabled={!deckIdToSubmit}
                 onClick={() => onConfirmJoin?.(deckIdToSubmit)}
-                label="Siediti e gioca"
-                busyLabel="Mi siedo…"
+                label={isCreate ? 'Dichiara mazzo e crea' : 'Siediti e gioca'}
+                busyLabel={isCreate ? 'Creazione…' : 'Mi siedo…'}
               />
             </div>
           )}
@@ -202,12 +204,14 @@ export function TableSeatModal({
 
 function PrimaryAction({
   busy,
+  disabled = false,
   onClick,
   label,
   busyLabel,
   initialFocus = false,
 }: {
   busy: boolean;
+  disabled?: boolean;
   onClick: () => void;
   label: string;
   busyLabel: string;
@@ -217,7 +221,7 @@ function PrimaryAction({
     <button
       type="button"
       onClick={onClick}
-      disabled={busy}
+      disabled={busy || disabled}
       data-modal-initial-focus={initialFocus ? 'true' : undefined}
       className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-black text-white shadow-[0_8px_20px_-8px_rgba(255,115,0,0.45)] transition hover:opacity-95 disabled:opacity-50"
     >

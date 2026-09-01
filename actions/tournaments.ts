@@ -9,9 +9,13 @@ import {
   readyTournament,
   getTournamentById,
 } from '@/lib/data/tournaments';
-import { assertJoinDeckRequirements } from '@/lib/join-deck-gate';
+import {
+  assertDeclaredDeckRequirements,
+  assertJoinDeckRequirements,
+  requiresDeclaredDeckForJoin,
+} from '@/lib/join-deck-gate';
 import { TournamentApiError } from '@/lib/data/tournament-api-client';
-import { createTournamentSchema, joinTournamentSchema } from '@/lib/validations/tournament';
+import { createTableSchema, joinTournamentSchema } from '@/lib/validations/tournament';
 
 export interface TournamentActionState {
   error?: string;
@@ -53,13 +57,14 @@ function mapApiError(err: unknown, fallback: string): TournamentActionState {
 export async function createTableAction(
   format: string,
   mode: string,
+  deckId?: string,
 ): Promise<TournamentActionState> {
   const session = await getSession();
   if (!session) {
     return { error: 'Sessione scaduta: effettua di nuovo il login.' };
   }
 
-  const parsed = createTournamentSchema.safeParse({
+  const parsed = createTableSchema.safeParse({
     format,
     mode,
     bestOf: 'BO3',
@@ -68,22 +73,40 @@ export async function createTableAction(
     isTournament: false,
     enableScryfallCheck: false,
     enablePhysicalVerification: false,
+    deckId,
   });
   if (!parsed.success) {
-    return { error: 'Selezione non valida' };
+    return { error: parsed.error.errors[0]?.message ?? 'Selezione non valida' };
   }
 
+  const gate = await assertDeclaredDeckRequirements(session.user.id, {
+    deckId: parsed.data.deckId,
+    format: parsed.data.format,
+    requireScryfall: false,
+  });
+  if (!gate.ok) return { error: gate.error };
+
+  let createdId: string | null = null;
   try {
     const tournament = await createTournament(parsed.data, {
       id: session.user.id,
       username: session.user.name ?? session.user.email,
     });
+    createdId = tournament.id;
+    // Il backend storico siede il creatore durante la POST di creazione. La
+    // join idempotente associa subito lo snapshot del mazzo prima di restituire
+    // il tavolo al browser.
+    const seated = await joinTournament(tournament.id, {
+      id: session.user.id,
+      username: session.user.name ?? session.user.email,
+    }, parsed.data.deckId);
     revalidatePath('/tornei');
     return {
-      createdId: tournament.id,
-      webcamSessionId: tournament.webcamSessionId,
+      createdId: seated.tournament.id,
+      webcamSessionId: seated.tournament.webcamSessionId,
     };
   } catch (err) {
+    if (createdId) await leaveTournament(createdId).catch(() => {});
     return mapApiError(err, 'Impossibile creare il tavolo');
   }
 }
@@ -91,7 +114,8 @@ export async function createTableAction(
 /**
  * Siede l'utente a un tavolo esistente. A tavolo pieno si apre il ready check:
  * il match parte solo dopo la conferma esplicita di entrambi i giocatori.
- * `deckId` opzionale: vuoto = "Ignora deck" (nessuna verifica).
+ * Il mazzo dichiarato è sempre obbligatorio; sarà l'avversario a controllare
+ * che le carte giocate corrispondano alla dichiarazione.
  */
 export async function joinTournamentAction(
   tournamentId: string,
@@ -102,7 +126,7 @@ export async function joinTournamentAction(
     return { error: 'Sessione scaduta: effettua di nuovo il login.' };
   }
 
-  const parsed = joinTournamentSchema.safeParse({ tournamentId, deckId: deckId ?? '' });
+  const parsed = joinTournamentSchema.safeParse({ tournamentId, deckId });
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }
@@ -112,23 +136,24 @@ export async function joinTournamentAction(
     return { error: 'Tavolo non trovato.' };
   }
 
-  // Deck facoltativo: la verifica scatta solo se l'utente ha scelto un mazzo.
-  if (parsed.data.deckId) {
-    const gate = await assertJoinDeckRequirements(
-      session.user.id,
-      tournament,
-      parsed.data.deckId,
-    );
-    if (!gate.ok) {
-      return { error: gate.error };
-    }
+  if (!parsed.data.deckId && requiresDeclaredDeckForJoin(tournament)) {
+    return { error: 'Dichiara il mazzo con cui vuoi partecipare.' };
+  }
+
+  const gate = await assertJoinDeckRequirements(
+    session.user.id,
+    tournament,
+    parsed.data.deckId,
+  );
+  if (!gate.ok) {
+    return { error: gate.error };
   }
 
   try {
     const result = await joinTournament(tournamentId, {
       id: session.user.id,
       username: session.user.name ?? session.user.email,
-    }, parsed.data.deckId || undefined);
+    }, parsed.data.deckId);
     revalidatePath('/tornei');
     revalidatePath(`/tornei/${tournamentId}/live`);
     return {

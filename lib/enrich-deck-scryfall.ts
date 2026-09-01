@@ -1,7 +1,6 @@
 import 'server-only';
 import {
   applyScryfallToDeckCard,
-  enrichCardFromScryfall,
   fetchScryfallCollection,
   type ScryfallCollectionIdentifier,
 } from '@/lib/data/scryfall';
@@ -22,24 +21,55 @@ function applyEnriched(
   return cards.map((card) => enrichedByBlueprint.get(blueprintKey(card)) ?? card);
 }
 
-function collectionKeyFromResponse(card: {
+function collectionKeysFromResponse(card: {
   id?: string;
+  name?: string;
   set?: string;
   collector_number?: string;
-}): string | null {
-  if (card.id) return `id:${card.id}`;
+}): string[] {
+  const keys: string[] = [];
+  if (card.id) keys.push(`id:${card.id}`);
   if (card.set && card.collector_number) {
-    return `set:${card.set.toLowerCase()}:${card.collector_number}`;
+    keys.push(`set:${card.set.toLowerCase()}:${card.collector_number}`);
   }
-  return null;
+  if (card.name) keys.push(`name:${card.name.trim().toLowerCase()}`);
+  return keys;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function primaryLookup(card: DeckCard): {
+  identifier: ScryfallCollectionIdentifier;
+  key: string;
+} {
+  if (card.scryfallId) {
+    return { identifier: { id: card.scryfallId }, key: `id:${card.scryfallId}` };
+  }
+  if (card.setCode && card.collectorNumber) {
+    const set = card.setCode.trim().toLowerCase();
+    const collectorNumber = card.collectorNumber.trim();
+    return {
+      identifier: { set, collector_number: collectorNumber },
+      key: `set:${set}:${collectorNumber}`,
+    };
+  }
+  const name = card.name.trim();
+  return { identifier: { name }, key: `name:${name.toLowerCase()}` };
+}
+
+function indexResponses<T extends {
+  id?: string;
+  name?: string;
+  set?: string;
+  collector_number?: string;
+}>(cards: T[]): Map<string, T> {
+  const byKey = new Map<string, T>();
+  for (const card of cards) {
+    for (const key of collectionKeysFromResponse(card)) byKey.set(key, card);
+  }
+  return byKey;
 }
 
 /**
- * Arricchisce le carte del mazzo con legalità Scryfall (batch collection + fallback nome/set).
+ * Arricchisce le carte del mazzo con sole query batch e un deadline comune.
  * Le carte che hanno già tournamentLegalities non vengono re-fetchate.
  */
 export async function enrichDeckFromScryfall(deck: Deck): Promise<Deck> {
@@ -58,75 +88,39 @@ export async function enrichDeckFromScryfall(deck: Deck): Promise<Deck> {
     }
   }
 
-  const identifiers: ScryfallCollectionIdentifier[] = [];
-  const idCards: DeckCard[] = [];
-  const setNumCards: DeckCard[] = [];
-  const fallbackCards: DeckCard[] = [];
+  const deadline = AbortSignal.timeout(12_000);
+  const plans = pending.map((card) => ({ card, ...primaryLookup(card) }));
+  const primaryResponses = await fetchScryfallCollection(
+    plans.map((plan) => plan.identifier),
+    { signal: deadline },
+  );
+  const primaryByKey = indexResponses(primaryResponses);
+  const unresolved: DeckCard[] = [];
 
-  for (const card of pending) {
-    if (card.scryfallId) {
-      identifiers.push({ id: card.scryfallId });
-      idCards.push(card);
-    } else if (card.setCode && card.collectorNumber) {
-      identifiers.push({
-        set: card.setCode.trim().toLowerCase(),
-        collector_number: card.collectorNumber.trim(),
-      });
-      setNumCards.push(card);
+  for (const plan of plans) {
+    const response = primaryByKey.get(plan.key);
+    if (response) {
+      enrichedByBlueprint.set(
+        blueprintKey(plan.card),
+        applyScryfallToDeckCard(plan.card, response),
+      );
     } else {
-      fallbackCards.push(card);
+      unresolved.push(plan.card);
     }
   }
 
-  const scryfallCards = await fetchScryfallCollection(identifiers);
-  const scryfallByKey = new Map<string, (typeof scryfallCards)[number]>();
-  for (const sf of scryfallCards) {
-    const key = collectionKeyFromResponse(sf);
-    if (key) scryfallByKey.set(key, sf);
-  }
-
-  for (const card of idCards) {
-    const sf = card.scryfallId ? scryfallByKey.get(`id:${card.scryfallId}`) : undefined;
-    if (sf) {
-      enrichedByBlueprint.set(blueprintKey(card), applyScryfallToDeckCard(card, sf));
-    } else {
-      fallbackCards.push(card);
-    }
-  }
-
-  for (const card of setNumCards) {
-    if (enrichedByBlueprint.has(blueprintKey(card))) continue;
-    const set = card.setCode!.trim().toLowerCase();
-    const num = card.collectorNumber!.trim();
-    const sf = scryfallByKey.get(`set:${set}:${num}`);
-    if (sf) {
-      enrichedByBlueprint.set(blueprintKey(card), applyScryfallToDeckCard(card, sf));
-    } else {
-      fallbackCards.push(card);
-    }
-  }
-
-  for (const card of fallbackCards) {
-    if (enrichedByBlueprint.has(blueprintKey(card))) continue;
-    await sleep(100);
-    const enrichment = await enrichCardFromScryfall({
-      cardName: card.name,
-      setCode: card.setCode,
-      collectorNumber: card.collectorNumber,
-      scryfallId: card.scryfallId,
-    });
-    if (enrichment) {
-      enrichedByBlueprint.set(blueprintKey(card), {
-        ...card,
-        scryfallId: card.scryfallId ?? enrichment.scryfallId,
-        oracleId: card.oracleId ?? enrichment.oracleId,
-        rarity: card.rarity ?? enrichment.rarity,
-        collectorNumber: card.collectorNumber ?? enrichment.collectorNumber,
-        image: card.image ?? enrichment.image ?? card.image,
-        tournamentLegalities: enrichment.tournamentLegalities,
-      });
-    } else {
-      enrichedByBlueprint.set(blueprintKey(card), card);
+  if (unresolved.length > 0 && !deadline.aborted) {
+    const fallbackResponses = await fetchScryfallCollection(
+      unresolved.map((card) => ({ name: card.name.trim() })),
+      { signal: deadline },
+    );
+    const fallbackByKey = indexResponses(fallbackResponses);
+    for (const card of unresolved) {
+      const response = fallbackByKey.get(`name:${card.name.trim().toLowerCase()}`);
+      enrichedByBlueprint.set(
+        blueprintKey(card),
+        response ? applyScryfallToDeckCard(card, response) : card,
+      );
     }
   }
 

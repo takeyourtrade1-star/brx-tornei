@@ -94,6 +94,7 @@ export async function POST(
       body.from,
       body.kind,
       body.data ?? null,
+      sessionId,
     );
     return privateJson({ ok: true, seq });
   } catch (err) {
@@ -129,6 +130,7 @@ export async function GET(
       `${sessionId}:${capability.relayId}`,
       role,
       since,
+      sessionId,
     );
     if (!exists) return privateJson({ exists: false, messages: [] });
     return privateJson({ exists: true, messages });

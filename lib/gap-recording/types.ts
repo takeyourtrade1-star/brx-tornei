@@ -85,6 +85,12 @@ export interface GapProtectionSnapshot {
   status: GapProtectionStatus;
   pendingIncidents: number;
   consentRequiredIncidents: number;
+  consentRequest: {
+    incidentId: string;
+    detectedAt: number;
+    byteLength: number;
+    durationMs: number;
+  } | null;
   retryingIncidents: number;
   failedIncidents: number;
   retryableFailedIncidents: number;
@@ -109,8 +115,8 @@ export interface GapCoordinatorOptions {
 
 export interface MatchGapRecorderController {
   snapshot: GapProtectionSnapshot;
-  grantUploadConsent: () => Promise<void>;
-  declineUpload: () => Promise<void>;
+  grantUploadConsent: (incidentId: string) => Promise<void>;
+  declineUpload: (incidentId: string) => Promise<void>;
   retryUpload: () => Promise<void>;
 }
 

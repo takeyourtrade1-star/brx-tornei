@@ -5,6 +5,7 @@ export const GAP_PRE_ROLL_MS = 10_000;
 export const GAP_POST_ROLL_MS = 5_000;
 export const GAP_MAX_CAPTURE_MS = 120_000;
 export const GAP_MAX_BYTES = 32 * 1024 * 1024;
+export const GAP_MAX_INCIDENTS_PER_MATCH = 5;
 export const GAP_LOCAL_TTL_MS = 72 * 60 * 60 * 1_000;
 export const GAP_VIDEO_BITS_PER_SECOND = 1_200_000;
 
