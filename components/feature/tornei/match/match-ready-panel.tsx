@@ -6,16 +6,14 @@ import type { Participant } from '@/types/tournament';
 import { STARTING_LIFE_OPTIONS } from '@/lib/match-life-protocol';
 import { cn } from '@/lib/utils';
 import { useSynchronizedCountdown } from '@/hooks/use-synchronized-countdown';
+import { useSynchronizedPhase } from '@/hooks/use-synchronized-phase';
 import { ConnectionQualityBadge } from '../connection-quality-badge';
-
-/** Finestra globale di accettazione (stile League): parte con il tavolo pieno. */
-const ACCEPT_WINDOW_SECONDS = 30;
-
 interface MatchReadyPanelProps {
   local: Participant;
   remote: Participant;
   myReady: boolean;
   opponentReady: boolean;
+  acceptanceOpensAt?: string;
   readyDeadline?: string;
   serverTime?: string;
   pending: boolean;
@@ -29,12 +27,12 @@ interface MatchReadyPanelProps {
   /** Timeout lato avversario (o mio "tavolo pieno" senza sua conferma). */
   onOpponentDeclined: () => void;
 }
-
 export function MatchReadyPanel({
   local,
   remote,
   myReady,
   opponentReady,
+  acceptanceOpensAt,
   readyDeadline,
   serverTime,
   pending,
@@ -46,15 +44,18 @@ export function MatchReadyPanel({
   onDecline,
   onOpponentDeclined,
 }: MatchReadyPanelProps) {
-  const remaining = useSynchronizedCountdown({
+  const acceptanceGate = useSynchronizedPhase({
     active: true,
+    startsAt: acceptanceOpensAt,
+    serverTime,
+  });
+  const { remaining, synchronized } = useSynchronizedCountdown({
+    active: acceptanceGate.visible,
     deadline: readyDeadline,
     serverTime,
-    fallbackSeconds: ACCEPT_WINDOW_SECONDS,
   });
   const myReadyRef = useRef(myReady);
   const finishedRef = useRef(false);
-
   // Aggiorno il ref parallelo senza ripartire il countdown.
   useEffect(() => {
     myReadyRef.current = myReady;
@@ -66,11 +67,13 @@ export function MatchReadyPanel({
   // La deadline globale (non riavviata dalla mia conferma) copre anche il
   // caso "l'avversario ha la tab chiusa" — nessun client è lì a rispondere.
   useEffect(() => {
-    if (remaining > 0 || finishedRef.current) return;
+    if (!synchronized || remaining === null || remaining > 0 || finishedRef.current) return;
     finishedRef.current = true;
     if (myReadyRef.current) onOpponentDeclined();
     else onDecline();
-  }, [onDecline, onOpponentDeclined, remaining]);
+  }, [onDecline, onOpponentDeclined, remaining, synchronized]);
+
+  if (!acceptanceGate.visible) return null;
 
   return (
     <section
@@ -106,14 +109,16 @@ export function MatchReadyPanel({
           <span
             className={cn(
               'shrink-0 rounded-full border px-3 py-1.5 text-sm font-black tabular-nums',
-              remaining <= 10
+              remaining !== null && remaining <= 10
                 ? 'animate-pulse border-red-400/50 bg-red-500/15 text-red-300'
                 : 'border-white/20 bg-white/[0.08] text-white/90',
             )}
             role="timer"
-            aria-label={`${remaining} secondi per accettare`}
+            aria-label={remaining === null
+              ? 'Sincronizzazione del timer in corso'
+              : `${remaining} secondi per accettare`}
           >
-            {remaining}s
+            {remaining === null ? '—' : `${remaining}s`}
           </span>
         )}
       </div>
@@ -181,7 +186,7 @@ export function MatchReadyPanel({
         </button>
         <button
           type="button"
-          disabled={pending}
+          disabled={pending || !synchronized}
           onClick={onReady}
           className={cn(
             'inline-flex h-10 items-center gap-2 rounded-xl px-5 text-xs font-black uppercase tracking-wider text-white transition active:scale-95 disabled:opacity-50',
@@ -190,8 +195,8 @@ export function MatchReadyPanel({
               : 'ready-pulse bg-gradient-to-r from-[#FF7300] to-[#e0564d] shadow-md hover:brightness-110',
           )}
         >
-          {myReady ? <Hourglass className="h-4 w-4" aria-hidden="true" /> : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
-          {myReady ? 'Confermato, attendo' : 'Sì, sono pronto'}
+          {myReady ? <Hourglass className="h-4 w-4" aria-hidden="true" /> : synchronized ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <Hourglass className="h-4 w-4 animate-pulse" aria-hidden="true" />}
+          {myReady ? 'Confermato, attendo' : synchronized ? 'Sì, sono pronto' : 'Sincronizzazione…'}
         </button>
       </div>
     </section>

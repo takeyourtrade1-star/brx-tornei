@@ -130,6 +130,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
       {ready.readyPhase && isPlayer && (
         <MatchReadyPanel
           local={local} remote={remote} myReady={ready.myReady} opponentReady={ready.opponentReady}
+          acceptanceOpensAt={tournament.acceptanceOpensAt}
           readyDeadline={tournament.readyDeadline} serverTime={tournament.serverTime}
           pending={ready.pending} startingLife={life.startingLife}
           lifeConnected={chat.connectionState === 'connected' && life.synced}
@@ -244,7 +245,8 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         onClose={() => setFullscreenOpen(false)}
       />
       <MatchIntroOverlay active={isPlayer && started} matchId={tournament.matchId}
-        players={players} remainingSeconds={startCountdown.remainingSeconds} />
+        players={players} remainingSeconds={startCountdown.remainingSeconds}
+        startsAtLocalMs={startCountdown.startsAtLocalMs} />
     </div>
   );
 }

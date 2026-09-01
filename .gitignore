@@ -32,3 +32,8 @@ next-env.d.ts
 # vercel / amplify
 .vercel
 .amplify-hosting
+
+# load test: identita e report non devono entrare nel repository
+/load-tests/k6/users*.json
+!/load-tests/k6/users.example.json
+/artifacts/load-tests/

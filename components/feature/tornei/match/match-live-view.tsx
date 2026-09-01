@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Tournament } from '@/types/tournament';
 import type { LiveViewRole } from '@/lib/validations/live';
@@ -21,6 +21,7 @@ import { useMatchExitFlow } from '@/hooks/use-match-exit-flow';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
 import { useTournamentRealtimeRefresh } from '@/hooks/use-tournament-realtime-refresh';
 import type { PlaymatId } from '@/lib/playmats';
+import { mergeTournamentWithHint } from '@/lib/tournament-coordination';
 import { clearActiveMatch } from '@/lib/active-match-storage';
 import { publicConfig } from '@/lib/public-config';
 import { resolveMatchSides } from './match-players';
@@ -34,19 +35,32 @@ interface MatchLiveViewProps {
   defaultPlaymatId: PlaymatId;
 }
 
-export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPlaymatId }: MatchLiveViewProps) {
+export function MatchLiveView({
+  tournament: tournamentSnapshot,
+  role,
+  me,
+  userId,
+  isHost,
+  defaultPlaymatId,
+}: MatchLiveViewProps) {
   const router = useRouter();
   const isObserver = role === 'observer';
   const isPlayer = !isObserver;
+  const realtimeHint = useTournamentRealtimeRefresh({
+    tournamentId: tournamentSnapshot.id,
+    active: isPlayer && tournamentSnapshot.status !== 'terminata',
+  });
+  // L'evento realtime può anticipare il refresh RSC: per la fase e l'avvio
+  // uso subito l'hint, mantenendo nel frattempo il resto dello snapshot.
+  const tournament = useMemo(
+    () => mergeTournamentWithHint(tournamentSnapshot, realtimeHint),
+    [realtimeHint, tournamentSnapshot],
+  );
   const { local, remote, players } = resolveMatchSides(tournament, me, userId);
   const [playerA, playerB] = players;
   const leftPlayer = isObserver ? playerA : local;
   const rightPlayer = isObserver ? playerB : remote;
   const started = tournament.status === 'iniziata';
-  const realtimeServerTime = useTournamentRealtimeRefresh({
-    tournamentId: tournament.id,
-    active: isPlayer && tournament.status !== 'terminata',
-  });
   const authorityPlayerId = isHost ? local.id : remote.id;
   const { stream: localStream, feedLabel, error: webcamError } = usePlayerWebcam(
     isPlayer && tournament.status !== 'terminata',
@@ -166,14 +180,8 @@ export function MatchLiveView({ tournament, role, me, userId, isHost, defaultPla
   });
   const startCountdown = useMatchStartCountdown({
     active: isPlayer && started,
-    matchId: tournament.matchId,
-    userId,
-    authorityPlayerId,
-    connected: chat.connectionState === 'connected',
-    messages: chat.messages,
-    send: chat.send,
     authoritativeStartsAt: tournament.startsAt,
-    serverTime: realtimeServerTime ?? tournament.serverTime,
+    serverTime: tournament.serverTime,
   });
   const playable = started && (!isPlayer || startCountdown.readyToPlay);
 

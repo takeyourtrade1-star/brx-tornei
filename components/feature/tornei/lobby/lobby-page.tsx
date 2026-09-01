@@ -22,7 +22,7 @@ import { LobbyTableList } from './lobby-table-list';
 import { AcceptMatchModal } from './accept-match-modal';
 import { FeedbackNotices } from './feedback-notices';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
-import { useTournamentRealtimeRefresh } from '@/hooks/use-tournament-realtime-refresh';
+import { useLobbyAcceptance } from '@/hooks/use-lobby-acceptance';
 import { ArcadeRoomLauncher } from './arcade-room-launcher';
 import { ArcadeAccessGate } from './arcade-access-gate';
 
@@ -72,18 +72,41 @@ export function LobbyPage({
   const [arcadeGateOpen, setArcadeGateOpen] = useState(false);
   const [arcadeOpen, setArcadeOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [approvalPhase, setApprovalPhase] = useState<'accepting' | 'declined' | null>(null);
+  const [actionTournament, setActionTournament] = useState<Tournament | null>(null);
   const [busy, startTransition] = useTransition();
   const myUsername = gamertag;
-  const monitoredTable = useMemo(
-    () => findMyTables(tournaments, user.id).find((table) => table.status === 'in_registrazione'),
-    [tournaments, user.id],
+  const liveNavigationRef = useRef<string | null>(null);
+  const goLiveTo = useCallback(
+    (id: string) => {
+      if (liveNavigationRef.current === id) return;
+      liveNavigationRef.current = id;
+      router.prefetch(`/tornei/${id}/live`);
+      router.push(`/tornei/${id}/live`);
+    },
+    [router],
   );
-  const realtimeServerTime = useTournamentRealtimeRefresh({
-    tournamentId: monitoredTable?.id,
-    active: Boolean(monitoredTable),
+
+  const closeSeatModal = useCallback(() => setModal(null), []);
+  const {
+    monitoredTable,
+    trackedTournament,
+    coordinatedTournament,
+    approvalPhase,
+    setApprovalPhase,
+    approvalTarget,
+    approvalId,
+    myReady,
+    opponentReady,
+  } = useLobbyAcceptance({
+    tournaments,
+    userId: user.id,
+    actionTournament,
+    goLiveTo,
+    onApprovalOpen: closeSeatModal,
   });
-  const measuredQuality = useServerConnectionQuality(monitoredTable?.webcamSessionId);
+  const measuredQuality = useServerConnectionQuality(
+    actionTournament?.webcamSessionId ?? monitoredTable?.webcamSessionId,
+  );
   const focusHandledRef = useRef<string | null>(null);
   const focusKey = openCreate ? 'create' : focusTableId ? `table:${focusTableId}` : null;
 
@@ -144,11 +167,6 @@ export function LobbyPage({
     [tournaments, user.id, measuredQuality, selection.format],
   );
 
-  const goLiveTo = useCallback(
-    (id: string) => router.push(`/tornei/${id}/live`),
-    [router],
-  );
-
   // Con PIÙ partite attive (stato incoerente: partita vecchia mai abbandonata)
   // NON reindirizzo: resto in lobby, dove ogni tavolo ha il suo "Alzati".
   useEffect(() => {
@@ -170,15 +188,14 @@ export function LobbyPage({
         return;
       }
     }
-    // Poll fallback sempre attivo: 5s sul proprio ready check, 10s sulla
-    // lobby generica. Gli eventi WebSocket coprono il percorso normale e la
-    // lista aggregata evita di moltiplicare le quote per formato.
-    const intervalMs = monitoredTable ? 5_000 : 10_000;
+    // Poll fallback sempre attivo: più frequente sul proprio tavolo, dove la
+    // precisione della fase conta; la lobby generica resta più leggera.
+    const intervalMs = trackedTournament ? 1_000 : 10_000;
     const iv = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
     }, intervalMs);
     return () => clearInterval(iv);
-  }, [tournaments, user.id, router, goLiveTo, monitoredTable, selection.format, selection.mode]);
+  }, [tournaments, user.id, router, goLiveTo, trackedTournament, selection.format, selection.mode]);
 
   // Se l'host chiude la finestra del browser mentre attende da solo al tavolo,
   // invia il segnale asincrono di uscita per liberare immediatamente il tavolo.
@@ -196,63 +213,6 @@ export function LobbyPage({
     return () => window.removeEventListener('pagehide', handleUnload);
   }, [monitoredTable]);
 
-  // Accettazione stile LoL in LOBBY: tavolo pieno e partita non ancora
-  // iniziata → modale "Avversario trovato". Il tavolo resta in lobby.
-  const approvalTarget = useMemo(() => {
-    const mine = findMyTables(tournaments, user.id);
-    if (mine.length !== 1) return null;
-    const [table] = mine;
-    if (!table || table.status !== 'in_registrazione') return null;
-    if (table.participants.length < table.maxPlayers) return null;
-    return table;
-  }, [tournaments, user.id]);
-
-  // L'id resta disponibile anche quando il tavolo torna a un solo giocatore
-  // (stato "declined"): il leave automatico ne ha ancora bisogno.
-  const [approvalId, setApprovalId] = useState<string | null>(null);
-  useEffect(() => {
-    if (approvalTarget) setApprovalId(approvalTarget.id);
-  }, [approvalTarget]);
-
-  // Latch del pannello: una volta "declined" resta visibile (auto-leave
-  // incluso) anche se il target derivato sparisce ai refresh successivi.
-  const wasFullRef = useRef(false);
-  useEffect(() => {
-    const mine = findMyTables(tournaments, user.id);
-    const [table] = mine;
-    const status = table?.status;
-    const isFull =
-      mine.length === 1 &&
-      status === 'in_registrazione' &&
-      (table?.participants.length ?? 0) >= (table?.maxPlayers ?? 0);
-    const wasFull = wasFullRef.current;
-    if (isFull) wasFullRef.current = true;
-    if (status === 'iniziata') wasFullRef.current = false;
-
-    setApprovalPhase((current) => {
-      if (current !== 'accepting' && current !== 'declined' && isFull && status === 'in_registrazione') {
-        // Tavolo pieno: chiudo eventuali modali di seduta e apro l'accept.
-        setModal(null);
-        return 'accepting';
-      }
-      // Tavolo tornato a un solo giocatore mentre ero in attesa di accettare:
-      // l'avversario ha rifiutato (o è sparito) → pannello dedicato.
-      if (current === 'accepting' && wasFull && !isFull && status === 'in_registrazione') {
-        return 'declined';
-      }
-      // Match partito o nessun tavolo: il pannello si chiude.
-      if (current === 'accepting' && (!isFull || status !== 'in_registrazione')) return null;
-      return current;
-    });
-  }, [tournaments, user.id]);
-
-  const myReady = Boolean(
-    approvalTarget?.participants.find((participant) => participant.id === user.id)?.ready,
-  );
-  const opponentReady = Boolean(
-    approvalTarget?.participants.find((participant) => participant.id !== user.id)?.ready,
-  );
-
   const handleApprovalAccept = useCallback(() => {
     if (!approvalTarget) return;
     const targetId = approvalTarget.id;
@@ -263,6 +223,7 @@ export function LobbyPage({
         setError(res.error);
         return;
       }
+      if (res.tournament) setActionTournament(res.tournament);
       if (res.matchId) {
         // Match già creato: si va direct alla schermata live (webcam).
         goLiveTo(targetId);
@@ -285,18 +246,22 @@ export function LobbyPage({
         return;
       }
       setApprovalPhase(null);
+      setActionTournament(null);
       router.refresh();
     });
-  }, [approvalId, router]);
+  }, [approvalId, router, setApprovalPhase]);
 
   const opponentFor = useCallback(
     (tournamentId: string): string | null => {
-      const t = tournaments.find((x) => x.id === tournamentId);
+      const t = coordinatedTournament?.id === tournamentId
+        ? coordinatedTournament
+        : tournaments.find((x) => x.id === tournamentId)
+          ?? (actionTournament?.id === tournamentId ? actionTournament : null);
       if (!t) return null;
       const other = t.participants.find((p) => p.id !== user.id);
       return other?.username ?? null;
     },
-    [tournaments, user.id],
+    [actionTournament, coordinatedTournament, tournaments, user.id],
   );
 
   const handleSit = useCallback(
@@ -358,6 +323,7 @@ export function LobbyPage({
           setError(res.error);
           return;
         }
+        if (res.tournament) setActionTournament(res.tournament);
         setModal(null);
         if (res.matchId) {
           // Match già partito (es. tavolo pieno con entrambi pronti):
@@ -385,10 +351,11 @@ export function LobbyPage({
           return;
         }
         setModal(null);
+        if (id === actionTournament?.id) setActionTournament(null);
         router.refresh();
       });
     },
-    [router],
+    [actionTournament?.id, router],
   );
 
   const handleOpen = useCallback((table: LobbyTable) => {
@@ -484,7 +451,7 @@ export function LobbyPage({
         myReady={myReady}
         opponentReady={opponentReady}
         readyDeadline={approvalTarget?.readyDeadline}
-        serverTime={realtimeServerTime ?? approvalTarget?.serverTime}
+        serverTime={approvalTarget?.serverTime}
         myConnection={
           measuredQuality ??
           approvalTarget?.participants.find((participant) => participant.id === user.id)?.connection

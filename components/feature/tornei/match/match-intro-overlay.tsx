@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Sparkles, Swords } from 'lucide-react';
 import type { Participant } from '@/types/tournament';
@@ -13,11 +13,17 @@ import { cn } from '@/lib/utils';
 
 type IntroPhase = 'countdown' | 'draw' | 'winner' | 'done';
 
+const DRAW_DURATION_MS = 1_200;
+const WINNER_DURATION_MS = 1_800;
+const CEREMONY_DURATION_MS = DRAW_DURATION_MS + WINNER_DURATION_MS;
+
 interface MatchIntroOverlayProps {
   active: boolean;
   matchId?: string | null;
   players: [Participant, Participant];
   remainingSeconds: number | null;
+  /** Istante di avvio già tradotto nella timeline locale dal server. */
+  startsAtLocalMs: number | null;
   /** Notifica al genitore quando la cerimonia è conclusa (ready-to-play). */
   onDone?: () => void;
 }
@@ -25,22 +31,21 @@ interface MatchIntroOverlayProps {
 /**
  * Overlay di apertura della partita: countdown + sorteggio del primo
  * giocatore (deterministico sul matchId, identico su entrambi i client).
- *
- * La cerimonia si vede UNA sola volta per browser+match (localStorage): se
- * l'utente rientra dopo aver perso la connessione NON ripete il sorteggio —
- * il match è ormai in corso — ma mostra un toast discreto di riconnessione.
+ * Tutte le fasi dopo il countdown sono ancorate a startsAtLocalMs: un client
+ * che entra in ritardo raggiunge direttamente la fase corretta.
  */
 export function MatchIntroOverlay({
   active,
   matchId,
   players,
   remainingSeconds,
+  startsAtLocalMs,
   onDone,
 }: MatchIntroOverlayProps) {
   const [mounted, setMounted] = useState(false);
-  const [phase, setPhase] = useState<IntroPhase>('done');
-  const [drawIndex, setDrawIndex] = useState(0);
   const [seen, setSeen] = useState<boolean | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const notifiedForMatch = useRef<string | null>(null);
 
   const [stablePlayers] = useState(
     () => [...players].sort((a, b) => a.id.localeCompare(b.id)) as [Participant, Participant],
@@ -54,63 +59,60 @@ export function MatchIntroOverlay({
 
   // Persistenza "visto la cerimonia" (una volta per match+browser).
   useEffect(() => {
-    if (!matchId) return;
-    setSeen(hasSeenMatchIntro(matchId));
-  }, [matchId]);
-
-  // Sequenza cerimonia: countdown → sorteggio → rivelazione.
-  useEffect(() => {
-    if (!active || !matchId) {
-      setPhase('done');
+    if (!matchId) {
+      setSeen(null);
       return;
     }
-    if (seen === null) return;
+    setSeen(hasSeenMatchIntro(matchId));
+    notifiedForMatch.current = null;
+  }, [matchId]);
+
+  // Un clock locale serve solo a ridisegnare una timeline già fissata dal
+  // server; non decide mai l'istante iniziale.
+  useEffect(() => {
+    if (!active || startsAtLocalMs === null) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 100);
+    return () => window.clearInterval(timer);
+  }, [active, startsAtLocalMs]);
+
+  const elapsedMs = startsAtLocalMs === null ? null : now - startsAtLocalMs;
+  const phase = useMemo<IntroPhase>(() => {
+    if (!active || !matchId || seen === null || seen || elapsedMs === null) return 'done';
+    if (elapsedMs < 0) return 'countdown';
+    if (elapsedMs < DRAW_DURATION_MS) return 'draw';
+    if (elapsedMs < CEREMONY_DURATION_MS) return 'winner';
+    return 'done';
+  }, [active, elapsedMs, matchId, seen]);
+
+  // La chiusura è fissata alla stessa timeline, anche se il browser ha
+  // aperto la pagina dopo l'inizio della cerimonia.
+  useEffect(() => {
+    if (!active || !matchId || seen === null) return;
     if (seen) {
-      setPhase('done');
+      if (notifiedForMatch.current === matchId) return;
+      notifiedForMatch.current = matchId;
       onDone?.();
       return;
     }
-    if (remainingSeconds === null) return;
-    if (remainingSeconds > 0) {
-      setPhase('countdown');
-      return;
-    }
-    setPhase((current) => (current === 'countdown' ? 'draw' : current));
-  }, [active, matchId, onDone, remainingSeconds, seen]);
-
-  // Sorteggio (fase "draw"): attesa breve poi rivelazione.
-  useEffect(() => {
-    if (phase !== 'draw') return;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const timer = window.setTimeout(() => setPhase('winner'), reduced ? 450 : 1_200);
-    return () => window.clearTimeout(timer);
-  }, [phase]);
-
-  // Rivelazione (fase "winner"): salva come vista e chiudi.
-  useEffect(() => {
-    if (phase !== 'winner' || !matchId) return;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const timer = window.setTimeout(
-      () => {
-        markMatchIntroSeen(matchId);
-        setSeen(true);
-        setPhase('done');
+    if (startsAtLocalMs === null) return;
+    const delay = Math.max(0, startsAtLocalMs + CEREMONY_DURATION_MS - Date.now());
+    const timer = window.setTimeout(() => {
+      markMatchIntroSeen(matchId);
+      setSeen(true);
+      if (notifiedForMatch.current !== matchId) {
+        notifiedForMatch.current = matchId;
         onDone?.();
-      },
-      reduced ? 800 : 1_800,
-    );
+      }
+    }, delay);
     return () => window.clearTimeout(timer);
-  }, [matchId, onDone, phase]);
-
-  // Flip dei nomi durante il sorteggio.
-  useEffect(() => {
-    if (phase !== 'draw') return;
-    const interval = window.setInterval(() => setDrawIndex((current) => (current + 1) % 2), 100);
-    return () => window.clearInterval(interval);
-  }, [phase]);
+  }, [active, matchId, onDone, seen, startsAtLocalMs]);
 
   if (!mounted || phase === 'done') return null;
 
+  const drawIndex = phase === 'draw' && elapsedMs !== null
+    ? Math.floor(Math.max(0, elapsedMs) / 100) % 2
+    : 0;
   const drawingName = stablePlayers[drawIndex]?.username ?? starter.username;
 
   return createPortal(

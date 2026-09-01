@@ -23,11 +23,19 @@ describe('tournament mapper activity timestamp', () => {
     const tournament = mapTournamentFromApi({
       ...base,
       server_time: '2026-08-17T10:00:00+00:00',
+      phase: 'accepting',
+      phase_version: '2026-08-17T10:00:00+00:00',
+      phase_started_at: '2026-08-17T10:00:02+00:00',
+      acceptance_opens_at: '2026-08-17T10:00:02+00:00',
       ready_deadline: '2026-08-17T10:00:30+00:00',
       starts_at: '2026-08-17T10:00:45+00:00',
     });
 
     expect(tournament?.serverTime).toBe('2026-08-17T10:00:00+00:00');
+    expect(tournament?.phase).toBe('accepting');
+    expect(tournament?.phaseVersion).toBe('2026-08-17T10:00:00+00:00');
+    expect(tournament?.phaseStartedAt).toBe('2026-08-17T10:00:02+00:00');
+    expect(tournament?.acceptanceOpensAt).toBe('2026-08-17T10:00:02+00:00');
     expect(tournament?.readyDeadline).toBe('2026-08-17T10:00:30+00:00');
     expect(tournament?.startsAt).toBe('2026-08-17T10:00:45+00:00');
   });

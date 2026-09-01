@@ -6,6 +6,13 @@ import type { DeckCard } from '@/types/deck';
 export type BestOf = 'BO1' | 'BO3' | 'BO5';
 
 export type TournamentStatus = 'in_registrazione' | 'iniziata' | 'terminata';
+export type TournamentPhase =
+  | 'waiting'
+  | 'accepting'
+  | 'starting'
+  | 'live'
+  | 'finished'
+  | 'cancelled';
 
 /** Mazzo dichiarato/verificato dal giocatore per la partita (se disponibile). */
 export interface ParticipantDeck {
@@ -86,6 +93,13 @@ export interface Tournament {
   updatedAt: string;
   /** Ora del Tournament Service associata a questo snapshot. */
   serverTime?: string;
+  /** Fase autorevole della transizione corrente del tavolo. */
+  phase?: TournamentPhase;
+  /** Versione monotona/logica della fase, usata per scartare eventi vecchi. */
+  phaseVersion?: string;
+  phaseStartedAt?: string;
+  /** Istante comune in cui il modale di accettazione può diventare visibile. */
+  acceptanceOpensAt?: string;
   /** Deadline condivisa del modale Accetta partita. */
   readyDeadline?: string;
   /** Istante condiviso in cui termina il countdown di avvio. */

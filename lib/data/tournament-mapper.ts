@@ -5,6 +5,7 @@ import type {
   Participant,
   ParticipantDeck,
   Tournament,
+  TournamentPhase,
   TournamentStatus,
 } from '@/types/tournament';
 import type { DeckCard } from '@/types/deck';
@@ -17,6 +18,14 @@ const VALID_BUY_IN: BuyIn[] = ['for_fun', 'micro', 'low', 'mid', 'high'];
 const VALID_MATCH_STATUS = ['ongoing', 'finished'] as const;
 const VALID_END_REASON = ['leave', 'timeout', 'reported', 'disputed'] as const;
 const VALID_RESULT_STATUS = ['claimed', 'settled'] as const;
+const VALID_PHASES: TournamentPhase[] = [
+  'waiting',
+  'accepting',
+  'starting',
+  'live',
+  'finished',
+  'cancelled',
+];
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
@@ -213,6 +222,10 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     createdAt,
     updatedAt: pickString(obj, 'updated_at', 'updatedAt') ?? createdAt,
     serverTime: pickString(obj, 'server_time', 'serverTime'),
+    phase: pickEnum(obj, VALID_PHASES, 'phase'),
+    phaseVersion: pickString(obj, 'phase_version', 'phaseVersion'),
+    phaseStartedAt: pickString(obj, 'phase_started_at', 'phaseStartedAt'),
+    acceptanceOpensAt: pickString(obj, 'acceptance_opens_at', 'acceptanceOpensAt'),
     readyDeadline: pickString(obj, 'ready_deadline', 'readyDeadline'),
     startsAt: pickString(obj, 'starts_at', 'startsAt'),
     isPrivate: pickBool(obj, 'is_private', 'isPrivate'),

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { synchronizedRemainingMs } from '@/lib/synchronized-deadline';
+import {
+  synchronizedLocalTimestampMs,
+  synchronizedRemainingMs,
+} from '@/lib/synchronized-deadline';
 
 describe('deadline sincronizzate dal Tournament Service', () => {
   it('deriva la durata senza dipendere dall’orologio del PC', () => {
@@ -29,5 +32,15 @@ describe('deadline sincronizzate dal Tournament Service', () => {
 
     expect(firstPc).toBe(30_000);
     expect(latePc).toBe(17_500);
+  });
+
+  it('mantiene anche un istante assoluto già trascorso per chi entra tardi', () => {
+    expect(
+      synchronizedLocalTimestampMs(
+        '2026-08-17T10:00:05.000Z',
+        '2026-08-17T10:00:00.000Z',
+        2_000,
+      ),
+    ).toBe(7_000);
   });
 });

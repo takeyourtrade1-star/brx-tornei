@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTournamentEventsWsUrl } from '@/lib/tournament-events-url';
+import {
+  parseTournamentRealtimeHint,
+  type TournamentRealtimeHint,
+} from '@/lib/tournament-coordination';
 
 const AUTH_ACK_TIMEOUT_MS = 10_000;
 const MAX_RECONNECT_DELAY_MS = 8_000;
@@ -14,21 +18,19 @@ interface TournamentRealtimeRefreshOptions {
 }
 
 /**
- * Invalida l'RSC appena il backend committa un cambiamento del tavolo.
- * Il payload non è usato come stato: PostgreSQL resta autorevole e il polling
- * già presente continua a coprire Redis/WebSocket non disponibili.
+ * Riceve il piano temporale appena il backend committa un cambiamento del
+ * tavolo e invalida l'RSC. PostgreSQL resta autorevole; l'hint serve a coprire
+ * la finestra fra evento e nuovo snapshot server-side.
  */
 export function useTournamentRealtimeRefresh({
   tournamentId,
   active,
-}: TournamentRealtimeRefreshOptions): string | undefined {
+}: TournamentRealtimeRefreshOptions): TournamentRealtimeHint | undefined {
   const router = useRouter();
-  const [serverClock, setServerClock] = useState<{
-    tournamentId: string;
-    value: string;
-  }>();
+  const [hint, setHint] = useState<TournamentRealtimeHint>();
 
   useEffect(() => {
+    setHint(undefined);
     if (!active || !tournamentId) return;
     const wsUrl = getTournamentEventsWsUrl(tournamentId);
     if (!wsUrl) return;
@@ -82,12 +84,6 @@ export function useTournamentRealtimeRefresh({
           if (cancelled) return;
           try {
             const data = JSON.parse(String(event.data)) as Record<string, unknown>;
-            if (typeof data.server_time === 'number' && Number.isFinite(data.server_time)) {
-              setServerClock({
-                tournamentId,
-                value: new Date(data.server_time).toISOString(),
-              });
-            }
             if (data.event === 'authenticated') {
               if (authTimer !== null) window.clearTimeout(authTimer);
               authTimer = null;
@@ -101,6 +97,20 @@ export function useTournamentRealtimeRefresh({
               // Chiude la race fra lo snapshot RSC e la sottoscrizione Redis.
               scheduleRefresh();
             } else if (data.event === 'tournament-state-changed') {
+              const nextHint = parseTournamentRealtimeHint(data, tournamentId);
+              if (nextHint) {
+                setHint((current) => {
+                  if (!current || !current.phaseVersion || !nextHint.phaseVersion) {
+                    return nextHint;
+                  }
+                  const currentVersion = Date.parse(current.phaseVersion);
+                  const nextVersion = Date.parse(nextHint.phaseVersion);
+                  return Number.isFinite(currentVersion) && Number.isFinite(nextVersion)
+                    && nextVersion < currentVersion
+                    ? current
+                    : nextHint;
+                });
+              }
               scheduleRefresh();
             }
           } catch {
@@ -137,7 +147,5 @@ export function useTournamentRealtimeRefresh({
     };
   }, [active, router, tournamentId]);
 
-  return active && tournamentId && serverClock?.tournamentId === tournamentId
-    ? serverClock.value
-    : undefined;
+  return active && tournamentId && hint?.tournamentId === tournamentId ? hint : undefined;
 }

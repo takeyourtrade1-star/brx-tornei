@@ -16,10 +16,13 @@ import {
 } from '@/lib/join-deck-gate';
 import { TournamentApiError } from '@/lib/data/tournament-api-client';
 import { createTableSchema, joinTournamentSchema } from '@/lib/validations/tournament';
+import type { Tournament } from '@/types/tournament';
 
 export interface TournamentActionState {
   error?: string;
   errorCode?: string;
+  /** Snapshot confermato dal server usato per aprire subito la fase corrente. */
+  tournament?: Tournament;
   createdId?: string;
   webcamSessionId?: string;
   matchId?: string;
@@ -163,6 +166,7 @@ export async function joinTournamentAction(
     revalidatePath(`/tornei/${tournamentId}/live`);
     return {
       createdId: result.tournament.id,
+      tournament: result.tournament,
       matchId: result.matchId,
       matchWebcamSessionId: result.matchWebcamSessionId,
       tableFull:
@@ -192,6 +196,7 @@ export async function readyTournamentAction(
     revalidatePath(`/tornei/${tournamentId}/live`);
     return {
       createdId: result.tournament.id,
+      tournament: result.tournament,
       matchId: result.matchId,
       matchWebcamSessionId: result.matchWebcamSessionId,
     };

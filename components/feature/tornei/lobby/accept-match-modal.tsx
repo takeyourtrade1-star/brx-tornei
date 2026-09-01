@@ -51,11 +51,10 @@ export function AcceptMatchModal({
   onOpponentTimeout,
 }: AcceptMatchModalProps) {
   const [declinedLeft, setDeclinedLeft] = useState(DECLINED_LEAVE_SECONDS);
-  const acceptLeft = useSynchronizedCountdown({
+  const { remaining: acceptLeft, synchronized } = useSynchronizedCountdown({
     active: phase === 'accepting',
     deadline: readyDeadline,
     serverTime,
-    fallbackSeconds: ACCEPT_WINDOW_SECONDS,
   });
   const prevPhaseRef = useRef<AcceptMatchModalProps['phase']>(null);
   const firedRef = useRef(false);
@@ -74,11 +73,17 @@ export function AcceptMatchModal({
   // Countdown globale: a zero, se ho confermato segnalo il rifiuto
   // dell'avversario, altrimenti esco direttamente (non ho risposto).
   useEffect(() => {
-    if (phase !== 'accepting' || acceptLeft > 0 || firedRef.current) return;
+    if (
+      phase !== 'accepting' ||
+      !synchronized ||
+      acceptLeft === null ||
+      acceptLeft > 0 ||
+      firedRef.current
+    ) return;
     firedRef.current = true;
     if (myReadyRef.current) onOpponentTimeout();
     else onLeave();
-  }, [acceptLeft, onLeave, onOpponentTimeout, phase]);
+  }, [acceptLeft, onLeave, onOpponentTimeout, phase, synchronized]);
 
   useEffect(() => {
     if (phase !== 'declined') return;
@@ -98,8 +103,13 @@ export function AcceptMatchModal({
 
   if (!phase) return null;
   const declined = phase === 'declined';
-  const acceptFraction = acceptLeft / ACCEPT_WINDOW_SECONDS;
-  const urgent = acceptLeft <= 10;
+  const acceptFraction = acceptLeft === null
+    ? 1
+    : Math.min(1, Math.max(0, acceptLeft / ACCEPT_WINDOW_SECONDS));
+  const urgent = acceptLeft !== null && acceptLeft <= 10;
+  const acceptLabel = acceptLeft === null
+    ? 'Sincronizzazione del timer in corso'
+    : `${acceptLeft} secondi per accettare`;
 
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-black/85 p-4 backdrop-blur-md">
@@ -155,7 +165,7 @@ export function AcceptMatchModal({
                 urgent ? 'animate-pulse' : 'accept-ring-glow',
               )}
               role="timer"
-              aria-label={`${acceptLeft} secondi per accettare`}
+              aria-label={acceptLabel}
               style={{
                 background: `conic-gradient(${
                   urgent ? '#f87171' : '#FF7300'
@@ -163,7 +173,7 @@ export function AcceptMatchModal({
               }}
             >
               <span className="grid h-[5.75rem] w-[5.75rem] place-items-center rounded-full bg-[#070a16] text-4xl font-black tabular-nums text-white">
-                {acceptLeft}
+                {acceptLeft ?? '—'}
               </span>
             </span>
             <div className="mt-6 flex w-full items-center gap-2">
@@ -196,7 +206,7 @@ export function AcceptMatchModal({
 
             <button
               type="button"
-              disabled={busy || myReady}
+              disabled={busy || myReady || !synchronized}
               onClick={onAccept}
               className={cn(
                 'mt-4 inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl text-base font-black uppercase tracking-[0.14em] text-white transition active:scale-[0.98]',
@@ -209,6 +219,11 @@ export function AcceptMatchModal({
                 <>
                   <Hourglass className="h-4 w-4 animate-pulse" aria-hidden />
                   In attesa
+                </>
+              ) : !synchronized ? (
+                <>
+                  <Hourglass className="h-4 w-4 animate-pulse" aria-hidden />
+                  Sincronizzazione…
                 </>
               ) : (
                 <>

@@ -13,6 +13,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "load:tornei": "bash scripts/run-tournament-load.sh",
     "postinstall": "node scripts/copy-ort-wasm.mjs"
   },
   "dependencies": {
