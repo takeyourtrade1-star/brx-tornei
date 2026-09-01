@@ -10,9 +10,9 @@
  *   username            string   — username del giocatore (default "PrincessLeo")
  *   tournaments         array    — sovrascrive i tornei mock (shape identica a
  *                                  tournaments-live-frontend/types/tournament.ts)
- *   inventory           array    — inventario reale dell'utente per il deck builder
- *   onCreateTournament  (t)=>{}  — chiamata alla pubblicazione di un torneo
- *   onJoinTournament    (id)=>{} — chiamata all'iscrizione a un torneo
+ *   onOpenTournaments   ()=>{}   — apre i tavoli ufficiali correnti
+ *   onOpenCreateTournament ()=>{} — apre la creazione tavolo ufficiale
+ *   onOpenDecks         ()=>{}   — apre il gestore mazzi ufficiale
  *
  * Rendering: Canvas 2D puro, grafica 100% procedurale e senza asset esterni.
  * Le sole preferenze persistenti sono tutorial e qualità grafica locali.
@@ -20,8 +20,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
 import { getCspNonce } from "./csp-nonce";
 import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-config";
-import { DecksModal } from "@/components/feature/decks/decks-modal";
-import { StyledSelect } from "./styled-select";
 import { buildArcadeBackground, arcadeDoorBounds } from "./arcade-room/ArcadeBackground";
 import { buildArcadeFurniture } from "./arcade-room/ArcadeSprites";
 import {
@@ -29,15 +27,6 @@ import {
   ARC_ENTRY_TILE, TOUR_ENTRY_TILE, ARC_DEFAULT_CAM,
 } from "./arcade-room/arcade-config";
 import ArcadeGameModal from "./arcade-room/ArcadeGameModal";
-import { getBuyInLabel } from "@/lib/data/buy-in";
-import { FormatSelectorGrid } from "@/components/feature/tornei/format-selector-grid";
-import { tournamentActionButtonCssRules } from "@/components/feature/tornei/tournament-action-button-styles";
-import {
-  applyTournamentFilters,
-  DEFAULT_TOURNAMENT_FILTERS,
-  hasActiveTournamentFilters,
-} from "@/lib/tournament-list-filters";
-import { TournamentFilters } from "@/components/feature/tornei/tournament-filters";
 
 /* ============================== 1. CONFIG ============================== */
 
@@ -83,38 +72,39 @@ const FURN = [
 
 /* Oggetti interattivi (la bacheca è sul muro: footprint vuoto) */
 const INTERACTIVES = {
-  pc:    { name: "PC",               icon: "🖥️", desc: "Tornei Live",
+  pc:    { name: "PC",               icon: "🖥️", desc: "Tornei ufficiali live",
            approach: [[1, 3], [1, 5]], footTiles: [[0, 3], [0, 4], [0, 5]],
            focus: { x: 200, y: 190, z: 1.62 }, faceTile: [0, 4] },
-  decks: { name: "Tavolo delle carte", icon: "🃏", desc: "I miei Deck",
+  decks: { name: "Tavolo delle carte", icon: "🃏", desc: "Mazzi ufficiali",
            approach: [[5, 4], [9, 3], [9, 2], [6, 1], [7, 1], [8, 1], [6, 5], [7, 5], [8, 5], [5, 2]],
            footTiles: [[6, 2], [7, 2], [8, 2], [6, 3], [7, 3], [8, 3], [6, 4], [7, 4], [8, 4]],
            focus: { x: 464, y: 310, z: 1.45 }, faceTile: [7, 3] },
-  board: { name: "Bacheca",          icon: "📌", desc: "Crea Torneo",
+  board: { name: "Bacheca",          icon: "📌", desc: "Crea tavolo ufficiale",
            approach: [[3, 0], [4, 0], [5, 0]], footTiles: [],
            focus: { x: 472, y: 158, z: 1.6 }, faceTile: null },
   door:  DOOR_TOUR,
 };
+
+const OFFICIAL_SURFACE_IDS = new Set(["pc", "board", "decks"]);
 
 /* Giradischi: interattivo "leggero" (toggle musica, nessuna modale) */
 const MUSIC_OBJ = { id: "music", approach: [[9, 1], [10, 2], [11, 2], [9, 0]], faceTile: [10, 1] };
 
 /* Passi del tutorial guidato: l'omino entra, saluta, e visita PC → bacheca → tavolo.
    kind "say": battuta fino a digitazione + lettura; kind "demo": cammina all'oggetto,
-   mostra la frase esterna fino in fondo (anche se la modale apre prima), poi spiega
-   cosa farci dentro con `inside`, tiene aperta fino a lettura + punti caldi, poi chiude.
+   mostra la frase esterna e spiega la superficie ufficiale collegata con `inside`.
+   Durante la guida non apre le superfici operative, così il percorso resta continuo.
    Lo step con `intro:true` è il saluto grande al centro (poi la barra vola in alto).
    I tempi derivano da tutCaptionSec / tutHoldSec (allineati al typewriter React).
-   kind "keys": evidenzia i badge in basso a sinistra (scorciatoie da tastiera).
-   I "punti caldi" in modale sono in TUT_HOTSPOTS; quelli UI in TUT_UI_HOTSPOTS. */
+   kind "keys": evidenzia i badge in basso a sinistra (scorciatoie da tastiera). */
 const TUT_STEPS = [
   { kind: "say", intro: true, dur: 10, text: "Ciao! Sono Asso 🃏, la tua guida. In pochi secondi ti mostro i 3 punti chiave della stanza: seguimi!" },
-  { kind: "demo", id: "pc",    text: "1 di 3 · Il PC 🖥️ — qui partecipi ai tornei e segui le partite dal vivo.",
-    inside: "Scegli un formato in alto, poi premi Partecipa per iscriverti, oppure l'occhio 👁️ per guardare una live." },
-  { kind: "demo", id: "board", text: "2 di 3 · La bacheca 📌 — qui crei i tuoi tornei, anche privati.",
-    inside: "Dai un nome, scegli formato e regole, poi premi Pubblica: il torneo comparirà subito sul PC." },
-  { kind: "demo", id: "decks", text: "3 di 3 · Il tavolo 🃏 — qui costruisci e salvi i tuoi mazzi.",
-    inside: "Apri «Nuovo mazzo» per montarlo con le carte del tuo inventario e prepararti alla sfida." },
+  { kind: "demo", id: "pc",    text: "1 di 3 · Il PC 🖥️ — apre i tavoli ufficiali, aggiornati con la lobby in tempo reale.",
+    inside: "Le card e le azioni sono le stesse della lobby Ebartex: siediti, gestisci il tavolo o entra nella partita." },
+  { kind: "demo", id: "board", text: "2 di 3 · La bacheca 📌 — apre il flusso ufficiale per creare un nuovo tavolo.",
+    inside: "Dichiara il mazzo e crea la sfida con le regole correnti del formato selezionato." },
+  { kind: "demo", id: "decks", text: "3 di 3 · Il tavolo 🃏 — apre il gestore mazzi ufficiale Ebartex.",
+    inside: "Costruisci e salva usando catalogo, legalità, ban, limiti copie e regole Commander aggiornate." },
   { kind: "keys", id: "keys", text: "Premendo i tasti del tuo PC — o i badge qui in basso a sinistra — apri subito ciò che ti serve." },
 ];
 /* Ritmo typewriter condiviso col banner React + tempo di lettura dopo la digitazione. */
@@ -142,10 +132,7 @@ function tutCaptionSec(text, opts) {
   return tutCaptionMs(text, opts) / 1000;
 }
 function tutHoldSec(step) {
-  const insideMs = tutCaptionMs(step.inside || "");
-  const spots = TUT_HOTSPOTS[step.id];
-  const spotMs = spots && spots.length ? 900 + (spots.length - 1) * 950 : 0;
-  return (insideMs + spotMs) / 1000;
+  return tutCaptionMs(step.inside || "") / 1000;
 }
 function tutUiHoldSec(step) {
   const textMs = tutCaptionMs(step.text || "");
@@ -159,24 +146,6 @@ const TUT_BRAND = "Ebartex Tournaments";
 /* Placeholder breve mentre il banner si prepara (prima del saluto di Asso). */
 const TUT_WAIT = "Ecco un breve tutorial, ti mostro la stanza";
 
-/* Punti caldi evidenziati dentro le modali durante il tutorial: cerchio + cartello.
-   `sel` mira a un elemento col selettore CSS, `text` lo cerca per etichetta (utile
-   quando la modale non espone classi stabili). `side` posiziona il cartello. */
-const TUT_HOTSPOTS = {
-  pc: [
-    { sel: ".irg-fmts",     label: "I 8 formati: passaci sopra per l'anteprima animata", side: "bottom" },
-    { sel: ".irg-ebx-join", label: "Premi qui per iscriverti al torneo",                side: "left" },
-    { sel: ".irg-eyebtn",   label: "L'occhio apre la partita in diretta",               side: "left" },
-  ],
-  board: [
-    { sel: "#irg-nome", label: "Dai un nome al tuo torneo",                    side: "bottom" },
-    { sel: ".irg-grid2", label: "Imposta formato, tipo e numero di giocatori", side: "top" },
-    { sel: ".irg-wide",  label: "Pubblica: comparirà subito sul PC",           side: "top" },
-  ],
-  decks: [
-    { text: "nuovo mazzo", label: "Crea qui il tuo nuovo mazzo", side: "bottom" },
-  ],
-};
 /* Punti caldi fuori modale (es. legenda tasti in basso a sinistra). */
 const TUT_UI_HOTSPOTS = {
   keys: [
@@ -4951,8 +4920,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     /* — frecce guida + etichette sopra gli oggetti (sempre visibili, solo Sala Tornei) — */
     if (isTour && !st.photoHide) {
       const GUIDE = {
-        pc:    "Partecipa ad un torneo",
-        board: "Crea un nuovo torneo privato",
+        pc:    "Tornei live ufficiali",
+        board: "Crea un nuovo torneo",
         decks: "Monta il tuo mazzo",
       };
       for (const id of ["pc", "decks", "board"]) {
@@ -5815,7 +5784,7 @@ const CSS_TEXT = [
   "@keyframes irgSpotLabel{to{opacity:1}}",
   "@keyframes irgSpotPulse{0%,100%{box-shadow:0 0 0 3px rgba(255,207,69,.14),0 0 14px rgba(255,160,40,.38);border-color:#ffc636}",
   "50%{box-shadow:0 0 0 7px rgba(255,207,69,.05),0 0 28px rgba(255,160,40,.7);border-color:#ffe289}}",
-  /* zoom leggero sull'elemento cerchiato (classe applicata da TutorialHotspots) */
+  /* zoom leggero sull'elemento cerchiato nella legenda del tutorial */
   ".irg-spot-target{position:relative;z-index:2;transform-origin:center center;transform:scale(1.05);",
   "transition:transform .42s cubic-bezier(.34,1.45,.64,1);transition-delay:var(--irg-spot-delay,0s);}",
   "@media (prefers-reduced-motion:reduce){.irg-spot-ring{animation:none}.irg-spot-target{transition:none;transform:scale(1.03)}}",
@@ -5841,296 +5810,12 @@ const CSS_TEXT = [
   ".irg-modal ::-webkit-scrollbar,.irg-modal::-webkit-scrollbar{width:9px;height:9px;}",
   ".irg-modal ::-webkit-scrollbar-thumb,.irg-modal::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(242,185,75,.5),rgba(242,185,75,.25));border-radius:8px;}",
   ".irg-modal ::-webkit-scrollbar-track,.irg-modal::-webkit-scrollbar-track{background:rgba(0,0,0,.2);}",
-  /* — modale bacheca — */
-  ".irg-m-board{width:560px;max-width:100%;border:11px solid #7c5331;background:",
-  "radial-gradient(rgba(86,55,25,.16) 1px,transparent 1.6px) 0 0/7px 7px,#bd8c5a;",
-  "box-shadow:inset 0 0 26px rgba(60,35,10,.45),0 24px 70px rgba(0,0,0,.55);padding:20px;color:#3c2a18;}",
-  ".irg-m-board .irg-mtitle{color:#fdf4e0;text-shadow:2px 2px 0 rgba(60,35,10,.6);}",
-  ".irg-paper{background:#fdf8ec;border-radius:3px;box-shadow:0 4px 10px rgba(50,30,10,.35);",
-  "padding:14px 16px;position:relative;margin-top:18px;}",
-  ".irg-paper:before{content:'';position:absolute;top:-6px;left:50%;width:12px;height:12px;border-radius:50%;",
-  "background:radial-gradient(circle at 35% 30%,#ff9d94,#d94f46 55%,#8f2d27);box-shadow:0 2px 3px rgba(0,0,0,.4);}",
-  ".irg-paper.irg-tilt-l{transform:rotate(-.5deg);}",
-  ".irg-paper.irg-tilt-r{transform:rotate(.45deg);}",
-  ".irg-field{margin-bottom:12px;}",
-  ".irg-field label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.8px;",
-  "text-transform:uppercase;color:#8a6133;margin-bottom:4px;}",
-  ".irg-input{width:100%;box-sizing:border-box;border:0;border-bottom:2px dashed #cdb088;background:transparent;",
-  "padding:6px 2px;font-size:14px;color:#3c2a18;font-family:inherit;outline:none;transition:border-color .2s;}",
-  ".irg-input:focus{border-bottom-color:#d94f46;border-bottom-style:solid;}",
-  "select.irg-input{cursor:pointer;}",
-  ".irg-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}",
-  ".irg-err{animation:irgShake .35s ease;border-bottom-color:#d94f46!important;border-bottom-style:solid!important;}",
-  "@keyframes irgShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}",
-  ".irg-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;",
-  "font-family:'Press Start 2P','Courier New',monospace;font-size:10px;color:#4a2f0e;",
-  "background:linear-gradient(#ffd76e,#f2b94b);padding:13px 18px;border-radius:10px;",
-  "box-shadow:0 4px 0 #9c6b1d,0 6px 14px rgba(0,0,0,.25);transition:transform .12s ease,box-shadow .12s ease,filter .15s;}",
-  ".irg-btn:hover{filter:brightness(1.06);transform:translateY(-1px);box-shadow:0 5px 0 #9c6b1d,0 8px 16px rgba(0,0,0,.28);}",
-  ".irg-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #9c6b1d;}",
-  ".irg-btn.irg-wide{width:100%;}",
-  ".irg-pinwrap{display:flex;flex-direction:column;align-items:center;padding:26px 8px 10px;}",
-  ".irg-pinned{background:#fdf8ec;border-radius:3px;box-shadow:0 6px 16px rgba(50,30,10,.4);padding:16px 20px;",
-  "position:relative;transform-origin:50% 0;animation:irgPinDrop .55s cubic-bezier(.34,1.5,.64,1);max-width:330px;}",
-  ".irg-pinned:before{content:'';position:absolute;top:-7px;left:50%;width:14px;height:14px;border-radius:50%;",
-  "background:radial-gradient(circle at 35% 30%,#9ddc8f,#4e9e3f 55%,#2f6a26);box-shadow:0 2px 3px rgba(0,0,0,.4);",
-  "animation:irgPinPop .3s .25s cubic-bezier(.34,2,.64,1) backwards;}",
-  "@keyframes irgPinDrop{0%{opacity:0;transform:translateY(-46px) rotate(-4deg) scale(1.05)}",
-  "60%{opacity:1;transform:translateY(2px) rotate(1.2deg)}100%{transform:translateY(0) rotate(-.6deg)}}",
-  "@keyframes irgPinPop{from{transform:scale(0)}to{transform:scale(1)}}",
-  ".irg-ok{font-family:'Press Start 2P',monospace;font-size:11px;color:#3f7d2f;margin:16px 0 4px;text-align:center;",
-  "animation:irgPop .4s .3s cubic-bezier(.34,1.8,.64,1) backwards;}",
-  "@keyframes irgPop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}",
-  /* — modale deck (pannello a tema blu/oro, cornice pixel) — */
-  ".irg-m-decks{width:680px;max-width:100%;color:#eef2ff;padding:20px 18px;border-radius:18px;",
-  "background:linear-gradient(180deg, rgba(20,28,58,.95) 0%, rgba(8,10,22,.98) 100%);",
-  "border:2px solid rgba(242,185,75,.35);",
-  "box-shadow:inset 0 1px 0 rgba(255,215,128,.2),inset 0 -1px 0 rgba(255,115,0,.08),",
-  "0 24px 70px rgba(0,0,0,.7),0 0 0 1px rgba(255,115,0,.08);}",
-  ".irg-tabs{display:flex;gap:8px;margin:16px 0 12px;flex-wrap:wrap;}",
-  ".irg-tab{border:0;cursor:pointer;font-size:11.5px;font-weight:800;letter-spacing:.4px;",
-  "color:rgba(255,255,255,.72);background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);",
-  "padding:8px 16px;border-radius:999px;transition:all .15s ease;}",
-  ".irg-tab:hover{background:rgba(255,255,255,.14);color:#fff;transform:translateY(-1px);}",
-  ".irg-tab.irg-on{background:rgba(243,199,106,.16);color:#F3C76A;box-shadow:inset 0 0 0 1px rgba(243,199,106,.45);}",
-  ".irg-panel{background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);",
-  "border-radius:18px;padding:14px;min-height:300px;max-height:min(480px,58vh);overflow:auto;}",
-  ".irg-m-decks-wide{width:min(1200px,96vw);max-width:96vw;}",
-  ".irg-m-decks-wide .irg-panel{max-height:min(680px,70vh);}",
-  ".irg-gem{width:10px;height:10px;border-radius:2.5px;transform:rotate(45deg);display:inline-block;flex:0 0 auto;",
-  "box-shadow:0 0 8px rgba(255,255,255,.2),inset 0 0 0 1.5px rgba(255,255,255,.35);}",
-  ".irg-deckgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;}",
-  ".irg-deck{position:relative;border-radius:14px;background:rgba(255,255,255,.07);cursor:pointer;",
-  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);padding:12px 13px 11px;overflow:hidden;",
-  "transition:transform .16s ease,box-shadow .16s ease,background .16s;}",
-  ".irg-deck:before{content:'';position:absolute;inset:0 0 auto 0;height:3px;background:var(--dc,#9aa3ad);opacity:.9;}",
-  ".irg-deck:hover{transform:translateY(-3px);background:rgba(255,255,255,.1);",
-  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 10px 22px rgba(0,0,0,.35);}",
-  ".irg-deck.irg-new{animation:irgPop .45s cubic-bezier(.34,1.8,.64,1);}",
-  ".irg-deckname{font-weight:800;font-size:13.5px;display:flex;align-items:center;gap:8px;line-height:1.25;}",
-  ".irg-deckmeta{margin-top:9px;font-size:11px;color:rgba(255,255,255,.65);",
-  "display:flex;justify-content:space-between;align-items:center;}",
-  ".irg-deckok{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;}",
-  ".irg-deckok.si{background:rgba(52,211,153,.14);color:#5fe3b3;box-shadow:inset 0 0 0 1px rgba(52,211,153,.35);}",
-  ".irg-deckok.no{background:rgba(255,255,255,.08);color:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);}",
-  ".irg-poprow{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);border-radius:13px;",
-  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);padding:10px 13px;margin-bottom:8px;transition:background .15s,transform .15s;}",
-  ".irg-poprow:hover{background:rgba(255,255,255,.1);transform:translateX(3px);}",
-  ".irg-rank{font-size:13px;font-weight:900;color:#F3C76A;width:30px;text-align:center;flex:0 0 auto;}",
-  ".irg-popname{font-weight:800;font-size:13px;display:flex;align-items:center;gap:8px;}",
-  ".irg-popauth{font-size:11px;color:rgba(255,255,255,.55);margin-top:1px;}",
-  ".irg-bar{height:6px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px;}",
-  ".irg-bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#F3C76A,#FF7300);}",
-  ".irg-wr{font-size:11px;font-weight:800;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);",
-  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);color:#eef2ff;white-space:nowrap;flex:0 0 auto;}",
-  ".irg-cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;}",
-  ".irg-card{border-radius:13px;padding:8px;position:relative;background:rgba(255,255,255,.06);",
-  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);cursor:pointer;transition:transform .16s ease,box-shadow .16s ease;}",
-  ".irg-card:hover{transform:translateY(-4px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 10px 20px rgba(0,0,0,.4);z-index:2;}",
-  ".irg-cardart{height:58px;border-radius:9px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}",
-  ".irg-cost{position:absolute;top:5px;left:5px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;",
-  "background:rgba(10,6,24,.7);color:#F3C76A;font-size:10.5px;font-weight:900;",
-  "display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(243,199,106,.4);}",
-  ".irg-cardname{font-size:11.5px;font-weight:700;line-height:1.25;margin-top:7px;min-height:28px;}",
-  ".irg-rar{display:flex;align-items:center;gap:6px;font-size:9.5px;margin-top:5px;letter-spacing:.4px;",
-  "text-transform:uppercase;font-weight:700;}",
-  ".irg-rar .irg-gem{width:7px;height:7px;}",
-  ".irg-card.irg-r-leggendaria .irg-cardart:after{content:'';position:absolute;inset:0;",
-  "background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.35) 48%,transparent 62%);",
-  "background-size:240% 100%;animation:irgSheen 2.6s ease-in-out infinite;}",
-  "@keyframes irgSheen{0%{background-position:130% 0}55%,100%{background-position:-60% 0}}",
-  /* — modale PC/CRT — */
-  ".irg-m-pc{width:min(1500px,96vw);max-width:96vw;height:calc(100% - 78px);max-height:calc(100% - 78px);align-self:flex-start;margin-top:48px;display:flex;flex-direction:column;border-radius:18px;padding:18px 18px 34px;",
-  "background:linear-gradient(180deg, rgba(20,28,58,.95) 0%, rgba(8,10,22,.98) 100%);",
-  "border:2px solid rgba(242,185,75,.35);",
-  "box-shadow:inset 0 1px 0 rgba(255,215,128,.2),inset 0 -1px 0 rgba(255,115,0,.08),",
-  "0 24px 70px rgba(0,0,0,.7),0 0 0 1px rgba(255,115,0,.08);}",
-  ".irg-m-pc .irg-brand{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);",
-  "font-family:'Press Start 2P',monospace;font-size:7px;color:#8c94a0;letter-spacing:2px;}",
-  ".irg-m-pc .irg-led{position:absolute;bottom:9px;right:18px;width:7px;height:7px;border-radius:50%;",
-  "background:#51e3a4;box-shadow:0 0 7px #51e3a4;animation:irgLed 2.4s ease-in-out infinite;}",
-  "@keyframes irgLed{0%,100%{opacity:1}50%{opacity:.45}}",
-  ".irg-screen{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;border-radius:12px;border:2px solid rgba(242,185,75,.45);overflow:hidden;",
-  "background:linear-gradient(180deg,#3a5fbe 0%,#1a2a52 100%);",
-  "box-shadow:inset 0 0 44px rgba(15,20,55,.7),inset 0 1px 0 rgba(255,215,128,.25);}",
-  ".irg-screen:after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:10px;z-index:50;",
-  "background:repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px);",
-  "animation:irgCrt 9s linear infinite;}",
-  "@keyframes irgCrt{0%,100%{opacity:.85}50%{opacity:1}}",
-  ".irg-pcwrap{padding:22px 20px 18px;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}",
-  ".irg-ebx-h1{font-family:'Press Start 2P','Courier New',monospace;font-size:18px;font-weight:400;",
-  "text-transform:uppercase;letter-spacing:1.5px;color:#F3C76A;",
-  "text-shadow:0 2px 0 rgba(0,0,0,.6),0 0 12px rgba(255,115,0,.25);",
-  "display:flex;align-items:center;gap:10px;}",
-  ".irg-ebx-h1 b{color:#FF7300;text-shadow:0 0 14px rgba(255,115,0,.55);}",
-  ".irg-ebx-sub{margin-top:8px;font-size:12px;color:rgba(255,255,255,.7);letter-spacing:.3px;",
-  "display:flex;align-items:center;flex-wrap:wrap;gap:6px;}",
-  ".irg-ebx-sub b{color:#F3C76A;font-weight:700;}",
-  ".irg-glass{margin-top:16px;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;",
-  "background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.03) 100%);",
-  "border:1px solid rgba(242,185,75,.28);",
-  "border-radius:16px;",
-  "box-shadow:inset 0 0 0 1px rgba(255,215,128,.08),inset 0 1px 0 rgba(255,255,255,.06),0 16px 40px -16px rgba(0,0,0,.6);}",
-  ".irg-tablewrap{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;border-radius:14px;",
-  "scrollbar-color:rgba(242,185,75,.4) transparent;}",
-  ".irg-ebx-table{width:100%;min-width:620px;border-collapse:separate;border-spacing:0;text-align:left;color:#fff;font-size:13px;}",
-  ".irg-ebx-table thead th{position:sticky;top:0;z-index:2;",
-  "background:linear-gradient(180deg,rgba(242,185,75,.18) 0%,rgba(242,185,75,.08) 100%);",
-  "font-family:'Press Start 2P','Courier New',monospace;font-size:9px;font-weight:400;",
-  "text-transform:uppercase;letter-spacing:1.5px;color:#F3C76A;",
-  "padding:14px 16px;border-bottom:1.5px solid rgba(242,185,75,.35);",
-  "text-shadow:0 1px 2px rgba(0,0,0,.5);}",
-  ".irg-ebx-table thead th:first-child{border-top-left-radius:14px;}",
-  ".irg-ebx-table thead th:last-child{border-top-right-radius:14px;}",
-  ".irg-ebx-table td{padding:14px 16px;border-bottom:1px solid rgba(242,185,75,.12);vertical-align:middle;}",
-  ".irg-ebx-table tbody tr{transition:background .15s;}",
-  ".irg-ebx-table tbody tr:hover{background:rgba(255,115,0,.08);}",
-  ".irg-ebx-table tbody tr:last-child td{border-bottom:0;}",
-  ".irg-buyin{color:#F3C76A;font-weight:700;text-transform:uppercase;letter-spacing:.6px;font-size:12.5px;}",
-  ".irg-forma{font-size:17px;font-weight:700;color:#fff;}",
-  ".irg-regnum{font-size:17px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;}",
-  ".irg-sb{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;",
-  "font-family:'Press Start 2P','Courier New',monospace;font-size:9px;font-weight:400;letter-spacing:.5px;",
-  "white-space:nowrap;text-transform:uppercase;}",
-  ".irg-sb.reg{background:linear-gradient(135deg,rgba(242,185,75,.2),rgba(242,185,75,.08));color:#F3C76A;",
-  "box-shadow:inset 0 0 0 1px rgba(242,185,75,.4),0 0 8px rgba(242,185,75,.15);}",
-  ".irg-sb.live{background:linear-gradient(135deg,rgba(239,68,68,.22),rgba(239,68,68,.08));color:#fca5a5;",
-  "box-shadow:inset 0 0 0 1px rgba(248,113,113,.45),0 0 10px rgba(239,68,68,.2);}",
-  ".irg-sb.end{background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);",
-  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);}",
-  ".irg-dot{width:6px;height:6px;border-radius:50%;background:currentColor;",
-  "box-shadow:0 0 8px currentColor;animation:irgPulseDot 1.6s ease-in-out infinite;}",
-  ".irg-pulse{animation:irgPulseDot 1.6s ease-in-out infinite;}",
-  "@keyframes irgPulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}",
-  ".irg-tip{position:relative;display:inline-flex;align-items:center;}",
-  ".irg-tip>.irg-pop{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);",
-  "display:none;z-index:40;flex-direction:column;align-items:center;}",
-  ".irg-tip:hover>.irg-pop{display:flex;animation:irgPopIn .16s ease;}",
-  "@keyframes irgPopIn{from{opacity:0;transform:translateX(-50%) translateY(-4px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}",
-  ".irg-poparrow{width:8px;height:8px;background:rgba(8,10,22,.98);border-left:1px solid rgba(242,185,75,.4);",
-  "border-top:1px solid rgba(242,185,75,.4);transform:rotate(45deg);margin-bottom:-4px;}",
-  ".irg-popcard{background:linear-gradient(180deg,rgba(20,28,58,.98) 0%,rgba(8,10,22,.98) 100%);",
-  "border:1px solid rgba(242,185,75,.35);border-radius:14px;",
-  "box-shadow:0 18px 40px rgba(0,0,0,.6),0 0 0 1px rgba(255,115,0,.1);",
-  "padding:10px;width:190px;text-align:left;font-size:11px;color:#fff;}",
-  ".irg-popmini{width:auto;padding:5px 10px;border-radius:9px;font-size:10px;font-weight:700;white-space:nowrap;}",
-  ".irg-eye{color:rgba(255,255,255,.7);cursor:pointer;display:inline-flex;transition:color .15s;}",
-  ".irg-tip:hover .irg-eye{color:#FF7300;}",
-  ".irg-eyebtn{background:none;border:0;padding:0;margin:0;cursor:pointer;display:inline-flex;line-height:0;}",
-  ".irg-eyebtn:hover .irg-eye{color:#FF7300;}",
-  ".irg-plist{display:flex;flex-wrap:wrap;gap:7px;align-items:center;list-style:none;margin:0;padding:0;}",
-  ".irg-ppill{position:relative;display:inline-flex;align-items:center;border-radius:999px;",
-  "background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(242,185,75,.3);",
-  "padding:3px 10px;font-size:11px;font-weight:600;color:#fff;cursor:help;",
-  "transition:background .15s,border-color .15s;}",
-  ".irg-ppill:hover{background:rgba(255,115,0,.15);}",
-  ".irg-pchead{display:flex;justify-content:space-between;align-items:center;gap:6px;",
-  "border-bottom:1px solid rgba(242,185,75,.2);padding-bottom:5px;margin-bottom:5px;font-weight:800;font-size:11px;}",
-  ".irg-flagchip{display:inline-flex;align-items:center;gap:4px;background:rgba(242,185,75,.15);",
-  "padding:2px 6px;border-radius:6px;font-size:10px;font-weight:800;color:#F3C76A;",
-  "box-shadow:inset 0 0 0 1px rgba(242,185,75,.3);}",
-  ".irg-pcrow{display:flex;justify-content:space-between;color:rgba(255,255,255,.7);font-size:10px;margin-top:3px;}",
-  ".irg-pcrow b{color:#fff;}",
-  ".irg-pcrow .irg-on{color:#34d399;}",
-  ".irg-pclab{display:block;margin-top:7px;padding-top:5px;border-top:1px solid rgba(242,185,75,.15);",
-  "font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.5);}",
-  ".irg-pcdeck{display:block;margin-top:2px;font-size:11.5px;font-weight:800;color:#F3C76A;}",
-  ".irg-pc-filters{margin:12px 0 4px;padding:0 2px;}",
-  tournamentActionButtonCssRules(".irg-ebx-join"),
-  ".irg-ebx-empty{padding:48px 20px;text-align:center;}",
-  ".irg-ebx-empty p{margin:0;font-family:'Press Start 2P','Courier New',monospace;font-size:13px;",
-  "text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.75);}",
-  ".irg-ebx-empty span{display:block;margin-top:10px;font-size:12px;color:rgba(255,255,255,.5);}",
-  ".irg-mut{color:rgba(255,255,255,.3);}",
-  /* — responsive — */
-  "@media (max-width:900px){",
-  ".irg-m-decks-wide{width:100%;max-width:100%;}",
-  "}",
   "@media (max-width:600px){",
-  ".irg-grid2{grid-template-columns:1fr;}",
-  ".irg-m-decks{padding:12px;}",
-  ".irg-m-decks-wide .irg-panel{max-height:min(520px,62vh);}",
-  ".irg-hide-sm{display:none;}",
-  ".irg-ebx-table{font-size:12px;}",
   ".irg-mtitle{font-size:11px;}",
   "}",
-  /* — Tornei Live: griglia formati (stessa logica vista semplificata) — */
-  ".irg-fmts{margin:16px 0 4px;}",
   /* — modalità leggera — */
-  ".irg-quality-low .irg-backdrop,.irg-quality-low .irg-m-decks,.irg-quality-low .irg-m-pc{",
+  ".irg-quality-low .irg-backdrop{",
   "backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(10,12,22,.94);}",
-  ".irg-quality-low .irg-screen:after{display:none;}",
-  ".irg-quality-low .irg-led{animation:none;}",
-  ".irg-quality-low .irg-dot,.irg-quality-low .irg-pulse{animation:none;}",
-  ".irg-quality-low .irg-card.irg-r-leggendaria .irg-cardart:after{display:none;}",
-  ".irg-quality-low .irg-fmts video{display:none;}",
-  ".irg-select{position:relative;width:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;}",
-  ".irg-select-trigger{width:100%;display:flex;align-items:center;gap:8px;",
-  "padding:9px 12px;border-radius:10px;",
-  "background:rgba(10,12,22,.72);border:1px solid rgba(255,255,255,.18);",
-  "color:#fff;font-size:13px;font-weight:600;text-align:left;cursor:pointer;",
-  "transition:border-color .15s,background .15s,box-shadow .15s;",
-  "box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 2px 6px rgba(0,0,0,.25);}",
-  ".irg-select-trigger:hover{border-color:rgba(255,115,0,.55);background:rgba(10,12,22,.86);}",
-  ".irg-select-open .irg-select-trigger{border-color:#FF7300;",
-  "box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 2px rgba(255,115,0,.25),0 4px 12px rgba(0,0,0,.35);}",
-  ".irg-select-trigger:disabled{opacity:.5;cursor:not-allowed;}",
-  ".irg-select-value{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}",
-  ".irg-select-swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto;",
-  "box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 0 6px currentColor;}",
-  ".irg-select-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
-  ".irg-select-placeholder{color:rgba(255,255,255,.45);font-style:italic;}",
-  ".irg-select-arrow{color:#FF7300;font-size:11px;line-height:1;",
-  "transition:transform .18s ease;text-shadow:0 0 6px rgba(255,115,0,.6);}",
-  ".irg-select-arrow-up{transform:rotate(180deg);}",
-  ".irg-select-menu{position:fixed;z-index:9999;margin:0;padding:6px;list-style:none;",
-  "background:linear-gradient(180deg,#1a1f3a 0%,#0d111c 100%);",
-  "border:1px solid rgba(255,255,255,.18);border-radius:12px;",
-  "box-shadow:0 12px 30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);",
-  "overflow-y:auto;",
-  "animation:irgSelectIn .14s ease;}",
-  "@keyframes irgSelectIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}",
-  ".irg-select-menu::-webkit-scrollbar{width:8px;}",
-  ".irg-select-menu::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6px;}",
-  ".irg-select-option{display:flex;align-items:center;gap:9px;",
-  "padding:8px 10px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.85);",
-  "font-size:13px;font-weight:600;",
-  "transition:background .12s,color .12s;outline:none;}",
-  ".irg-select-option:hover,.irg-select-option:focus{",
-  "background:rgba(255,115,0,.16);color:#fff;}",
-  ".irg-select-option-active{background:rgba(255,115,0,.22);color:#fff;}",
-  ".irg-select-option-active::before{content:'';position:absolute;left:0;width:3px;height:60%;",
-  "top:20%;background:#FF7300;border-radius:0 2px 2px 0;}",
-  ".irg-select-option{position:relative;}",
-  ".irg-select-option-text{display:flex;flex-direction:column;flex:1;min-width:0;}",
-  ".irg-select-option-label{font-weight:700;}",
-  ".irg-select-option-hint{font-size:10.5px;font-weight:500;color:rgba(255,255,255,.5);",
-  "letter-spacing:.2px;margin-top:1px;}",
-  ".irg-select-check{color:#FF7300;font-size:12px;font-weight:900;",
-  "text-shadow:0 0 8px rgba(255,115,0,.7);}",
-  /* adatta lo stile anche dentro la modale deck */
-  ".irg-m-decks .irg-select-trigger{background:rgba(255,255,255,.07);",
-  "border:1px solid rgba(255,255,255,.15);}",
-  ".irg-m-decks .irg-select-trigger:hover{background:rgba(255,255,255,.1);}",
-  /* adatta lo stile dentro la modale bacheca (carta / sughero) */
-  ".irg-m-board .irg-select-trigger{background:rgba(253,248,236,.8);",
-  "border:1.5px dashed #cdb088;color:#3c2a18;",
-  "box-shadow:inset 0 1px 0 rgba(255,255,255,.6);}",
-  ".irg-m-board .irg-select-trigger:hover{background:#fdf8ec;border-color:#d94f46;}",
-  ".irg-m-board .irg-select-open .irg-select-trigger{border-style:solid;border-color:#d94f46;",
-  "box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 0 2px rgba(217,79,70,.18);}",
-  ".irg-m-board .irg-select-label{color:#3c2a18;}",
-  ".irg-m-board .irg-select-arrow{color:#d94f46;text-shadow:none;}",
-  ".irg-m-board .irg-select-menu{background:linear-gradient(180deg,#fdf8ec 0%,#f5ecd5 100%);",
-  "border:1.5px solid #cdb088;",
-  "box-shadow:0 12px 30px rgba(60,35,10,.45),inset 0 1px 0 rgba(255,255,255,.5);}",
-  ".irg-m-board .irg-select-option{color:#3c2a18;}",
-  ".irg-m-board .irg-select-option:hover,.irg-m-board .irg-select-option:focus{",
-  "background:rgba(217,79,70,.12);color:#3c2a18;}",
-  ".irg-m-board .irg-select-option-active{background:rgba(217,79,70,.18);color:#3c2a18;}",
-  ".irg-m-board .irg-select-option-active::before{background:#d94f46;}",
-  ".irg-m-board .irg-select-check{color:#d94f46;text-shadow:none;}",
-  ".irg-m-board .irg-select-option-hint{color:rgba(60,42,24,.55);}",
   /* — modale specchio: personalizzazione avatar — */
   ".irg-m-mirror{width:560px;max-width:100%;background:linear-gradient(180deg,#1b1f36,#12152400);",
   "background-color:#161a2e;border:1px solid rgba(129,140,248,.32);padding:20px;color:#eef2ff;}",
@@ -6367,7 +6052,7 @@ function renderTutTyped(typed, full) {
   return nodes;
 }
 
-function TutorialHotspots({ wrapRef, modalId, uiId }) {
+function TutorialUiHotspots({ wrapRef, uiId }) {
   const [spots, setSpots] = useState([]);
   const taggedRef = useRef(new Set());
 
@@ -6398,30 +6083,22 @@ function TutorialHotspots({ wrapRef, modalId, uiId }) {
   };
 
   useEffect(() => {
-    const spotId = uiId || modalId;
-    if (!spotId) { clearTargets(); setSpots([]); return; }
-    const specs = uiId ? TUT_UI_HOTSPOTS[uiId] : TUT_HOTSPOTS[modalId];
+    if (!uiId) { clearTargets(); setSpots([]); return; }
+    const specs = TUT_UI_HOTSPOTS[uiId];
     if (!specs || !specs.length) { clearTargets(); setSpots([]); return; }
 
     let alive = true, raf = null, prev = "";
     const resolve = (spec, root) => {
       if (spec.sel) return root.querySelector(spec.sel);
-      if (spec.text) {
-        const needle = spec.text.toLowerCase();
-        const els = root.querySelectorAll("button, a, [role='button']");
-        for (const el of els) {
-          if ((el.textContent || "").toLowerCase().includes(needle)) return el;
-        }
-      }
       return null;
     };
     const measure = () => {
       if (!alive) return;
       const wrap = wrapRef.current;
-      const root = wrap && (uiId ? wrap : wrap.querySelector(`[data-irg-modal="${modalId}"]`));
+      const root = wrap;
       if (wrap && root) {
         const wr = wrap.getBoundingClientRect();
-        const clip = uiId ? wr : root.getBoundingClientRect();
+        const clip = wr;
         const next = [];
         const targets = [];
         specs.forEach((spec, i) => {
@@ -6448,7 +6125,7 @@ function TutorialHotspots({ wrapRef, modalId, uiId }) {
     };
     measure();
     return () => { alive = false; if (raf) clearTimeout(raf); clearTargets(); };
-  }, [wrapRef, modalId, uiId]);
+  }, [wrapRef, uiId]);
 
   if (!spots.length) return null;
   return (
@@ -6532,368 +6209,6 @@ function MirrorModal({ look, onChange, drawPreview }) {
           </div>
         </div>
       </div>
-    </>
-  );
-}
-
-/* — 1. Bacheca: crea torneo — */
-const BOARD_GIOCHI = ["Modern", "Standard", "Commander", "Legacy", "Pioneer", "Premodern", "Old School"];
-const TIPI_TORNEO = ["Eliminazione diretta", "Doppia eliminazione", "Gironi"];
-const BOARD_FORMAT_META = {
-  "Modern": { color: "#06b6d4", hint: "da 2003 a oggi" },
-  "Standard": { color: "#9aa3ad", hint: "rotazione biennale" },
-  "Commander": { color: "#22c55e", hint: "100 carte · multiplayer" },
-  "Legacy": { color: "#a855f7", hint: "tutte le carte" },
-  "Pioneer": { color: "#3b82f6", hint: "da 2012 a oggi" },
-  "Premodern": { color: "#7a5a2e", hint: "1995–2003" },
-  "Old School": { color: "#a86b32", hint: "1993–1997 · carte originali" },
-};
-const BOARD_TIPO_META = {
-  "Eliminazione diretta": { color: "#d94f46", hint: "single elimination" },
-  "Doppia eliminazione": { color: "#f2b94b", hint: "loser bracket" },
-  "Gironi": { color: "#4a7fd6", hint: "round robin" },
-};
-const BOARD_MAX_META = {
-  2: { color: "#3b82f6", hint: "Heads-Up" },
-  4: { color: "#22c55e", hint: "piccolo" },
-  8: { color: "#f2b94b", hint: "medio" },
-  16: { color: "#a855f7", hint: "grande" },
-};
-const BOARD_GIOCHI_OPTIONS = BOARD_GIOCHI.map((g) => ({
-  value: g,
-  label: g,
-  color: BOARD_FORMAT_META[g]?.color,
-  hint: BOARD_FORMAT_META[g]?.hint,
-}));
-const TIPI_TORNEO_OPTIONS = TIPI_TORNEO.map((t) => ({
-  value: t,
-  label: t,
-  color: BOARD_TIPO_META[t]?.color,
-  hint: BOARD_TIPO_META[t]?.hint,
-}));
-const MAX_OPTIONS = [2, 4, 8, 16].map((n) => ({
-  value: String(n),
-  label: String(n),
-  color: BOARD_MAX_META[n]?.color,
-  hint: BOARD_MAX_META[n]?.hint,
-}));
-const defaultDateIso = () => new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
-const itDate = (iso) => (iso && iso.includes("-") ? iso.split("-").reverse().join("/") : iso);
-
-function BoardModal({ onPublish, onClose, playSfx }) {
-  const [form, setForm] = useState({
-    nome: "", gioco: BOARD_GIOCHI[0], tipo: TIPI_TORNEO[0], max: "2", data: defaultDateIso(), premio: "",
-  });
-  const [err, setErr] = useState(false);
-  const [done, setDone] = useState(null);
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  const submit = (e) => {
-    e.preventDefault();
-    if (!form.nome.trim()) {
-      setErr(true); playSfx("error");
-      setTimeout(() => setErr(false), 450);
-      return;
-    }
-    setDone(onPublish(form));
-  };
-
-  if (done) {
-    return (
-      <>
-        <div className="irg-mtitle">📌 CREA TORNEO</div>
-        <div className="irg-pinwrap">
-          <div className="irg-pinned">
-            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>{done.nome}</div>
-            <div style={{ fontSize: 13, lineHeight: 1.6, color: "#6b5236" }}>
-              {done.gioco} · Forma {BEST_OF_LABEL[done.bestOf]}<br />
-              {done.tipo} · max {done.maxPlayers} giocatori<br />
-              inizio: {done.dataInizio}{done.premio ? <><br />🏆 {done.premio}</> : null}
-            </div>
-          </div>
-          <div className="irg-ok">✓ TORNEO PUBBLICATO!</div>
-          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <button type="button" className="irg-btn"
-              onClick={() => { setForm((f) => ({ ...f, nome: "", premio: "" })); setDone(null); }}>
-              ➕ Crea un altro
-            </button>
-            <button type="button" className="irg-btn" onClick={onClose}>Chiudi</button>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <div className="irg-mtitle">📌 CREA TORNEO <span className="irg-esc">ESC per chiudere</span></div>
-      <form onSubmit={submit}>
-        <div className="irg-paper irg-tilt-l">
-          <div className="irg-field">
-            <label htmlFor="irg-nome">Nome torneo</label>
-            <input id="irg-nome" name="nome" className={"irg-input" + (err ? " irg-err" : "")}
-              placeholder="es. Coppa della Gilda" value={form.nome} onChange={set("nome")} maxLength={48} />
-          </div>
-          <div className="irg-field" style={{ marginBottom: 2 }}>
-            <label htmlFor="irg-gioco">Gioco / formato carte</label>
-            <StyledSelect
-              value={form.gioco}
-              onChange={(v) => setForm((f) => ({ ...f, gioco: v }))}
-              options={BOARD_GIOCHI_OPTIONS}
-              placeholder="Scegli formato…"
-            />
-          </div>
-        </div>
-        <div className="irg-paper irg-tilt-r">
-          <div className="irg-grid2">
-            <div className="irg-field">
-              <label htmlFor="irg-tipo">Tipo torneo</label>
-              <StyledSelect
-                value={form.tipo}
-                onChange={(v) => setForm((f) => ({ ...f, tipo: v }))}
-                options={TIPI_TORNEO_OPTIONS}
-                placeholder="Scegli tipo…"
-              />
-            </div>
-            <div className="irg-field">
-              <label htmlFor="irg-max">Max partecipanti</label>
-              <StyledSelect
-                value={form.max}
-                onChange={(v) => setForm((f) => ({ ...f, max: v }))}
-                options={MAX_OPTIONS}
-                placeholder="Scegli max…"
-              />
-            </div>
-            <div className="irg-field">
-              <label htmlFor="irg-data">Data di inizio</label>
-              <input id="irg-data" type="date" className="irg-input" value={form.data} onChange={set("data")} />
-            </div>
-            <div className="irg-field">
-              <label htmlFor="irg-premio">Premio</label>
-              <input id="irg-premio" className="irg-input" placeholder="es. Box di buste + trofeo"
-                value={form.premio} onChange={set("premio")} maxLength={60} />
-            </div>
-          </div>
-        </div>
-        <div style={{ marginTop: 18 }}>
-          <button type="submit" className="irg-btn irg-wide">📌 Pubblica torneo</button>
-        </div>
-      </form>
-    </>
-  );
-}
-
-/* — 3. PC: tabella tornei (replica della dashboard di tournaments-live-frontend) — */
-
-/** "Forma" dal mockup: best-of mostrato come frazione (2/3, 3/5). */
-const BEST_OF_LABEL = { BO1: "1", BO3: "2/3", BO5: "3/5" };
-
-const EBX_COUNTRIES = [
-  { code: "IT", flag: "🇮🇹", name: "Italia" },
-  { code: "US", flag: "🇺🇸", name: "Stati Uniti" },
-  { code: "DE", flag: "🇩🇪", name: "Germania" },
-  { code: "FR", flag: "🇫🇷", name: "Francia" },
-  { code: "ES", flag: "🇪🇸", name: "Spagna" },
-  { code: "GB", flag: "🇬🇧", name: "Regno Unito" },
-];
-
-/** Dettagli visivi stabili; il nome del mazzo arriva solo dal dato dichiarato. */
-function participantDetails(username, declaredDeckName) {
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  const index = Math.abs(hash);
-  const country = EBX_COUNTRIES[index % EBX_COUNTRIES.length];
-  // Non inventiamo mai il nome del mazzo: il servizio può esporre lo snapshot
-  // solo dopo la seduta o a partita conclusa.
-  return { country, deck: declaredDeckName || "Mazzo dichiarato dal giocatore" };
-}
-
-/* icone inline (equivalenti di lucide: clock, check, eye, lock, plus, user-plus) */
-function EbxIco({ d, size = 14, children, ...rest }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor"
-      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden {...rest}>
-      {d ? <path d={d} /> : null}{children}
-    </svg>
-  );
-}
-const IcoClock = () => <EbxIco d="M8 4.6V8l2.3 1.5" className="irg-pulse"><circle cx="8" cy="8" r="6.2" /></EbxIco>;
-const IcoCheck = () => <EbxIco d="M5.2 8.3l1.9 1.9 3.7-4.4"><circle cx="8" cy="8" r="6.2" /></EbxIco>;
-const IcoEye = () => <EbxIco d="M1.6 8c2.2-4.3 10.6-4.3 12.8 0-2.2 4.3-10.6 4.3-12.8 0Z"><circle cx="8" cy="8" r="1.9" /></EbxIco>;
-const IcoLock = () => <EbxIco d="M5.5 7V5.4a2.5 2.5 0 0 1 5 0V7"><rect x="3.6" y="7" width="8.8" height="6.2" rx="1.6" /></EbxIco>;
-const IcoPlus = () => <EbxIco d="M8 3.5v9M3.5 8h9" size={13} />;
-const IcoUserPlus = () => <EbxIco d="M2.2 13.2c.6-2.4 2.2-3.6 4.1-3.6s3.5 1.2 4.1 3.6M12.6 5.6v4M10.6 7.6h4" size={13}><circle cx="6.3" cy="5.2" r="2.4" /></EbxIco>;
-
-function StatusBadge({ status }) {
-  if (status === "in_registrazione") return <span className="irg-sb reg"><IcoClock /> In Registrazione</span>;
-  if (status === "iniziata") return <span className="irg-sb live"><i className="irg-dot" /> Iniziata</span>;
-  return <span className="irg-sb end"><IcoCheck /> Terminata</span>;
-}
-
-function MiniTip({ text }) {
-  return (
-    <span className="irg-pop">
-      <span className="irg-poparrow" />
-      <span className="irg-popcard irg-popmini">{text}</span>
-    </span>
-  );
-}
-
-function PcModal({ tournaments, onJoin, onObserve, me, formatId, modeId, formatName, modeName }) {
-  const [filters, setFilters] = useState(DEFAULT_TOURNAMENT_FILTERS);
-
-  useEffect(() => {
-    setFilters(DEFAULT_TOURNAMENT_FILTERS);
-  }, [formatId, modeId]);
-
-  const filteredTournaments = useMemo(
-    () => applyTournamentFilters(tournaments, filters),
-    [tournaments, filters],
-  );
-  const filtersActive = hasActiveTournamentFilters(filters);
-
-  return (
-    <>
-      <div className="irg-screen">
-        <div className="irg-pcwrap">
-          <div className="irg-ebx-h1">Tornei <b>Live</b></div>
-          <div className="irg-ebx-sub">
-            {formatName && <>{formatName} · </>}
-            {modeName}
-            <span className="irg-esc">ESC per chiudere</span>
-          </div>
-          <div className="irg-fmts">
-            <FormatSelectorGrid selectedFormatId={formatId} currentModeId={modeId} />
-          </div>
-          <div className="irg-pc-filters">
-            <TournamentFilters
-              buyInSelectId="pc-buy-in-filter"
-              filters={filters}
-              onChange={setFilters}
-              resultCount={filteredTournaments.length}
-              totalCount={tournaments.length}
-            />
-          </div>
-          {filteredTournaments.length === 0 ? (
-            <div className="irg-glass irg-ebx-empty">
-              <p>Nessun torneo per questa selezione</p>
-              <span>
-                {filtersActive
-                  ? "Prova ad allargare i filtri o creane uno dalla bacheca."
-                  : "Creane uno dalla bacheca con “Crea Torneo”."}
-              </span>
-            </div>
-          ) : (
-            <div className="irg-glass">
-              <div className="irg-tablewrap">
-                <table className="irg-ebx-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Buy-In</th>
-                      <th scope="col">Forma</th>
-                      <th scope="col">Stato</th>
-                      <th scope="col">Registrati</th>
-                      <th scope="col">Partecipanti</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTournaments.map((t) => {
-                      const full = t.participants.length >= t.maxPlayers;
-                      const joined = t.participants.some((p) => p.username === me);
-                      const shown = t.participants.slice(0, 2); // max 2 pill per partita
-                      const extra = t.participants.length - shown.length;
-                      return (
-                        <tr key={t.id}>
-                          <td><span className="irg-buyin">{getBuyInLabel(t.buyIn)}</span></td>
-                          <td><span className="irg-forma">{BEST_OF_LABEL[t.bestOf] || "2/3"}</span></td>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <StatusBadge status={t.status} />
-                              {t.status === "iniziata" && (
-                                <button
-                                  type="button"
-                                  className="irg-tip irg-eyebtn"
-                                  onClick={() => onObserve && onObserve(t.id)}
-                                  aria-label="Osserva partita live"
-                                >
-                                  <span className="irg-eye"><IcoEye /></span>
-                                  <MiniTip text="Osserva partita live" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span className="irg-regnum">{t.participants.length}/{t.maxPlayers}</span>
-                              {t.isPrivate && (
-                                <span className="irg-tip" style={{ color: "#f59e0b" }}>
-                                  <IcoLock />
-                                  <MiniTip text="Partita privata" />
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td>
-                            {t.participants.length === 0 && t.status !== "in_registrazione" ? (
-                              <span className="irg-mut">—</span>
-                            ) : (
-                              <ul className="irg-plist">
-                                {shown.map((p) => {
-                                  const { country, deck } = participantDetails(p.username, p.deck && p.deck.name);
-                                  return (
-                                    <li key={p.id} className="irg-ppill irg-tip">
-                                      {p.username}
-                                      <span className="irg-pop">
-                                        <span className="irg-poparrow" />
-                                        <span className="irg-popcard">
-                                          <span className="irg-pchead">
-                                            <span>{p.username}</span>
-                                            <span className="irg-flagchip">{country.flag} {country.code}</span>
-                                          </span>
-                                          <span className="irg-pcrow"><span>Paese:</span><b>{country.name}</b></span>
-                                          <span className="irg-pcrow"><span>Stato:</span><b className="irg-on">Online</b></span>
-                                          <span className="irg-pclab">Mazzo in uso</span>
-                                          <span className="irg-pcdeck">{deck}</span>
-                                        </span>
-                                      </span>
-                                    </li>
-                                  );
-                                })}
-                                {extra > 0 && (
-                                  <li className="irg-ppill irg-tip">
-                                    +{extra}
-                                    <span className="irg-pop">
-                                      <span className="irg-poparrow" />
-                                      <span className="irg-popcard" style={{ width: "auto", minWidth: 110 }}>
-                                        {t.participants.slice(2).map((p) => (
-                                          <span key={p.id} style={{ display: "block", padding: "1px 0" }}>{p.username}</span>
-                                        ))}
-                                      </span>
-                                    </span>
-                                  </li>
-                                )}
-                                {t.status === "in_registrazione" && !joined && !full && (
-                                  <li>
-                                    <button type="button" className="irg-ebx-join" onClick={() => onJoin(t.id)}>
-                                      {t.isPrivate ? <><IcoUserPlus /> Chiedi</> : <><IcoPlus /> Partecipa</>}
-                                    </button>
-                                  </li>
-                                )}
-                              </ul>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      <span className="irg-brand">Ebartex Live Games</span>
-      <span className="irg-led" />
     </>
   );
 }
@@ -7153,16 +6468,9 @@ function AssoPixel() {
 export default function IsoRoomGame({
   roomName = "Sala Tornei",
   username = "PrincessLeo",
-  formatId = "modern",
-  modeId = "heads-up",
-  formatName = "",
-  modeName = "Heads-Up",
   tournaments: pTournaments,
-  inventory: pInventory = [],
-  onCreateTournament,
-  onJoinTournament,
-  onObserveTournament,
-  onCreateDeck,
+  onOpenTournaments,
+  onOpenCreateTournament,
   onOpenDecks,
   onExitToSimple,
   integrationMode = "prototype",
@@ -7181,7 +6489,6 @@ export default function IsoRoomGame({
   const [room, setRoom] = useState("tournament");
   const [muted, setMuted] = useState(false);
   const [hint, setHint] = useState(true);
-  const [newDeckId, setNewDeckId] = useState(null);
   const [look, setLookState] = useState(() => ({ ...DEFAULT_LOOK }));
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialCaption, setTutorialCaption] = useState(null);
@@ -7207,12 +6514,16 @@ export default function IsoRoomGame({
     return resolveQuality(saved || qualityProp);
   });
   const fx = useMemo(() => getFxFlags(quality), [quality]);
-  const [data, setData] = useState(() => ({
-    tournaments: pTournaments || mockTournaments(),
-  }));
-  const inventory = pInventory || [];
+  const tournaments = useMemo(
+    () => pTournaments || mockTournaments(),
+    [pTournaments],
+  );
 
-  apiRef.current.openModal = (id) => { if (mountedRef.current) setModal(id); };
+  apiRef.current.openModal = (id) => {
+    if (!mountedRef.current) return;
+    if (tutorialActive && OFFICIAL_SURFACE_IDS.has(id)) return;
+    setModal(id);
+  };
   apiRef.current.setRoom = (r) => { if (mountedRef.current) setRoom(r); };
   apiRef.current.hideHint = () => { if (mountedRef.current) setHint(false); };
   apiRef.current.setTutorial = (v) => { if (mountedRef.current) { setTutorialActive(v); if (!v) { setTutorialIntro(false); setTutorialOutro(false); setTutorialUiSpot(null); } } };
@@ -7258,17 +6569,20 @@ export default function IsoRoomGame({
       : { giocati: 12, vinti: 7 };
   }
 
-  /* sync con le props (se fornite dal backend) */
-  useEffect(() => { if (pTournaments) setData((d) => ({ ...d, tournaments: pTournaments })); }, [pTournaments]);
-  useEffect(() => { if (pInventory) setData((d) => ({ ...d })); }, [pInventory]);
-
-  /* Il sito attuale possiede già il builder server-backed: dalla stanza lo
-     apriamo come pagina primaria invece di montare il vecchio editor locale. */
+  /* PC, bacheca e tavolo mazzi sono solo ingressi alle superfici ufficiali. */
   useEffect(() => {
-    if (modal !== "decks" || !onOpenDecks) return;
+    const openOfficial = modal === "pc"
+      ? onOpenTournaments
+      : modal === "board"
+        ? onOpenCreateTournament
+        : modal === "decks"
+          ? onOpenDecks
+          : null;
+    if (!OFFICIAL_SURFACE_IDS.has(modal)) return;
     setModal(null);
-    onOpenDecks();
-  }, [modal, onOpenDecks]);
+    if (gameRef.current && gameRef.current.zoomOut) gameRef.current.zoomOut();
+    if (openOfficial) openOfficial();
+  }, [modal, onOpenCreateTournament, onOpenDecks, onOpenTournaments]);
 
   /* eventi diegetici: nuovi tornei o tornei appena iniziati → citofono / alert PC */
   const prevTRef = useRef(null);
@@ -7316,7 +6630,7 @@ export default function IsoRoomGame({
   useEffect(() => {
     const g = gameRef.current;
     if (!g) return;
-    const mine = data.tournaments.filter(
+    const mine = tournaments.filter(
       (t) => Array.isArray(t.participants) && t.participants.some((p) => p.username === username)
     );
     const withOpp = mine.find((t) => t.status !== "terminata" && t.participants.length > 1);
@@ -7334,12 +6648,7 @@ export default function IsoRoomGame({
     }
     const activeStarted = mine.some((t) => t.status === "iniziata");
     if (g.setBracket) g.setBracket(activeStarted);
-  }, [data.tournaments, username]);
-
-  const playSfx = useCallback((name) => {
-    const g = gameRef.current;
-    if (g && g.sfx && typeof g.sfx[name] === "function") g.sfx[name]();
-  }, []);
+  }, [tournaments, username]);
 
   const closeModal = useCallback(() => {
     if (closingRef.current) return;
@@ -7451,56 +6760,6 @@ export default function IsoRoomGame({
   const simpleViewAriaLabel = integrationMode === "site"
     ? "Torna alla lobby principale"
     : "Passa alla vista semplice, senza mini-gioco";
-
-  const handlePublish = useCallback((form) => {
-    const t = {
-      /* shape identica a tournaments-live-frontend (types/tournament.ts) */
-      id: "t" + Date.now(),
-      format: form.gioco.toLowerCase().replace(/\s+/g, "-"),
-      mode: "torneo",
-      buyIn: "for_fun",
-      bestOf: form.tipo === "Gironi" ? "BO1" : "BO3",
-      status: "in_registrazione",
-      maxPlayers: +form.max,
-      participants: [{ id: "me", username }],
-      createdAt: new Date().toISOString(),
-      isPrivate: false,
-      /* extra della bacheca (utili al backend, ignorati dalla tabella) */
-      nome: form.nome.trim(),
-      gioco: form.gioco,
-      tipo: form.tipo,
-      dataInizio: itDate(form.data),
-      premio: form.premio,
-    };
-    if (integrationMode !== "site") {
-      setData((d) => ({ ...d, tournaments: [t, ...d.tournaments] }));
-    }
-    playSfx("pin");
-    if (onCreateTournament) onCreateTournament(t);
-    return t;
-  }, [integrationMode, onCreateTournament, playSfx, username]);
-
-  const handleJoin = useCallback((id) => {
-    /* il bottone è visibile solo se l'iscrizione è valida (aperta, non pieno, non già dentro) */
-    if (integrationMode !== "site") {
-      setData((d) => ({
-        ...d,
-        tournaments: d.tournaments.map((t) => {
-          if (t.id !== id || t.status !== "in_registrazione") return t;
-          if (t.participants.length >= t.maxPlayers || t.participants.some((p) => p.username === username)) return t;
-          const participants = [...t.participants, { id: "me-" + id, username }];
-          return { ...t, participants, status: participants.length >= t.maxPlayers ? "iniziata" : t.status };
-        }),
-      }));
-    }
-    playSfx("success");
-    if (onJoinTournament) onJoinTournament(id);
-  }, [integrationMode, onJoinTournament, playSfx, username]);
-
-  const handleObserve = useCallback((id) => {
-    playSfx("success");
-    if (onObserveTournament) onObserveTournament(id);
-  }, [onObserveTournament, playSfx]);
 
   const toggleMute = useCallback(() => {
     setMuted((m) => {
@@ -7649,40 +6908,11 @@ export default function IsoRoomGame({
         </div>
       )}
 
-      {/* punti caldi: cerchi + cartelli sugli elementi chiave della modale
-          aperta dal tutorial (solo durante la guida, non a chiusura in corso) */}
-      {tutorialActive && modal && !closing && (
-        <TutorialHotspots wrapRef={wrapRef} modalId={modal} />
-      )}
       {tutorialActive && tutorialUiSpot && (
-        <TutorialHotspots wrapRef={wrapRef} uiId={tutorialUiSpot} />
+        <TutorialUiHotspots wrapRef={wrapRef} uiId={tutorialUiSpot} />
       )}
 
       {/* modali */}
-      {modal === "board" && (
-        <ModalShell id="board" closing={closing} onClose={closeModal} className="irg-m-board">
-          <BoardModal onPublish={handlePublish} onClose={closeModal} playSfx={playSfx} />
-        </ModalShell>
-      )}
-      {modal === "decks" && !onOpenDecks && (
-        <ModalShell id="decks" closing={closing} onClose={closeModal} className="irg-m-decks irg-m-decks-wide">
-          <DecksModal inventory={inventory} />
-        </ModalShell>
-      )}
-      {modal === "pc" && (
-        <ModalShell id="pc" closing={closing} onClose={closeModal} className="irg-m-pc">
-          <PcModal
-            tournaments={data.tournaments}
-            onJoin={handleJoin}
-            onObserve={handleObserve}
-            me={username}
-            formatId={formatId}
-            modeId={modeId}
-            formatName={formatName}
-            modeName={modeName}
-          />
-        </ModalShell>
-      )}
       {modal === "mirror" && (
         <ModalShell id="mirror" closing={closing} onClose={closeModal} className="irg-m-mirror">
           <MirrorModal look={look} onChange={applyLook} drawPreview={drawLookPreview} />

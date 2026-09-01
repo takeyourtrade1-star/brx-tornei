@@ -27,17 +27,16 @@ ResizeObserver, AudioContext).
 ## Integrazione nella lobby Tornei
 
 Nel sito la stanza viene aperta dal pulsante secondario **Sala Arcade** presente
-nella lobby moderna. La lobby e il backend correnti restano la fonte autorevole:
+nella lobby moderna. La lobby e il backend correnti sono l'unica fonte autorevole:
 
-- PC e bacheca riportano alla lobby con il formato/modalità selezionati;
+- il PC apre il mirror dei tavoli ufficiali correnti;
+- la bacheca apre direttamente il flusso ufficiale di creazione;
 - la lobby attuale richiede il mazzo dichiarato prima di creare o raggiungere un tavolo;
-- il tavolo può aprire la partita live in modalità osservatore;
-- l'oggetto Tavolo/Deck apre la pagina Mazzi server-backed, senza usare l'editor
-  locale storico.
+- l'oggetto Tavolo/Deck apre il gestore Mazzi server-backed condiviso con `/mazzi`.
 
-La prop `integrationMode="site"` disattiva gli aggiornamenti locali fittizi del
-prototipo. La modalità predefinita `prototype` resta disponibile per la demo
-standalone.
+Il componente non contiene più copie locali del PC, della bacheca o dell'editor
+mazzi: i tre oggetti sono esclusivamente ingressi alle callback ufficiali. La
+modalità `prototype` resta disponibile per gli altri minigiochi standalone.
 
 Il duello WebRTC con signaling manuale resta disponibile solo in `prototype`:
 la superficie autenticata del sito non apre connessioni P2P sperimentali e offre
@@ -48,35 +47,16 @@ il tavolo locale come minigioco secondario.
 ```jsx
 <IsoRoomGame
   roomName="Sala Tornei"
-  username="PrincessLeo"  // username del giocatore (pill nei partecipanti)
+  username="PrincessLeo"
   tournaments={[...]}     // sovrascrive i mock
-  decks={[...]}
-  cards={[...]}
-  onCreateTournament={(draft) => console.info("Bozza torneo", draft)}
-  onJoinTournament={(id) => console.info("Richiesta iscrizione", id)}
-  onCreateDeck={(deck) => console.info("Bozza mazzo", deck)}
+  onOpenTournaments={() => openOfficialTables()}
+  onOpenCreateTournament={() => openOfficialCreation()}
+  onOpenDecks={() => openOfficialDecks()}
 />
 ```
 
-In produzione questi callback non devono chiamare API dal browser: la lobby
-moderna li collega a Server Action e data layer. La modalità `integrationMode="site"`
-usa già quel percorso e non considera autorevoli le mutazioni locali del prototipo.
-
-Shape dei dati (i tornei usano la stessa shape di `tournaments-live-frontend/types/tournament.ts`):
-
-```js
-tournament: { id, format, mode, buyIn: "for_fun",
-              bestOf: "BO1"|"BO3"|"BO5",
-              status: "in_registrazione"|"iniziata"|"terminata",
-              maxPlayers, participants: [{ id, username }],
-              createdAt, isPrivate? }
-deck:       { id, nome, carte, colore: "#hex",
-              sig: "flame"|"wave"|"leaf"|"star"|"bolt"|"sun"|"moon"|"shield" }
-card:       { id, nome, rarita: "comune"|"rara"|"epica"|"leggendaria",
-              costo, tipo, sig }
-```
-
-La modale del PC replica la tabella tornei della dashboard (Buy-In · Forma · Stato · Registrati · Partecipanti) con badge di stato, lucchetto per le private, popover dei giocatori (paese, stato online, mazzo) e bottone "Partecipa" liquid-glass — bandiere emoji al posto di flagcdn, nessun asset esterno. I tornei creati dalla bacheca compaiono subito nella tabella come `in_registrazione` con te come primo iscritto; "Partecipa" aggiunge la tua pill e, a torneo pieno, lo stato passa a `iniziata`. I callback ricevono gli stessi oggetti, pronti per il tuo backend.
+In produzione le callback non chiamano API dal browser: il contenitore le collega
+alle superfici correnti, che usano Server Action e data layer.
 
 ## Comandi di gioco
 

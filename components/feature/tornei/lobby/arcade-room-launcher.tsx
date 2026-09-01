@@ -1,12 +1,18 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { FormatFilter } from '@/lib/validations/selection';
-import { FORMATS, type FormatId, type ModeId } from '@/lib/data/catalog';
+import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { Tournament } from '@/types/tournament';
+import type { Deck } from '@/types/deck';
+import type { LobbyTable } from '@/lib/lobby';
+import {
+  ArcadeOfficialModal,
+  type ArcadeOfficialSurface,
+} from './arcade-official-modal';
 
 const IsoRoomGame = dynamic(() => import('@/minigioco-test/IsoRoomGame'), {
   ssr: false,
@@ -21,42 +27,56 @@ interface ArcadeRoomLauncherProps {
   open: boolean;
   onClose: () => void;
   tournaments: Tournament[];
+  tables: LobbyTable[];
+  initialDecks: Deck[];
   gamertag: string;
   formatId: FormatFilter;
   formatName: string;
   modeId: ModeId;
   modeName: string;
+  busy: boolean;
+  error: string | null;
+  createLocked: boolean;
+  onOpenCreateTournament: (formatId: FormatId) => void;
+  onSit: (table: LobbyTable) => void;
+  onOpen: (table: LobbyTable) => void;
+  onLeave: (table: LobbyTable) => void;
+  onGoLive: (table: LobbyTable) => void;
 }
 
 function explicitFormat(formatId: FormatFilter): FormatId {
   return formatId === 'all' ? 'modern' : formatId;
 }
 
-function formatFromBoardDraft(draft: unknown, fallback: FormatId): FormatId {
-  if (!draft || typeof draft !== 'object') return fallback;
-  const game = (draft as { gioco?: unknown }).gioco;
-  if (typeof game !== 'string') return fallback;
-  const normalized = game.trim().toLowerCase();
-  return FORMATS.find(
-    (format) => format.id === normalized || format.name.toLowerCase() === normalized,
-  )?.id ?? fallback;
-}
-
 export function ArcadeRoomLauncher({
   open,
   onClose,
   tournaments,
+  tables,
+  initialDecks,
   gamertag,
   formatId,
   formatName,
   modeId,
   modeName,
+  busy,
+  error,
+  createLocked,
+  onOpenCreateTournament,
+  onSit,
+  onOpen,
+  onLeave,
+  onGoLive,
 }: ArcadeRoomLauncherProps) {
   const router = useRouter();
   const selectedFormat = explicitFormat(formatId);
+  const [officialSurface, setOfficialSurface] = useState<ArcadeOfficialSurface | null>(null);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      setOfficialSurface(null);
+      return undefined;
+    }
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
@@ -64,53 +84,19 @@ export function ArcadeRoomLauncher({
     };
   }, [open]);
 
-  const goToLobby = useCallback(
-    (format: string, mode: string, focusQuery: string) => {
-      onClose();
-      router.push(
-        `/tornei?format=${encodeURIComponent(format)}&mode=${encodeURIComponent(mode)}${focusQuery}`,
-      );
-    },
-    [onClose, router],
-  );
+  const handleCloseOfficialSurface = useCallback(() => {
+    if (officialSurface === 'decks') router.refresh();
+    setOfficialSurface(null);
+  }, [officialSurface, router]);
 
-  const handleCreateTournament = useCallback(
-    (draft: unknown) => {
-      // La vecchia bacheca resta solo la superficie visiva: la creazione vera
-      // passa dalla lobby attuale, che richiede il mazzo dichiarato.
-      goToLobby(
-        formatFromBoardDraft(draft, selectedFormat),
-        modeId,
-        '&focusCreate=1',
-      );
-    },
-    [goToLobby, modeId, selectedFormat],
+  const handleCreateTournament = useCallback(() => {
+    onOpenCreateTournament(selectedFormat);
+  }, [onOpenCreateTournament, selectedFormat]);
+  const handleOpenTournaments = useCallback(
+    () => setOfficialSurface('tournaments'),
+    [],
   );
-
-  const handleJoinTournament = useCallback(
-    (tournamentId: string) => {
-      const target = tournaments.find((tournament) => tournament.id === tournamentId);
-      goToLobby(
-        target?.format ?? selectedFormat,
-        target?.mode ?? modeId,
-        `&focusTable=${encodeURIComponent(tournamentId)}`,
-      );
-    },
-    [goToLobby, modeId, selectedFormat, tournaments],
-  );
-
-  const handleObserveTournament = useCallback(
-    (tournamentId: string) => {
-      onClose();
-      router.push(`/tornei/${encodeURIComponent(tournamentId)}/live?role=observer`);
-    },
-    [onClose, router],
-  );
-
-  const handleOpenDecks = useCallback(() => {
-    onClose();
-    router.push('/mazzi');
-  }, [onClose, router]);
+  const handleOpenDecks = useCallback(() => setOfficialSurface('decks'), []);
 
   if (!open) return null;
 
@@ -134,19 +120,29 @@ export function ArcadeRoomLauncher({
         <IsoRoomGame
           roomName={`Sala Tornei · ${formatName}`}
           username={gamertag}
-          formatId={formatId}
-          modeId={modeId}
-          formatName={formatName}
-          modeName={modeName}
           tournaments={tournaments}
           integrationMode="site"
-          onCreateTournament={handleCreateTournament}
-          onJoinTournament={handleJoinTournament}
-          onObserveTournament={handleObserveTournament}
+          onOpenTournaments={handleOpenTournaments}
+          onOpenCreateTournament={handleCreateTournament}
           onOpenDecks={handleOpenDecks}
           onExitToSimple={onClose}
         />
       </div>
+      <ArcadeOfficialModal
+        surface={officialSurface}
+        onClose={handleCloseOfficialSurface}
+        tables={tables}
+        initialDecks={initialDecks}
+        formatName={formatName}
+        modeName={modeName}
+        busy={busy}
+        error={error}
+        createLocked={createLocked}
+        onSit={onSit}
+        onOpen={onOpen}
+        onLeave={onLeave}
+        onGoLive={onGoLive}
+      />
     </div>
   );
 }

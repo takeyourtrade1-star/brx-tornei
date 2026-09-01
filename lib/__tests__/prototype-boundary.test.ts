@@ -96,4 +96,42 @@ describe('arcade deployment boundary', () => {
     expect(duel).toContain('integrationMode !== "site"');
     expect(room).toContain('integrationMode={integrationMode}');
   });
+
+  it('usa nelle superfici Arcade gli stessi componenti ufficiali correnti', () => {
+    const room = readFileSync(join(ROOT_PATH, 'minigioco-test', 'IsoRoomGame.jsx'), 'utf8');
+    const launcher = readFileSync(
+      join(ROOT_PATH, 'components', 'feature', 'tornei', 'lobby', 'arcade-room-launcher.tsx'),
+      'utf8',
+    );
+    const mirror = readFileSync(
+      join(ROOT_PATH, 'components', 'feature', 'tornei', 'lobby', 'arcade-official-modal.tsx'),
+      'utf8',
+    );
+    const deckWorkspace = readFileSync(
+      join(ROOT_PATH, 'components', 'feature', 'decks', 'deck-workspace.tsx'),
+      'utf8',
+    );
+    const decksPage = readFileSync(
+      join(ROOT_PATH, 'components', 'feature', 'decks', 'mazzi-workspace.tsx'),
+      'utf8',
+    );
+
+    expect(room).toContain('onOpenTournaments');
+    expect(room).toContain('onOpenCreateTournament');
+    expect(room).toContain('OFFICIAL_SURFACE_IDS');
+    expect(room).not.toContain('function PcModal');
+    expect(room).not.toContain('function BoardModal');
+    expect(room).not.toContain('<DecksModal');
+    expect(room).not.toContain('handlePublish');
+    expect(room).not.toContain('handleJoin');
+    expect(room).not.toContain('irg-m-pc');
+    expect(room).not.toContain('irg-m-board');
+    expect(room).not.toContain('irg-m-decks');
+    expect(launcher).toContain('<ArcadeOfficialModal');
+    expect(launcher).not.toContain("router.push('/mazzi')");
+    expect(mirror).toContain("import { TableCard } from './table-card'");
+    expect(mirror).toContain("import { DeckWorkspace } from '@/components/feature/decks/deck-workspace'");
+    expect(deckWorkspace).toContain('useServerDecks(initialDecks');
+    expect(decksPage).toContain('<DeckWorkspace initialDecks={initialDecks}');
+  });
 });

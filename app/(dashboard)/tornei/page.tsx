@@ -10,6 +10,8 @@ import { getFormat, getMode } from '@/lib/data/catalog';
 import { fetchNotificationSnapshot } from '@/lib/data/notifications';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { LobbyPage } from '@/components/feature/tornei/lobby/lobby-page';
+import { hasArcadeAccess } from '@/lib/auth/arcade-access';
+import { listDecks } from '@/lib/data/decks';
 
 export const metadata: Metadata = { title: 'Tornei' };
 
@@ -40,15 +42,18 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   // Fetch aggregato (tutti i formati): i MIEI tavoli devono restare visibili
   // anche quando sono in un altro formato, altrimenti il backend rifiuterebbe
   // di sedermi altrove (ALREADY_SEATED) senza che io possa abbandonarli.
-  const [tournaments, reputation, notifications] = await Promise.all([
+  const [tournaments, decks, reputation, notifications, arcadeAccessGranted] = await Promise.all([
     getTournaments({ format: 'all', mode: selection.mode }),
+    listDecks(session.user.id),
     fetchMyReputation().catch(() => null),
     fetchNotificationSnapshot(),
+    hasArcadeAccess(session.user.id),
   ]);
 
   return (
     <LobbyPage
       tournaments={tournaments}
+      initialDecks={decks}
       user={session.user}
       gamertag={gamertag}
       selection={selection}
@@ -57,6 +62,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
       modeName={modeName}
       reputation={reputation}
       initialNotifications={notifications}
+      arcadeAccessGranted={arcadeAccessGranted}
       focusTableId={lobbyFocus.tableId}
       openCreate={lobbyFocus.create === '1'}
     />

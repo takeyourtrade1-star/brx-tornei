@@ -13,7 +13,9 @@ import type { ReputationSummary } from '@/lib/data/player-api-client';
 import type { FormatFilter, Selection } from '@/lib/validations/selection';
 import type { SessionUser } from '@/types/auth';
 import type { Tournament } from '@/types/tournament';
+import type { Deck } from '@/types/deck';
 import type { NotificationSnapshot } from '@/types/notification';
+import { getFormat, type FormatId } from '@/lib/data/catalog';
 import { TableSeatModal } from './table-seat-modal';
 import { LobbyTableList } from './lobby-table-list';
 import { AcceptMatchModal } from './accept-match-modal';
@@ -21,9 +23,11 @@ import { FeedbackNotices } from './feedback-notices';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
 import { useTournamentRealtimeRefresh } from '@/hooks/use-tournament-realtime-refresh';
 import { ArcadeRoomLauncher } from './arcade-room-launcher';
+import { ArcadeAccessGate } from './arcade-access-gate';
 
 interface LobbyPageProps {
   tournaments: Tournament[];
+  initialDecks: Deck[];
   user: SessionUser;
   /** Gamertag torneo-only: unica identità mostrata in lobby. */
   gamertag: string;
@@ -33,18 +37,20 @@ interface LobbyPageProps {
   modeName: string;
   reputation: ReputationSummary | null;
   initialNotifications: NotificationSnapshot;
+  arcadeAccessGranted: boolean;
   /** Apertura una tantum della modale richiesta da una superficie secondaria. */
   focusTableId?: string;
   openCreate?: boolean;
 }
 
 type ModalState =
-  | { mode: 'create' }
+  | { mode: 'create'; format: FormatId }
   | { mode: 'host' | 'join'; tournamentId: string }
   | null;
 
 export function LobbyPage({
   tournaments,
+  initialDecks,
   user,
   gamertag,
   selection,
@@ -53,11 +59,14 @@ export function LobbyPage({
   modeName,
   reputation,
   initialNotifications,
+  arcadeAccessGranted,
   focusTableId,
   openCreate = false,
 }: LobbyPageProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>(null);
+  const [arcadeUnlocked, setArcadeUnlocked] = useState(arcadeAccessGranted);
+  const [arcadeGateOpen, setArcadeGateOpen] = useState(false);
   const [arcadeOpen, setArcadeOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approvalPhase, setApprovalPhase] = useState<'accepting' | 'declined' | null>(null);
@@ -97,7 +106,7 @@ export function LobbyPage({
       if (selection.format === 'all') {
         setError('Seleziona un formato specifico per creare un tavolo.');
       } else {
-        setModal({ mode: 'create' });
+        setModal({ mode: 'create', format: selection.format });
       }
       clearArcadeFocus();
       return;
@@ -319,7 +328,7 @@ export function LobbyPage({
           setError('Seleziona un formato specifico per creare un tavolo.');
           return;
         }
-        setModal({ mode: 'create' });
+        setModal({ mode: 'create', format: selection.format });
       }
     },
     [tournaments, user.id, myUsername, selection.format],
@@ -331,7 +340,7 @@ export function LobbyPage({
       setError(null);
       startTransition(async () => {
         if (modal.mode === 'create') {
-          const res = await createTableAction(selection.format, selection.mode);
+          const res = await createTableAction(modal.format, selection.mode);
           if (res.error || !res.createdId) {
             setError(res.error ?? 'Impossibile creare il tavolo.');
             return;
@@ -358,7 +367,7 @@ export function LobbyPage({
         }
       });
     },
-    [modal, router, goLiveTo, selection.format, selection.mode],
+    [modal, router, goLiveTo, selection.mode],
   );
 
   const handleLeave = useCallback(
@@ -394,9 +403,31 @@ export function LobbyPage({
   const modalTournament = modal && modal.mode !== 'create'
     ? tournaments.find((tournament) => tournament.id === modal.tournamentId)
     : null;
-  const modalFormatId = modal?.mode === 'create' && selection.format !== 'all'
-    ? selection.format
+  const modalFormatId = modal?.mode === 'create'
+    ? modal.format
     : (modalTournament?.format ?? 'modern');
+  const modalFormatName = getFormat(modalFormatId)?.name ?? formatName;
+
+  const handleOpenArcade = useCallback(() => {
+    if (arcadeUnlocked) {
+      setArcadeOpen(true);
+      return;
+    }
+    setArcadeGateOpen(true);
+  }, [arcadeUnlocked]);
+
+  const handleArcadeUnlocked = useCallback(() => {
+    setArcadeUnlocked(true);
+    setArcadeGateOpen(false);
+    setArcadeOpen(true);
+  }, []);
+
+  const handleCloseArcadeGate = useCallback(() => setArcadeGateOpen(false), []);
+  const handleCloseArcade = useCallback(() => setArcadeOpen(false), []);
+  const handleOpenArcadeCreate = useCallback((format: FormatId) => {
+    setError(null);
+    setModal({ mode: 'create', format });
+  }, []);
 
   return (
     <>
@@ -413,7 +444,7 @@ export function LobbyPage({
         reputation={reputation}
         initialNotifications={initialNotifications}
         createLocked={selection.format === 'all'}
-        onOpenMinigame={() => setArcadeOpen(true)}
+        onOpenMinigame={handleOpenArcade}
         onSit={handleSit}
         onOpen={handleOpen}
         onLeave={handleLeave}
@@ -424,7 +455,7 @@ export function LobbyPage({
         open={modal !== null}
         mode={modal?.mode === 'create' ? 'join' : (modal?.mode ?? 'host')}
         formatId={modalFormatId}
-        formatName={formatName}
+        formatName={modalFormatName}
         myUsername={myUsername}
         opponentUsername={modalTournament ? opponentFor(modalTournament.id) : null}
         currentDeckId={modalTournament
@@ -467,15 +498,30 @@ export function LobbyPage({
         negativeNotice={reputation?.negativeFeedbackNotice ?? null}
         positiveNotice={reputation?.positiveFeedbackNotice ?? null}
       />
+      <ArcadeAccessGate
+        open={arcadeGateOpen}
+        onClose={handleCloseArcadeGate}
+        onUnlocked={handleArcadeUnlocked}
+      />
       <ArcadeRoomLauncher
-        open={arcadeOpen}
-        onClose={() => setArcadeOpen(false)}
+        open={arcadeOpen && arcadeUnlocked}
+        onClose={handleCloseArcade}
         tournaments={tournaments}
+        tables={tables}
+        initialDecks={initialDecks}
         gamertag={gamertag}
         formatId={formatId}
         formatName={formatName}
         modeId={selection.mode}
         modeName={modeName}
+        busy={busy}
+        error={error}
+        createLocked={selection.format === 'all'}
+        onOpenCreateTournament={handleOpenArcadeCreate}
+        onSit={handleSit}
+        onOpen={handleOpen}
+        onLeave={handleLeave}
+        onGoLive={handleGoLive}
       />
     </>
   );
