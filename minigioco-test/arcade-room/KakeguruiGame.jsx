@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useP2PRoom } from "./useP2PRoom";
 import { getCspNonce } from "../csp-nonce";
+import { getFxFlags } from "../quality-config";
 
 /* ============================================================================
    Tavolo Duello (Kakegurui) — Sasso/Carta/Forbice, best-of-3, timer 7s/turno.
@@ -35,7 +36,7 @@ function cpuPick(history) {
   return rndMove();
 }
 
-export default function KakeguruiGame({ onExit, onResult, integrationMode = "prototype" }) {
+export default function KakeguruiGame({ onExit, onResult, integrationMode = "prototype", quality = "high" }) {
   const [mode, setMode] = useState(null); // null | 'sp' | 'mp'
   const netMsgRef = useRef(null);
   const [room, actions] = useP2PRoom((m) => netMsgRef.current && netMsgRef.current(m));
@@ -57,7 +58,7 @@ export default function KakeguruiGame({ onExit, onResult, integrationMode = "pro
   const backToMenu = () => { actions.disconnect(); setMode(null); };
 
   if (mode === "sp") {
-    return <Duel net={null} onExit={onExit} onBack={() => setMode(null)} onResult={onResult} />;
+    return <Duel net={null} onExit={onExit} onBack={() => setMode(null)} onResult={onResult} quality={quality} />;
   }
   if (mode === "mp") {
     if (room.state === "connected") {
@@ -68,7 +69,7 @@ export default function KakeguruiGame({ onExit, onResult, integrationMode = "pro
         latency: room.latency,
         state: room.state,
       };
-      return <Duel net={net} onExit={onExit} onBack={backToMenu} onResult={onResult} />;
+      return <Duel net={net} onExit={onExit} onBack={backToMenu} onResult={onResult} quality={quality} />;
     }
     return <Lobby room={room} actions={actions} onExit={onExit} onBack={backToMenu} />;
   }
@@ -180,7 +181,7 @@ function stateLabel(s) {
 }
 
 /* ============================ DUELLO ==================================== */
-function Duel({ net, onExit, onBack, onResult }) {
+function Duel({ net, onExit, onBack, onResult, quality = "high" }) {
   const isMp = !!net;
   const [phase, setPhase] = useState("pick"); // pick|reveal|matchEnd|lost
   const [pScore, setPScore] = useState(0);
@@ -238,24 +239,39 @@ function Duel({ net, onExit, onBack, onResult }) {
     startTurn();
   };
 
-  /* timer: scorre finché NON ho scelto */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { startMatch(); }, []);
+
+  /* Il timer aggiorna la UI a frequenza limitata: un rAF causava il render di
+     tutto il duello circa 60 volte al secondo per una sola barra. */
   useEffect(() => {
-    if (phase !== "pick") return;
-    let raf = 0;
+    if (phase !== "pick" || pPick) return;
+    const tickMs = getFxFlags(quality).uiTickMs;
     const tick = () => {
       if (myMoveRef.current) return; // ho già scelto: niente fretta
+      if (document.hidden) return;
       const left = Math.max(0, endRef.current - performance.now());
       setTime(left);
-      if (left <= 0) { pick(rndMove()); return; }
-      raf = requestAnimationFrame(tick);
+      if (left <= 0) { pick(rndMove(), true); return; }
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    const timer = window.setInterval(tick, tickMs);
+    const deadline = window.setTimeout(
+      () => pick(rndMove(), true),
+      Math.max(0, endRef.current - performance.now()),
+    );
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(deadline);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, round]);
+  }, [phase, round, quality, pPick]);
 
-  const pick = (move) => {
+  const pick = (move, fromTimeout = false) => {
     if (phaseRef.current !== "pick" || myMoveRef.current) return;
+    if (!fromTimeout && performance.now() >= endRef.current) {
+      pick(rndMove(), true);
+      return;
+    }
     myMoveRef.current = move;
     setPPick(move);
     history.current.push(move);
@@ -301,8 +317,6 @@ function Duel({ net, onExit, onBack, onResult }) {
       }
     }, 1700);
   };
-
-  useEffect(() => { startMatch(); /* eslint-disable-next-line */ }, []);
 
   const escExit = () => { if (isMp) onBack && onBack(); else onExit && onExit(); };
   const revealed = phase === "reveal" || phase === "matchEnd";

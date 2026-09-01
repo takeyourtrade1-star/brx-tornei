@@ -27,6 +27,11 @@ import {
   ARC_ENTRY_TILE, TOUR_ENTRY_TILE, ARC_DEFAULT_CAM,
 } from "./arcade-room/arcade-config";
 import ArcadeGameModal from "./arcade-room/ArcadeGameModal";
+import { createFrameLimiter } from "./frame-limiter";
+import { SocialRoom } from "./social-room/SocialRoom";
+import {
+  ASSO_BODY_COL, ASSO_EYE_CELLS, ASSO_GH, ASSO_GRID, ASSO_GW,
+} from "../lib/asso-pixel";
 
 /* ============================== 1. CONFIG ============================== */
 
@@ -83,9 +88,14 @@ const INTERACTIVES = {
            approach: [[3, 0], [4, 0], [5, 0]], footTiles: [],
            focus: { x: 472, y: 158, z: 1.6 }, faceTile: null },
   door:  DOOR_TOUR,
+  socialDoor: { name: "Porta Sala Piazza", icon: "🧑‍🤝‍🧑", desc: "Incontra gli amici online",
+                approach: [[6, 0], [6, 1], [7, 0]], footTiles: [],
+                focus: { x: 520, y: 232, z: 1.45 }, faceTile: null,
+                action: "openSocialRoom" },
 };
 
 const OFFICIAL_SURFACE_IDS = new Set(["pc", "board", "decks"]);
+const ARCADE_GAME_IDS = new Set(["arcade1", "arcade2", "arcade3", "kakegurui"]);
 
 /* Giradischi: interattivo "leggero" (toggle musica, nessuna modale) */
 const MUSIC_OBJ = { id: "music", approach: [[9, 1], [10, 2], [11, 2], [9, 0]], faceTile: [10, 1] };
@@ -543,6 +553,9 @@ const wallFar = (row, hh) => {
    nell'angolo destro dove prima c'era un poster decorativo. Posizione sensata:
    accanto al citofono, lontana da bacheca e tavolo. */
 const TOUR_DOOR = { c0: 8.65, c1: 10.2, hTop: 92, hBot: 1 };
+/* Porta della nuova Sala Piazza: stesso muro e stessa grammatica visiva della
+   porta Arcade, ma separata dal citofono e dagli oggetti della lobby. */
+const SOCIAL_DOOR = { c0: 5.0, c1: 6.45, hTop: 92, hBot: 1 };
 
 /** Interpolazione UV su un quad di parete (topA→topB in alto, botA→botB in basso). */
 function wallFace(topA, topB, botB, botA, u, v) {
@@ -598,6 +611,18 @@ function drawWoodDoor(ctx, topA, topB, botB, botA, label) {
 
 function tourDoorBounds() {
   const { c0, c1, hTop, hBot } = TOUR_DOOR;
+  const topA = wallR(c0, hTop), topB = wallR(c1, hTop);
+  const botA = wallR(c0, hBot), botB = wallR(c1, hBot);
+  const xs = [topA.x, topB.x, botA.x, botB.x];
+  const ys = [topA.y, topB.y, botA.y, botB.y];
+  return {
+    topA, topB, botA, botB,
+    hit: { x: Math.min(...xs) - 2, y: Math.min(...ys) - 2, w: Math.max(...xs) - Math.min(...xs) + 4, h: Math.max(...ys) - Math.min(...ys) + 4 },
+  };
+}
+
+function socialDoorBounds() {
+  const { c0, c1, hTop, hBot } = SOCIAL_DOOR;
   const topA = wallR(c0, hTop), topB = wallR(c1, hTop);
   const botA = wallR(c0, hBot), botB = wallR(c1, hBot);
   const xs = [topA.x, topB.x, botA.x, botB.x];
@@ -987,6 +1012,30 @@ function buildBackground(phase = dayPhase(), stats = null, posters = null) {
     ctx.font = "bold 5px 'Press Start 2P', monospace";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("ARCADE", 0, -0.5);
+    ctx.restore();
+  }
+
+  /* — porta Sala Piazza (parete di fondo, tra la bacheca e l'Arcade) — */
+  {
+    const { topA, topB, botA, botB } = socialDoorBounds();
+    drawWoodDoor(ctx, topA, topB, botB, botA, "PIAZZA");
+    const signPt = wallR((SOCIAL_DOOR.c0 + SOCIAL_DOOR.c1) / 2, SOCIAL_DOOR.hTop + 8);
+    const WROT = Math.atan2(HTH, HTW);
+    ctx.save();
+    ctx.translate(signPt.x, signPt.y);
+    ctx.rotate(WROT);
+    ctx.fillStyle = "#15101f";
+    ctx.fillRect(-25, -6, 50, 11);
+    ctx.strokeStyle = P.gold;
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(-25, -6, 50, 11);
+    ctx.shadowColor = P.gold;
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = P.paper;
+    ctx.font = "bold 5px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("PIAZZA", 0, -0.5);
     ctx.restore();
   }
 
@@ -2012,6 +2061,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const wctx = world.getContext("2d");
   wctx.imageSmoothingEnabled = false;
   let fx = opts.fx || getFxFlags("high");
+  const frameLimiter = createFrameLimiter(fx.targetFps);
 
   /* — tile bloccati e entità (let: scambiati in changeRoom) — */
   let blocked = new Set();
@@ -2089,6 +2139,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   /* — porta Sala Arcade: disegnata nel background, hitRect statico — */
   inter.door.hitRect = tourDoorBounds().hit;
   inter.door.hitCv = null;
+  inter.socialDoor.hitRect = socialDoorBounds().hit;
+  inter.socialDoor.hitCv = null;
 
   /* ====================== SALA ARCADE — dati stanza ====================== */
   const arcadeBg = buildArcadeBackground();
@@ -2313,6 +2365,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function startInteract(o) {
     if (o.action === "changeRoom") { changeRoom(o.target); return; }
+    if (o.action === "openSocialRoom") {
+      apiRef.current.openSocialRoom && apiRef.current.openSocialRoom();
+      return;
+    }
     st.lock = true;
     if (o.id === "pc") st.alert = 0; // il giocatore ha visto la notifica
     const t = st.av.from;
@@ -5414,7 +5470,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function onPointerLeave() { st.hover.tile = null; st.hover.obj = null; }
   function onKeyDown(e) {
     const tag = e.target && e.target.tagName;
-    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || st.modal || st.cinematic) return;
+    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || st.modal || st.cinematic
+      || (apiRef.current.isSocialRoomOpen && apiRef.current.isSocialRoomOpen())) return;
     /* ESC nella Sala Arcade → torna alla Sala Tornei */
     if (e.key === "Escape" && !st.lock && st.room === "arcade") {
       e.preventDefault();
@@ -5478,8 +5535,18 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   function loop(ts) {
     if (st.destroyed) return;
     st.raf = requestAnimationFrame(loop); // pianifica subito: un errore non uccide il loop
-    const dt = st.last ? Math.min(0.05, (ts - st.last) / 1000) : 0;
-    st.last = ts;
+    // Il canvas della stanza non deve competere con quello del cabinato in primo
+    // piano. Anche una scheda nascosta resta sospesa senza accumulare un dt enorme.
+    if (
+      document.hidden ||
+      ARCADE_GAME_IDS.has(st.modal) ||
+      (apiRef.current.isSocialRoomOpen && apiRef.current.isSocialRoomOpen())
+    ) {
+      frameLimiter.pause(ts);
+      return;
+    }
+    const dt = frameLimiter.consume(ts);
+    if (dt === null) return;
     st.t += dt;
     try {
       update(dt);
@@ -5498,6 +5565,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     setQuality(q) {
       if (st.destroyed) return;
       fx = getFxFlags(q);
+      frameLimiter.setTargetFps(fx.targetFps);
       resize();
     },
     /* eventi diegetici dall'esterno (cambi nei tornei, sfide, ecc.) */
@@ -5816,6 +5884,9 @@ const CSS_TEXT = [
   /* — modalità leggera — */
   ".irg-quality-low .irg-backdrop{",
   "backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(10,12,22,.94);}",
+  ".irg-quality-low .irg-canvas{image-rendering:pixelated;}",
+  ".irg-quality-low .irg-chip,.irg-quality-low .irg-controls,.irg-quality-low .irg-key{backdrop-filter:none;-webkit-backdrop-filter:none;}",
+  ".irg-quality-low .irg-hint,.irg-quality-low .irg-helper-asso,.irg-quality-low .irg-tut-ghost,.irg-quality-low .irg-tut-eyes,.irg-quality-low .irg-tut-caret{animation:none;}",
   /* — modale specchio: personalizzazione avatar — */
   ".irg-m-mirror{width:560px;max-width:100%;background:linear-gradient(180deg,#1b1f36,#12152400);",
   "background-color:#161a2e;border:1px solid rgba(129,140,248,.32);padding:20px;color:#eef2ff;}",
@@ -6213,44 +6284,6 @@ function MirrorModal({ look, onChange, drawPreview }) {
   );
 }
 
-/* Griglia pixel di Asso, condivisa tra lo sprite SVG e il disegno su canvas
-   del compagno-guida dentro il minigioco. */
-const ASSO_GW = 18, ASSO_GH = 22;
-const ASSO_GRID = [
-  "........y.........",
-  "..b............g..",
-  "....DDDDDDDDDD....",
-  "...DllllllllllD...",
-  "...DloooooooolD...",
-  "...DOCCCCCCCCOD...",
-  "...DOCCCCCCCCOD...",
-  "...DOCCCCCCCCOD...",
-  "...DOCWECCWECOD...",
-  "...DOCEECCEECOD...",
-  "...DOBCCCCCCBOD...",
-  "...DOCCMCCMCCOD...",
-  "...DOCCCMMCCCOD...",
-  "...DOCCCCCCCCOD...",
-  "...DOOOOOOOOOOD...",
-  "...DOOPPPPPPOOD...",
-  "...DOOPPPPPPOOD...",
-  "...DHHHHHHHHHHD...",
-  "....DDDDDDDDDD....",
-  ".....kkkkkkkk.....",
-  "..................",
-  "..................",
-];
-/* Solo i pixel del corpo: vuoti, ombra (k), scintille (y/b/g) e occhi (E/W)
-   sono esclusi e gestiti a parte. */
-const ASSO_BODY_COL = {
-  D: "#d24e00", l: "#ffd2a0", o: "#ffb066", O: "#ff8418", H: "#ef6c00",
-  C: "#fff6ec", M: "#4a5548", B: "#ffab84", P: "#fff1db",
-};
-const ASSO_EYE_CELLS = [
-  { x: 6, y: 8, w: true }, { x: 7, y: 8 }, { x: 10, y: 8, w: true }, { x: 11, y: 8 },
-  { x: 6, y: 9 }, { x: 7, y: 9 }, { x: 10, y: 9 }, { x: 11, y: 9 },
-];
-
 /* Mascotte Asso in pixel-art — riusata nel tutorial e nell'helper persistente. */
 function AssoPixel() {
   return (
@@ -6469,6 +6502,7 @@ export default function IsoRoomGame({
   roomName = "Sala Tornei",
   username = "PrincessLeo",
   tournaments: pTournaments,
+  initialFriends = [],
   onOpenTournaments,
   onOpenCreateTournament,
   onOpenDecks,
@@ -6487,6 +6521,7 @@ export default function IsoRoomGame({
   const [modal, setModal] = useState(null);
   const [closing, setClosing] = useState(false);
   const [room, setRoom] = useState("tournament");
+  const [socialRoomOpen, setSocialRoomOpen] = useState(false);
   const [muted, setMuted] = useState(false);
   const [hint, setHint] = useState(true);
   const [look, setLookState] = useState(() => ({ ...DEFAULT_LOOK }));
@@ -6518,12 +6553,16 @@ export default function IsoRoomGame({
     () => pTournaments || mockTournaments(),
     [pTournaments],
   );
+  const openSocialRoom = useCallback(() => setSocialRoomOpen(true), []);
+  const closeSocialRoom = useCallback(() => setSocialRoomOpen(false), []);
 
   apiRef.current.openModal = (id) => {
     if (!mountedRef.current) return;
     if (tutorialActive && OFFICIAL_SURFACE_IDS.has(id)) return;
     setModal(id);
   };
+  apiRef.current.openSocialRoom = openSocialRoom;
+  apiRef.current.isSocialRoomOpen = () => socialRoomOpen;
   apiRef.current.setRoom = (r) => { if (mountedRef.current) setRoom(r); };
   apiRef.current.hideHint = () => { if (mountedRef.current) setHint(false); };
   apiRef.current.setTutorial = (v) => { if (mountedRef.current) { setTutorialActive(v); if (!v) { setTutorialIntro(false); setTutorialOutro(false); setTutorialUiSpot(null); } } };
@@ -6922,23 +6961,31 @@ export default function IsoRoomGame({
       {/* Sala Arcade — modali dei cabinati e del tavolo kakegurui */}
       {modal === "arcade1" && (
         <ModalShell id="arcade1" closing={closing} onClose={closeModal} className="irg-m-arcade">
-          <ArcadeGameModal gameId="arcade1" onExit={closeModal} username={username} integrationMode={integrationMode} />
+          <ArcadeGameModal gameId="arcade1" onExit={closeModal} username={username} integrationMode={integrationMode} quality={quality} />
         </ModalShell>
       )}
       {modal === "arcade2" && (
         <ModalShell id="arcade2" closing={closing} onClose={closeModal} className="irg-m-arcade">
-          <ArcadeGameModal gameId="arcade2" onExit={closeModal} username={username} integrationMode={integrationMode} />
+          <ArcadeGameModal gameId="arcade2" onExit={closeModal} username={username} integrationMode={integrationMode} quality={quality} />
         </ModalShell>
       )}
       {modal === "arcade3" && (
         <ModalShell id="arcade3" closing={closing} onClose={closeModal} className="irg-m-arcade">
-          <ArcadeGameModal gameId="arcade3" onExit={closeModal} username={username} integrationMode={integrationMode} />
+          <ArcadeGameModal gameId="arcade3" onExit={closeModal} username={username} integrationMode={integrationMode} quality={quality} />
         </ModalShell>
       )}
       {modal === "kakegurui" && (
         <ModalShell id="kakegurui" closing={closing} onClose={closeModal} className="irg-m-arcade">
-          <ArcadeGameModal gameId="kakegurui" onExit={closeModal} username={username} integrationMode={integrationMode} />
+          <ArcadeGameModal gameId="kakegurui" onExit={closeModal} username={username} integrationMode={integrationMode} quality={quality} />
         </ModalShell>
+      )}
+
+      {socialRoomOpen && (
+        <SocialRoom
+          gamertag={username}
+          initialFriends={initialFriends}
+          onExit={closeSocialRoom}
+        />
       )}
 
       {/* Asso persistente: resta a destra dopo il tutorial, cliccabile. */}

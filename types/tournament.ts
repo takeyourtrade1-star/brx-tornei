@@ -45,6 +45,33 @@ export interface Participant {
   deck?: ParticipantDeck;
 }
 
+export type MatchJudgeStatus = 'idle' | 'processing' | 'failed';
+export type MatchJudgeTurnStatus = 'processing' | 'completed' | 'failed';
+export type MatchJudgeKind = 'ruling' | 'clarification';
+
+/** Risposta strutturata del Judge, già filtrata dal Tournament Service. */
+export interface MatchJudgeTurn {
+  id: string;
+  sequence: number;
+  askedByUserId: string;
+  question: string;
+  status: MatchJudgeTurnStatus;
+  reply?: string;
+  kind?: MatchJudgeKind;
+  verdict?: string;
+  steps?: string[];
+  ruleRefs?: string[];
+  rulesVersion?: string;
+  errorCode?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface MatchJudgeState {
+  status: MatchJudgeStatus;
+  turns: MatchJudgeTurn[];
+}
+
 export interface Tournament {
   id: string;
   format: FormatId;
@@ -96,6 +123,8 @@ export interface Tournament {
   /** 1 = prima scelta; 2 = seconda scelta richiesta dopo un disaccordo. */
   resultRound?: number;
   resultReselectionRequired?: boolean;
+  /** Judge opzionale della partita, visibile ai giocatori autorizzati. */
+  judge?: MatchJudgeState;
 }
 
 /** Risultato join torneo (può avviare un match). */

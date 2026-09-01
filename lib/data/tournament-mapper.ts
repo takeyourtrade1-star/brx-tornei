@@ -9,6 +9,7 @@ import type {
 } from '@/types/tournament';
 import type { DeckCard } from '@/types/deck';
 import type { FormatId, ModeId } from '@/lib/data/catalog';
+import { mapMatchJudgeState } from '@/lib/data/match-judge-mapper';
 
 const VALID_STATUS: TournamentStatus[] = ['in_registrazione', 'iniziata', 'terminata'];
 const VALID_BEST_OF: BestOf[] = ['BO1', 'BO3', 'BO5'];
@@ -245,6 +246,7 @@ export function mapTournamentFromApi(raw: unknown): Tournament | null {
     resultRound: pickNumber(obj, 'result_round', 'resultRound'),
     resultReselectionRequired:
       pickBool(obj, 'result_reselection_required', 'resultReselectionRequired') ?? false,
+    judge: mapMatchJudgeState(obj.judge ?? obj.judge_state ?? obj.judgeState),
   };
 }
 

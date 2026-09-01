@@ -1159,6 +1159,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .asso-mascot-float,
+  .asso-mascot-eyes--active,
+  .asso-mascot-hammer { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
   .match-intro-emblem,
   .match-intro-title,
   .match-intro-winner { animation-duration: 0.01ms; }
@@ -1187,6 +1193,30 @@
 .asso-eyes--active .asso-gaze { animation: asso-gaze 2.6s ease-in-out infinite; }
 .asso-eyes--active .asso-glow { opacity: 1; }
 .asso-glow { opacity: 0; transition: opacity 0.3s ease; }
+.asso-mascot-float { animation: asso-mascot-float 3.2s ease-in-out infinite; }
+.asso-mascot-eyes--active {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: asso-mascot-blink 4.6s ease-in-out infinite;
+}
+.asso-mascot-hammer {
+  transform-box: fill-box;
+  transform-origin: 15px 11px;
+  animation: asso-mascot-hammer 2.4s ease-in-out infinite;
+}
+@keyframes asso-mascot-float {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-4px) rotate(1.5deg); }
+}
+@keyframes asso-mascot-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.12); }
+}
+@keyframes asso-mascot-hammer {
+  0%, 80%, 100% { transform: rotate(0deg); }
+  86% { transform: rotate(-8deg); }
+  92% { transform: rotate(5deg); }
+}
 @keyframes asso-blink {
   0%, 92%, 100% { transform: scaleY(1); }
   95% { transform: scaleY(0.08); }

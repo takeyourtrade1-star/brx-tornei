@@ -4,10 +4,12 @@
    IsoRoomGame e i giochi.
    ========================================================================== */
 
-import StackAttackGame from "./StackAttackGame";
-import CardMemoryGame from "./CardMemoryGame";
-import TcgJumpGame from "./TcgJumpGame";
-import KakeguruiGame from "./KakeguruiGame";
+import { lazy } from "react";
+
+const StackAttackGame = lazy(() => import("./StackAttackGame"));
+const CardMemoryGame = lazy(() => import("./CardMemoryGame"));
+const TcgJumpGame = lazy(() => import("./TcgJumpGame"));
+const KakeguruiGame = lazy(() => import("./KakeguruiGame"));
 
 export const REGISTRY = {
   arcade1: StackAttackGame,

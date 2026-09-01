@@ -28,8 +28,9 @@
     try {
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const lowMem = navigator.deviceMemory && navigator.deviceMemory <= 4;
+      const lowCpu = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
       const saveData = navigator.connection && navigator.connection.saveData;
-      if (reduced || lowMem || saveData) return "low";
+      if (reduced || lowMem || lowCpu || saveData) return "low";
     } catch (e) {
       // fallback sicuro
     }
@@ -64,7 +65,12 @@
 
     return {
       // rendering fisico
-      dpr: low ? 1 : Math.min(dprBase, 2),
+      // In modalita leggera il canvas viene renderizzato sotto la risoluzione CSS
+      // e poi ingrandito dal browser: sulla pixel-art resta leggibile e dimezza
+      // abbondantemente i pixel da comporre a ogni frame.
+      dpr: low ? Math.max(0.5, Math.min(dprBase, 0.75)) : Math.min(dprBase, 2),
+      targetFps: low ? 30 : 60,
+      uiTickMs: low ? 250 : 100,
 
       // effetti canvas pesanti
       particles: !low,      // cuori, zzz, note, scintille generiche

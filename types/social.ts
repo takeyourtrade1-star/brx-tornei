@@ -56,6 +56,9 @@ export interface FriendSummary {
   ebartexUsername?: string | null;
 }
 
+/** Dati minimi serializzabili verso la Sala Piazza per il rendering degli avatar. */
+export type SocialRoomFriendPresence = Pick<FriendSummary, 'gamertag' | 'avatarId' | 'presence'>;
+
 /** Duellante recente dalla reputazione, per l'aggiunta rapida in tab Amici. */
 export interface RecentOpponent {
   gamertag: string;

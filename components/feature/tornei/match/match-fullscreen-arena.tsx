@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { MessageSquare, Minimize2 } from 'lucide-react';
 import { getPlaymat, type PlaymatId } from '@/lib/playmats';
@@ -9,7 +9,6 @@ import { MatchLifeBadge } from './match-life-badge';
 import { MatchMediaButton } from './match-media-button';
 import { MatchWebcamDisconnectOverlay } from './match-live-parts';
 import { WebcamTile } from './webcam-tile';
-
 interface MatchFullscreenArenaProps {
   open: boolean;
   localStream?: MediaStream | null;
@@ -33,6 +32,7 @@ interface MatchFullscreenArenaProps {
   lifeConnected: boolean;
   playmatId: PlaymatId;
   chat: MatchCompactChatProps;
+  judge?: ReactNode;
   onToggleCam: () => void;
   onToggleMic: () => void;
   onToggleOpponentMute?: () => void;
@@ -43,14 +43,13 @@ interface MatchFullscreenArenaProps {
   onRetryPeer?: () => void;
   onClose: () => void;
 }
-
 export function MatchFullscreenArena({
   open, localStream, remoteStream, localUsername, remoteUsername,
   localPlayerId, remotePlayerId, localFeedLabel, connecting = false,
   peerReconnecting = false, graceRemaining = null,
   remoteEmptyLabel, camOn, micOn, opponentMuted = false,
   mirroredLocal = false, mirroredRemote = false, startingLife,
-  lifeByPlayerId, lifeConnected, playmatId, chat, onToggleCam,
+  lifeByPlayerId, lifeConnected, playmatId, chat, judge, onToggleCam,
   onToggleMic, onToggleOpponentMute, onToggleMirrorLocal,
   onToggleMirrorRemote, onLifeChange, onLifeReset, onRetryPeer, onClose,
 }: MatchFullscreenArenaProps) {
@@ -58,7 +57,6 @@ export function MatchFullscreenArena({
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const dialogRef = useRef<HTMLElement | null>(null);
   const playmat = getPlaymat(playmatId);
-
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!open) return;
@@ -76,7 +74,7 @@ export function MatchFullscreenArena({
       element.setAttribute('inert', '');
     });
     const focusable = () => Array.from(
-      dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])') ?? [],
+      dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled])') ?? [],
     );
     focusable()[0]?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
@@ -111,9 +109,7 @@ export function MatchFullscreenArena({
       previousFocus?.focus();
     };
   }, [open, onClose]);
-
   if (!open || !mounted) return null;
-
   return createPortal(
     <section
       ref={dialogRef}
@@ -156,7 +152,6 @@ export function MatchFullscreenArena({
           </button>
         </div>
       </div>
-
       <div className="relative z-10 grid h-full min-h-0 grid-cols-1 gap-3 px-3 pb-24 pt-20 sm:px-6 sm:pt-24 md:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] md:gap-5">
         {/* Fuori dall'overlay della webcam: sul desktop la chat occupa una vera
             colonna laterale, allineata verticalmente all'area video. */}
@@ -190,13 +185,11 @@ export function MatchFullscreenArena({
           </div>
         </div>
       </div>
-
       {mobileChatOpen && (
         <aside id="match-fullscreen-mobile-chat" className="absolute inset-x-3 bottom-24 z-50 md:hidden" aria-label="Chat della partita">
           <MatchCompactChat {...chat} />
         </aside>
       )}
-
       {/* La tua preview e i tuoi punti vita (interattivi) in basso a destra. */}
       <div className="absolute bottom-5 right-4 z-40 flex items-end gap-2">
         <div className="min-w-0">
@@ -232,7 +225,6 @@ export function MatchFullscreenArena({
           </div>
         </div>
       </div>
-
       {/* Punti vita dell'avversario al centro, sotto il suo riquadro video principale. */}
       <div className="absolute bottom-5 left-1/2 z-40 -translate-x-1/2">
         <MatchLifeBadge
@@ -245,6 +237,7 @@ export function MatchFullscreenArena({
           onChange={onLifeChange}
         />
       </div>
+      {judge}
     </section>,
     document.body,
   );

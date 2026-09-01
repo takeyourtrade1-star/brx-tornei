@@ -15,7 +15,9 @@ import { publicConfig } from '@/lib/public-config';
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
 import type { ConnectionQuality, Participant, Tournament } from '@/types/tournament';
+import { useMatchJudge } from '@/hooks/use-match-judge';
 import { MatchCommentsPanel } from './match-comments-panel';
+import { MatchJudge } from './match-judge';
 import { MatchEndFeedback } from './match-end-feedback';
 import { MatchFullscreenArena } from './match-fullscreen-arena';
 import { MatchGapPeerReview } from './match-gap-peer-review';
@@ -69,6 +71,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
     peerReconnecting, peerConnecting, retryPeer, ready, leave, declareResult, exit, chat,
     life, startCountdown, sticker, gapProtection,
   } = props;
+  const judgeController = useMatchJudge(tournament.matchId, tournament.judge?.status);
   const participantNames = Object.fromEntries(
     tournament.participants.map((participant) => [participant.id, participant.username]),
   );
@@ -92,6 +95,18 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
   const resultScore = winnerScore !== undefined && loserScore !== undefined
     ? `${winnerScore} – ${loserScore}`
     : undefined;
+  const fullscreenActive = fullscreenOpen && !matchEnded;
+  const judgePanel = isPlayer && tournament.matchId ? (
+    <MatchJudge
+      matchId={tournament.matchId}
+      userId={userId}
+      participantNames={participantNames}
+      judge={tournament.judge}
+      matchEnded={matchEnded}
+      controller={judgeController}
+      fullscreen={fullscreenActive}
+    />
+  ) : null;
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-content-2xl flex-1 flex-col overflow-y-auto px-4 py-3 sm:px-6">
@@ -206,6 +221,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
           </div>
         </div>
       )}
+      {!fullscreenActive && judgePanel}
       <MatchFullscreenArena
         open={fullscreenOpen && !matchEnded} localStream={localStream} remoteStream={remoteStream}
         localUsername={local.username} remoteUsername={remote.username}
@@ -217,6 +233,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         startingLife={life.startingLife} lifeByPlayerId={life.lifeByPlayerId}
         lifeConnected={chat.connectionState === 'connected' && life.synced}
         playmatId={defaultPlaymatId} chat={chatPanelProps}
+        judge={fullscreenActive ? judgePanel : null}
         onToggleCam={() => setCamOn((value) => !value)}
         onToggleMic={() => setMicOn((value) => !value)}
         onToggleOpponentMute={() => setOpponentMuted((v) => !v)}

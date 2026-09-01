@@ -9,10 +9,16 @@ import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { Tournament } from '@/types/tournament';
 import type { Deck } from '@/types/deck';
 import type { LobbyTable } from '@/lib/lobby';
-import {
-  ArcadeOfficialModal,
-  type ArcadeOfficialSurface,
-} from './arcade-official-modal';
+import type { SocialRoomFriendPresence } from '@/types/social';
+import type { ArcadeOfficialSurface } from './arcade-official-modal';
+
+const ArcadeOfficialModal = dynamic(
+  () =>
+    import('./arcade-official-modal').then(
+      (module) => module.ArcadeOfficialModal,
+    ),
+  { ssr: false },
+);
 
 const IsoRoomGame = dynamic(() => import('@/minigioco-test/IsoRoomGame'), {
   ssr: false,
@@ -29,6 +35,7 @@ interface ArcadeRoomLauncherProps {
   tournaments: Tournament[];
   tables: LobbyTable[];
   initialDecks: Deck[];
+  initialFriends: SocialRoomFriendPresence[];
   gamertag: string;
   formatId: FormatFilter;
   formatName: string;
@@ -54,6 +61,7 @@ export function ArcadeRoomLauncher({
   tournaments,
   tables,
   initialDecks,
+  initialFriends,
   gamertag,
   formatId,
   formatName,
@@ -102,7 +110,7 @@ export function ArcadeRoomLauncher({
 
   return (
     <div
-      className="fixed inset-0 z-[70] bg-slate-950/95 p-2 sm:p-4"
+      className="fixed inset-0 z-[70] bg-slate-950 p-2 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Sala Arcade secondaria"
@@ -120,6 +128,7 @@ export function ArcadeRoomLauncher({
         <IsoRoomGame
           roomName={`Sala Tornei · ${formatName}`}
           username={gamertag}
+          initialFriends={initialFriends}
           tournaments={tournaments}
           integrationMode="site"
           onOpenTournaments={handleOpenTournaments}
@@ -128,21 +137,23 @@ export function ArcadeRoomLauncher({
           onExitToSimple={onClose}
         />
       </div>
-      <ArcadeOfficialModal
-        surface={officialSurface}
-        onClose={handleCloseOfficialSurface}
-        tables={tables}
-        initialDecks={initialDecks}
-        formatName={formatName}
-        modeName={modeName}
-        busy={busy}
-        error={error}
-        createLocked={createLocked}
-        onSit={onSit}
-        onOpen={onOpen}
-        onLeave={onLeave}
-        onGoLive={onGoLive}
-      />
+      {officialSurface ? (
+        <ArcadeOfficialModal
+          surface={officialSurface}
+          onClose={handleCloseOfficialSurface}
+          tables={tables}
+          initialDecks={initialDecks}
+          formatName={formatName}
+          modeName={modeName}
+          busy={busy}
+          error={error}
+          createLocked={createLocked}
+          onSit={onSit}
+          onOpen={onOpen}
+          onLeave={onLeave}
+          onGoLive={onGoLive}
+        />
+      ) : null}
     </div>
   );
 }

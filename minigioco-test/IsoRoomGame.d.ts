@@ -1,10 +1,12 @@
 import React from 'react';
 import type { Tournament } from '@/types/tournament';
+import type { SocialRoomFriendPresence } from '@/types/social';
 
 export interface IsoRoomGameProps {
   roomName?: string;
   username?: string;
   tournaments?: Tournament[];
+  initialFriends?: SocialRoomFriendPresence[];
   /** Apre il mirror ufficiale dei tavoli correnti. */
   onOpenTournaments?: () => void;
   /** Apre direttamente il flusso ufficiale di creazione tavolo. */

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getCspNonce } from "../csp-nonce";
+import { getFxFlags } from "../quality-config";
 
 /* ============================================================================
    Card Memory — abbina le coppie di sigilli prima che scada il tempo.
@@ -57,7 +58,7 @@ function shuffle(a) {
   return a;
 }
 
-export default function CardMemoryGame({ onExit, onResult }) {
+export default function CardMemoryGame({ onExit, onResult, quality = "high" }) {
   const [phase, setPhase] = useState("ready"); // ready|playing|win|lose|complete
   const [level, setLevel] = useState(0);
   const [cards, setCards] = useState([]);
@@ -68,6 +69,7 @@ export default function CardMemoryGame({ onExit, onResult }) {
   const lock = useRef(false);
   const endRef = useRef(0);
   const scoreRef = useRef(0);
+  const deadlineHandledRef = useRef(false);
 
   const startLevel = (lv) => {
     setCards(makeDeck(lv));
@@ -76,26 +78,36 @@ export default function CardMemoryGame({ onExit, onResult }) {
     setMoves(0);
     setTime(LEVELS[lv].time);
     endRef.current = performance.now() + LEVELS[lv].time * 1000;
+    deadlineHandledRef.current = false;
     setLevel(lv);
     setPhase("playing");
   };
 
   const startGame = () => { scoreRef.current = 0; setScore(0); startLevel(0); };
 
-  /* timer fluido via rAF mentre si gioca */
+  /* Il timer non richiede un render React per ogni frame: 4-10 aggiornamenti al
+     secondo mantengono barra e testo fluidi senza ridisegnare tutte le carte. */
   useEffect(() => {
     if (phase !== "playing") return;
-    let raf = 0;
+    const tickMs = getFxFlags(quality).uiTickMs;
     const tick = () => {
+      if (document.hidden) return;
       const left = Math.max(0, (endRef.current - performance.now()) / 1000);
       setTime(left);
       if (left <= 0) { loseLevel(); return; }
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    tick();
+    const timer = window.setInterval(tick, tickMs);
+    const deadline = window.setTimeout(
+      loseLevel,
+      Math.max(0, endRef.current - performance.now()),
+    );
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(deadline);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, level]);
+  }, [phase, level, quality]);
 
   /* ESC esce */
   useEffect(() => {
@@ -108,12 +120,15 @@ export default function CardMemoryGame({ onExit, onResult }) {
   }, []);
 
   const loseLevel = () => {
+    if (deadlineHandledRef.current) return;
+    deadlineHandledRef.current = true;
     if (onResult) onResult({ game: "cardMemory", score: scoreRef.current, level: level + 1 });
     setPhase("lose");
   };
 
   const clickCard = (id) => {
     if (lock.current || phase !== "playing") return;
+    if (performance.now() >= endRef.current) { loseLevel(); return; }
     const card = cards.find((c) => c.id === id);
     if (!card || card.flipped || card.matched) return;
     const next = cards.map((c) => (c.id === id ? { ...c, flipped: true } : c));
@@ -286,4 +301,7 @@ const MEM_CSS = `
 .mem-card.mem-matched .mem-sig{color:#b6ff9c;filter:drop-shadow(0 0 6px rgba(57,255,20,.8));}
 @keyframes memMatch{0%{transform:rotateY(180deg) scale(1)}50%{transform:rotateY(180deg) scale(1.13)}100%{transform:rotateY(180deg) scale(1)}}
 .mem-card:hover:not(.mem-up) .mem-back{border-color:#d77bff;box-shadow:inset 0 0 16px rgba(176,38,255,.5);transform:translateY(-2px);transition:transform .12s;}
+.irg-quality-low .mem-timefill,.irg-quality-low .mem-front,.irg-quality-low .mem-card.mem-matched .mem-front{box-shadow:none;}
+.irg-quality-low .mem-sig,.irg-quality-low .mem-card.mem-matched .mem-sig{filter:none;}
+.irg-quality-low .mem-card.mem-matched .mem-front{animation:none;}
 `;

@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { getFxFlags } from "../quality-config";
+import { createFrameLimiter } from "../frame-limiter";
 
 /* ============================================================================
    game-kit — utilità condivise dai minigiochi della Sala Arcade.
@@ -34,7 +36,7 @@ export function rr(ctx, x, y, w, h, r) {
  * px logici (il contesto è già scalato per il devicePixelRatio).
  * `getOnFrame` permette di leggere sempre l'ultima closure senza riavviare.
  */
-export function useArcadeCanvas(canvasRef, wrapRef, onFrame) {
+export function useArcadeCanvas(canvasRef, wrapRef, onFrame, { quality = "high" } = {}) {
   const frameRef = useRef(onFrame);
   frameRef.current = onFrame;
 
@@ -43,13 +45,15 @@ export function useArcadeCanvas(canvasRef, wrapRef, onFrame) {
     const wrap = wrapRef.current;
     if (!canvas || !wrap) return;
     const ctx = canvas.getContext("2d");
+    const perf = getFxFlags(quality);
+    const frameLimiter = createFrameLimiter(perf.targetFps);
     let raf = 0;
-    let last = performance.now();
     let W = 1, H = 1, dpr = 1;
     let alive = true;
 
     const resize = () => {
-      dpr = Math.min(2, window.devicePixelRatio || 1);
+      // Ricalcola il DPR anche dopo zoom o spostamento su un altro monitor.
+      dpr = getFxFlags(quality).dpr;
       W = Math.max(1, wrap.clientWidth);
       H = Math.max(1, wrap.clientHeight);
       canvas.width = Math.round(W * dpr);
@@ -70,8 +74,12 @@ export function useArcadeCanvas(canvasRef, wrapRef, onFrame) {
     const loop = (ts) => {
       if (!alive) return;
       raf = requestAnimationFrame(loop);
-      const dt = Math.min(0.05, (ts - last) / 1000);
-      last = ts;
+      if (document.hidden) {
+        frameLimiter.pause(ts);
+        return;
+      }
+      const dt = frameLimiter.consume(ts);
+      if (dt === null) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       try {
         frameRef.current(ctx, W, H, dt);
@@ -88,7 +96,7 @@ export function useArcadeCanvas(canvasRef, wrapRef, onFrame) {
       else window.removeEventListener("resize", resize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [quality]);
 }
 
 /* CSS del telaio comune ai minigiochi (classi .ag-*). Iniettato una volta. */
@@ -126,4 +134,9 @@ export const SHELL_CSS = `
 .ag-btn:active{transform:translateY(0) scale(.97);}
 .ag-btn.ag-ghost{background:transparent;color:#eaf2ff;border:1px solid rgba(255,255,255,.3);box-shadow:none;}
 .ag-hintbar{text-align:center;font-size:7px;letter-spacing:.5px;color:#7c87ad;padding:0 16px 12px;}
+.irg-quality-low .ag-root{animation:none;}
+.irg-quality-low .ag-stage canvas{image-rendering:pixelated;}
+.irg-quality-low .ag-stage{box-shadow:inset 0 0 18px rgba(0,0,0,.45);}
+.irg-quality-low .ag-over{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(5,5,14,.94);animation:none;}
+.irg-quality-low .ag-btn{box-shadow:none;}
 `;

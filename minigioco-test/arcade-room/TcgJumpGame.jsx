@@ -65,7 +65,7 @@ const LEVELS = [
   },
 ];
 
-export default function TcgJumpGame({ onExit, onResult }) {
+export default function TcgJumpGame({ onExit, onResult, quality = "high" }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const G = useRef(null);
@@ -145,7 +145,6 @@ export default function TcgJumpGame({ onExit, onResult }) {
     g.camX = clamp(g.p.x - viewW * 0.42, 0, Math.max(0, L.w - viewW));
 
     // ---- render ----
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     const sky = ctx.createLinearGradient(0, 0, 0, h);
     sky.addColorStop(0, L.sky[0]); sky.addColorStop(1, L.sky[1]);
     ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
@@ -210,7 +209,7 @@ export default function TcgJumpGame({ onExit, onResult }) {
     drawPlayer(ctx, g.p, g.t);
 
     ctx.restore();
-  });
+  }, { quality });
 
   const touch = (k, v) => (e) => { e.preventDefault(); keys.current[k] = v; if (k === "jump" && v && phaseRef.current !== "playing") startGame(); };
 

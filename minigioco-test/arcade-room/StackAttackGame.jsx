@@ -25,7 +25,7 @@ function blockColor(i) {
   };
 }
 
-export default function StackAttackGame({ onExit, onResult }) {
+export default function StackAttackGame({ onExit, onResult, quality = "high" }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const G = useRef(null);
@@ -236,10 +236,11 @@ export default function StackAttackGame({ onExit, onResult }) {
       ctx.fillText(`COMBO x${g.combo}`, w / 2, 34);
       ctx.textAlign = "left";
     }
-  });
+  }, { quality });
 
   // monta: niente auto-start, parte dalla schermata "ready"
-  useEffect(() => { reset(); /* eslint-disable-next-line */ }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { reset(); }, []);
 
   return (
     <div className="ag-root" style={{ "--accent": ACCENT }}>
