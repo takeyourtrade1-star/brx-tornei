@@ -100,6 +100,7 @@ export function SocialRoom({
 }: SocialRoomProps): React.JSX.Element {
   const room = useSocialRoomPresence({ roomId, gamertag, avatarId, initialFriends, enabled });
   const sendMove = room.sendMove;
+  const closeRoom = room.close;
   const selfPosition = room.self.position;
   const [draft, setDraft] = useState("");
 
@@ -108,7 +109,7 @@ export function SocialRoom({
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       if (event.key === "Escape") {
         event.preventDefault();
-        room.close();
+        closeRoom();
         onExit?.();
         return;
       }
@@ -128,7 +129,7 @@ export function SocialRoom({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onExit, room.close, sendMove, selfPosition.x, selfPosition.y]);
+  }, [closeRoom, onExit, sendMove, selfPosition.x, selfPosition.y]);
 
   const onFloorClick = (event: MouseEvent<HTMLDivElement>): void => {
     const position = moveFromClick(event);

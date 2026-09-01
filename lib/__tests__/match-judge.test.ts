@@ -84,4 +84,15 @@ describe('Judge UI senza coda ottimistica', () => {
     expect(hook).not.toContain('setDraft(cleanQuestion)');
     expect(action).toContain('JUDGE_BUSY');
   });
+
+  it('intercetta Esc prima del contenitore fullscreen', () => {
+    const panel = readFileSync(
+      join(ROOT, 'components/feature/tornei/match/match-judge.tsx'),
+      'utf8',
+    );
+
+    expect(panel).toContain("event.stopPropagation();\n      close();");
+    expect(panel).toContain("window.addEventListener('keydown', onKeyDown, true)");
+    expect(panel).toContain("window.removeEventListener('keydown', onKeyDown, true)");
+  });
 });
