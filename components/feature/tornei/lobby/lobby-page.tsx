@@ -331,7 +331,7 @@ export function LobbyPage({
       setError(null);
       startTransition(async () => {
         if (modal.mode === 'create') {
-          const res = await createTableAction(selection.format, selection.mode, deckId);
+          const res = await createTableAction(selection.format, selection.mode);
           if (res.error || !res.createdId) {
             setError(res.error ?? 'Impossibile creare il tavolo.');
             return;
