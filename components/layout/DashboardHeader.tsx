@@ -48,7 +48,7 @@ export function DashboardHeader({
   reputation,
   initialNotifications,
 }: DashboardHeaderProps) {
-  const shownName = displayName ?? user.name ?? user.username ?? user.email;
+  const shownName = displayName ?? user.name ?? user.email;
   const [profileOpen, setProfileOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [publicProfileTarget, setPublicProfileTarget] = useState<string | null>(null);
@@ -211,8 +211,8 @@ export function DashboardHeader({
           </div>
         </div>
 
-        <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} gamertag={shownName} ebartexUsername={user.username} initialReputation={currentReputation} />
-        <FriendsDrawer open={friendsOpen} onClose={() => setFriendsOpen(false)} onOpenProfile={setPublicProfileTarget} onChallenge={setChallengeTarget} myGamertag={shownName} myEbartexUsername={user.username} />
+        <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} gamertag={shownName} initialReputation={currentReputation} />
+        <FriendsDrawer open={friendsOpen} onClose={() => setFriendsOpen(false)} onOpenProfile={setPublicProfileTarget} onChallenge={setChallengeTarget} myGamertag={shownName} />
         <PublicProfileModal gamertag={publicProfileTarget} open={Boolean(publicProfileTarget)} onClose={() => setPublicProfileTarget(null)} onChallenge={setChallengeTarget} />
         <DirectChallengeModal targetGamertag={challengeTarget} open={Boolean(challengeTarget)} onClose={() => setChallengeTarget(null)} />
         <IncomingChallengeToast />

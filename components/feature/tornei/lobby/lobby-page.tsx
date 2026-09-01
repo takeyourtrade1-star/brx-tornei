@@ -422,7 +422,7 @@ export function LobbyPage({
 
       <TableSeatModal
         open={modal !== null}
-        mode={modal?.mode ?? 'host'}
+        mode={modal?.mode === 'create' ? 'join' : (modal?.mode ?? 'host')}
         formatId={modalFormatId}
         formatName={formatName}
         myUsername={myUsername}
