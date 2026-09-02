@@ -84,4 +84,48 @@ describe('coordinamento realtime del tavolo', () => {
     expect(merged.matchId).toBe('match-1');
     expect(merged.participants).toEqual([]);
   });
+
+  it('ignora un hint più vecchio dello snapshot RSC già ricevuto', () => {
+    const snapshot = {
+      ...baseTournament(),
+      phaseVersion: '2026-08-17T10:00:06.000Z',
+      phase: 'starting' as const,
+      startsAt: '2026-08-17T10:00:11.000Z',
+      matchId: 'match-1',
+    };
+    const staleHint = parseTournamentRealtimeHint(
+      {
+        event: 'tournament-state-changed',
+        tournament_id: tournamentId,
+        phase: 'accepting',
+        phase_version: '2026-08-17T10:00:00.000Z',
+        acceptance_opens_at: '2026-08-17T10:00:02.000Z',
+        ready_deadline: '2026-08-17T10:00:32.000Z',
+        server_time: '2026-08-17T10:00:00.000Z',
+        participants: [],
+      },
+      tournamentId,
+    );
+
+    expect(mergeTournamentWithHint(snapshot, staleHint ?? undefined)).toBe(snapshot);
+  });
+
+  it('applica comunque un hint senza versione su snapshot con versione', () => {
+    const snapshot = { ...baseTournament(), phaseVersion: '2026-08-17T10:00:06.000Z' };
+    const hint = parseTournamentRealtimeHint(
+      {
+        event: 'tournament-state-changed',
+        tournament_id: tournamentId,
+        phase: 'starting',
+        starts_at: '2026-08-17T10:00:11.000Z',
+        server_time: '2026-08-17T10:00:06.000Z',
+        participants: [],
+      },
+      tournamentId,
+    );
+
+    const merged = mergeTournamentWithHint(snapshot, hint ?? undefined);
+    expect(merged.phase).toBe('starting');
+    expect(merged.startsAt).toBe('2026-08-17T10:00:11.000Z');
+  });
 });

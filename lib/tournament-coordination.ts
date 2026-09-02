@@ -116,6 +116,18 @@ export function mergeTournamentWithHint(
   hint: TournamentRealtimeHint | undefined,
 ): Tournament {
   if (!hint || hint.tournamentId !== tournament.id) return tournament;
+  // PostgreSQL resta autorevole: con uno snapshot RSC più recente dell'evento
+  // (WS assente, evento perso) l'hint stantio non deve far regredire la
+  // timeline di fase né le deadline condivise.
+  const snapshotVersion = Date.parse(tournament.phaseVersion ?? '');
+  const hintVersion = Date.parse(hint.phaseVersion ?? '');
+  if (
+    Number.isFinite(snapshotVersion) &&
+    Number.isFinite(hintVersion) &&
+    hintVersion < snapshotVersion
+  ) {
+    return tournament;
+  }
   const currentById = new Map(tournament.participants.map((participant) => [participant.id, participant]));
   const participants = hint.participants
     ? hint.participants.map((participant) => ({
