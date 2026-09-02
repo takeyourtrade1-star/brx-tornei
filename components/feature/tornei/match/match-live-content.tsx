@@ -16,6 +16,7 @@ import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
 import type { ConnectionQuality, Participant, Tournament } from '@/types/tournament';
 import { useMatchJudge } from '@/hooks/use-match-judge';
+import { useMatchJudgeActivity } from '@/hooks/use-match-judge-activity';
 import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchJudge } from './match-judge';
 import { MatchEndFeedback } from './match-end-feedback';
@@ -24,11 +25,7 @@ import { MatchGapPeerReview } from './match-gap-peer-review';
 import { MatchGapProtectionNotice } from './match-gap-protection-notice';
 import { MatchIntroOverlay } from './match-intro-overlay';
 import { MatchLiveHeader } from './match-live-header';
-import {
-  MatchDeclinedPanel,
-  MatchEndedPanel,
-  MatchErrorNotice,
-} from './match-live-notices';
+import { MatchDeclinedPanel, MatchEndedPanel, MatchErrorNotice } from './match-live-notices';
 import { reconnectingLabel } from './match-live-parts';
 import { MatchReadyPanel } from './match-ready-panel';
 import { MatchResultPendingPanel } from './match-result-pending';
@@ -72,6 +69,12 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
     life, startCountdown, sticker, gapProtection,
   } = props;
   const judgeController = useMatchJudge(tournament.matchId, tournament.judge?.status);
+  const judgeActivity = useMatchJudgeActivity({
+    userId, opponentId: remote.id, opponentName: remote.username,
+    messages: chat.messages, send: chat.send,
+    draft: judgeController.draft, pending: judgeController.pending,
+    judgeStatus: tournament.judge?.status,
+  });
   const participantNames = Object.fromEntries(
     tournament.participants.map((participant) => [participant.id, participant.username]),
   );
@@ -92,19 +95,13 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
   const loserId = winnerId ? players.find((player) => player.id !== winnerId)?.id : undefined;
   const winnerScore = winnerId ? tournament.scoreByPlayerId?.[winnerId] : undefined;
   const loserScore = loserId ? tournament.scoreByPlayerId?.[loserId] : undefined;
-  const resultScore = winnerScore !== undefined && loserScore !== undefined
-    ? `${winnerScore} – ${loserScore}`
-    : undefined;
+  const resultScore = winnerScore !== undefined && loserScore !== undefined ? `${winnerScore} – ${loserScore}` : undefined;
   const fullscreenActive = fullscreenOpen && !matchEnded;
   const judgePanel = isPlayer && tournament.matchId ? (
     <MatchJudge
-      matchId={tournament.matchId}
-      userId={userId}
-      participantNames={participantNames}
-      judge={tournament.judge}
-      matchEnded={matchEnded}
-      controller={judgeController}
-      fullscreen={fullscreenActive}
+      matchId={tournament.matchId} userId={userId} participantNames={participantNames}
+      judge={tournament.judge} matchEnded={matchEnded} controller={judgeController}
+      fullscreen={fullscreenActive} opponentActivity={judgeActivity}
     />
   ) : null;
 

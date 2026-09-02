@@ -2,20 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Swords } from 'lucide-react';
 import type { Participant } from '@/types/tournament';
 import {
   hasSeenMatchIntro,
   markMatchIntroSeen,
   pickStartingPlayer,
 } from '@/lib/match-starting-player';
-import { cn } from '@/lib/utils';
+import { MatchIntroCountdown } from './match-intro-countdown';
+import { MatchIntroCard } from './match-intro-card';
 
-type IntroPhase = 'countdown' | 'draw' | 'winner' | 'done';
+type IntroPhase = 'countdown' | 'shuffle' | 'reveal' | 'done';
 
-const DRAW_DURATION_MS = 1_200;
-const WINNER_DURATION_MS = 1_800;
-const CEREMONY_DURATION_MS = DRAW_DURATION_MS + WINNER_DURATION_MS;
+const SHUFFLE_DURATION_MS = 2_000;
+const REVEAL_DURATION_MS = 2_500;
+const CEREMONY_DURATION_MS = SHUFFLE_DURATION_MS + REVEAL_DURATION_MS;
 
 interface MatchIntroOverlayProps {
   active: boolean;
@@ -29,10 +29,10 @@ interface MatchIntroOverlayProps {
 }
 
 /**
- * Overlay di apertura della partita: countdown + sorteggio del primo
- * giocatore (deterministico sul matchId, identico su entrambi i client).
- * Tutte le fasi dopo il countdown sono ancorate a startsAtLocalMs: un client
- * che entra in ritardo raggiunge direttamente la fase corretta.
+ * Overlay di apertura della partita TCG: countdown iniziale con face-off tra
+ * giocatori, smazzamento e riffle shuffle 3D del mazzo per il sorteggio,
+ * e flip a 180° della carta olografica che svela chi inizia il turno 1.
+ * Deterministico sul matchId e sincronizzato al millisecondo tra i due client.
  */
 export function MatchIntroOverlay({
   active,
@@ -67,8 +67,7 @@ export function MatchIntroOverlay({
     notifiedForMatch.current = null;
   }, [matchId]);
 
-  // Un clock locale serve solo a ridisegnare una timeline già fissata dal
-  // server; non decide mai l'istante iniziale.
+  // Clock locale ancorato al serverTime/startsAtLocalMs.
   useEffect(() => {
     if (!active || startsAtLocalMs === null) return;
     setNow(Date.now());
@@ -80,13 +79,12 @@ export function MatchIntroOverlay({
   const phase = useMemo<IntroPhase>(() => {
     if (!active || !matchId || seen === null || seen || elapsedMs === null) return 'done';
     if (elapsedMs < 0) return 'countdown';
-    if (elapsedMs < DRAW_DURATION_MS) return 'draw';
-    if (elapsedMs < CEREMONY_DURATION_MS) return 'winner';
+    if (elapsedMs < SHUFFLE_DURATION_MS) return 'shuffle';
+    if (elapsedMs < CEREMONY_DURATION_MS) return 'reveal';
     return 'done';
   }, [active, elapsedMs, matchId, seen]);
 
-  // La chiusura è fissata alla stessa timeline, anche se il browser ha
-  // aperto la pagina dopo l'inizio della cerimonia.
+  // Chiusura ancorata all'istante startsAtLocalMs + durata cerimonia.
   useEffect(() => {
     if (!active || !matchId || seen === null) return;
     if (seen) {
@@ -110,87 +108,47 @@ export function MatchIntroOverlay({
 
   if (!mounted || phase === 'done') return null;
 
-  const drawIndex = phase === 'draw' && elapsedMs !== null
-    ? Math.floor(Math.max(0, elapsedMs) / 100) % 2
+  const drawIndex = phase === 'shuffle' && elapsedMs !== null
+    ? Math.floor(Math.max(0, elapsedMs) / 120) % 2
     : 0;
   const drawingName = stablePlayers[drawIndex]?.username ?? starter.username;
 
   return createPortal(
     <div className="fixed inset-0 z-[1300] grid place-items-center overflow-hidden bg-header-bg text-white">
-      {/* Fondale: glow radiale sobrio, senza tinta arancio piena */}
+      {/* Fondale: alone radiale con riflessi caldi Ebartex */}
       <div className="match-intro-radial absolute inset-0" aria-hidden />
       <div className="match-intro-grid absolute inset-0 opacity-25" aria-hidden />
 
-      {/* Particelle sobrie che fluttuano */}
+      {/* Particelle ed ember fluttuanti */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
           <span
             key={i}
-            className="intro-particle absolute block h-1 w-1 rounded-full bg-white/50"
+            className="intro-particle absolute block h-1.5 w-1.5 rounded-full bg-primary/60 shadow-[0_0_8px_rgba(255,115,0,0.8)]"
             style={{
-              left: `${12 + i * 10}%`,
-              top: `${18 + ((i * 13) % 60)}%`,
-              animationDelay: `${i * 0.4}s`,
-              animationDuration: `${3 + (i % 3) * 0.7}s`,
+              left: `${10 + i * 11}%`,
+              top: `${15 + ((i * 13) % 65)}%`,
+              animationDelay: `${i * 0.35}s`,
+              animationDuration: `${2.8 + (i % 3) * 0.6}s`,
             }}
           />
         ))}
       </div>
 
       <div
-        className="relative z-10 flex max-w-3xl flex-col items-center px-6 text-center"
+        className="relative z-10 flex w-full flex-col items-center justify-center py-6"
         role="status"
         aria-live="polite"
       >
-        {/* Emblema centrale */}
-        <div
-          className={cn(
-            'match-intro-emblem grid h-28 w-28 place-items-center rounded-full sm:h-36 sm:w-36',
-            'border border-white/15 bg-white/[0.04] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.7)]',
-            phase === 'winner' && 'ring-2 ring-inset ring-white/15',
-          )}
-        >
-          {phase === 'countdown' ? (
-            <span className="font-display text-6xl font-black tabular-nums text-white/95 sm:text-8xl">
-              {remainingSeconds}
-            </span>
-          ) : phase === 'winner' ? (
-            <Sparkles className="h-12 w-12 text-white/90 sm:h-16 sm:w-16" />
-          ) : (
-            <Swords className="h-12 w-12 text-white/90 sm:h-16 sm:w-16" />
-          )}
-        </div>
-
-        <p className="mt-8 text-[11px] font-black uppercase tracking-[0.35em] text-white/55 sm:text-xs">
-          {phase === 'countdown'
-            ? 'La partita sta per iniziare'
-            : phase === 'draw'
-              ? 'Sorteggio del primo giocatore'
-              : 'Tocca a'}
-        </p>
-
-        <h2
-          className={cn(
-            'mt-3 font-display text-4xl font-black uppercase leading-none tracking-tight text-white/95 sm:text-6xl',
-            phase === 'winner' ? 'match-intro-winner' : 'match-intro-title',
-          )}
-        >
-          {phase === 'countdown'
-            ? 'Preparate i mazzi'
-            : phase === 'draw'
-              ? drawingName
-              : starter.username}
-        </h2>
-
-        {phase === 'winner' && (
-          <p className="match-intro-winner mt-4 text-base font-black uppercase tracking-[0.25em] text-white/70 sm:text-lg">
-            inizia la partita
-          </p>
+        {phase === 'countdown' ? (
+          <MatchIntroCountdown players={stablePlayers} remainingSeconds={remainingSeconds} />
+        ) : (
+          <MatchIntroCard phase={phase} starter={starter} drawingName={drawingName} />
         )}
 
-        {/* Barra di progresso */}
-        <div className="mt-9 h-[3px] w-56 overflow-hidden rounded-full bg-white/[0.08]">
-          <div className="match-intro-progress h-full rounded-full bg-white/85" />
+        {/* Barra di progresso temporale in basso */}
+        <div className="mt-8 h-[3px] w-56 overflow-hidden rounded-full bg-white/[0.08]">
+          <div className="match-intro-progress h-full rounded-full bg-gradient-to-r from-primary to-amber-300" />
         </div>
       </div>
     </div>,

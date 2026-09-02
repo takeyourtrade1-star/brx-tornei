@@ -5,6 +5,7 @@ import { RefreshCw, Send, Shield } from 'lucide-react';
 import type { MatchChatConnectionState, MatchChatMessage } from '@/hooks/use-match-chat';
 import { isMatchLifeMessage } from '@/lib/match-life-protocol';
 import { isMatchStartMessage } from '@/lib/match-start-protocol';
+import { isMatchJudgeMessage } from '@/lib/match-judge-protocol';
 import {
   MATCH_STICKERS,
   STICKER_COOLDOWN_MS,
@@ -35,7 +36,13 @@ export function MatchCommentsPanel({
   const formId = useId();
   const [draft, setDraft] = useState('');
   const visibleMessages = useMemo(
-    () => messages.filter((m) => !isMatchLifeMessage(m.text) && !isMatchStartMessage(m.text)),
+    () =>
+      messages.filter(
+        (m) =>
+          !isMatchLifeMessage(m.text) &&
+          !isMatchStartMessage(m.text) &&
+          !isMatchJudgeMessage(m.text),
+      ),
     [messages],
   );
 

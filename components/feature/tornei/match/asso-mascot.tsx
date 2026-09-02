@@ -64,12 +64,28 @@ export function AssoMascot({
           ))}
         </g>
         {variant === 'judge' && (
-          <g className="asso-mascot-hammer">
-            <rect x="14" y="10" width="1" height="4" fill={ASSO_ACCENTS.hammerDark} />
-            <rect x="15" y="8" width="1" height="3" fill={ASSO_ACCENTS.hammer} />
-            <rect x="16" y="7" width="1" height="2" fill={ASSO_ACCENTS.hammerDark} />
-            <rect x="15" y="6" width="3" height="2" fill={ASSO_ACCENTS.hammer} />
-            <rect x="16" y="6" width="2" height="1" fill={ASSO_ACCENTS.sparkleGold} />
+          <g>
+            <g className="asso-mascot-hammer">
+              {/* Manico tornito in legno scuro */}
+              <rect x="14" y="11" width="1" height="5" fill="#5a310c" />
+              <rect x="15" y="10" width="1" height="4" fill="#9c5a24" />
+              {/* Testa del martelletto: testata sinistra, fusto in legno, anello d'oro, testata destra */}
+              <rect x="12" y="7" width="1" height="3" fill="#3a1c04" />
+              <rect x="13" y="6" width="2" height="4" fill="#7a4114" />
+              <rect x="15" y="6" width="1" height="4" fill={ASSO_ACCENTS.sparkleGold} />
+              <rect x="16" y="6" width="2" height="4" fill="#7a4114" />
+              <rect x="18" y="7" width="1" height="3" fill="#3a1c04" />
+              {/* Riflesso luce superiore sul fusto */}
+              <rect x="13" y="6" width="5" height="1" fill="#ffe2b8" opacity="0.8" />
+              {/* Ala di Asso che impugna il manico */}
+              <rect x="13" y="13" width="2" height="2" fill="#ef6c00" />
+            </g>
+            {/* Scintille / flash all'impatto del colpo */}
+            <g className="asso-gavel-impact">
+              <rect x="18" y="11" width="1" height="1" fill="#ffd24a" />
+              <rect x="17" y="13" width="1" height="1" fill="#ffb066" />
+              <rect x="16" y="15" width="1" height="1" fill="#ffd24a" />
+            </g>
           </g>
         )}
       </svg>

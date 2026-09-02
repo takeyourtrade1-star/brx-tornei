@@ -5,6 +5,7 @@ import { RefreshCw, Send, Shield } from 'lucide-react';
 import type { MatchChatConnectionState, MatchChatMessage } from '@/hooks/use-match-chat';
 import { isMatchLifeMessage } from '@/lib/match-life-protocol';
 import { isMatchStartMessage } from '@/lib/match-start-protocol';
+import { isMatchJudgeMessage } from '@/lib/match-judge-protocol';
 import { MATCH_STICKERS, stickerFromText, stickerToText } from './match-stickers';
 import { MatchStickerIcon } from './match-sticker-icons';
 
@@ -34,7 +35,13 @@ export function MatchCompactChat({
   const inputId = useId();
   const [draft, setDraft] = useState('');
   const visibleMessages = useMemo(
-    () => messages.filter((message) => !isMatchLifeMessage(message.text) && !isMatchStartMessage(message.text)),
+    () =>
+      messages.filter(
+        (message) =>
+          !isMatchLifeMessage(message.text) &&
+          !isMatchStartMessage(message.text) &&
+          !isMatchJudgeMessage(message.text),
+      ),
     [messages],
   );
   const lastMessage = visibleMessages.at(-1);

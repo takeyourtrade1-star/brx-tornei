@@ -12,10 +12,11 @@ interface MatchExitFlowOptions {
   tableFull: boolean;
   matchEnded: boolean;
   resultClaimPending: boolean;
+  matchId?: string | null;
 }
 
 export function useMatchExitFlow(options: MatchExitFlowOptions) {
-  const { tournamentId, tournamentStatus, tableFull, matchEnded, resultClaimPending } = options;
+  const { tournamentId, tournamentStatus, tableFull, matchEnded, resultClaimPending, matchId } = options;
   const router = useRouter();
   const [opponentDeclined, setOpponentDeclined] = useState(false);
   const [exitFired, setExitFired] = useState(false);
@@ -44,9 +45,9 @@ export function useMatchExitFlow(options: MatchExitFlowOptions) {
   useEffect(() => {
     const wasFull = wasFullRef.current;
     wasFullRef.current = tableFull;
-    if (tournamentStatus !== 'in_registrazione' || matchEnded || resultClaimPending) return;
+    if (tournamentStatus !== 'in_registrazione' || matchEnded || resultClaimPending || Boolean(matchId)) return;
     if (wasFull && !tableFull) setOpponentDeclined(true);
-  }, [matchEnded, resultClaimPending, tableFull, tournamentStatus]);
+  }, [matchEnded, matchId, resultClaimPending, tableFull, tournamentStatus]);
 
   useEffect(() => {
     if (!opponentDeclined) return;

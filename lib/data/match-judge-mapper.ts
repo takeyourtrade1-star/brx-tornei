@@ -81,14 +81,19 @@ export function mapMatchJudgeTurn(raw: unknown, index = 0): MatchJudgeTurn | nul
     askedByUserId: pickString(obj, 'asked_by_user_id', 'askedByUserId') ?? '',
     question: question.slice(0, 1000),
     status: mapTurnStatus(obj.status),
-    reply: pickString(obj, 'reply')?.slice(0, 8000),
+    reply: (
+      pickString(obj, 'reply', 'error', 'message', 'detail', 'reason') ??
+      pickString(structured, 'reply', 'error', 'message', 'detail', 'reason')
+    )?.slice(0, 8000),
     kind,
     verdict: pickString(obj, 'verdict') ?? pickString(structured, 'verdict'),
     steps,
     ruleRefs,
     rulesVersion: pickString(obj, 'rules_version', 'rulesVersion') ??
       pickString(structured, 'rules_version', 'rulesVersion'),
-    errorCode: pickString(obj, 'error_code', 'errorCode'),
+    errorCode:
+      pickString(obj, 'error_code', 'errorCode', 'code') ??
+      pickString(structured, 'error_code', 'errorCode', 'code'),
     createdAt: pickString(obj, 'created_at', 'createdAt') ?? '',
     completedAt: pickString(obj, 'completed_at', 'completedAt'),
   };

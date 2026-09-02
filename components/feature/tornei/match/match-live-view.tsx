@@ -142,6 +142,7 @@ export function MatchLiveView({
     tableFull: ready.tableFull,
     matchEnded,
     resultClaimPending,
+    matchId: tournament.matchId,
   });
   const sticker = useMatchStickerShot();
   const chat = useMatchChat({

@@ -296,12 +296,13 @@ export function LobbyPage({
       if (res.tournament) setActionTournament(res.tournament);
       if (res.matchId) {
         // Match già creato: si va direct alla schermata live (webcam).
+        setApprovalPhase(null);
         goLiveTo(targetId);
         return;
       }
       router.refresh();
     });
-  }, [approvalDeckId, approvalTarget, router, goLiveTo]);
+  }, [approvalDeckId, approvalTarget, router, goLiveTo, setApprovalPhase]);
 
   // Uscita dal tavolo senza confirm: rifiuto o timeout dell'accettazione.
   // L'id viene dallo stato persistente anche in fase "declined".

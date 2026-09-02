@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useRef, type FormEvent } from 'react';
-import { ChevronRight, CircleHelp, LoaderCircle, X } from 'lucide-react';
+import { CircleHelp, LoaderCircle, X } from 'lucide-react';
 import type { MatchJudgeState } from '@/types/tournament';
 import type { MatchJudgeController } from '@/hooks/use-match-judge';
+import type { MatchJudgeActivityState } from '@/hooks/use-match-judge-activity';
 import { AssoMascot } from './asso-mascot';
+import { MatchJudgeButton } from './match-judge-button';
 import { MatchJudgeTranscript } from './match-judge-transcript';
+import { cn } from '@/lib/utils';
 
 interface MatchJudgeProps {
   matchId: string;
@@ -15,6 +18,7 @@ interface MatchJudgeProps {
   matchEnded: boolean;
   controller: MatchJudgeController;
   fullscreen?: boolean;
+  opponentActivity?: MatchJudgeActivityState;
 }
 
 /** Helper e drawer del Judge: una sola composizione, riusata anche in fullscreen. */
@@ -26,6 +30,7 @@ export function MatchJudge({
   matchEnded,
   controller,
   fullscreen = false,
+  opponentActivity,
 }: MatchJudgeProps) {
   const {
     isOpen,
@@ -73,23 +78,14 @@ export function MatchJudge({
   const layer = fullscreen ? 'z-[1350]' : 'z-[100]';
   return (
     <>
-      <button
-        type="button"
-        onClick={open}
-        aria-expanded={isOpen}
-        aria-controls={titleId}
-        aria-label="Apri la chat del Judge"
-        className={`fixed ${fullscreen ? 'right-4 top-24' : 'right-4 top-1/2'} ${layer} inline-flex -translate-y-1/2 items-center gap-2 rounded-2xl border border-amber-300/40 bg-header-bg/95 px-2 py-2 text-white shadow-xl shadow-black/40 backdrop-blur-md transition hover:-translate-y-[calc(50%+2px)] hover:border-amber-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-5`}
-      >
-        <span className="grid h-12 w-10 place-items-center rounded-xl bg-black/20">
-          <AssoMascot variant="judge" size={38} />
-        </span>
-        <span className="hidden pr-1 text-left sm:block">
-          <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-amber-200">Asso</span>
-          <span className="block text-xs font-bold text-white">Judge</span>
-        </span>
-        <ChevronRight className="hidden h-4 w-4 text-white/50 sm:block" aria-hidden />
-      </button>
+      <MatchJudgeButton
+        open={open}
+        isOpen={isOpen}
+        titleId={titleId}
+        fullscreen={fullscreen}
+        layer={layer}
+        opponentActivity={opponentActivity}
+      />
 
       {isOpen && (
         <div
@@ -105,14 +101,39 @@ export function MatchJudge({
             onClick={(event) => event.stopPropagation()}
             className="flex h-[min(88dvh,720px)] w-full flex-col overflow-hidden rounded-t-3xl border border-white/15 bg-header-bg text-white shadow-2xl shadow-black/70 md:h-[calc(100dvh-2rem)] md:max-h-[760px] md:w-[min(430px,calc(100vw-2rem))] md:rounded-3xl"
           >
-            <header className="flex shrink-0 items-center gap-3 border-b border-white/10 px-4 py-3">
-              <span className="grid h-12 w-10 place-items-center rounded-xl border border-primary/30 bg-black/20">
-                <AssoMascot variant="judge" size={34} active={!processing} />
-              </span>
+            <header className="flex shrink-0 items-center gap-3 border-b border-white/10 px-4 py-3 bg-white/[0.02]">
+              <div className="relative grid h-14 w-12 place-items-center rounded-2xl border border-primary/40 bg-black/40 shadow-inner">
+                <AssoMascot variant="judge" size={44} active={!processing} />
+                {processing && (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex h-3 w-3 rounded-full border border-header-bg bg-primary" />
+                  </span>
+                )}
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Asso · arbitro</p>
-                <h2 className="text-base font-black" id={`${titleId}-heading`}>Judge della partita</h2>
-                <p className="text-[10px] text-white/45">Risposte brevi, con riferimenti verificabili.</p>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-black tracking-tight text-white" id={`${titleId}-heading`}>
+                    Judge Asso
+                  </h2>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold',
+                      processing
+                        ? 'bg-amber-400/20 text-amber-200 border border-amber-400/30'
+                        : 'bg-emerald-400/15 text-emerald-300 border border-emerald-400/30',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'h-1.5 w-1.5 rounded-full',
+                        processing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400',
+                      )}
+                    />
+                    {processing ? 'Analisi in corso' : 'Pronto'}
+                  </span>
+                </div>
+                <p className="text-xs text-white/55">Arbitro AI ufficiale del tavolo</p>
               </div>
               <button
                 type="button"
@@ -140,7 +161,17 @@ export function MatchJudge({
                 acceptedTurn={acceptedTurn}
                 userId={userId}
                 participantNames={participantNames}
+                onSelectPrompt={!draft ? (text) => setDraft(text) : undefined}
               />
+              {opponentActivity?.isAsking && !processing && (
+                <div className="mt-3 flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-primary/10 p-3 text-xs text-primary-foreground animate-pulse">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                  </span>
+                  <span className="font-semibold">{opponentActivity.label}</span>
+                </div>
+              )}
             </div>
 
             <footer className="shrink-0 border-t border-white/10 bg-black/10 p-3 sm:p-4">
@@ -150,15 +181,20 @@ export function MatchJudge({
                   Partita conclusa: questa cronologia è in sola lettura.
                 </p>
               ) : processing ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-primary/25 bg-primary/10 px-3 py-3 text-xs text-primary-foreground">
-                  <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
+                <div className="flex items-center gap-2.5 rounded-2xl border border-primary/25 bg-primary/10 px-3.5 py-3 text-xs text-primary-foreground">
+                  <LoaderCircle className="h-4 w-4 animate-spin text-primary shrink-0" />
                   <span>Asso sta verificando. Il campo resta bloccato fino alla risposta.</span>
                 </div>
               ) : (
                 <form onSubmit={submitForm} className="space-y-2">
-                  <label htmlFor={`${titleId}-input`} className="text-[10px] font-bold uppercase tracking-wider text-white/60">
-                    Chiedi al Judge
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor={`${titleId}-input`} className="text-[10px] font-bold uppercase tracking-wider text-white/70">
+                      Domanda sulle regole
+                    </label>
+                    <span className={cn('text-[10px] tabular-nums', draft.length > 800 ? 'text-amber-300 font-bold' : 'text-white/40')}>
+                      {draft.length}/1000 caratteri
+                    </span>
+                  </div>
                   <textarea
                     ref={inputRef}
                     id={`${titleId}-input`}
@@ -166,17 +202,19 @@ export function MatchJudge({
                     onChange={(event) => setDraft(event.target.value)}
                     maxLength={1000}
                     rows={3}
-                    placeholder="Es. Posso lanciare questa magia in risposta?"
-                    className="w-full resize-none rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-xs leading-relaxed text-white placeholder:text-white/30 focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                    placeholder="Descrivi l’interazione tra le carte (consigliate 2-3 frasi chiare)…"
+                    className="w-full resize-none rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-xs leading-relaxed text-white placeholder:text-white/35 focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
                   />
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[9px] tabular-nums text-white/35">{draft.length}/1000</span>
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <p className="text-[10px] text-white/40">
+                      {draft.length > 800 ? '⚠️ Domanda lunga: mantienila concisa' : '💡 Risposte con riferimenti ufficiali'}
+                    </p>
                     <button
                       type="submit"
                       disabled={!draft.trim() || pending}
-                      className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-500 px-3.5 text-[10px] font-black uppercase tracking-wider text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-35"
+                      className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-500 px-4 text-[10px] font-black uppercase tracking-wider text-white shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-35"
                     >
-                      Invia domanda
+                      Invia
                     </button>
                   </div>
                 </form>

@@ -67,6 +67,7 @@ export function useLobbyAcceptance({
       !realtimeHint.matchId ||
       (realtimeHint.phase !== 'starting' && realtimeHint.phase !== 'live')
     ) return;
+    setApprovalPhase(null);
     goLiveTo(realtimeHint.tournamentId);
   }, [goLiveTo, realtimeHint]);
 
@@ -98,6 +99,13 @@ export function useLobbyAcceptance({
   useEffect(() => {
     const status = coordinatedTournament?.status;
     const phase = coordinatedTournament?.phase;
+    const isStartingOrLive = Boolean(
+      status === 'iniziata' ||
+      phase === 'starting' ||
+      phase === 'live' ||
+      coordinatedTournament?.matchId ||
+      realtimeHint?.matchId,
+    );
     const isFull = Boolean(
       coordinatedTournament &&
       status === 'in_registrazione' &&
@@ -107,27 +115,38 @@ export function useLobbyAcceptance({
     const acceptanceOpen = isFull && acceptanceGate.visible;
     const wasFull = wasFullRef.current;
     if (isFull) wasFullRef.current = true;
-    if (status === 'iniziata' || (phase && phase !== 'accepting')) wasFullRef.current = false;
+    if (isStartingOrLive) wasFullRef.current = false;
 
     setApprovalPhase((current) => {
+      // Match partito o in avvio: chiudi immediatamente il modale di accettazione
+      // e non mostrare mai il pannello di rifiuto.
+      if (isStartingOrLive) {
+        return null;
+      }
+
       if (current !== 'accepting' && current !== 'declined' && acceptanceOpen && status === 'in_registrazione') {
         // Tavolo pieno: chiudo eventuali modali di seduta e apro l'accept.
         onApprovalOpen();
         return 'accepting';
       }
-      // Tavolo tornato a un solo giocatore mentre ero in attesa di accettare:
-      // l'avversario ha rifiutato (o è sparito) → pannello dedicato.
-      if (current === 'accepting' && wasFull && !isFull && status === 'in_registrazione') {
+      // Tavolo tornato a un solo giocatore mentre ero in attesa di accettare
+      // (l'avversario ha rifiutato o si è alzato) oppure fase esplicitamente cancelled:
+      const opponentLeft = Boolean(
+        wasFull &&
+        coordinatedTournament &&
+        coordinatedTournament.participants.length < coordinatedTournament.maxPlayers,
+      );
+      if (current === 'accepting' && (opponentLeft || phase === 'cancelled') && status === 'in_registrazione') {
         return 'declined';
       }
-      // Match partito o nessun tavolo: il pannello si chiude.
+      // Nessun tavolo o fase terminata senza match: il pannello si chiude.
       if (
         current === 'accepting' &&
         (!isFull || status !== 'in_registrazione' || (phase && phase !== 'accepting'))
       ) return null;
       return current;
     });
-  }, [acceptanceGate.visible, coordinatedTournament, onApprovalOpen]);
+  }, [acceptanceGate.visible, coordinatedTournament, onApprovalOpen, realtimeHint?.matchId]);
 
   const myReady = Boolean(
     approvalTarget?.participants.find((participant) => participant.id === userId)?.ready,
