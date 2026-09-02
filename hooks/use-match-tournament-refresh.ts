@@ -23,8 +23,15 @@ export function useMatchTournamentRefresh({
 
   useEffect(() => {
     if (status === 'terminata') return;
+    // Il canale WebSocket realtime copre la reattività immediata; il polling è
+    // solo fallback. Sotto i 3s il refresh RSC satura da solo i bucket di
+    // rate limit dell'API Auth (60/min per IP condiviso) e di quella Tornei
+    // (120 read/min per utente), trasformando un 429 in falso logout o in
+    // crash della pagina live.
     const intervalMs =
-      status === 'in_registrazione' ? (tableFull ? 1_000 : 3_000) : graceCountdownActive ? 2_000 : 5_000;
+      status === 'in_registrazione'
+        ? (tableFull ? 3_000 : 5_000)
+        : graceCountdownActive ? 4_000 : 5_000;
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
     }, intervalMs);

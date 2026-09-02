@@ -16,7 +16,9 @@ interface AuthBridgeFlowOptions {
   maxLockAttempts?: number;
 }
 
-const DEFAULT_LOCK_ATTEMPTS = 6;
+// Copre il caso peggiore: lock cross-tab occupato da un refresh lento (30s)
+// più la pausa di backoff fra un tentativo e l'altro.
+const DEFAULT_LOCK_ATTEMPTS = 8;
 
 async function requestOk(
   request: typeof fetch,

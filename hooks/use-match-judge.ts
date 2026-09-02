@@ -49,7 +49,7 @@ export function useMatchJudge(
         return;
       }
       if (document.visibilityState === 'visible') router.refresh();
-    }, 2_000);
+    }, 4_000);
     return () => window.clearInterval(timer);
   }, [acceptedTurn?.status, judgeStatus, router]);
 

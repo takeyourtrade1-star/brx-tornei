@@ -2,8 +2,8 @@ import 'server-only';
 
 import { config } from '@/lib/config';
 import {
-  clampAuthCookieMaxAge,
   isValidAuthCookieToken,
+  resolveAccessCookieMaxAge,
 } from '@/lib/auth/auth-token';
 import type { AuthBrowserOutcome } from '@/lib/auth/bff-redaction';
 
@@ -122,9 +122,9 @@ export function validateSuccessfulAuthResponse(
       outcome: 'session',
       accessToken: credentials.access_token,
       refreshToken: credentials.refresh_token,
-      accessMaxAge: clampAuthCookieMaxAge(
+      accessMaxAge: resolveAccessCookieMaxAge(
+        credentials.access_token,
         credentials.expires_in,
-        config.auth.accessMaxAge,
         config.auth.accessMaxAge,
       ),
     };

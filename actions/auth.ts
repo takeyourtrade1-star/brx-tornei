@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { config } from '@/lib/config';
 import {
   clearSessionCookies,
+  getAccessToken,
   getRefreshToken,
   setSessionCookies,
 } from '@/lib/auth/session';
@@ -166,7 +167,10 @@ export async function verifyLoginCodeAction(formData: FormData): Promise<AuthAct
 
 /** Logout: invalida la sessione sul backend e cancella i cookie parent-domain. */
 export async function logoutAction(): Promise<void> {
-  const refreshToken = await getRefreshToken();
+  const [refreshToken, accessToken] = await Promise.all([
+    getRefreshToken(),
+    getAccessToken(),
+  ]);
   if (refreshToken && config.api.baseURL) {
     try {
       await fetch(`${config.api.baseURL}/api/auth/logout`, {
@@ -175,6 +179,9 @@ export async function logoutAction(): Promise<void> {
           'Content-Type': 'application/json',
           Accept: 'application/json',
           'Accept-Encoding': 'identity',
+          // Il backend richiede get_current_user: senza bearer il logout remoto
+          // fallisce sempre e la sessione resta valida lato server.
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({ refresh_token: refreshToken }),
         cache: 'no-store',

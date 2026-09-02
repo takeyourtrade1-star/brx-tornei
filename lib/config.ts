@@ -175,8 +175,8 @@ export const config = {
     accessCookie: '__Host-ebartex_access_token',
     refreshCookie: '__Host-ebartex_refresh_token',
     preAuthCookie: '__Host-ebartex_pre_auth_token',
-    // Fallback conservativo durante rollout: il cookie deve sparire prima di un
-    // JWT di durata ignota, così il middleware può attivare il refresh bridge.
+    // Fallback per token non JWT (mock/test) o exp illeggibile: con il JWT
+    // reale il TTL arriva dal claim `exp` (vedi resolveAccessCookieMaxAge).
     accessMaxAge: 5 * 60,
     refreshMaxAge: 60 * 60 * 24 * 30, // 30 giorni
   },

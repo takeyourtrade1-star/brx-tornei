@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  getAccessToken: vi.fn(),
   getRefreshToken: vi.fn(),
   clearSessionCookies: vi.fn(),
   clearPreAuthCookie: vi.fn(),
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/auth/session', () => ({
   clearSessionCookies: mocks.clearSessionCookies,
+  getAccessToken: mocks.getAccessToken,
   getRefreshToken: mocks.getRefreshToken,
   setSessionCookies: vi.fn(),
 }));
@@ -30,6 +32,7 @@ describe('logoutAction', () => {
     vi.clearAllMocks();
     vi.stubEnv('AUTH_API_URL', 'http://127.0.0.1:8000');
     mocks.getRefreshToken.mockResolvedValue('refresh.logout-token');
+    mocks.getAccessToken.mockResolvedValue('access.logout-token');
   });
 
   afterEach(() => {
@@ -49,6 +52,9 @@ describe('logoutAction', () => {
     expect(mocks.redirect).toHaveBeenCalledWith('/login');
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(init.body).toBe(JSON.stringify({ refresh_token: 'refresh.logout-token' }));
+    expect(init.headers).toMatchObject({
+      Authorization: 'Bearer access.logout-token',
+    });
   });
 
   it('non espone o logga credenziali anche se Auth risponde con token', async () => {

@@ -3,8 +3,8 @@ import 'server-only';
 import type { NextResponse } from 'next/server';
 import { config } from '@/lib/config';
 import {
-  clampAuthCookieMaxAge,
   isValidAuthTokenPair,
+  resolveAccessCookieMaxAge,
 } from '@/lib/auth/auth-token';
 import {
   SSO_NEXT_COOKIE,
@@ -57,9 +57,9 @@ export function setSsoSessionCookies(
   payload: unknown,
 ): boolean {
   if (!isValidAuthTokenPair(payload)) return false;
-  const accessMaxAge = clampAuthCookieMaxAge(
+  const accessMaxAge = resolveAccessCookieMaxAge(
+    payload.access_token,
     payload.expires_in,
-    config.auth.accessMaxAge,
     config.auth.accessMaxAge,
   );
   response.cookies.set(config.auth.accessCookie, payload.access_token, {

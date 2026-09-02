@@ -28,7 +28,12 @@ export async function hasUsableAuthSession(
   }
 }
 
-/** Never reuses a refresh cookie after an ambiguous response. */
+/**
+ * Never reuses a refresh cookie after a response that may have been lost.
+ * A response that did arrive (any status) leaves no ambiguity: only a thrown
+ * network error, timeout or abort keeps the marker, because the backend may
+ * have completed the rotation without the browser ever seeing it.
+ */
 export async function refreshAuthSessionOnce(
   request: typeof fetch,
   signal: AbortSignal,
@@ -44,7 +49,7 @@ export async function refreshAuthSessionOnce(
       credentials: 'same-origin',
       signal: requestSignal(signal, 30_000),
     });
-    if (response.ok) clearUncertainAuthRefreshAttempt();
+    clearUncertainAuthRefreshAttempt();
     return response.ok;
   } catch {
     return false;
