@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { useEffect, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { publicConfig } from '@/lib/public-config';
 
 export default function TournamentsError({
@@ -11,9 +12,19 @@ export default function TournamentsError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   useEffect(() => {
     console.error('[Tournaments]', error);
   }, [error]);
+
+  const handleRetry = () => {
+    startTransition(() => {
+      router.refresh();
+      reset();
+    });
+  };
 
   return (
     <main className="grid min-h-screen place-items-center bg-muted px-5 py-12 text-foreground">
@@ -37,10 +48,12 @@ export default function TournamentsError({
           </a>
           <button
             type="button"
-            onClick={reset}
-            className="rounded-full bg-gradient-global px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
+            onClick={handleRetry}
+            disabled={isPending}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-global px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90 disabled:opacity-60"
           >
-            Riprova
+            <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} aria-hidden />
+            {isPending ? 'Riconnessione...' : 'Riprova'}
           </button>
         </div>
         {error.digest ? (

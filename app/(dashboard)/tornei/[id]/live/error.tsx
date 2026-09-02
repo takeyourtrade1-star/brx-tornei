@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function TournamentLiveError({
   error,
@@ -10,9 +11,19 @@ export default function TournamentLiveError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   useEffect(() => {
     console.error('[TournamentLive]', error);
   }, [error]);
+
+  const handleRetry = () => {
+    startTransition(() => {
+      router.refresh();
+      reset();
+    });
+  };
 
   return (
     <div className="mx-auto flex min-h-[60vh] w-full max-w-lg items-center px-4">
@@ -28,10 +39,11 @@ export default function TournamentLiveError({
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button
           type="button"
-          onClick={reset}
-          className="rounded-full border border-white/20 px-5 py-2.5 text-sm font-bold text-white"
+          onClick={handleRetry}
+          disabled={isPending}
+          className="rounded-full border border-white/20 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-white/10 disabled:opacity-60"
         >
-          Riprova
+          {isPending ? 'Riconnessione...' : 'Riprova'}
         </button>
         <Link
           href="/tornei"

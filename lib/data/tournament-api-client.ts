@@ -98,7 +98,12 @@ export async function tournamentFetch(
         res,
         MAX_TOURNAMENT_RESPONSE_BYTES,
       ).catch(() => ({}));
-      if (res.status >= 500 && attempt + 1 < attempts) continue;
+      if ((res.status === 429 || res.status >= 500) && attempt + 1 < attempts) {
+        if (res.status === 429) {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+        continue;
+      }
       return { ok: res.ok, status: res.status, body };
     } catch (err) {
       if (attempt + 1 < attempts) continue;

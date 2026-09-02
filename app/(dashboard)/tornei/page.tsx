@@ -14,6 +14,8 @@ import { LobbyPage } from '@/components/feature/tornei/lobby/lobby-page';
 import { hasArcadeAccess } from '@/lib/auth/arcade-access';
 import { listDecks } from '@/lib/data/decks';
 
+import { TournamentApiError } from '@/lib/data/tournament-api-client';
+
 export const metadata: Metadata = { title: 'Tornei' };
 
 interface PageProps {
@@ -43,20 +45,35 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   // Fetch aggregato (tutti i formati): i MIEI tavoli devono restare visibili
   // anche quando sono in un altro formato, altrimenti il backend rifiuterebbe
   // di sedermi altrove (ALREADY_SEATED) senza che io possa abbandonarli.
-  const [tournaments, decks, reputation, notifications, arcadeAccessGranted, initialFriends] = await Promise.all([
-    getTournaments({ format: 'all', mode: selection.mode }),
-    listDecks(session.user.id),
-    fetchMyReputation().catch(() => null),
-    fetchNotificationSnapshot(),
-    hasArcadeAccess(session.user.id),
-    fetchFriendsList(gamertag)
-      .then((friends) => friends.map(({ gamertag: friendGamertag, avatarId, presence }) => ({
-        gamertag: friendGamertag,
-        avatarId,
-        presence,
-      })))
-      .catch(() => []),
-  ]);
+  let tournaments;
+  let decks;
+  let reputation;
+  let notifications;
+  let arcadeAccessGranted;
+  let initialFriends;
+
+  try {
+    [tournaments, decks, reputation, notifications, arcadeAccessGranted, initialFriends] =
+      await Promise.all([
+        getTournaments({ format: 'all', mode: selection.mode }),
+        listDecks(session.user.id).catch(() => []),
+        fetchMyReputation().catch(() => null),
+        fetchNotificationSnapshot(),
+        hasArcadeAccess(session.user.id),
+        fetchFriendsList(gamertag)
+          .then((friends) => friends.map(({ gamertag: friendGamertag, avatarId, presence }) => ({
+            gamertag: friendGamertag,
+            avatarId,
+            presence,
+          })))
+          .catch(() => []),
+      ]);
+  } catch (err) {
+    if (err instanceof TournamentApiError && err.status === 401) {
+      redirect('/login');
+    }
+    throw err;
+  }
 
   return (
     <LobbyPage

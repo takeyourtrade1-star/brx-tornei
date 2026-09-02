@@ -11,6 +11,7 @@ export interface GamertagAvailability {
 
 export async function fetchMyGamertag(): Promise<string | null> {
   const { ok, status, body } = await tournamentFetch('/api/v1/players/me/profile');
+  if (status === 404) return null;
   if (!ok) {
     throw extractApiError(body, status, 'Impossibile leggere il profilo giocatore');
   }

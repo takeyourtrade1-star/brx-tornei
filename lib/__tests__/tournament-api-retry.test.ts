@@ -45,6 +45,19 @@ describe('tournamentFetch retry policy', () => {
     expect(result).toMatchObject({ ok: true, status: 200 });
   });
 
+  it('ritenta una lettura dopo un 429 (rate limit transitorio)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 429 }))
+      .mockResolvedValueOnce(new Response('{"data":[]}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await tournamentFetch('/api/v1/tournaments');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ ok: true, status: 200 });
+  });
+
   it('ritenta una lettura dopo un errore di rete transitorio', async () => {
     const fetchMock = vi
       .fn()
