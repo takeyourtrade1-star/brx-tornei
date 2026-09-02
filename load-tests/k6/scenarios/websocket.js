@@ -1,10 +1,9 @@
-import http from 'k6/http';
 import ws from 'k6/ws';
 import exec from 'k6/execution';
 import { check } from 'k6';
-import { BROWSER_ORIGIN, COMPLETE_RESULTS, WS_ORIGIN } from '../config.js';
+import { BROWSER_ORIGIN, WS_ORIGIN } from '../config.js';
 import { apiRequest, json, unwrap } from '../lib/api.js';
-import { resultTriggerReached } from '../lib/results.js';
+import { scenarioInPlannedStop } from '../lib/timing.js';
 import {
   criticalFailures,
   rateLimited,
@@ -15,14 +14,6 @@ import {
 } from '../lib/metrics.js';
 
 const HOLD_MS = 24 * 60 * 60 * 1_000;
-
-function scenarioIsEnding() {
-  // ramping-vus interrompe i socket ancora aperti durante l'ultima discesa.
-  // k6/ws emette close anche per quella chiusura pianificata, quindi non va
-  // confusa con una chiusura del servizio mentre lo scenario e attivo.
-  const progress = Number(exec.scenario.progress);
-  return Number.isFinite(progress) && progress >= 0.99;
-}
 
 function playerFor(data) {
   const index = (exec.vu.idInTest - 1) % data.players.length;
@@ -79,14 +70,14 @@ function openAuthenticatedSocket(player, kind) {
         }
       });
       socket.on('error', () => {
-        if (!scenarioIsEnding()) {
+        // Nelle finestre di stop pianificate e k6 a chiudere i socket dei VU
+        // che spegne: non e un problema del servizio.
+        if (!scenarioInPlannedStop()) {
           criticalFailures.add(1, { operation: `${kind}_ws`, reason: 'socket_error' });
         }
       });
       socket.on('close', () => {
-        const resultHasStarted = COMPLETE_RESULTS && resultTriggerReached();
-        const plannedRampDown = scenarioIsEnding() && resultHasStarted;
-        if (!expectedClose && !plannedRampDown) {
+        if (!expectedClose && !scenarioInPlannedStop()) {
           wsUnexpectedClose.add(1, { channel: kind });
         }
       });

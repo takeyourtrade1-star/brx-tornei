@@ -190,7 +190,12 @@ export function LobbyPage({
     }
     // Poll fallback sempre attivo: più frequente sul proprio tavolo, dove la
     // precisione della fase conta; la lobby generica resta più leggera.
-    const intervalMs = trackedTournament ? 1_000 : 10_000;
+    // Il timer resta difensivo: ogni refresh della lobby vale ~5 read
+    // (tavoli, mazzi, profilo, reputazione, amici) e il backend ammette
+    // 120 read/min per utente — a 1s la quota esaurirebbe in ~24s e il 429
+    // successivo Crasherebbe l'RSC ("connessione momentaneamente interrotta").
+    // Il canale WebSocket copre già la reattività immediata.
+    const intervalMs = trackedTournament ? 5_000 : 10_000;
     const iv = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
     }, intervalMs);

@@ -74,8 +74,11 @@ export function setup() {
 
 export { liveHttp, signalingBurst, matchChatWs, tournamentEventsWs };
 
-// I risultati non vengono dichiarati qui: il teardown riceverebbe copie stale
-// dei refresh token dopo le rotazioni dei VU e i socket sarebbero gia chiusi.
+// La chiusura del risultato vive nel cuore dello scenario live_http
+// (lib/results.js, finestra RESULT_TRIGGER_*): claim, conferma e verifica
+// avvengono mentre la coppia e ancora attiva, via HTTP. Qui in teardown i
+// refresh token sarebbero copie stale dopo le rotazioni dei VU e i socket
+// sarebbero gia chiusi: il teardown resta volutamente vuoto.
 export function teardown() {}
 
 export function handleSummary(data) {

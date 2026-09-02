@@ -1,43 +1,35 @@
-import exec from 'k6/execution';
 import { sleep } from 'k6';
 import {
-  BACKEND_URL,
   COMPLETE_RESULTS,
+  PROPOSAL_POLL_SECONDS,
   RESULT_CONFIRM_DELAY_SECONDS,
   RESULT_SETTLE_TIMEOUT_SECONDS,
-  RESULT_TRIGGER_PROGRESS,
-  RESULT_TRIGGER_SECONDS,
-  SCENARIO_DURATION_SECONDS,
 } from '../config.js';
 import { apiRequest, json, unwrap } from './api.js';
 import { criticalFailures, resultCompleted } from './metrics.js';
+import { resultTriggerReached } from './timing.js';
+
+// Chiusura del risultato per consenso, nel cuore dello scenario live_http e
+// solo via HTTP: non dipende dai WebSocket, che durante lo stop dei VU sono
+// chiusi da k6 e non dal servizio. Player 1 invia il risultato, player 2
+// conferma; entrambi verificano lo stato finale e l'esito e registrato una
+// sola volta per match (lo stato e per VU: ogni giocatore ha il suo VU).
+
+const SETTLE_RETRY_SECONDS = 1;
+const HOST_VERIFY_INTERVAL_SECONDS = 2;
+const HOST_VERIFY_MARGIN_SECONDS = 5;
+// La conferma puo arrivare prima che la proposal sia visibile e una proposta
+// gia presente torna rifiutata: questi codici sono tentativi transitori e non
+// contano come fallimento. Il gate reale e la verifica finale dello stato.
+const TOLERATED_RESULT_STATUSES = [200, 400, 404, 409, 422];
+const PENDING_RESULT_STATUSES = new Set([
+  'proposed',
+  'pending',
+  'pending_confirmation',
+  'awaiting_confirmation',
+]);
 
 const states = new Map();
-
-function progressFraction() {
-  const progress = Number(exec.scenario.progress);
-  if (!Number.isFinite(progress)) return null;
-  return progress > 1 ? progress / 100 : progress;
-}
-
-function elapsedSeconds() {
-  const rawStart = exec.scenario.startTime;
-  const startMs = rawStart instanceof Date
-    ? rawStart.getTime()
-    : typeof rawStart === 'number'
-      ? rawStart
-      : Date.parse(String(rawStart || ''));
-  return Number.isFinite(startMs) ? (Date.now() - startMs) / 1_000 : null;
-}
-
-export function resultTriggerReached() {
-  const progress = progressFraction();
-  if (progress !== null) return progress >= RESULT_TRIGGER_PROGRESS;
-  const elapsed = elapsedSeconds();
-  return elapsed !== null
-    ? elapsed >= RESULT_TRIGGER_SECONDS
-    : SCENARIO_DURATION_SECONDS <= RESULT_TRIGGER_SECONDS;
-}
 
 function resultState(matchId) {
   let state = states.get(matchId);
@@ -48,6 +40,10 @@ function resultState(matchId) {
   return state;
 }
 
+function resultPath(player) {
+  return `/api/v1/matches/${encodeURIComponent(player.matchId)}/result`;
+}
+
 function resultBody(player) {
   return {
     winner_user_id: player.resultWinnerId,
@@ -56,9 +52,9 @@ function resultBody(player) {
   };
 }
 
-function settledDetail(response, player) {
+function detailPayload(response) {
   const payload = unwrap(json(response));
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
   const tournament = payload.tournament && typeof payload.tournament === 'object'
     ? payload.tournament
     : payload;
@@ -67,6 +63,13 @@ function settledDetail(response, player) {
     : tournament.match && typeof tournament.match === 'object'
       ? tournament.match
       : payload;
+  return { payload, tournament, match };
+}
+
+function settledDetail(response, player) {
+  const detail = detailPayload(response);
+  if (!detail) return false;
+  const { payload, tournament, match } = detail;
   const resultStatus = match.result_status || payload.result_status;
   const matchStatus = match.match_status || match.status || payload.match_status;
   const tournamentStatus = tournament.status || payload.tournament_status;
@@ -78,54 +81,100 @@ function settledDetail(response, player) {
     && winnerId.toLowerCase() === String(player.resultWinnerId).toLowerCase();
 }
 
-function verifySettled(player) {
-  const response = apiRequest(
+function tournamentRead(player, operation) {
+  return apiRequest(
     player,
     'GET',
     `/api/v1/tournaments/${encodeURIComponent(player.tournamentId)}`,
     undefined,
-    'result_verify',
+    operation,
   );
+}
+
+function verifySettled(player) {
+  const response = tournamentRead(player, 'result_verify');
   return response.status === 200 && settledDetail(response, player);
 }
 
-function completeResult(player, state) {
-  const body = resultBody(player);
-  if (player.pairPosition === 0) {
-    const proposal = apiRequest(
-      player,
-      'POST',
-      `/api/v1/matches/${encodeURIComponent(player.matchId)}/result`,
-      body,
-      'result_claim',
-      [200],
-      'mutation',
-    );
-    state.proposed = proposal.status === 200;
-    return state.proposed;
-  }
+function pendingResultVisible(player) {
+  const response = tournamentRead(player, 'result_poll');
+  if (response.status !== 200) return false;
+  const detail = detailPayload(response);
+  if (!detail) return false;
+  const { payload, tournament, match } = detail;
+  const status = match.result_status || payload.result_status || tournament.result_status;
+  return typeof status === 'string' && PENDING_RESULT_STATUSES.has(status.toLowerCase());
+}
 
+function submitResult(player, operation) {
+  return apiRequest(
+    player,
+    'POST',
+    resultPath(player),
+    resultBody(player),
+    operation,
+    TOLERATED_RESULT_STATUSES,
+    'mutation',
+  );
+}
+
+// Player 1: invio del risultato. Un 409 indica una proposal gia presente
+// (nessun duplicato). Se il match non e ancora pronto il tentativo si ripete
+// alla prossima iterazione: qui restituiamo null senza registrare l'esito.
+function claimAndAwaitSettled(player, state) {
+  const claim = submitResult(player, 'result_claim');
+  if (claim.status !== 200 && claim.status !== 409) return null;
+  state.proposed = true;
+  // La conferma arriva dall'avversario dopo il suo percorso completo (delay,
+  // attesa proposal, finestra di settle): il budget host copre quel percorso
+  // piu un margine, prima che inizi la discesa finale.
+  const budgetSeconds = RESULT_CONFIRM_DELAY_SECONDS
+    + PROPOSAL_POLL_SECONDS
+    + RESULT_SETTLE_TIMEOUT_SECONDS
+    + HOST_VERIFY_MARGIN_SECONDS;
+  const deadline = Date.now() + budgetSeconds * 1_000;
+  let settled = false;
+  while (!settled && Date.now() <= deadline) {
+    sleep(HOST_VERIFY_INTERVAL_SECONDS);
+    settled = verifySettled(player);
+  }
+  return settled;
+}
+
+// Player 2: aspetta che la proposal sia visibile, conferma entro la finestra
+// di settle e verifica lo stato finale. Ogni tentativo ricontrolla lo stato,
+// cosi una conferma rifiutata per "gia presente" non genera duplicati.
+function confirmAndVerifySettled(player) {
   sleep(RESULT_CONFIRM_DELAY_SECONDS);
+  const pollDeadline = Date.now() + PROPOSAL_POLL_SECONDS * 1_000;
+  while (Date.now() < pollDeadline && !pendingResultVisible(player)) {
+    sleep(SETTLE_RETRY_SECONDS);
+  }
   const deadline = Date.now() + RESULT_SETTLE_TIMEOUT_SECONDS * 1_000;
   let settled = false;
   while (!settled && Date.now() <= deadline) {
-    const confirmation = apiRequest(
-      player,
-      'POST',
-      `/api/v1/matches/${encodeURIComponent(player.matchId)}/result`,
-      body,
-      'result_confirm',
-      [200],
-      'mutation',
-    );
-    if (confirmation.status === 200) settled = verifySettled(player);
-    if (!settled) sleep(1);
+    submitResult(player, 'result_confirm');
+    settled = verifySettled(player);
+    if (!settled) sleep(SETTLE_RETRY_SECONDS);
   }
+  return settled;
+}
+
+function recordOutcome(settled) {
+  resultCompleted.add(settled);
   if (!settled) {
     criticalFailures.add(1, { operation: 'result_verify', reason: 'not_settled' });
   }
-  resultCompleted.add(settled);
-  state.completed = true;
+}
+
+function completeResult(player, state) {
+  if (player.pairPosition === 0) {
+    const settled = claimAndAwaitSettled(player, state);
+    if (settled === null) return false;
+    recordOutcome(settled);
+    return true;
+  }
+  recordOutcome(confirmAndVerifySettled(player));
   return true;
 }
 

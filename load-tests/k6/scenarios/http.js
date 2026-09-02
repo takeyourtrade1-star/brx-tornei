@@ -2,7 +2,6 @@ import http from 'k6/http';
 import exec from 'k6/execution';
 import { check, sleep } from 'k6';
 import {
-  BACKEND_URL,
   FRONTEND_URL,
   INCLUDE_BACKEND_READS,
   INCLUDE_FRONTEND,
@@ -23,12 +22,11 @@ import { maybeCompleteResult } from '../lib/results.js';
 let current;
 let lastQualityAt = 0;
 
-function playerFor(data, refresh = true) {
+function playerFor(data) {
   const index = (exec.vu.idInTest - 1) % data.players.length;
   if (!current || current.userId !== data.players[index].userId) {
     current = { ...data.players[index] };
   }
-  if (refresh) current = refreshIdentity(current, 90);
   return current;
 }
 
@@ -86,28 +84,34 @@ function quality(player) {
 }
 
 export function liveHttp(data) {
-  const player = playerFor(data, true);
-  if (current.resultLoadDone) {
+  const player = playerFor(data);
+  // Dopo il risultato il VU resta in attesa senza refresh ne letture: come un
+  // giocatore reale che ha chiuso la pagina live.
+  if (player.resultLoadDone) {
     sleep(5);
     return;
   }
-  // La proposta/conferma avviene prima delle letture finali: dopo l'invio o
-  // la verifica il VU si mette in attesa e non manda quality a match chiuso.
-  if (maybeCompleteResult(player)) {
+  // Il refresh e centralizzato nei VU live_http: gli altri scenari usano i
+  // token del setup e non competono sulla stessa rotazione.
+  current = refreshIdentity(player, 90);
+  // La chiusura del risultato avviene qui, nel cuore dello scenario, con la
+  // coppia ancora attiva e senza dipendere dai WebSocket (che in discesa sono
+  // chiusi da k6, non dal servizio).
+  if (maybeCompleteResult(current)) {
     current.resultLoadDone = true;
     sleep(5);
     return;
   }
-  if (INCLUDE_FRONTEND) frontendRead(player);
-  if (INCLUDE_BACKEND_READS) backendReads(player);
-  quality(player);
+  if (INCLUDE_FRONTEND) frontendRead(current);
+  if (INCLUDE_BACKEND_READS) backendReads(current);
+  quality(current);
   sleep(5);
 }
 
 export function signalingBurst(data) {
   // Il refresh e centralizzato nei VU live_http: questo scenario usa il token
-  // fresco restituito dal setup e non puo competere sulla stessa rotazione.
-  const player = playerFor(data, false);
+  // fresco del setup e non puo competere sulla stessa rotazione.
+  const player = playerFor(data);
   const session = encodeURIComponent(player.sessionId);
   const request = (method, path, body, operation, expectedStatuses = [200], kind = 'read') =>
     INCLUDE_FRONTEND_SIGNALING

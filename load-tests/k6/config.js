@@ -1,7 +1,13 @@
+import { assertRemoteConfirmation, canonicalOrigin, canonicalWebSocketOrigin } from './lib/origins.js';
+import { buildTimeline, localPlayers, parseStages } from './lib/stages.js';
+
 const PROFILE_STAGES = {
-  smoke: '5s:2,30s:2,5s:0',
+  smoke: '5s:2,45s:2,5s:0',
   rehearsal: '2m:30,20m:30,30s:0',
-  capacity: '1m:20,2m:50,3m:100,4m:200,30s:200,30s:0',
+  // Il picco va misurato a regime: plateau di 3 minuti con tutti i 200 VU
+  // attivi prima della discesa, cosi il risultato si chiude nel cuore dello
+  // scenario e non in competizione con lo stop dei VU.
+  capacity: '1m:20,2m:50,3m:100,4m:200,3m:200,1m:0',
   soak: '2m:30,60m:30,30s:0',
 };
 
@@ -31,152 +37,6 @@ function numberEnv(name, fallback, minimum = 0) {
     throw new Error(`${name} deve essere un numero >= ${minimum}`);
   }
   return parsed;
-}
-
-function canonicalOrigin(name, fallback) {
-  return parseOrigin(__ENV[name] || fallback, name, ['http:', 'https:']).origin;
-}
-
-function canonicalWebSocketOrigin(name, fallback) {
-  return parseOrigin(__ENV[name] || fallback, name, ['ws:', 'wss:']).origin;
-}
-
-function parseOrigin(rawValue, name, protocols) {
-  const raw = String(rawValue || '').trim();
-  const match = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]+)\/?$/i.exec(raw);
-  if (!match) throw new Error(`${name} non e un origin valido`);
-  const protocol = `${match[1].toLowerCase()}:`;
-  if (!protocols.includes(protocol)) {
-    throw new Error(`${name} usa uno schema non supportato`);
-  }
-  const authority = match[2];
-  if (!authority || authority.includes('@') || /\s/.test(authority)) {
-    throw new Error(`${name} deve contenere solo scheme e host`);
-  }
-
-  let hostname;
-  let port = null;
-  if (authority.startsWith('[')) {
-    const closingBracket = authority.indexOf(']');
-    if (closingBracket < 0) throw new Error(`${name} contiene un host IPv6 non valido`);
-    hostname = authority.slice(1, closingBracket);
-    const suffix = authority.slice(closingBracket + 1);
-    if (suffix) {
-      if (!suffix.startsWith(':')) throw new Error(`${name} contiene una porta non valida`);
-      port = suffix.slice(1);
-    }
-    if (!/^[0-9a-f:.]+$/i.test(hostname)) {
-      throw new Error(`${name} contiene un host IPv6 non valido`);
-    }
-  } else {
-    const separator = authority.lastIndexOf(':');
-    if (separator >= 0) {
-      if (authority.indexOf(':') !== separator) {
-        throw new Error(`${name} richiede parentesi quadre per un host IPv6`);
-      }
-      hostname = authority.slice(0, separator);
-      port = authority.slice(separator + 1);
-    } else {
-      hostname = authority;
-    }
-    if (!/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i.test(hostname)) {
-      throw new Error(`${name} contiene un host non valido`);
-    }
-  }
-  if (port !== null && (!/^\d+$/.test(port) || Number(port) > 65535)) {
-    throw new Error(`${name} contiene una porta non valida`);
-  }
-  const normalizedHostname = hostname.toLowerCase().replace(/\.$/, '');
-  const renderedHostname = normalizedHostname.includes(':')
-    ? `[${normalizedHostname}]`
-    : normalizedHostname;
-  return {
-    origin: `${protocol}//${renderedHostname}${port === null ? '' : `:${port}`}`,
-    hostname: normalizedHostname,
-  };
-}
-
-function parseStages(raw) {
-  const stages = raw.split(',').map((item) => {
-    const [duration, rawTarget, extra] = item.trim().split(':');
-    const target = Number(rawTarget);
-    if (
-      !duration ||
-      !/^\d+(?:\.\d+)?(?:ms|s|m|h|d)$/.test(duration) ||
-      extra !== undefined ||
-      !Number.isInteger(target) ||
-      target < 0
-    ) {
-      throw new Error(`Stage non valido: ${item}. Usa durata:giocatori`);
-    }
-    if (target % 2 !== 0) throw new Error(`Lo stage ${item} deve avere giocatori pari`);
-    return { duration, target, seconds: durationToSeconds(duration) };
-  });
-  if (!stages.length || !stages.some(({ target }) => target > 0)) {
-    throw new Error('Serve almeno uno stage con giocatori > 0');
-  }
-  return stages;
-}
-
-function durationToSeconds(duration) {
-  const match = /^(\d+(?:\.\d+)?)(ms|s|m|h|d)$/.exec(duration);
-  if (!match) throw new Error(`Durata stage non valida: ${duration}`);
-  const factors = { ms: 0.001, s: 1, m: 60, h: 3600, d: 86400 };
-  const seconds = Number(match[1]) * factors[match[2]];
-  if (!Number.isFinite(seconds)) throw new Error(`Durata stage non valida: ${duration}`);
-  return seconds;
-}
-
-function localPlayers(globalPlayers, generatorCount, generatorIndex) {
-  let pairs = 0;
-  for (let pair = 0; pair < globalPlayers / 2; pair += 1) {
-    if (pair % generatorCount === generatorIndex) pairs += 1;
-  }
-  return pairs * 2;
-}
-
-function normalizedHostname(origin) {
-  return parseOrigin(origin, 'origin', ['http:', 'https:', 'ws:', 'wss:']).hostname;
-}
-
-function confirmationHosts() {
-  const configured = [__ENV.LOAD_TEST_CONFIRM_HOSTS, __ENV.LOAD_TEST_CONFIRM_HOST]
-    .filter((value) => value !== undefined && value !== '')
-    .flatMap((value) => value.split(','))
-    .map((value) => value.trim().toLowerCase().replace(/\.$/, ''))
-    .filter(Boolean);
-  const invalid = configured.find(
-    (host) =>
-      host === '*' ||
-      host.includes('://') ||
-      host.includes('/') ||
-      /\s/.test(host) ||
-      (!/^[a-z0-9.-]+$/.test(host) && !/^\[?[0-9a-f:]+\]?$/.test(host)),
-  );
-  if (invalid) {
-    throw new Error(
-      `LOAD_TEST_CONFIRM_HOSTS contiene un host non valido: ${invalid}. Usa solo hostname esatti separati da virgola`,
-    );
-  }
-  return new Set(configured.map((host) => host.replace(/^\[/, '').replace(/\]$/, '')));
-}
-
-function isLocalHostname(hostname) {
-  return new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0', 'host.docker.internal']).has(hostname);
-}
-
-export function assertRemoteConfirmation(...origins) {
-  const remoteHosts = origins
-    .filter(Boolean)
-    .map(normalizedHostname)
-    .filter((host) => !isLocalHostname(host));
-  const confirmed = confirmationHosts();
-  const missing = [...new Set(remoteHosts)].filter((host) => !confirmed.has(host));
-  if (missing.length > 0) {
-    throw new Error(
-      `Target remoto non autorizzato: ${missing.join(', ')}. Imposta LOAD_TEST_CONFIRM_HOSTS=${missing.join(',')} (hostname esatti)`,
-    );
-  }
 }
 
 export const PROFILE = __ENV.LOAD_PROFILE || 'smoke';
@@ -244,7 +104,7 @@ export const SETUP_TOKEN_BUFFER_SECONDS = numberEnv(
 );
 export const RESULT_TRIGGER_LEAD_SECONDS = numberEnv(
   'LOAD_RESULT_TRIGGER_LEAD_SECONDS',
-  20,
+  30,
   1,
 );
 export const RESULT_CONFIRM_DELAY_SECONDS = numberEnv(
@@ -257,6 +117,10 @@ export const RESULT_SETTLE_TIMEOUT_SECONDS = numberEnv(
   10,
   1,
 );
+// Attesa massima della proposal del player 1 prima che il player 2 inizi i
+// tentativi di conferma: evita conferme respinte per una proposal non ancora
+// visibile.
+export const PROPOSAL_POLL_SECONDS = 3;
 export const FORMAT = __ENV.LOAD_FORMAT || 'modern';
 export const MODE = 'heads-up';
 
@@ -264,32 +128,30 @@ if (![INCLUDE_FRONTEND, INCLUDE_BACKEND_READS, INCLUDE_EVENTS_WS, INCLUDE_CHAT_W
   throw new Error('Abilita almeno uno scenario di carico');
 }
 
-export const STAGE_TIMELINE = (() => {
-  let elapsedSeconds = 0;
-  return GLOBAL_STAGES.map(({ duration, target, seconds }) => {
-    const startSeconds = elapsedSeconds;
-    elapsedSeconds += seconds;
-    return { duration, target, seconds, startSeconds, endSeconds: elapsedSeconds };
-  });
+const timeline = buildTimeline(GLOBAL_STAGES);
+export const STAGE_TIMELINE = timeline.timeline;
+export const SCENARIO_DURATION_SECONDS = timeline.scenarioDurationSeconds;
+
+// Finestre in cui e k6 a ridurre o spegnere i VU: le chiusure WebSocket in
+// questi intervalli sono pianificate dal test e non contano come inattese.
+// Coprono le discese di profilo, il fine test e il gracefulStop (15s).
+export const PLANNED_STOP_WINDOWS = (() => {
+  const windows = [];
+  for (let index = 1; index < GLOBAL_STAGES.length; index += 1) {
+    if (GLOBAL_STAGES[index].target < GLOBAL_STAGES[index - 1].target) {
+      windows.push({
+        start: STAGE_TIMELINE[index].startSeconds,
+        end: STAGE_TIMELINE[index].endSeconds,
+      });
+    }
+  }
+  const last = STAGE_TIMELINE[STAGE_TIMELINE.length - 1];
+  const lastWindow = windows[windows.length - 1];
+  if (!lastWindow || lastWindow.end !== last.endSeconds) {
+    windows.push({ start: last.endSeconds, end: last.endSeconds });
+  }
+  return windows.map(({ start, end }) => ({ start, end: end + 15 }));
 })();
-export const SCENARIO_DURATION_SECONDS = STAGE_TIMELINE[STAGE_TIMELINE.length - 1].endSeconds;
-const globalMaxPlayers = Math.max(...GLOBAL_STAGES.map(({ target }) => target));
-const peakEndIndex = GLOBAL_STAGES.reduce(
-  (last, stage, index) => (stage.target === globalMaxPlayers ? index : last),
-  -1,
-);
-let peakStartIndex = peakEndIndex;
-while (peakStartIndex > 0 && GLOBAL_STAGES[peakStartIndex - 1].target === globalMaxPlayers) {
-  peakStartIndex -= 1;
-}
-const peakStartSeconds = STAGE_TIMELINE[peakStartIndex].startSeconds;
-const descentStartSeconds = STAGE_TIMELINE[peakEndIndex].endSeconds;
-const peakPlateauSeconds = descentStartSeconds - peakStartSeconds;
-const hasFinalRampDown =
-  peakEndIndex >= 0 &&
-  peakEndIndex < GLOBAL_STAGES.length - 1 &&
-  GLOBAL_STAGES[GLOBAL_STAGES.length - 1].target === 0 &&
-  GLOBAL_STAGES.slice(peakEndIndex + 1).every(({ target }) => target < globalMaxPlayers);
 
 if (COMPLETE_RESULTS) {
   if (!INCLUDE_FRONTEND && !INCLUDE_BACKEND_READS) {
@@ -298,32 +160,31 @@ if (COMPLETE_RESULTS) {
   if (!Number.isFinite(SCENARIO_DURATION_SECONDS) || SCENARIO_DURATION_SECONDS <= 0) {
     throw new Error('Gli stage devono avere una durata totale positiva');
   }
-  if (!hasFinalRampDown) {
+  if (!timeline.hasFinalRampDown) {
     throw new Error(
       'LOAD_COMPLETE_RESULTS=true richiede un plateau al massimo seguito da uno stage finale a 0',
     );
   }
-  if (peakPlateauSeconds < RESULT_TRIGGER_LEAD_SECONDS + 2) {
+  if (timeline.peakPlateauSeconds < RESULT_TRIGGER_LEAD_SECONDS + 2) {
     throw new Error(
-      `Il plateau massimo (${peakPlateauSeconds}s) deve lasciare almeno ${RESULT_TRIGGER_LEAD_SECONDS + 2}s prima della discesa`,
+      `Il plateau massimo (${timeline.peakPlateauSeconds}s) deve lasciare almeno ${RESULT_TRIGGER_LEAD_SECONDS + 2}s prima della discesa`,
     );
   }
-  if (
-    RESULT_TRIGGER_LEAD_SECONDS <
-    RESULT_CONFIRM_DELAY_SECONDS + RESULT_SETTLE_TIMEOUT_SECONDS + 5
-  ) {
+  const resultBudgetSeconds = RESULT_CONFIRM_DELAY_SECONDS
+    + PROPOSAL_POLL_SECONDS
+    + RESULT_SETTLE_TIMEOUT_SECONDS;
+  if (RESULT_TRIGGER_LEAD_SECONDS < resultBudgetSeconds + 10) {
     throw new Error(
-      'LOAD_RESULT_TRIGGER_LEAD_SECONDS deve coprire conferma, settlement e margine di rete',
+      'LOAD_RESULT_TRIGGER_LEAD_SECONDS deve coprire attesa proposal, conferma, settlement e la verifica dell\'host',
     );
   }
 }
+// La chiusura del risultato avviene nel cuore dello scenario, con la coppia
+// ancora attiva: la finestra si apre lead secondi prima della discesa finale.
 export const RESULT_TRIGGER_SECONDS = Math.max(
   0,
-  descentStartSeconds - RESULT_TRIGGER_LEAD_SECONDS,
+  timeline.descentStartSeconds - RESULT_TRIGGER_LEAD_SECONDS,
 );
-export const RESULT_TRIGGER_PROGRESS = SCENARIO_DURATION_SECONDS > 0
-  ? RESULT_TRIGGER_SECONDS / SCENARIO_DURATION_SECONDS
-  : 1;
 
 assertRemoteConfirmation(
   BACKEND_URL,
@@ -334,7 +195,3 @@ assertRemoteConfirmation(
   INCLUDE_EVENTS_WS || INCLUDE_CHAT_WS ? WS_ORIGIN : '',
   __ENV.AUTH_BASE_URL ? AUTH_URL : '',
 );
-
-export function shardPair(globalPairIndex) {
-  return globalPairIndex % GENERATOR_COUNT === GENERATOR_INDEX;
-}
