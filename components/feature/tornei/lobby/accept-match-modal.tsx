@@ -1,15 +1,46 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Check, Hourglass, X } from 'lucide-react';
+import { AlertTriangle, Check, Hourglass, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ClashingSwordsIcon } from './clashing-swords-icon';
 import type { ConnectionQuality } from '@/types/tournament';
+import type { Deck } from '@/types/deck';
 import { useSynchronizedCountdown } from '@/hooks/use-synchronized-countdown';
-import { AcceptPlayerChip, CornerMarks } from './accept-match-parts';
+import {
+  AcceptCountdownRing,
+  AcceptDeckPicker,
+  AcceptPlayerChip,
+  CornerMarks,
+  DeclinedPanel,
+} from './accept-match-parts';
 
 const ACCEPT_WINDOW_SECONDS = 30;
 const DECLINED_LEAVE_SECONDS = 5;
+
+/** Dopo il rifiuto dell'avversario: countdown che riporta in lobby da solo. */
+function useDeclinedCountdown(
+  phase: AcceptMatchModalProps['phase'],
+  onLeave: () => void,
+): number {
+  const [secondsLeft, setSecondsLeft] = useState(DECLINED_LEAVE_SECONDS);
+  useEffect(() => {
+    if (phase !== 'declined') return;
+    setSecondsLeft(DECLINED_LEAVE_SECONDS);
+    const interval = setInterval(() => {
+      setSecondsLeft((seconds) => {
+        if (seconds <= 1) {
+          clearInterval(interval);
+          onLeave();
+          return 0;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [phase, onLeave]);
+  return secondsLeft;
+}
 
 interface AcceptMatchModalProps {
   phase: 'accepting' | 'declined' | null;
@@ -23,6 +54,10 @@ interface AcceptMatchModalProps {
   serverTime?: string;
   myConnection?: ConnectionQuality;
   opponentConnection?: ConnectionQuality;
+  /** Mazzi compatibili col formato del tavolo: dichiarazione facoltativa al via. */
+  decks: Deck[];
+  deckId: string;
+  onDeckChange: (deckId: string) => void;
   onAccept: () => void;
   onLeave: () => void;
   onOpponentTimeout: () => void;
@@ -46,11 +81,14 @@ export function AcceptMatchModal({
   serverTime,
   myConnection,
   opponentConnection,
+  decks,
+  deckId,
+  onDeckChange,
   onAccept,
   onLeave,
   onOpponentTimeout,
 }: AcceptMatchModalProps) {
-  const [declinedLeft, setDeclinedLeft] = useState(DECLINED_LEAVE_SECONDS);
+  const declinedLeft = useDeclinedCountdown(phase, onLeave);
   const { remaining: acceptLeft, synchronized } = useSynchronizedCountdown({
     active: phase === 'accepting',
     deadline: readyDeadline,
@@ -58,6 +96,10 @@ export function AcceptMatchModal({
   });
   const prevPhaseRef = useRef<AcceptMatchModalProps['phase']>(null);
   const firedRef = useRef(false);
+  const myReadyRef = useRef(myReady);
+  useEffect(() => {
+    myReadyRef.current = myReady;
+  }, [myReady]);
   useEffect(() => {
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
@@ -65,10 +107,6 @@ export function AcceptMatchModal({
       firedRef.current = false;
     }
   }, [phase]);
-  const myReadyRef = useRef(myReady);
-  useEffect(() => {
-    myReadyRef.current = myReady;
-  }, [myReady]);
 
   // Countdown globale: a zero, se ho confermato segnalo il rifiuto
   // dell'avversario, altrimenti esco direttamente (non ho risposto).
@@ -84,22 +122,6 @@ export function AcceptMatchModal({
     if (myReadyRef.current) onOpponentTimeout();
     else onLeave();
   }, [acceptLeft, onLeave, onOpponentTimeout, phase, synchronized]);
-
-  useEffect(() => {
-    if (phase !== 'declined') return;
-    setDeclinedLeft(DECLINED_LEAVE_SECONDS);
-    const interval = setInterval(() => {
-      setDeclinedLeft((seconds) => {
-        if (seconds <= 1) {
-          clearInterval(interval);
-          onLeave();
-          return 0;
-        }
-        return seconds - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [phase, onLeave]);
 
   if (!phase) return null;
   const declined = phase === 'declined';
@@ -123,29 +145,12 @@ export function AcceptMatchModal({
         <CornerMarks tone={declined ? 'border-red-400/50' : 'border-primary/60'} />
 
         {declined ? (
-          <div className="relative flex flex-col items-center">
-            <span
-              className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-red-500 to-red-700 shadow-[0_16px_40px_-12px_rgba(239,68,68,0.7)] ring-1 ring-white/20"
-              aria-hidden
-            >
-              <AlertTriangle className="h-6 w-6" />
-            </span>
-            <h2 className="mt-4 font-display text-2xl font-black uppercase tracking-[0.14em] text-white">
-              Sfida annullata
-            </h2>
-            <p className="mt-1.5 text-sm font-semibold text-white/50">
-              {opponentUsername ?? 'Il giocatore'} non ha accettato.
-            </p>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onLeave}
-              className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-primary to-orange-600 text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_14px_32px_-12px_rgba(255,115,0,0.8)] ring-1 ring-white/20 transition hover:brightness-110 active:scale-95 disabled:opacity-50"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Lobby ({declinedLeft}s)
-            </button>
-          </div>
+          <DeclinedPanel
+            opponentUsername={opponentUsername}
+            secondsLeft={declinedLeft}
+            busy={busy}
+            onLeave={onLeave}
+          />
         ) : (
           <div className="relative flex flex-col items-center">
             <span
@@ -159,23 +164,12 @@ export function AcceptMatchModal({
               Partita trovata
             </h2>
 
-            <span
-              className={cn(
-                'relative mt-6 grid h-28 w-28 place-items-center rounded-full',
-                urgent ? 'animate-pulse' : 'accept-ring-glow',
-              )}
-              role="timer"
-              aria-label={acceptLabel}
-              style={{
-                background: `conic-gradient(${
-                  urgent ? '#f87171' : '#FF7300'
-                } ${Math.max(0, acceptFraction) * 360}deg, rgba(255,255,255,0.07) 0deg 360deg)`,
-              }}
-            >
-              <span className="grid h-[5.75rem] w-[5.75rem] place-items-center rounded-full bg-[#070a16] text-4xl font-black tabular-nums text-white">
-                {acceptLeft ?? '—'}
-              </span>
-            </span>
+            <AcceptCountdownRing
+              seconds={acceptLeft}
+              fraction={acceptFraction}
+              label={acceptLabel}
+              urgent={urgent}
+            />
             <div className="mt-6 flex w-full items-center gap-2">
               <AcceptPlayerChip
                 label={myUsername}
@@ -192,6 +186,13 @@ export function AcceptMatchModal({
                 connection={opponentConnection}
               />
             </div>
+
+            <AcceptDeckPicker
+              decks={decks}
+              value={deckId}
+              disabled={busy || myReady}
+              onChange={onDeckChange}
+            />
 
             {error && (
               <p role="alert" className="mt-3 text-xs font-bold text-red-300">

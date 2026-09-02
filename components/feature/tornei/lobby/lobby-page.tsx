@@ -45,10 +45,7 @@ interface LobbyPageProps {
   openCreate?: boolean;
 }
 
-type ModalState =
-  | { mode: 'create'; format: FormatId }
-  | { mode: 'host' | 'join'; tournamentId: string }
-  | null;
+type ModalState = { mode: 'host'; tournamentId: string } | null;
 
 export function LobbyPage({
   tournaments,
@@ -72,6 +69,8 @@ export function LobbyPage({
   const [arcadeGateOpen, setArcadeGateOpen] = useState(false);
   const [arcadeOpen, setArcadeOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Mazzo facoltativo dichiarato nel modale di accettazione ('' = senza). */
+  const [approvalDeckId, setApprovalDeckId] = useState('');
   const [actionTournament, setActionTournament] = useState<Tournament | null>(null);
   const [busy, startTransition] = useTransition();
   const myUsername = gamertag;
@@ -87,6 +86,48 @@ export function LobbyPage({
   );
 
   const closeSeatModal = useCallback(() => setModal(null), []);
+  /**
+   * Seduta diretta, senza modale: si entra sempre senza mazzo. La
+   * dichiarazione resta facoltativa e successiva — da "Gestisci tavolo"
+   * mentre si aspetta, o dal modale di accettazione quando il tavolo si
+   * riempie (il backend accetta lo snapshot finché il match non è partito).
+   */
+  const runJoin = useCallback(
+    (tournamentId: string, deckId?: string) => {
+      setError(null);
+      startTransition(async () => {
+        const res = await joinTournamentAction(tournamentId, deckId);
+        if (res.error) {
+          setError(res.error);
+          return;
+        }
+        if (res.tournament) setActionTournament(res.tournament);
+        setModal(null);
+        if (res.matchId) {
+          goLiveTo(tournamentId);
+        } else {
+          router.refresh();
+        }
+      });
+    },
+    [goLiveTo, router],
+  );
+
+  const runCreate = useCallback(
+    (format: FormatId) => {
+      setError(null);
+      startTransition(async () => {
+        const res = await createTableAction(format, selection.mode);
+        if (res.error || !res.createdId) {
+          setError(res.error ?? 'Impossibile creare il tavolo.');
+          return;
+        }
+        router.refresh();
+      });
+    },
+    [router, selection.mode],
+  );
+
   const {
     monitoredTable,
     trackedTournament,
@@ -102,7 +143,11 @@ export function LobbyPage({
     userId: user.id,
     actionTournament,
     goLiveTo,
-    onApprovalOpen: closeSeatModal,
+    onApprovalOpen: () => {
+      closeSeatModal();
+      // Ogni nuova accettazione riparte senza mazzo: la scelta è esplicita.
+      setApprovalDeckId('');
+    },
   });
   const measuredQuality = useServerConnectionQuality(
     actionTournament?.webcamSessionId ?? monitoredTable?.webcamSessionId,
@@ -132,7 +177,7 @@ export function LobbyPage({
       if (selection.format === 'all') {
         setError('Seleziona un formato specifico per creare un tavolo.');
       } else {
-        setModal({ mode: 'create', format: selection.format });
+        runCreate(selection.format);
       }
       clearArcadeFocus();
       return;
@@ -148,12 +193,22 @@ export function LobbyPage({
     if (mine) {
       setModal({ mode: 'host', tournamentId: target.id });
     } else if (target.status === 'in_registrazione' && target.participants.length < target.maxPlayers) {
-      setModal({ mode: 'join', tournamentId: target.id });
+      runJoin(target.id);
     } else {
       setError('Questo tavolo non è più disponibile.');
     }
     clearArcadeFocus();
-  }, [clearArcadeFocus, focusKey, focusTableId, openCreate, selection.format, tournaments, user.id]);
+  }, [clearArcadeFocus, focusKey, focusTableId, openCreate, runCreate, runJoin, selection.format, tournaments, user.id]);
+  /** Mazzi compatibili col formato del tavolo in accettazione (dichiarazione
+   * facoltativa al via): dai dati già in pagina, nessuna fetch extra. */
+  const approvalDecks = useMemo(
+    () =>
+      approvalTarget
+        ? initialDecks.filter((deck) => deck.formatId === approvalTarget.format)
+        : [],
+    [approvalTarget, initialDecks],
+  );
+
   const tables = useMemo(
     () =>
       buildLobbyTables({ tournaments, userId: user.id, format: selection.format }).map((table) => ({
@@ -223,6 +278,16 @@ export function LobbyPage({
     const targetId = approvalTarget.id;
     setError(null);
     startTransition(async () => {
+      // Dichiarazione facoltativa al via: il tavolo è ancora in attesa, quindi
+      // il backend accetta lo snapshot del mazzo prima del ready.
+      if (approvalDeckId) {
+        const declared = await joinTournamentAction(targetId, approvalDeckId);
+        if (declared.error) {
+          setError(declared.error);
+          return;
+        }
+        if (declared.tournament) setActionTournament(declared.tournament);
+      }
       const res = await readyTournamentAction(targetId, true);
       if (res.error) {
         setError(res.error);
@@ -236,7 +301,7 @@ export function LobbyPage({
       }
       router.refresh();
     });
-  }, [approvalTarget, router, goLiveTo]);
+  }, [approvalDeckId, approvalTarget, router, goLiveTo]);
 
   // Uscita dal tavolo senza confirm: rifiuto o timeout dell'accettazione.
   // L'id viene dallo stato persistente anche in fase "declined".
@@ -269,6 +334,7 @@ export function LobbyPage({
     [actionTournament, coordinatedTournament, tournaments, user.id],
   );
 
+
   const handleSit = useCallback(
     (table: LobbyTable) => {
       setError(null);
@@ -284,64 +350,27 @@ export function LobbyPage({
         return;
       }
 
-      if (table.kind === 'joinable' && table.tournament) {
-        // La scelta del mazzo è facoltativa sui tavoli casuali.
-        setModal({ mode: 'join', tournamentId: table.tournament.id });
+      if (table.tournament) {
+        runJoin(table.tournament.id);
         return;
       }
-
-      if (table.kind === 'empty') {
-        if (table.tournament) {
-          setModal({ mode: 'join', tournamentId: table.tournament.id });
-          return;
-        }
-        // "Tutti i formati" è solo una vista: il tavolo vuoto richiede un formato
-        // preciso e il bottone è già bloccato client-side (createLocked).
-        if (selection.format === 'all') {
-          setError('Seleziona un formato specifico per creare un tavolo.');
-          return;
-        }
-        setModal({ mode: 'create', format: selection.format });
+      // "Tutti i formati" è solo una vista: il tavolo vuoto richiede un formato
+      // preciso e il bottone è già bloccato client-side (createLocked).
+      if (selection.format === 'all') {
+        setError('Seleziona un formato specifico per creare un tavolo.');
+        return;
       }
+      runCreate(selection.format);
     },
-    [tournaments, user.id, myUsername, selection.format],
+    [tournaments, user.id, myUsername, selection.format, runJoin, runCreate],
   );
 
   const handleConfirmJoin = useCallback(
     (deckId: string) => {
       if (!modal) return;
-      setError(null);
-      startTransition(async () => {
-        if (modal.mode === 'create') {
-          const res = await createTableAction(modal.format, selection.mode, deckId);
-          if (res.error || !res.createdId) {
-            setError(res.error ?? 'Impossibile creare il tavolo.');
-            return;
-          }
-          setModal({ mode: 'host', tournamentId: res.createdId });
-          router.refresh();
-          return;
-        }
-        const tournamentId = modal.tournamentId;
-        const res = await joinTournamentAction(tournamentId, deckId);
-        if (res.error) {
-          setError(res.error);
-          return;
-        }
-        if (res.tournament) setActionTournament(res.tournament);
-        setModal(null);
-        if (res.matchId) {
-          // Match già partito (es. tavolo pieno con entrambi pronti):
-          // si va direttamente alla schermata live.
-          goLiveTo(tournamentId);
-        } else {
-          // Tavolo pieno in attesa di congedo: l'accettazione stile LoL
-          // appare in lobby, nessun redirect esplicito.
-          router.refresh();
-        }
-      });
+      runJoin(modal.tournamentId, deckId);
     },
-    [modal, router, goLiveTo, selection.mode],
+    [modal, runJoin],
   );
 
   const handleLeave = useCallback(
@@ -375,12 +404,10 @@ export function LobbyPage({
     [goLiveTo],
   );
 
-  const modalTournament = modal && modal.mode !== 'create'
+  const modalTournament = modal
     ? tournaments.find((tournament) => tournament.id === modal.tournamentId)
     : null;
-  const modalFormatId = modal?.mode === 'create'
-    ? modal.format
-    : (modalTournament?.format ?? 'modern');
+  const modalFormatId = modalTournament?.format ?? 'modern';
   const modalFormatName = getFormat(modalFormatId)?.name ?? formatName;
 
   const handleOpenArcade = useCallback(() => {
@@ -399,10 +426,10 @@ export function LobbyPage({
 
   const handleCloseArcadeGate = useCallback(() => setArcadeGateOpen(false), []);
   const handleCloseArcade = useCallback(() => setArcadeOpen(false), []);
-  const handleOpenArcadeCreate = useCallback((format: FormatId) => {
-    setError(null);
-    setModal({ mode: 'create', format });
-  }, []);
+  const handleOpenArcadeCreate = useCallback(
+    (format: FormatId) => runCreate(format),
+    [runCreate],
+  );
 
   return (
     <>
@@ -428,7 +455,6 @@ export function LobbyPage({
 
       <TableSeatModal
         open={modal !== null}
-        mode={modal?.mode ?? 'host'}
         formatId={modalFormatId}
         formatName={modalFormatName}
         myUsername={myUsername}
@@ -464,6 +490,9 @@ export function LobbyPage({
         opponentConnection={
           approvalTarget?.participants.find((participant) => participant.id !== user.id)?.connection
         }
+        decks={approvalDecks}
+        deckId={approvalDeckId}
+        onDeckChange={setApprovalDeckId}
         onAccept={handleApprovalAccept}
         onLeave={handleApprovalLeave}
         onOpponentTimeout={() => setApprovalPhase('declined')}

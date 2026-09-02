@@ -14,7 +14,6 @@ import modalFont from '../tournament-modal-font.module.css';
 
 interface TableSeatModalProps {
   open: boolean;
-  mode: 'create' | 'host' | 'join';
   formatId: FormatId;
   formatName: string;
   myUsername: string;
@@ -29,9 +28,13 @@ interface TableSeatModalProps {
 
 const IGNORE_DECK = '__ignore__';
 
+/**
+ * Pannello "Il tuo posto è pronto": raggiungibile da "Gestisci tavolo" sulla
+ * card del proprio tavolo. NON compare alla seduta — si entra sempre senza
+ * mazzo e la dichiarazione resta facoltativa e successiva.
+ */
 export function TableSeatModal({
   open,
-  mode,
   formatId,
   formatName,
   myUsername,
@@ -62,14 +65,10 @@ export function TableSeatModal({
         const compatible = result.decks.filter((deck) => deck.formatId === formatId);
         setDecks(compatible);
         const currentIsCompatible = compatible.some((deck) => deck.id === currentDeckId);
-        setSelected(
-          currentIsCompatible
-            ? currentDeckId!
-            : mode === 'join' ? (compatible[0]?.id ?? IGNORE_DECK) : IGNORE_DECK,
-        );
+        setSelected(currentIsCompatible ? currentDeckId! : IGNORE_DECK);
       }
     });
-  }, [open, mode, formatId, currentDeckId]);
+  }, [open, formatId, currentDeckId]);
 
   useLobbyModal(open && mounted, dialogRef, onClose, busy);
 
@@ -91,8 +90,6 @@ export function TableSeatModal({
 
   if (!open || !mounted) return null;
   const deckIdToSubmit = selected === IGNORE_DECK ? '' : selected;
-  const isHost = mode === 'host';
-  const isCreate = mode === 'create';
 
   return createPortal(
     <div
@@ -118,15 +115,11 @@ export function TableSeatModal({
       >
         <div className="h-1 shrink-0 bg-gradient-to-r from-[#FF7300] to-[#e0564d]" aria-hidden="true" />
         <LobbyModalHeader
-          eyebrow={isHost ? 'Tavolo creato' : 'Ultimo passaggio'}
+          eyebrow="Il tuo tavolo"
           titleId="table-seat-title"
           descriptionId="table-seat-description"
-          title={isHost ? 'Il tuo posto è pronto' : isCreate ? 'Crea il tavolo' : 'Siediti al tavolo'}
-          description={isHost
-            ? 'Associa il mazzo che userai oppure gioca senza mazzo.'
-            : isCreate
-              ? 'Scegli un mazzo oppure crea il tavolo e gioca senza mazzo.'
-            : 'Scegli un mazzo oppure siediti e gioca senza mazzo.'}
+          title="Il tuo posto è pronto"
+          description="Associa il mazzo che userai, oppure esci e continua senza mazzo."
           meta={[formatName, 'Best of 3', '2 giocatori']}
           onClose={onClose}
           closeDisabled={busy}
@@ -149,7 +142,7 @@ export function TableSeatModal({
           <TableSeatBoard
             myUsername={myUsername}
             opponentUsername={opponentUsername}
-            eyebrow={isHost ? 'STATO POSTI' : 'PASSAGGIO 2'}
+            eyebrow="STATO POSTI"
           />
           {error && (
             <p role="alert" className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2.5 text-sm font-semibold text-red-300">
@@ -159,73 +152,30 @@ export function TableSeatModal({
         </div>
 
         <footer className="shrink-0 border-t border-white/10 bg-black/20 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          {isHost ? (
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onLeave}
-                disabled={busy}
-                className="inline-flex items-center gap-2 rounded-full border border-red-400/25 bg-red-500/10 px-5 py-3 text-sm font-bold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
-              >
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                Alzati
-              </button>
-              <PrimaryAction
-                busy={busy}
-                onClick={() => onConfirmJoin?.(deckIdToSubmit)}
-                label="Salva scelta e torna"
-                busyLabel="Salvataggio…"
-                initialFocus
-              />
-            </div>
-          ) : (
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={busy}
-                className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
-              >
-                Annulla
-              </button>
-              <PrimaryAction
-                busy={busy}
-                onClick={() => onConfirmJoin?.(deckIdToSubmit)}
-                label={isCreate ? 'Crea tavolo' : 'Siediti e gioca'}
-                busyLabel={isCreate ? 'Creazione…' : 'Mi siedo…'}
-              />
-            </div>
-          )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onLeave}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full border border-red-400/25 bg-red-500/10 px-5 py-3 text-sm font-bold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              Alzati
+            </button>
+            <button
+              type="button"
+              onClick={() => onConfirmJoin?.(deckIdToSubmit)}
+              disabled={busy}
+              data-modal-initial-focus="true"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-black text-white shadow-[0_8px_20px_-8px_rgba(255,115,0,0.45)] transition hover:opacity-95 disabled:opacity-50"
+            >
+              {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+              {busy ? 'Salvataggio…' : 'Salva scelta e torna'}
+            </button>
+          </div>
         </footer>
       </section>
     </div>,
     document.body,
-  );
-}
-
-function PrimaryAction({
-  busy,
-  onClick,
-  label,
-  busyLabel,
-  initialFocus = false,
-}: {
-  busy: boolean;
-  onClick: () => void;
-  label: string;
-  busyLabel: string;
-  initialFocus?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={busy}
-      data-modal-initial-focus={initialFocus ? 'true' : undefined}
-      className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-5 py-3 text-sm font-black text-white shadow-[0_8px_20px_-8px_rgba(255,115,0,0.45)] transition hover:opacity-95 disabled:opacity-50"
-    >
-      {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
-      {busy ? busyLabel : label}
-    </button>
   );
 }
