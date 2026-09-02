@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { redirect } from 'next/navigation';
-import { fetchMyGamertag } from '@/lib/data/player-api-client';
+import { fetchMyGamertag, readLastKnownGamertag } from '@/lib/data/player-api-client';
 import { TournamentApiError } from '@/lib/data/tournament-api-client';
 
 /**
@@ -20,8 +20,22 @@ export async function requireGamertag(returnTo: string): Promise<string> {
     if (err instanceof TournamentApiError && err.status === 401) {
       redirect('/login');
     }
+    // Un 429 o un 5xx non sono un profilo mancante: girava un throw fino al
+    // boundary e l'intera lobby diventava "connessione interrotta". Se il
+    // gamertag di questa sessione è già noto la pagina resta in piedi.
+    if (isTransientProfileError(err)) {
+      const lastKnown = await readLastKnownGamertag();
+      if (lastKnown) return lastKnown;
+    }
     throw err;
   }
   if (gamertag) return gamertag;
   redirect(`/imposta-username?redirect=${encodeURIComponent(returnTo)}`);
+}
+
+/** Errore del backend che non dice nulla sul profilo: vale ritentare dopo. */
+function isTransientProfileError(err: unknown): boolean {
+  return (
+    err instanceof TournamentApiError && (err.status === 429 || err.status >= 500)
+  );
 }

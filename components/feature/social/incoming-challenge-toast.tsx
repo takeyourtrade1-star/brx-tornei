@@ -11,6 +11,8 @@ import { listDecksAction } from '@/actions/decks';
 import { ChallengeDeckSelect } from './challenge-deck-select';
 import type { Deck } from '@/types/deck';
 
+const POLL_INTERVAL_MS = 15_000;
+
 export function IncomingChallengeToast() {
   const router = useRouter();
   const [challenge, setChallenge] = useState<DirectGameChallenge | null>(null);
@@ -33,13 +35,23 @@ export function IncomingChallengeToast() {
       }
     };
     void poll();
+    // Il poll a 3 s costava ~40 letture/minuto per tab (profilo + sfide) sul
+    // rate limit per-IP del backend: era la voce piu' pesante del sito. A 15 s,
+    // e solo con la tab in primo piano, l'attesa percepita resta accettabile
+    // perche' la sfida scade in 60 s.
     const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       void poll();
-    }, 3_000);
+    }, POLL_INTERVAL_MS);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void poll();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [challenge]);
 

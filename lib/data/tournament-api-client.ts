@@ -12,6 +12,7 @@ import type { Selection } from '@/lib/validations/selection';
 import type { CreateTournamentInput } from '@/lib/validations/tournament';
 import type { ConnectionQualityInput } from '@/lib/validations/connection-quality';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
+import { firstPartyHeaders } from '@/lib/data/first-party-headers';
 
 const MAX_TOURNAMENT_RESPONSE_BYTES = 512 * 1024;
 
@@ -73,6 +74,9 @@ export async function tournamentFetch(
   }
   const url = new URL(path, base).toString();
   const method = (init.method ?? 'GET').toUpperCase();
+  // Dichiara per conto di quale giocatore stiamo chiamando: senza questo il
+  // backend attribuisce tutta l'utenza alla quota del nostro unico IP.
+  const identity = await firstPartyHeaders();
   // Le letture alimentano direttamente gli RSC: un singolo reset di rete o un
   // 5xx durante un rolling deploy non deve trasformarsi nella pagina generica
   // "Application error". Ritentiamo soltanto i GET, quindi mai le mutazioni.
@@ -88,6 +92,8 @@ export async function tournamentFetch(
           'Accept-Encoding': 'identity',
           ...(init.body ? { 'Content-Type': 'application/json' } : {}),
           ...init.headers,
+          // Ultimo: l'identità di servizio non è sovrascrivibile dal chiamante.
+          ...identity,
         },
         cache: 'no-store',
         redirect: 'error',
@@ -98,12 +104,11 @@ export async function tournamentFetch(
         res,
         MAX_TOURNAMENT_RESPONSE_BYTES,
       ).catch(() => ({}));
-      if ((res.status === 429 || res.status >= 500) && attempt + 1 < attempts) {
-        if (res.status === 429) {
-          await new Promise((resolve) => setTimeout(resolve, 250));
-        }
-        continue;
-      }
+      // MAI ritentare un 429: il limiter del backend usa finestre al minuto,
+      // quindi un secondo tentativo a 250 ms fallisce garantito e raddoppia le
+      // richieste proprio quando il bucket è già vuoto. Si ritentano solo i
+      // 5xx, dove un rolling deploy può davvero rispondere ok al secondo giro.
+      if (res.status >= 500 && attempt + 1 < attempts) continue;
       return { ok: res.ok, status: res.status, body };
     } catch (err) {
       if (attempt + 1 < attempts) continue;

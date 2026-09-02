@@ -2,6 +2,12 @@ import 'server-only';
 
 import { extractApiError, tournamentFetch, TournamentApiError } from '@/lib/data/tournament-api-client';
 import { unwrapApiPayload } from '@/lib/data/tournament-mapper';
+import { getAccessToken } from '@/lib/auth/access-token';
+import {
+  getCachedGamertag,
+  getStaleGamertag,
+  setCachedGamertag,
+} from '@/lib/data/gamertag-cache';
 
 export interface GamertagAvailability {
   available: boolean;
@@ -9,14 +15,39 @@ export interface GamertagAvailability {
   validFormat: boolean;
 }
 
+/**
+ * Il gamertag e' immutabile per sessione: la micro-cache keyed per token
+ * evita di rileggere il profilo a ogni poll (vedi `lib/data/gamertag-cache.ts`).
+ */
 export async function fetchMyGamertag(): Promise<string | null> {
+  const token = await getAccessToken();
+  if (token) {
+    const cached = getCachedGamertag(token);
+    if (cached) return cached.value;
+  }
+
   const { ok, status, body } = await tournamentFetch('/api/v1/players/me/profile');
-  if (status === 404) return null;
+  if (status === 404) {
+    if (token) setCachedGamertag(token, null);
+    return null;
+  }
   if (!ok) {
     throw extractApiError(body, status, 'Impossibile leggere il profilo giocatore');
   }
   const data = unwrapApiPayload<{ gamertag?: unknown }>(body) ?? {};
-  return typeof data.gamertag === 'string' ? data.gamertag : null;
+  const gamertag = typeof data.gamertag === 'string' ? data.gamertag : null;
+  if (token) setCachedGamertag(token, gamertag);
+  return gamertag;
+}
+
+/**
+ * Ultimo gamertag noto per la sessione corrente, anche se la entry e' scaduta.
+ * Serve ai chiamanti che non possono fallire su un 429/5xx transitorio.
+ */
+export async function readLastKnownGamertag(): Promise<string | null> {
+  const token = await getAccessToken();
+  if (!token) return null;
+  return getStaleGamertag(token)?.value ?? null;
 }
 
 export async function fetchGamertagAvailability(gamertag: string): Promise<GamertagAvailability> {
@@ -45,6 +76,9 @@ export async function postSetGamertag(gamertag: string): Promise<string> {
   if (typeof data.gamertag !== 'string' || !data.gamertag) {
     throw new TournamentApiError('Risposta profilo non valida', 502, 'INVALID_RESPONSE');
   }
+  // Il profilo e' cambiato: la cache non deve sopravvivere alla mutazione.
+  const token = await getAccessToken();
+  if (token) setCachedGamertag(token, data.gamertag);
   return data.gamertag;
 }
 

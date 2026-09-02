@@ -6,10 +6,10 @@ import { config } from '@/lib/config';
 import type { Session, SessionUser, TokenResponse } from '@/types/auth';
 import { readBoundedResponseJson } from '@/lib/security/bounded-response';
 import {
-  isValidAuthCookieToken,
   isValidAuthTokenPair,
   resolveAccessCookieMaxAge,
 } from '@/lib/auth/auth-token';
+import { getAccessToken, getRefreshToken } from '@/lib/auth/access-token';
 import {
   getCachedSession,
   isTransientAuthStatus,
@@ -22,17 +22,9 @@ import {
  * sono gli unici a leggerli. Niente localStorage (vedi ARCHITECTURE.md §2.3).
  */
 
-export async function getAccessToken(): Promise<string | null> {
-  const store = await cookies();
-  const token = store.get(config.auth.accessCookie)?.value;
-  return isValidAuthCookieToken(token) ? token : null;
-}
-
-export async function getRefreshToken(): Promise<string | null> {
-  const store = await cookies();
-  const token = store.get(config.auth.refreshCookie)?.value;
-  return isValidAuthCookieToken(token) ? token : null;
-}
+// Riesportati per non toccare i consumer esistenti: l'implementazione sta nel
+// modulo foglia `lib/auth/access-token.ts`.
+export { getAccessToken, getRefreshToken };
 
 function cookieOptions(maxAge: number) {
   return {

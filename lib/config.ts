@@ -158,6 +158,17 @@ function getMeilisearchConfig() {
   };
 }
 
+/**
+ * Token di servizio verso il Tournament Service. Solo ASCII stampabile: viaggia
+ * in un header HTTP e il backend lo confronta come byte ASCII.
+ */
+const getTournamentsServiceToken = (): string => {
+  const raw = process.env.TOURNAMENTS_SERVICE_TOKEN ?? '';
+  const token = raw.trim();
+  if (!token || token.length > 512 || !/^[\x21-\x7e]+$/.test(token)) return '';
+  return token;
+};
+
 export const config = {
   api: {
     baseURL: getAuthApiURL(),
@@ -167,6 +178,14 @@ export const config = {
     syncBaseURL: getSyncApiURL(),
     tournamentsBaseURL: getTournamentsApiURL(),
     tournamentsWebSocketOrigin: getTournamentsWebSocketOrigin(),
+    /**
+     * Segreto condiviso col Tournament Service: dichiara che questo frontend
+     * non è un client qualunque ma il reverse proxy davanti a tutta l'utenza,
+     * così la quota per-indirizzo viene contata sull'utente finale che
+     * inoltriamo e non sul nostro unico IP di uscita. Assente = comportamento
+     * precedente (nessun header inviato).
+     */
+    tournamentsServiceToken: getTournamentsServiceToken(),
     timeout: 30000,
   },
   meilisearch: getMeilisearchConfig(),
