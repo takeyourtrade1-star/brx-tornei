@@ -5,14 +5,17 @@
 
 export const HEADER_BRX_LOGO_PATH = 'Logo%20Principale%20EBARTEX.png';
 
-/** Variante lettere navy (generata da quella CDN) — per header su sfondo chiaro. */
-export const HEADER_BRX_LOGO_DARK_SRC = '/logo-ebartex-dark.png';
+/** Logo landing Ebartex (lettere bianche con frecce arancioni). */
+export const HEADER_BRX_LOGO_SRC = '/logo-ebartex.png';
 
-/** Variante bianca da CDN — per HUD su sfondo arena. */
-export const HEADER_BRX_LOGO_LIGHT_PATH = 'logo.png';
+/** Variante per header (mantiene compatibilità). */
+export const HEADER_BRX_LOGO_DARK_SRC = '/logo-ebartex.png';
 
-export const HEADER_BRX_LOGO_INTRINSIC_WIDTH = 700;
-export const HEADER_BRX_LOGO_INTRINSIC_HEIGHT = 263;
+/** Percorso variante CDN. */
+export const HEADER_BRX_LOGO_LIGHT_PATH = 'Logo%20Principale%20EBARTEX.png';
+
+export const HEADER_BRX_LOGO_INTRINSIC_WIDTH = 599;
+export const HEADER_BRX_LOGO_INTRINSIC_HEIGHT = 411;
 
 export const HEADER_BRX_LOGO_COLUMN_CLASS =
   'relative flex h-[52px] shrink-0 items-center overflow-visible sm:h-[58px]';

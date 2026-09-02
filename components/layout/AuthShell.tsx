@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { getCdnImageUrl } from '@/lib/public-config';
+import { HEADER_BRX_LOGO_SRC } from '@/components/layout/header-brx-column';
 import { LandingBackgroundVideo } from '@/components/feature/landing/LandingBackgroundVideo';
 import { cn } from '@/lib/utils';
 
@@ -56,7 +57,7 @@ export function AuthShell({
   splitHero = false,
 }: AuthShellProps) {
   const carouselBg = getCdnImageUrl('carousel/slide1.jpg');
-  const logoUrl = getCdnImageUrl('logo.png');
+  const logoUrl = HEADER_BRX_LOGO_SRC;
 
   if (splitHero) {
     return (

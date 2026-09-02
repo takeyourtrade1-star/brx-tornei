@@ -8,10 +8,9 @@ import {
   HEADER_BRX_LOGO_IMAGE_COMPACT_CLASS,
   HEADER_BRX_LOGO_INTRINSIC_HEIGHT,
   HEADER_BRX_LOGO_INTRINSIC_WIDTH,
-  HEADER_BRX_LOGO_LIGHT_PATH,
   HEADER_BRX_LOGO_LINK_CLASS,
+  HEADER_BRX_LOGO_SRC,
 } from '@/components/layout/header-brx-column';
-import { getCdnImageUrl } from '@/lib/public-config';
 
 interface BrxHeaderLogoProps {
   href?: string;
@@ -26,11 +25,10 @@ interface BrxHeaderLogoProps {
 export function BrxHeaderLogo({
   href = '/',
   ariaLabel = 'Home',
-  variant = 'dark',
   size = 'default',
   linked = true,
 }: BrxHeaderLogoProps) {
-  const src = variant === 'light' ? getCdnImageUrl(HEADER_BRX_LOGO_LIGHT_PATH) : HEADER_BRX_LOGO_DARK_SRC;
+  const src = HEADER_BRX_LOGO_SRC;
   const compact = size === 'compact';
   const image = (
     <Image

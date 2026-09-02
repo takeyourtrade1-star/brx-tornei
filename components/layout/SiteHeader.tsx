@@ -7,7 +7,7 @@ import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
  */
 export function SiteHeader() {
   return (
-    <header className="header-gradient w-full pb-6 font-sans text-slate-900">
+    <header className="header-gradient w-full pb-6 font-sans text-white">
       <div className="mx-auto flex max-w-content items-center gap-3 px-4 py-2 sm:px-6">
         <div className="flex items-center gap-2 overflow-visible py-1">
           <BrxHeaderLogo ariaLabel="Ebartex Tornei — home" />
