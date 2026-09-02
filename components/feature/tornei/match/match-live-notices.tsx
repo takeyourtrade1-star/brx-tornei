@@ -87,35 +87,37 @@ export function MatchEndedPanel({
       aria-modal="true"
       aria-live="polite"
       aria-label="Partita terminata"
-      className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-black/80 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 p-4 sm:p-6 backdrop-blur-md"
     >
-      <div className="my-auto w-full max-w-xl">
-        <div className="flex flex-col items-center gap-5 rounded-3xl border border-white/15 bg-header-bg/95 p-8 text-center text-white shadow-2xl backdrop-blur-md sm:p-10">
-          <span className="grid h-16 w-16 place-items-center rounded-2xl border border-primary/40 bg-primary/15 text-primary shadow-[0_0_24px_rgba(255,115,0,0.3)]">
-            <Flag className="h-8 w-8 text-primary" aria-hidden />
-          </span>
-          <div>
-            <h2 className="font-sans text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
-              Partita terminata
-            </h2>
-            <p className="mt-2 text-sm font-semibold text-slate-300 sm:text-base">
-              {endedMessage(opponentLeft, didIWin, endReason)}
-            </p>
-            {resultScore && endReason !== 'disputed' && endReason !== 'timeout' && (
-              <p className="mt-4 font-display text-4xl font-black tracking-tight text-white sm:text-5xl">
-                {resultScore}
+      <div className="flex min-h-full items-center justify-center py-4">
+        <div className="my-auto w-full max-w-3xl sm:max-w-4xl">
+          <div className="flex flex-col items-center gap-5 rounded-3xl border border-white/15 bg-header-bg/95 p-8 text-center text-white shadow-2xl shadow-black/70 backdrop-blur-xl sm:p-10">
+            <span className="grid h-16 w-16 place-items-center rounded-2xl border border-primary/40 bg-primary/15 text-primary shadow-[0_0_24px_rgba(255,115,0,0.3)]">
+              <Flag className="h-8 w-8 text-primary" aria-hidden />
+            </span>
+            <div>
+              <h2 className="font-display text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">
+                Partita terminata
+              </h2>
+              <p className="mt-2 text-sm font-semibold text-slate-300 sm:text-base">
+                {endedMessage(opponentLeft, didIWin, endReason)}
               </p>
-            )}
+              {resultScore && endReason !== 'disputed' && endReason !== 'timeout' && (
+                <p className="mt-4 font-display text-4xl font-black tracking-tight text-white sm:text-5xl">
+                  {resultScore}
+                </p>
+              )}
+            </div>
+            <Link
+              href="/tornei"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-7 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-orange-500/20 transition hover:brightness-110 active:scale-95"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Torna in lobby
+            </Link>
           </div>
-          <Link
-            href="/tornei"
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-7 text-xs font-black uppercase tracking-wider text-white shadow-md transition hover:brightness-110 active:scale-95"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Torna in lobby
-          </Link>
+          {children}
         </div>
-        {children}
       </div>
     </section>
   );

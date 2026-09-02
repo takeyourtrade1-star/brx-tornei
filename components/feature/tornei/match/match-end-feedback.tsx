@@ -37,10 +37,10 @@ function AbandonmentDebrief({ matchId }: { matchId: string | null }) {
   if (feedback.skipped) return null;
 
   return (
-    <section className="pt-row-in relative mx-auto mt-5 w-full max-w-xl rounded-3xl border border-amber-400/30 bg-header-bg/95 p-5 text-white shadow-2xl shadow-black/50 backdrop-blur-md sm:p-6">
+    <section className="pt-row-in relative mx-auto mt-6 w-full max-w-3xl sm:max-w-4xl rounded-3xl border border-amber-400/30 bg-header-bg/95 p-5 text-white shadow-2xl shadow-black/60 backdrop-blur-xl sm:p-7">
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent"
+        className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/50 to-transparent"
       />
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300">
