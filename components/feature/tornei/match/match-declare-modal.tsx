@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Trophy, X } from 'lucide-react';
 import { getAvatarForPlayer } from '@/lib/avatars';
 import { cn } from '@/lib/utils';
@@ -19,7 +20,7 @@ export interface MatchDeclareModalProps {
 
 /**
  * Modale di dichiarazione esito partita con card giocatori in stile liquid glass arancione.
- * Layout responsive a 2 colonne e scroll verticale sicuro per evitare che il modale esca dallo schermo.
+ * Renderizzato in portal su document.body con z-[9999] per non finire mai sotto le webcam o altri layer.
  */
 export function MatchDeclareModal({
   open,
@@ -30,25 +31,32 @@ export function MatchDeclareModal({
   onDeclare,
   onClose,
 }: MatchDeclareModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [iWon, setIWon] = useState<boolean | null>(null);
   const [loserScore, setLoserScore] = useState<number | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     setIWon(null);
     setLoserScore(null);
   }, [open]);
-  if (!open) return null;
+
+  if (!open || !mounted) return null;
 
   const winsNeeded = bestOf === 'BO5' ? 3 : bestOf === 'BO1' ? 1 : 2;
   const myAvatar = getAvatarForPlayer(localName, true);
   const oppAvatar = getAvatarForPlayer(opponentName, false);
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Termina partita: chi ha vinto?"
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 sm:p-6 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-black/85 p-4 sm:p-6 backdrop-blur-md animate-in fade-in duration-200"
     >
       <div className="flex min-h-full items-center justify-center py-6 sm:py-8">
         <div className="relative my-auto w-full max-w-2xl sm:max-w-3xl overflow-hidden rounded-[28px] border border-white/15 bg-gradient-to-b from-[#161d36]/95 via-[#0c1226]/95 to-[#060a16]/98 p-6 sm:p-8 text-center text-white shadow-2xl shadow-black/80 backdrop-blur-2xl ring-1 ring-white/10">
@@ -152,6 +160,7 @@ export function MatchDeclareModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

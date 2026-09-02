@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Flag, X } from 'lucide-react';
 import type { BestOf } from '@/types/tournament';
 
@@ -21,15 +23,21 @@ export function MatchSurrenderModal({
   onConfirm,
   onClose,
 }: MatchSurrenderModalProps) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!open || !mounted) return null;
   const winsNeeded = bestOf === 'BO5' ? 3 : bestOf === 'BO1' ? 1 : 2;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Conferma resa"
-      className="fixed inset-0 z-[70] grid place-items-center bg-black/80 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-[9999] grid place-items-center bg-black/85 p-4 backdrop-blur-md"
     >
       <div className="relative w-full max-w-md overflow-hidden rounded-[26px] border border-red-400/25 bg-gradient-to-b from-[#1c1c31] via-[#100f20] to-[#090812] p-6 text-center text-white shadow-2xl shadow-black/80 sm:p-8">
         <span aria-hidden className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-red-400 to-transparent" />
@@ -73,6 +81,7 @@ export function MatchSurrenderModal({
           Continua a giocare
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeft, Flag, RefreshCw, UserX } from 'lucide-react';
 import { useGraceCountdown } from '@/hooks/use-grace-countdown';
 import { reconnectingLabel } from './match-live-parts';
@@ -81,13 +84,21 @@ export function MatchEndedPanel({
   resultScore?: string;
   children?: ReactNode;
 }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <section
       role="dialog"
       aria-modal="true"
       aria-live="polite"
       aria-label="Partita terminata"
-      className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 p-4 sm:p-6 backdrop-blur-md"
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-black/85 p-4 sm:p-6 backdrop-blur-md"
     >
       <div className="flex min-h-full items-center justify-center py-4">
         <div className="my-auto w-full max-w-3xl sm:max-w-4xl">
@@ -119,7 +130,8 @@ export function MatchEndedPanel({
           {children}
         </div>
       </div>
-    </section>
+    </section>,
+    document.body,
   );
 }
 

@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Clock, Trophy } from 'lucide-react';
 import { getAvatarForPlayer } from '@/lib/avatars';
 import type { BestOf } from '@/types/tournament';
@@ -6,6 +10,7 @@ import { MatchResultCard } from './match-result-card';
 /**
  * Modale condiviso durante una proposta di risultato.
  * Spazioso (max-w-2xl), stile liquid glass arancione con pill punteggio dedicate.
+ * Teletrasportato su document.body con z-[9999] per evitare qualsiasi sovrapposizione da webcam/layer.
  */
 export function MatchResultPendingPanel({
   awaitingMe,
@@ -38,6 +43,12 @@ export function MatchResultPendingPanel({
   error?: string | null;
   onDeclare: (iWon: boolean, loserScore: number) => void;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const winsNeeded = bestOf === 'BO5' ? 3 : bestOf === 'BO1' ? 1 : 2;
   const myAvatar = getAvatarForPlayer(localName, true);
   const oppAvatar = getAvatarForPlayer(opponentName, false);
@@ -56,13 +67,15 @@ export function MatchResultPendingPanel({
       ? `${proposedWinnerName} ${proposedWinnerScore} – ${proposedLoserScore}`
       : null;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <section
       role="dialog"
       aria-modal="true"
       aria-live="polite"
       aria-label="Risultato proposto"
-      className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 p-4 sm:p-6 backdrop-blur-md"
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-black/85 p-4 sm:p-6 backdrop-blur-md"
     >
       <div className="flex min-h-full items-center justify-center py-4">
         <div className="relative my-auto w-full max-w-2xl overflow-hidden rounded-[26px] border border-white/15 bg-gradient-to-b from-[#161d36]/95 via-[#0c1226]/95 to-[#060a16]/98 p-5 text-white shadow-2xl shadow-black/70 backdrop-blur-2xl ring-1 ring-white/10 sm:p-7">
@@ -164,6 +177,7 @@ export function MatchResultPendingPanel({
           )}
         </div>
       </div>
-    </section>
+    </section>,
+    document.body,
   );
 }

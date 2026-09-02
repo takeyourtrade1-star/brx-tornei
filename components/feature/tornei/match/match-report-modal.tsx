@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { submitMatchReportAction } from '@/actions/reports';
 import { matchReportSchema } from '@/lib/validations/match-report';
 import { OffensiveBadgeIcon } from './honor-badge-icons-negative';
@@ -22,10 +23,15 @@ export function MatchReportModal({
   opponentName: string;
   onClose: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [message, setMessage] = useState('');
   const [phase, setPhase] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
   const [status, setStatus] = useState<'ok' | 'already_submitted' | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const canSubmit =
     message.trim().length >= MIN_MESSAGE_LENGTH &&
@@ -49,12 +55,14 @@ export function MatchReportModal({
     setPhase('done');
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label={`Segnala ${opponentName}`}
-      className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] grid place-items-center bg-black/80 p-4 backdrop-blur-md"
       onClick={onClose}
     >
       <div
@@ -141,6 +149,7 @@ export function MatchReportModal({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
