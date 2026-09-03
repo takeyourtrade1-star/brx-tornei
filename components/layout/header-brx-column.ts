@@ -26,12 +26,12 @@ export const HEADER_BRX_LOGO_COLUMN_COMPACT_CLASS =
 export const HEADER_BRX_LOGO_LINK_CLASS =
   'flex items-center justify-center rounded-lg transition-opacity hover:opacity-90';
 
-/** Logo principale Ebartex — proporzioni landing, +30% in header (52→58px). */
+/** Logo principale Ebartex: box panoramico che ritaglia il margine trasparente dell'asset quadrato. */
 export const HEADER_BRX_LOGO_IMAGE_CLASS =
-  'h-[52px] w-auto object-contain sm:h-[58px]';
+  'h-[52px] w-[75px] object-cover sm:h-[58px] sm:w-[84px]';
 
 export const HEADER_BRX_LOGO_IMAGE_COMPACT_CLASS =
-  'h-12 w-auto object-contain sm:h-14';
+  'h-12 w-[69px] object-cover sm:h-14 sm:w-[81px]';
 
 /** Overlay minigioco: leggermente più grande del chip HUD. */
 export const HEADER_BRX_LOGO_OVERLAY_IMAGE_CLASS =
