@@ -21,6 +21,7 @@ interface MatchIntroOverlayProps {
   active: boolean;
   matchId?: string | null;
   players: [Participant, Participant];
+  avatarIds: Record<string, string>;
   remainingSeconds: number | null;
   /** Istante di avvio già tradotto nella timeline locale dal server. */
   startsAtLocalMs: number | null;
@@ -38,6 +39,7 @@ export function MatchIntroOverlay({
   active,
   matchId,
   players,
+  avatarIds,
   remainingSeconds,
   startsAtLocalMs,
   onDone,
@@ -108,11 +110,6 @@ export function MatchIntroOverlay({
 
   if (!mounted || phase === 'done') return null;
 
-  const drawIndex = phase === 'shuffle' && elapsedMs !== null
-    ? Math.floor(Math.max(0, elapsedMs) / 120) % 2
-    : 0;
-  const drawingName = stablePlayers[drawIndex]?.username ?? starter.username;
-
   return createPortal(
     <div className="match-intro-overlay fixed inset-0 z-[1300] grid place-items-center overflow-hidden bg-header-bg text-white">
       {/* Fondale: alone radiale con riflessi caldi Ebartex */}
@@ -141,9 +138,17 @@ export function MatchIntroOverlay({
         aria-live="polite"
       >
         {phase === 'countdown' ? (
-          <MatchIntroCountdown players={stablePlayers} remainingSeconds={remainingSeconds} />
+          <MatchIntroCountdown
+            players={stablePlayers}
+            avatarIds={avatarIds}
+            remainingSeconds={remainingSeconds}
+          />
         ) : (
-          <MatchIntroCard phase={phase} starter={starter} drawingName={drawingName} />
+          <MatchIntroCard
+            phase={phase}
+            starter={starter}
+            avatarId={avatarIds[starter.id]}
+          />
         )}
 
         {/* La barra parte con il mescolamento e copre l'intera cerimonia. */}

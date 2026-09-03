@@ -6,6 +6,7 @@ import type { MatchChatConnectionState, MatchChatMessage } from '@/hooks/use-mat
 import { isMatchLifeMessage } from '@/lib/match-life-protocol';
 import { isMatchStartMessage } from '@/lib/match-start-protocol';
 import { isMatchJudgeMessage } from '@/lib/match-judge-protocol';
+import { isMatchAvatarMessage } from '@/lib/match-avatar-protocol';
 import {
   MATCH_STICKERS,
   STICKER_COOLDOWN_MS,
@@ -41,7 +42,8 @@ export function MatchCommentsPanel({
         (m) =>
           !isMatchLifeMessage(m.text) &&
           !isMatchStartMessage(m.text) &&
-          !isMatchJudgeMessage(m.text),
+          !isMatchJudgeMessage(m.text) &&
+          !isMatchAvatarMessage(m.text),
       ),
     [messages],
   );

@@ -1451,19 +1451,13 @@
 .intro-card-glow {
   animation: intro-glow-pulse 1.8s ease-in-out infinite;
 }
-.intro-result-copy {
-  animation: intro-result-copy-in 0.52s 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) both;
-}
 .intro-reveal-halo {
   animation: intro-reveal-halo 1.5s 0.2s ease-out infinite;
 }
-.intro-status-pill,
-.intro-stage-title,
-.intro-shuffle-caption {
+.intro-stage-title {
   animation: intro-result-copy-in 0.42s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation-delay: 0.06s;
 }
-.intro-stage-title { animation-delay: 0.06s; }
-.intro-shuffle-caption { animation-delay: 0.14s; }
 .intro-countdown-pop {
   animation: intro-countdown-pop 0.32s cubic-bezier(0.18, 0.9, 0.32, 1.25) both;
 }
@@ -1485,11 +1479,8 @@
   .intro-shuffle-impact,
   .intro-foil-effect,
   .intro-card-glow,
-  .intro-result-copy,
   .intro-reveal-halo,
-  .intro-status-pill,
   .intro-stage-title,
-  .intro-shuffle-caption,
   .intro-countdown-pop {
     animation: none !important;
   }

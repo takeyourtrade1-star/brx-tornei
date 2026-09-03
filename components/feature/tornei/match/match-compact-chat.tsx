@@ -6,6 +6,7 @@ import type { MatchChatConnectionState, MatchChatMessage } from '@/hooks/use-mat
 import { isMatchLifeMessage } from '@/lib/match-life-protocol';
 import { isMatchStartMessage } from '@/lib/match-start-protocol';
 import { isMatchJudgeMessage } from '@/lib/match-judge-protocol';
+import { isMatchAvatarMessage } from '@/lib/match-avatar-protocol';
 import { MATCH_STICKERS, stickerFromText, stickerToText } from './match-stickers';
 import { MatchStickerIcon } from './match-sticker-icons';
 
@@ -40,7 +41,8 @@ export function MatchCompactChat({
         (message) =>
           !isMatchLifeMessage(message.text) &&
           !isMatchStartMessage(message.text) &&
-          !isMatchJudgeMessage(message.text),
+          !isMatchJudgeMessage(message.text) &&
+          !isMatchAvatarMessage(message.text),
       ),
     [messages],
   );

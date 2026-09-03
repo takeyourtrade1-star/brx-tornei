@@ -17,6 +17,7 @@ import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
 import type { ConnectionQuality, Participant, Tournament } from '@/types/tournament';
 import { useMatchJudge } from '@/hooks/use-match-judge';
 import { useMatchJudgeActivity } from '@/hooks/use-match-judge-activity';
+import { useMatchAvatars } from '@/hooks/use-match-avatars';
 import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchJudge } from './match-judge';
 import { MatchEndFeedback } from './match-end-feedback';
@@ -70,6 +71,14 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
     life, startCountdown, sticker, gapProtection,
   } = props;
   const judgeController = useMatchJudge(tournament.matchId, tournament.judge?.status);
+  const avatarIds = useMatchAvatars({
+    matchId: tournament.matchId,
+    players,
+    userId,
+    messages: chat.messages,
+    connected: chat.connectionState === 'connected',
+    send: chat.send,
+  });
   const judgeActivity = useMatchJudgeActivity({
     userId, opponentId: remote.id, opponentName: remote.username,
     messages: chat.messages, send: chat.send,
@@ -245,7 +254,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         onClose={() => setFullscreenOpen(false)}
       />
       <MatchIntroOverlay active={isPlayer && started} matchId={tournament.matchId}
-        players={players} remainingSeconds={startCountdown.remainingSeconds}
+        players={players} avatarIds={avatarIds} remainingSeconds={startCountdown.remainingSeconds}
         startsAtLocalMs={startCountdown.startsAtLocalMs} />
     </div>
   );
