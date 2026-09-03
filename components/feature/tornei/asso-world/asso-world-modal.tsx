@@ -137,7 +137,7 @@ export function AssoWorldModal({
             className="mb-3 sm:mb-5 text-xs sm:text-sm font-black uppercase tracking-[0.25em] text-amber-400/90 text-center select-none"
             style={{ textShadow: '0 2px 10px rgba(0,0,0,0.95)' }}
           >
-            Asso world - building in progress
+            Asso World: Chapter 1 - Rising
           </p>
 
           <AssoWorldStoryPlayer onSentenceChange={handleSentenceChange} />
