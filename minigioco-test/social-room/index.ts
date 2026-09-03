@@ -4,6 +4,10 @@ export {
   type SocialRoomPresenceApi,
   type UseSocialRoomPresenceOptions,
 } from "./use-social-room-presence";
+export { P_PIAZZA, FURN_PIAZZA, INTERACTIVES_PIAZZA } from "./piazza-config";
+export { buildPiazzaBackground, piazzaDoorBounds } from "./piazza-background";
+export { buildPiazzaFurniture } from "./piazza-sprites";
+export { usePiazzaEngine } from "./use-piazza-engine";
 export { SOCIAL_ROOM_DOOR, SOCIAL_ROOM_ENTRY } from "./social-room-door";
 export {
   CHAT_BUBBLE_DURATION_MS,
