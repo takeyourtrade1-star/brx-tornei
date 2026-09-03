@@ -860,6 +860,11 @@
 }
 
 /* Ingresso partita + sorteggio sincronizzato del primo giocatore. */
+@keyframes match-intro-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes match-intro-emblem {
   0% { opacity: 0; transform: scale(0.25) rotate(-35deg); }
   65% { opacity: 1; transform: scale(1.12) rotate(5deg); }
@@ -882,32 +887,183 @@
   100% { transform: scale(1); }
 }
 
-/* Animazioni mazzo 3D e flip della carta sorteggio */
-@keyframes intro-deck-shuffle-left {
-  0%, 100% { transform: translateX(0) rotate(0deg) scale(1); }
-  25% { transform: translateX(-56px) rotate(-16deg) translateY(-10px) scale(0.96); }
-  50% { transform: translateX(44px) rotate(10deg) translateY(6px) scale(1.04); }
-  75% { transform: translateX(-28px) rotate(-8deg) translateY(-3px) scale(1); }
+/* Mescolamento in quattro battute: taglio, apertura, riffle e ricomposizione. */
+@keyframes intro-shuffle-packet-left {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, -42%, -80px) rotateZ(0deg) rotateY(0deg) scale(0.9);
+  }
+  9% {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) rotateZ(0deg) rotateY(0deg) scale(1);
+  }
+  28% {
+    opacity: 1;
+    transform: translate3d(-166%, -61%, 25px) rotateZ(-15deg) rotateY(16deg) scale(0.96);
+  }
+  45% {
+    opacity: 1;
+    transform: translate3d(-178%, -71%, 55px) rotateZ(-19deg) rotateY(20deg) scale(0.94);
+  }
+  64% {
+    opacity: 0.9;
+    transform: translate3d(-94%, -48%, 92px) rotateZ(-5deg) rotateY(3deg) scale(0.98);
+  }
+  79% {
+    opacity: 0.35;
+    transform: translate3d(-58%, -48%, 20px) rotateZ(-1deg) rotateY(0deg) scale(0.93);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0) rotateZ(0deg) rotateY(0deg) scale(0.9);
+  }
 }
 
-@keyframes intro-deck-shuffle-right {
-  0%, 100% { transform: translateX(0) rotate(0deg) scale(1); }
-  25% { transform: translateX(56px) rotate(16deg) translateY(10px) scale(0.96); }
-  50% { transform: translateX(-44px) rotate(-10deg) translateY(-6px) scale(1.04); }
-  75% { transform: translateX(28px) rotate(8deg) translateY(3px) scale(1); }
+@keyframes intro-shuffle-packet-right {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, -42%, -80px) rotateZ(0deg) rotateY(0deg) scale(0.9);
+  }
+  9% {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) rotateZ(0deg) rotateY(0deg) scale(1);
+  }
+  28% {
+    opacity: 1;
+    transform: translate3d(66%, -39%, 25px) rotateZ(15deg) rotateY(-16deg) scale(0.96);
+  }
+  45% {
+    opacity: 1;
+    transform: translate3d(78%, -29%, 55px) rotateZ(19deg) rotateY(-20deg) scale(0.94);
+  }
+  64% {
+    opacity: 0.9;
+    transform: translate3d(-6%, -52%, 92px) rotateZ(5deg) rotateY(-3deg) scale(0.98);
+  }
+  79% {
+    opacity: 0.35;
+    transform: translate3d(-42%, -52%, 20px) rotateZ(1deg) rotateY(0deg) scale(0.93);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0) rotateZ(0deg) rotateY(0deg) scale(0.9);
+  }
 }
 
-@keyframes intro-deck-shuffle-center {
-  0%, 100% { transform: translateY(0) scale(1); }
-  35% { transform: translateY(-18px) scale(1.06); }
-  65% { transform: translateY(12px) scale(0.95); }
+@keyframes intro-riffle-card-left {
+  0% {
+    opacity: 0;
+    transform: translate3d(-185%, -48%, -30px) rotateZ(-18deg) rotateY(22deg) scale(0.82);
+  }
+  16% { opacity: 0.95; }
+  52% {
+    opacity: 1;
+    transform: translate3d(-86%, -112%, 62px) rotateZ(-8deg) rotateY(0deg) scale(0.95);
+  }
+  78% {
+    opacity: 0.92;
+    transform: translate3d(-54%, -52%, 4px) rotateZ(-2deg) scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -48%, 0) rotateZ(0deg) scale(0.9);
+  }
 }
 
-@keyframes intro-card-flip-reveal {
-  0% { transform: rotateY(0deg) scale(0.9) translateY(24px); filter: brightness(0.9); }
-  45% { transform: rotateY(90deg) scale(1.18) translateY(-24px); filter: brightness(1.6); }
-  75% { transform: rotateY(190deg) scale(1.05) translateY(-4px); }
-  100% { transform: rotateY(180deg) scale(1) translateY(0); filter: brightness(1); }
+@keyframes intro-riffle-card-right {
+  0% {
+    opacity: 0;
+    transform: translate3d(85%, -52%, -30px) rotateZ(18deg) rotateY(-22deg) scale(0.82);
+  }
+  16% { opacity: 0.95; }
+  52% {
+    opacity: 1;
+    transform: translate3d(-14%, -102%, 65px) rotateZ(8deg) rotateY(0deg) scale(0.95);
+  }
+  78% {
+    opacity: 0.92;
+    transform: translate3d(-46%, -48%, 6px) rotateZ(2deg) scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -52%, 0) rotateZ(0deg) scale(0.9);
+  }
+}
+
+@keyframes intro-shuffle-final-deck {
+  0%, 66% {
+    opacity: 0;
+    transform: translate3d(-50%, -38%, -40px) rotateZ(-4deg) scale(0.78);
+  }
+  82% {
+    opacity: 1;
+    transform: translate3d(-50%, -56%, 55px) rotateZ(1.5deg) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) rotateZ(0deg) scale(1);
+  }
+}
+
+@keyframes intro-shuffle-impact {
+  0%, 70% { opacity: 0; transform: translate(-50%, -50%) scale(0.35); }
+  79% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.75); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(3.15); }
+}
+
+@keyframes intro-shuffle-table-pulse {
+  0%, 100% { opacity: 0.42; box-shadow: 0 0 50px rgba(255, 115, 0, 0.08); }
+  55% { opacity: 0.8; box-shadow: 0 0 95px rgba(255, 115, 0, 0.2); }
+}
+
+@keyframes intro-card-back-out {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 24px, -90px) rotateY(-12deg) rotateZ(-3deg) scale(0.8);
+  }
+  18% {
+    opacity: 1;
+    transform: translate3d(0, -8px, 20px) rotateY(0deg) rotateZ(0deg) scale(0.96);
+  }
+  44% {
+    opacity: 1;
+    transform: translate3d(0, -8px, 20px) rotateY(0deg) rotateZ(0deg) scale(0.96);
+  }
+  62% {
+    opacity: 0;
+    transform: translate3d(0, -24px, 90px) rotateY(92deg) rotateZ(1deg) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -24px, 90px) rotateY(92deg) rotateZ(1deg) scale(1.1);
+  }
+}
+
+@keyframes intro-card-front-in {
+  0%, 48% {
+    opacity: 0;
+    transform: translate3d(0, -24px, 90px) rotateY(-92deg) rotateZ(-1deg) scale(1.1);
+  }
+  64% {
+    opacity: 1;
+    transform: translate3d(0, -5px, 35px) rotateY(7deg) rotateZ(0deg) scale(1.035);
+  }
+  82% { transform: translate3d(0, 2px, 8px) rotateY(-3deg) scale(0.99); }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) scale(1);
+  }
+}
+
+@keyframes intro-result-copy-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); filter: blur(5px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes intro-reveal-halo {
+  0% { opacity: 0; transform: scale(0.55) rotate(0deg); }
+  45% { opacity: 0.8; }
+  100% { opacity: 0.08; transform: scale(1.75) rotate(35deg); }
 }
 
 @keyframes intro-foil-sheen {
@@ -1208,37 +1364,89 @@
 .match-intro-emblem { animation: match-intro-emblem 0.8s cubic-bezier(0.22, 1.4, 0.36, 1) both; }
 .match-intro-title { animation: match-intro-title 0.5s ease-out both; }
 .match-intro-winner { animation: match-intro-winner 0.65s cubic-bezier(0.22, 1.4, 0.36, 1) both; }
-.match-intro-progress { animation: match-intro-progress 5s linear both; }
+.match-intro-overlay { animation: match-intro-overlay-in 0.32s ease-out both; }
+.match-intro-progress { animation: match-intro-progress 6s linear both; }
 
 /* 3D card layout & animazioni per intro partita */
 .intro-3d-wrap {
-  perspective: 1200px;
+  perspective: 1350px;
 }
-.intro-card-inner {
+.intro-card-reveal-shell {
   transform-style: preserve-3d;
-  will-change: transform;
 }
 .intro-card-face {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  transform-origin: center;
+  will-change: transform, opacity;
 }
-.intro-card-back {
-  transform: rotateY(0deg);
+.intro-card-reveal-back {
+  animation: intro-card-back-out 1.25s cubic-bezier(0.16, 0.86, 0.24, 1) both;
 }
-.intro-card-front {
-  transform: rotateY(180deg);
+.intro-card-reveal-front {
+  animation: intro-card-front-in 1.25s cubic-bezier(0.16, 0.86, 0.24, 1) both;
 }
-.intro-card-shuffling-left {
-  animation: intro-deck-shuffle-left 0.75s ease-in-out infinite alternate;
+.intro-shuffle-stage {
+  isolation: isolate;
+  transform-style: preserve-3d;
 }
-.intro-card-shuffling-right {
-  animation: intro-deck-shuffle-right 0.75s ease-in-out infinite alternate;
+.intro-shuffle-table {
+  background:
+    radial-gradient(ellipse at center, rgba(255, 115, 0, 0.12), transparent 58%),
+    rgba(255, 255, 255, 0.018);
+  box-shadow: 0 0 65px rgba(255, 115, 0, 0.12);
+  animation: intro-shuffle-table-pulse 3.05s ease-in-out both;
 }
-.intro-card-shuffling-center {
-  animation: intro-deck-shuffle-center 0.55s ease-in-out infinite alternate;
+.intro-shuffle-packet {
+  transform-style: preserve-3d;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
 }
-.intro-card-flipping {
-  animation: intro-card-flip-reveal 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+.intro-shuffle-packet-left {
+  animation: intro-shuffle-packet-left 3.05s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+.intro-shuffle-packet-right {
+  animation: intro-shuffle-packet-right 3.05s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+.intro-shuffle-packet-card {
+  transform: translate3d(0, 0, 0);
+}
+.intro-shuffle-packet-card:nth-child(2) {
+  transform: translate3d(0.16rem, -0.28rem, -3px);
+}
+.intro-shuffle-packet-card:nth-child(3) {
+  transform: translate3d(0.32rem, -0.56rem, -6px);
+}
+.intro-riffle-card {
+  transform-style: preserve-3d;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+  background-image:
+    radial-gradient(circle at center, rgba(255, 115, 0, 0.13), transparent 42%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.045), transparent 55%);
+}
+.intro-riffle-card-left {
+  animation: intro-riffle-card-left 2.05s cubic-bezier(0.2, 0.72, 0.28, 1) both;
+}
+.intro-riffle-card-right {
+  animation: intro-riffle-card-right 2.05s cubic-bezier(0.2, 0.72, 0.28, 1) both;
+}
+.intro-riffle-card:nth-child(1) { animation-delay: 0.55s; }
+.intro-riffle-card:nth-child(2) { animation-delay: 0.60s; }
+.intro-riffle-card:nth-child(3) { animation-delay: 0.65s; }
+.intro-riffle-card:nth-child(4) { animation-delay: 0.70s; }
+.intro-riffle-card:nth-child(5) { animation-delay: 0.75s; }
+.intro-riffle-card:nth-child(6) { animation-delay: 0.80s; }
+.intro-riffle-card:nth-child(7) { animation-delay: 0.85s; }
+.intro-riffle-card:nth-child(8) { animation-delay: 0.90s; }
+.intro-shuffle-final-deck {
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  animation: intro-shuffle-final-deck 3.05s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.intro-shuffle-impact {
+  box-shadow: 0 0 55px rgba(255, 115, 0, 0.38);
+  animation: intro-shuffle-impact 3.05s ease-out both;
 }
 .intro-foil-effect {
   background: linear-gradient(
@@ -1255,24 +1463,63 @@
 .intro-card-glow {
   animation: intro-glow-pulse 1.8s ease-in-out infinite;
 }
+.intro-result-copy {
+  animation: intro-result-copy-in 0.52s 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.intro-reveal-halo {
+  animation: intro-reveal-halo 1.5s 0.2s ease-out infinite;
+}
+.intro-status-pill,
+.intro-stage-title,
+.intro-shuffle-caption {
+  animation: intro-result-copy-in 0.42s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.intro-stage-title { animation-delay: 0.06s; }
+.intro-shuffle-caption { animation-delay: 0.14s; }
 .intro-countdown-pop {
   animation: intro-countdown-pop 0.32s cubic-bezier(0.18, 0.9, 0.32, 1.25) both;
 }
 
+@media (max-width: 479px) {
+  .intro-shuffle-stage {
+    transform: scale(0.82);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .intro-particle { animation: none; }
-  .intro-card-shuffling-left,
-  .intro-card-shuffling-right,
-  .intro-card-shuffling-center,
+  .intro-shuffle-table,
+  .intro-shuffle-packet-left,
+  .intro-shuffle-packet-right,
+  .intro-riffle-card-left,
+  .intro-riffle-card-right,
+  .intro-shuffle-final-deck,
+  .intro-shuffle-impact,
   .intro-foil-effect,
   .intro-card-glow,
+  .intro-result-copy,
+  .intro-reveal-halo,
+  .intro-status-pill,
+  .intro-stage-title,
+  .intro-shuffle-caption,
   .intro-countdown-pop {
     animation: none !important;
   }
-  .intro-card-flipping {
-    animation: none !important;
-    transform: rotateY(180deg) !important;
+  .intro-shuffle-packet-left {
+    opacity: 0.5;
+    transform: translate3d(-140%, -50%, 0) rotateZ(-10deg);
   }
+  .intro-shuffle-packet-right {
+    opacity: 0.5;
+    transform: translate3d(40%, -50%, 0) rotateZ(10deg);
+  }
+  .intro-riffle-card { display: none; }
+  .intro-shuffle-final-deck {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0);
+  }
+  .intro-card-reveal-back { display: none; }
+  .intro-card-reveal-front { animation: none !important; opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1284,7 +1531,8 @@
 @media (prefers-reduced-motion: reduce) {
   .match-intro-emblem,
   .match-intro-title,
-  .match-intro-winner { animation-duration: 0.01ms; }
+  .match-intro-winner,
+  .match-intro-overlay { animation-duration: 0.01ms; }
   .match-intro-progress { animation-duration: 1.65s; }
 }
 

@@ -13,8 +13,8 @@ import { MatchIntroCard } from './match-intro-card';
 
 type IntroPhase = 'countdown' | 'shuffle' | 'reveal' | 'done';
 
-const SHUFFLE_DURATION_MS = 2_000;
-const REVEAL_DURATION_MS = 2_500;
+const SHUFFLE_DURATION_MS = 3_200;
+const REVEAL_DURATION_MS = 2_800;
 const CEREMONY_DURATION_MS = SHUFFLE_DURATION_MS + REVEAL_DURATION_MS;
 
 interface MatchIntroOverlayProps {
@@ -114,7 +114,7 @@ export function MatchIntroOverlay({
   const drawingName = stablePlayers[drawIndex]?.username ?? starter.username;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1300] grid place-items-center overflow-hidden bg-header-bg text-white">
+    <div className="match-intro-overlay fixed inset-0 z-[1300] grid place-items-center overflow-hidden bg-header-bg text-white">
       {/* Fondale: alone radiale con riflessi caldi Ebartex */}
       <div className="match-intro-radial absolute inset-0" aria-hidden />
       <div className="match-intro-grid absolute inset-0 opacity-25" aria-hidden />
@@ -146,10 +146,12 @@ export function MatchIntroOverlay({
           <MatchIntroCard phase={phase} starter={starter} drawingName={drawingName} />
         )}
 
-        {/* Barra di progresso temporale in basso */}
-        <div className="mt-8 h-[3px] w-56 overflow-hidden rounded-full bg-white/[0.08]">
-          <div className="match-intro-progress h-full rounded-full bg-gradient-to-r from-primary to-amber-300" />
-        </div>
+        {/* La barra parte con il mescolamento e copre l'intera cerimonia. */}
+        {phase !== 'countdown' && (
+          <div className="mt-6 h-[3px] w-56 overflow-hidden rounded-full bg-white/[0.08] sm:mt-8">
+            <div className="match-intro-progress h-full rounded-full bg-gradient-to-r from-primary to-amber-300" />
+          </div>
+        )}
       </div>
     </div>,
     document.body,
