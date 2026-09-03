@@ -59,10 +59,7 @@ export function DeckPlaymatSettings({
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2 text-sm font-black text-white">
             <Palette className="h-4 w-4 text-primary" />
-            Decorazione tappetino
-          </span>
-          <span className="mt-0.5 block truncate text-xs text-white/55">
-            Fullscreen: {playmat.name} · Home: {homeBackgroundEnabled ? 'attiva' : 'non attiva'}
+            Stile tappetino &amp; home
           </span>
         </span>
         <span className="grid h-7 w-7 place-items-center rounded-full border border-white/15 text-white/50 transition-transform duration-200 group-open:rotate-180">
