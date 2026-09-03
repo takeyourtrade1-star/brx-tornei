@@ -10,11 +10,10 @@ import {
 import { StatBadgeCard } from '@/components/feature/tornei/partite/stat-badge-card';
 import { calculateWinStreak } from '@/lib/rank';
 import { ClashingSwordsIcon } from './clashing-swords-icon';
-import { RecentResultsStrip } from './recent-results-strip';
 
 /**
- * Card "Le tue partite" (home lobby): emblema arena a sinistra,
- * HUD centrale arricchito con forma recente e statistiche a destra.
+ * Card "Le tue partite" (home lobby): emblema arena, riepilogo prestazioni
+ * e statistiche complessive.
  */
 export function ReputationSummary({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats: ReputationSummaryData = reputation ?? {
@@ -27,8 +26,6 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
     recent: [],
     history: [],
   };
-  const recent = reputation?.recent ?? [];
-
   const decided = stats.wins + stats.losses;
   const winRate = decided > 0 ? Math.round((stats.wins / decided) * 100) : 0;
   const winStreak = calculateWinStreak(stats);
@@ -52,11 +49,11 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
         className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
       />
 
-      <div className="flex flex-col sm:flex-row">
-        {/* Emblema a sinistra + Sezione centrale HUD */}
-        <div className="relative flex min-w-0 flex-1 items-stretch gap-3.5 p-3 sm:gap-4 sm:p-3.5">
+      <div className="flex flex-col lg:flex-row">
+        {/* Emblema a sinistra + riepilogo centrale */}
+        <div className="relative flex min-w-0 flex-1 items-stretch gap-4 p-4 sm:gap-6 sm:p-6">
           {/* Emblema Arena a sinistra */}
-          <div className="swords-emblem relative grid min-h-[132px] w-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/25 bg-slate-950/85 text-white shadow-lg shadow-black/35 sm:w-[104px]">
+          <div className="swords-emblem relative grid min-h-[152px] w-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-primary/25 bg-slate-950/85 text-white shadow-lg shadow-black/35 sm:w-28">
             <span
               aria-hidden
               className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,115,0,0.42),rgba(255,115,0,0.08)_48%,transparent_74%)]"
@@ -75,74 +72,85 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
             </span>
           </div>
 
-          {/* Sezione Centrale Ricca e Informata */}
-          <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-            {/* Header partite + Micro-Badge HUD */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 flex-col justify-between py-1">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between xl:gap-8">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
                   Le tue partite
                 </p>
-                <p className="mt-0.5 flex items-baseline gap-2">
-                  <span className="font-display text-3xl font-black tabular-nums leading-none text-white sm:text-4xl">
+                <p className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="font-display text-4xl font-black tabular-nums leading-none text-white sm:text-5xl">
                     {stats.played}
                   </span>
-                  <span className="text-[11px] font-bold text-slate-400">
+                  <span className="text-xs font-bold text-slate-400 sm:text-sm">
                     {stats.played === 1 ? 'partita giocata' : 'partite giocate'}
                   </span>
                 </p>
               </div>
 
-              {/* Micro-badge HUD prestazionali */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="grid w-full grid-cols-2 gap-2.5 xl:w-auto">
                 <div
                   title={`Tasso di vittoria: ${winRate}%`}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1 text-emerald-300 shadow-[0_0_10px_rgba(52,211,153,0.12)] backdrop-blur-sm"
+                  className="group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-emerald-400/25 bg-gradient-to-br from-emerald-400/[0.14] via-emerald-950/30 to-slate-950/70 px-3 py-2.5 shadow-[0_12px_28px_-18px_rgba(52,211,153,0.9)] xl:min-w-[154px]"
                 >
-                  <CrystalStatIcon className="h-3.5 w-3.5 text-emerald-400" />
-                  <span className="font-display text-[11px] font-black tabular-nums leading-none sm:text-xs">
-                    {winRate}%
+                  <span aria-hidden className="absolute -right-5 -top-7 h-20 w-20 rounded-full bg-emerald-400/10 blur-2xl" />
+                  <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-300 shadow-inner shadow-emerald-200/10">
+                    <CrystalStatIcon className="h-5 w-5" />
                   </span>
-                  <span className="text-[7.5px] font-bold uppercase tracking-wider text-emerald-400/80">
-                    Win Rate
+                  <span className="relative min-w-0">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.18em] text-emerald-300/70">
+                      Win rate
+                    </span>
+                    <strong className="mt-0.5 block font-display text-xl font-black tabular-nums leading-none text-emerald-200 sm:text-2xl">
+                      {winRate}%
+                    </strong>
                   </span>
                 </div>
 
                 {winStreak >= 2 ? (
                   <div
                     title={`Striscia vincente: ${winStreak} di fila`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/35 bg-amber-950/40 px-2.5 py-1 text-amber-300 shadow-[0_0_12px_rgba(251,146,60,0.18)] backdrop-blur-sm"
+                    className="group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-amber-400/25 bg-gradient-to-br from-amber-400/[0.14] via-amber-950/30 to-slate-950/70 px-3 py-2.5 shadow-[0_12px_28px_-18px_rgba(251,146,60,0.95)] xl:min-w-[154px]"
                   >
-                    <FlameStatIcon className="h-3.5 w-3.5 text-amber-400" />
-                    <span className="font-display text-[11px] font-black tabular-nums leading-none sm:text-xs">
-                      {winStreak}V
+                    <span aria-hidden className="absolute -right-5 -top-7 h-20 w-20 rounded-full bg-amber-400/10 blur-2xl" />
+                    <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-amber-300/20 bg-amber-400/10 text-amber-300 shadow-inner shadow-amber-200/10">
+                      <FlameStatIcon className="h-5 w-5" />
                     </span>
-                    <span className="text-[7.5px] font-bold uppercase tracking-wider text-amber-400/80">
-                      {winStreak >= 3 ? 'On Fire' : 'Streak'}
+                    <span className="relative min-w-0">
+                      <span className="block text-[8px] font-black uppercase tracking-[0.18em] text-amber-300/70">
+                        {winStreak >= 3 ? 'On fire' : 'Serie positiva'}
+                      </span>
+                      <strong className="mt-0.5 block font-display text-xl font-black tabular-nums leading-none text-amber-200 sm:text-2xl">
+                        {winStreak}<span className="ml-1 text-[9px] uppercase tracking-wider text-amber-300/60">di fila</span>
+                      </strong>
                     </span>
                   </div>
                 ) : (
                   <div
                     title={`Fair Play: ${fairPlayRate}%`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/25 bg-sky-950/30 px-2.5 py-1 text-sky-300 shadow-[0_0_10px_rgba(56,189,248,0.10)] backdrop-blur-sm"
+                    className="group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-sky-400/20 bg-gradient-to-br from-sky-400/[0.12] via-sky-950/25 to-slate-950/70 px-3 py-2.5 shadow-[0_12px_28px_-18px_rgba(56,189,248,0.8)] xl:min-w-[154px]"
                   >
-                    <ShieldStatIcon className="h-3.5 w-3.5 text-sky-400" />
-                    <span className="font-display text-[11px] font-black tabular-nums leading-none sm:text-xs">
-                      {fairPlayRate}%
+                    <span aria-hidden className="absolute -right-5 -top-7 h-20 w-20 rounded-full bg-sky-400/10 blur-2xl" />
+                    <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-sky-300/20 bg-sky-400/10 text-sky-300 shadow-inner shadow-sky-200/10">
+                      <ShieldStatIcon className="h-5 w-5" />
                     </span>
-                    <span className="text-[7.5px] font-bold uppercase tracking-wider text-sky-400/80">
-                      Fair Play
+                    <span className="relative min-w-0">
+                      <span className="block text-[8px] font-black uppercase tracking-[0.18em] text-sky-300/70">
+                        Fair play
+                      </span>
+                      <strong className="mt-0.5 block font-display text-xl font-black tabular-nums leading-none text-sky-200 sm:text-2xl">
+                        {fairPlayRate}%
+                      </strong>
                     </span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Barra di bilanciamento esiti (Match Ratio Bar) */}
-            <div className="my-1.5 flex flex-col gap-1">
+            <div className="mt-6 flex flex-col gap-1 sm:mt-8">
               <div
                 title={`Distribuzione: ${stats.wins} vinte, ${stats.losses} perse, ${stats.abandoned} abbandonate`}
-                className="flex h-1.5 w-full overflow-hidden rounded-full bg-slate-900 ring-1 ring-white/10"
+                className="flex h-2 w-full overflow-hidden rounded-full bg-slate-900 ring-1 ring-white/10"
               >
                 {stats.played > 0 ? (
                   <>
@@ -170,16 +178,13 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
                 )}
               </div>
             </div>
-
-            {/* Gettoni forma recente */}
-            <RecentResultsStrip recent={recent} />
           </div>
         </div>
 
         {/* Esiti compatti a destra */}
         <div
           aria-label="Esiti delle tue partite"
-          className="relative grid grid-cols-3 gap-2 border-t border-white/10 bg-black/15 p-2 sm:w-[340px] sm:shrink-0 sm:border-l sm:border-t-0"
+          className="relative grid grid-cols-3 gap-3 border-t border-white/10 bg-black/15 p-4 sm:p-5 lg:w-[360px] lg:shrink-0 lg:border-l lg:border-t-0"
         >
           <StatBadgeCard
             label="Vinte"
