@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Copy, Layers, SquareStack, type LucideIcon } from 'lucide-react';
+import { Layers, SquareStack, type LucideIcon } from 'lucide-react';
 import { MAX_DECKS_PER_USER } from '@/lib/deck-limits';
 import type { CreateDeckInput } from '@/lib/validations/deck';
 import type { PlaymatId } from '@/lib/playmats';
@@ -85,8 +85,7 @@ export function DeckWorkspace({
             <h1 className="font-display text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl">
               I miei mazzi
             </h1>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <p className="text-[11px] text-white/40">Deck, stile del tavolo e regole proxy in un unico spazio.</p>
+            <div className="mt-1">
               <ProxyInfoPopover />
             </div>
           </div>
@@ -108,8 +107,6 @@ export function DeckWorkspace({
               <WorkspaceMetric
                 label="Proxy"
                 value="1:1"
-                Icon={Copy}
-                iconClassName="text-marquee"
               />
             </div>
 
@@ -183,12 +180,12 @@ function WorkspaceMetric({
 }: {
   label: string;
   value: string | number;
-  Icon: LucideIcon;
-  iconClassName: string;
+  Icon?: LucideIcon;
+  iconClassName?: string;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2 px-2.5 py-2 sm:min-w-24">
-      <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClassName}`} aria-hidden />
+      {Icon ? <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClassName}`} aria-hidden /> : null}
       <span className="min-w-0">
         <span className="block text-[7px] font-black uppercase tracking-[0.12em] text-white/35">{label}</span>
         <span className="block font-display text-sm font-black leading-none text-white">{value}</span>

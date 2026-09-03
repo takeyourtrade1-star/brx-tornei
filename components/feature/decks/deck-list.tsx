@@ -81,8 +81,8 @@ export function DeckList({
   }
 
   return (
-    <section className="arena-panel overflow-visible p-4 sm:p-6">
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-r from-primary/10 via-primary/[0.02] to-transparent" aria-hidden />
+    <section className="arena-panel overflow-visible p-3.5 sm:p-5">
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-r from-primary/10 via-primary/[0.02] to-transparent" aria-hidden />
       <div className="relative">
         {error ? (
           <Notice tone="error" message={error} onClose={onClearError} />
@@ -91,14 +91,14 @@ export function DeckList({
           <Notice tone="success" message={successMessage} onClose={onClearSuccess} />
         ) : null}
 
-        <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-primary/25 bg-primary/10 text-primary shadow-lg shadow-primary/10">
-              <Layers3 className="h-5 w-5" aria-hidden />
+            <span className="grid h-10 w-10 place-items-center rounded-xl border border-primary/25 bg-primary/10 text-primary shadow-lg shadow-primary/10">
+              <Layers3 className="h-[18px] w-[18px]" aria-hidden />
             </span>
             <div>
               <div className="flex items-center gap-2.5">
-                <h2 className="font-display text-xl font-black uppercase tracking-wide text-white sm:text-2xl">
+                <h2 className="font-display text-lg font-black uppercase tracking-wide text-white sm:text-xl">
                   I miei deck
                 </h2>
                 <span className="rounded-md border border-white/15 border-l-2 border-l-primary/70 bg-slate-950/55 px-2.5 py-1 text-[10px] font-black text-white/65">
@@ -136,12 +136,12 @@ export function DeckList({
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,19rem))] xl:justify-center">
             {decks.map((deck) => (
               <DeckListCard key={deck.id} deck={deck} onEdit={() => onEdit(deck.id)} onDelete={() => onDelete(deck.id)} />
             ))}
             {Array.from({ length: MAX_DECKS_PER_USER - decks.length }, (_, index) => (
-              <button key={`empty-slot-${index}`} type="button" onClick={startCreating} className="group aspect-[5/7] min-h-[26rem] rounded-3xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-left transition hover:-translate-y-1 hover:border-primary/35 hover:bg-primary/[0.035]">
+              <button key={`empty-slot-${index}`} type="button" onClick={startCreating} className="group aspect-[5/7] min-h-[23rem] rounded-3xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-left transition hover:-translate-y-1 hover:border-primary/35 hover:bg-primary/[0.035]">
                 <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/[0.06] text-white/45 ring-1 ring-white/10 transition group-hover:bg-primary/15 group-hover:text-primary group-hover:ring-primary/30">
                   <Plus className="h-5 w-5" aria-hidden />
                 </span>

@@ -47,7 +47,7 @@ export function DeckListCard({ deck, onEdit, onDelete }: {
   const { label, className, Icon } = STATUS_META[status];
 
   return (
-    <article className="group relative aspect-[5/7] min-h-[26rem] overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-xl shadow-black/40 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-2xl hover:shadow-black/50">
+    <article className="group relative aspect-[5/7] min-h-[23rem] overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-xl shadow-black/40 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-2xl hover:shadow-black/50">
       <span className="absolute inset-0 bg-cover bg-center transition duration-700 group-hover:scale-105" style={{ backgroundImage: `url(${FORMAT_MEDIA[deck.formatId].image})` }} aria-hidden />
       <span className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/35 to-slate-950" aria-hidden />
       <span className="pointer-events-none absolute inset-2 rounded-[1.15rem] border border-white/[0.08]" aria-hidden />
