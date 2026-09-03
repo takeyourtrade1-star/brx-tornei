@@ -85,6 +85,17 @@ describe('Judge UI senza coda ottimistica', () => {
     expect(action).toContain('JUDGE_BUSY');
   });
 
+  it('mostra l’avviso d’uso fino alla prima domanda dell’utente', () => {
+    const panel = readFileSync(
+      join(ROOT, 'components/feature/tornei/match/match-judge.tsx'),
+      'utf8',
+    );
+
+    expect(panel).toContain('!hasAskedJudge');
+    expect(panel).toContain('Judge Asso è parte del tavolo.');
+    expect(panel).toContain('la sospensione sul tuo account');
+  });
+
   it('intercetta Esc prima del contenitore fullscreen', () => {
     const panel = readFileSync(
       join(ROOT, 'components/feature/tornei/match/match-judge.tsx'),

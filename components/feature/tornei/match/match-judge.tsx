@@ -47,6 +47,8 @@ export function MatchJudge({
   const processing = !matchEnded && (
     pending || judge?.status === 'processing' || acceptedTurn?.status === 'processing'
   );
+  const hasAskedJudge = acceptedTurn?.askedByUserId === userId
+    || Boolean(judge?.turns.some((turn) => turn.askedByUserId === userId));
   const titleId = `match-judge-title-${fullscreen ? 'fullscreen' : 'drawer'}-${matchId}`;
 
   useEffect(() => {
@@ -207,6 +209,15 @@ export function MatchJudge({
                     placeholder="Descrivi l’interazione tra le carte (consigliate 2-3 frasi chiare)…"
                     className="w-full resize-none rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-xs leading-relaxed text-white placeholder:text-white/35 focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
                   />
+                  {!hasAskedJudge && (
+                    <p className="border-l border-white/15 pl-2.5 text-[10px] leading-relaxed text-white/45">
+                      <span className="font-medium text-white/65">
+                        Judge Asso è parte del tavolo.
+                      </span>{' '}
+                      Con la prima domanda confermi di usarlo esclusivamente per questa partita;
+                      abusi o utilizzi impropri possono comportarne la sospensione sul tuo account.
+                    </p>
+                  )}
                   <div className="flex items-center justify-between gap-2 pt-0.5">
                     <p className="text-[10px] text-white/40">
                       {draft.length > 800 ? '⚠️ Domanda lunga: mantienila concisa' : '💡 Risposte con riferimenti ufficiali'}
