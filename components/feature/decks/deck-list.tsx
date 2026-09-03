@@ -101,7 +101,7 @@ export function DeckList({
                 <h2 className="font-display text-xl font-black uppercase tracking-wide text-white sm:text-2xl">
                   I miei deck
                 </h2>
-                <span className="rounded-full border border-white/15 bg-white/[0.07] px-2.5 py-1 text-[10px] font-black text-white/60">
+                <span className="rounded-md border border-white/15 border-l-2 border-l-primary/70 bg-slate-950/55 px-2.5 py-1 text-[10px] font-black text-white/65">
                   {decks.length}/{MAX_DECKS_PER_USER}
                 </span>
               </div>
@@ -110,7 +110,7 @@ export function DeckList({
           </div>
 
           {isLimitReached ? (
-            <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-3.5 py-2 text-[10px] font-black uppercase tracking-wide text-amber-200">
+            <span className="rounded-md border border-amber-400/25 border-l-2 border-l-amber-300 bg-slate-950/55 px-3.5 py-2 text-[10px] font-black uppercase tracking-wide text-amber-200">
               Tutti gli slot occupati
             </span>
           ) : (
@@ -141,7 +141,7 @@ export function DeckList({
               <DeckListCard key={deck.id} deck={deck} onEdit={() => onEdit(deck.id)} onDelete={() => onDelete(deck.id)} />
             ))}
             {Array.from({ length: MAX_DECKS_PER_USER - decks.length }, (_, index) => (
-              <button key={`empty-slot-${index}`} type="button" onClick={startCreating} className="group min-h-64 rounded-3xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-left transition hover:-translate-y-1 hover:border-primary/35 hover:bg-primary/[0.035]">
+              <button key={`empty-slot-${index}`} type="button" onClick={startCreating} className="group aspect-[5/7] min-h-[26rem] rounded-3xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-left transition hover:-translate-y-1 hover:border-primary/35 hover:bg-primary/[0.035]">
                 <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/[0.06] text-white/45 ring-1 ring-white/10 transition group-hover:bg-primary/15 group-hover:text-primary group-hover:ring-primary/30">
                   <Plus className="h-5 w-5" aria-hidden />
                 </span>
