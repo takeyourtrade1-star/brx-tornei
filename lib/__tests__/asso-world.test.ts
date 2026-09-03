@@ -8,13 +8,13 @@ import { assoBetaRequestSchema } from '@/lib/validations/asso-beta';
 import { isBetaUserRegistered, registerBetaUser } from '@/lib/data/asso-beta-store';
 
 describe('Asso World Story Data', () => {
-  it('contiene le frasi della fiaba di Asso World', () => {
-    expect(ASSO_WORLD_STORY_SENTENCES.length).toBeGreaterThan(5);
+  it('contiene le frasi concise ed autentiche di Asso World', () => {
+    expect(ASSO_WORLD_STORY_SENTENCES.length).toBe(4);
     const fullText = ASSO_WORLD_STORY_SENTENCES.map((s) => s.text).join(' ');
     expect(fullText).toContain('Asso World');
     expect(fullText).toContain('Ebartex');
     expect(fullText).toContain('Digitale 2.0');
-    expect(fullText).toContain("C'era una volta");
+    expect(fullText).toContain('giocare a carte dal vivo');
   });
 
   it('ogni frase ha un identificatore e durata di lettura definita', () => {
@@ -28,7 +28,7 @@ describe('Asso World Story Data', () => {
   it('mantiene la compatibilità retroattiva per segmenti e token', () => {
     expect(ASSO_WORLD_STORY_SEGMENTS.length).toBe(ASSO_WORLD_STORY_SENTENCES.length);
     const tokens = getStoryWordTokens();
-    expect(tokens.length).toBeGreaterThan(80);
+    expect(tokens.length).toBeGreaterThan(40);
   });
 });
 
@@ -49,7 +49,7 @@ describe('Asso World Beta Validation & Store', () => {
   });
 
   it('registra lo stato di adesione alla beta per un utente', () => {
-    const testUserId = 'usr_test_beta_456';
+    const testUserId = 'usr_test_beta_789';
     expect(isBetaUserRegistered(testUserId)).toBe(false);
     registerBetaUser(testUserId);
     expect(isBetaUserRegistered(testUserId)).toBe(true);

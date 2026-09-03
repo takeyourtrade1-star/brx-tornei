@@ -1,56 +1,35 @@
 /**
- * Narrazione fiabesca di Asso World.
- * Frasi poetiche mostrate in sequenza al centro del video, una alla volta,
- * con dissolvenza morbida e font da fiaba.
+ * Narrazione di Asso World.
+ * Frasi concise ed autentiche mostrate in sequenza al centro del video,
+ * con dissolvenza morbida.
  */
 
 export interface StorySentence {
   id: string;
   text: string;
-  /** Durata di lettura raccomandata in millisecondi */
   durationMs?: number;
 }
 
 export const ASSO_WORLD_STORY_SENTENCES: readonly StorySentence[] = [
   {
-    id: 'intro',
-    text: "C'era una volta, attorno a un tavolo consumato dal tempo, un rito antico che sapeva di casa.",
-    durationMs: 5000,
+    id: 'memory',
+    text: 'Ti ricordi il brivido di giocare a carte dal vivo? Gli amici al tavolo, gli sguardi complici, il silenzio prima della pescata decisiva.',
+    durationMs: 4200,
   },
   {
-    id: 'memories',
-    text: "Il fruscio delle carte tra le dita, il silenzio prima dell'ultima pescata e gli sguardi complici degli amici.",
-    durationMs: 5200,
-  },
-  {
-    id: 'handshake',
-    text: "Bastava un mazzo per sentirsi invincibili, suggellando ogni sfida con una stretta di mano sincera.",
-    durationMs: 4800,
-  },
-  {
-    id: 'distance',
-    text: "Poi il mondo è andato di fretta. Gli schermi si sono accesi, ma quel tavolo si è allontanato nei ricordi.",
-    durationMs: 5000,
-  },
-  {
-    id: 'promise',
-    text: "Ma noi di Ebartex non potevamo rassegnarci all'idea di perdere quella magia.",
-    durationMs: 4500,
+    id: 'digital',
+    text: 'Con l’era digitale quel calore sembrava perduto. Ma per noi di Ebartex le carte sono sempre state legami tra persone, non solo cartoncini.',
+    durationMs: 4400,
   },
   {
     id: 'vision',
-    text: "Così stiamo dando vita ad Asso World: il Digitale 2.0 con un'anima viva, per giocare a carte con persone da tutto il mondo come se fosse dal vivo, ma a casa.",
-    durationMs: 6500,
-  },
-  {
-    id: 'bonds',
-    text: "Perché le carte non sono mai state semplici pezzi di cartone, ma legami tra cuori.",
+    text: 'Per questo stiamo costruendo Asso World: il Digitale 2.0 per unire giocatori da tutto il mondo, con la stessa anima di una partita dal vivo... ma a casa tua.',
     durationMs: 4800,
   },
   {
-    id: 'call',
-    text: "Il tuo posto al tavolo ti sta già aspettando.",
-    durationMs: 5500,
+    id: 'seat',
+    text: 'Il tuo posto al tavolo ti sta già aspettando.',
+    durationMs: 4000,
   },
 ] as const;
 

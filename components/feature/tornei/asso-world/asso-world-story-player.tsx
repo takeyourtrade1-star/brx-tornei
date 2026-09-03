@@ -6,13 +6,25 @@ import { cn } from '@/lib/utils';
 
 interface AssoWorldStoryPlayerProps {
   className?: string;
+  onSentenceChange?: (index: number, isFinal: boolean) => void;
 }
 
-export function AssoWorldStoryPlayer({ className }: AssoWorldStoryPlayerProps) {
+const CARD_SUITS = ['♠', '♥', '♦', '♣'] as const;
+
+export function AssoWorldStoryPlayer({
+  className,
+  onSentenceChange,
+}: AssoWorldStoryPlayerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
-  const currentSentence = ASSO_WORLD_STORY_SENTENCES[currentIndex] ?? ASSO_WORLD_STORY_SENTENCES[0];
+  const isFinal = currentIndex === ASSO_WORLD_STORY_SENTENCES.length - 1;
+  const currentSentence =
+    ASSO_WORLD_STORY_SENTENCES[currentIndex] ?? ASSO_WORLD_STORY_SENTENCES[0];
+
+  useEffect(() => {
+    onSentenceChange?.(currentIndex, isFinal);
+  }, [currentIndex, isFinal, onSentenceChange]);
 
   useEffect(() => {
     // Entrata dolce
@@ -20,24 +32,36 @@ export function AssoWorldStoryPlayer({ className }: AssoWorldStoryPlayerProps) {
       setIsVisible(true);
     }, 150);
 
-    const readDuration = currentSentence.durationMs ?? 5000;
+    // Se è la frase finale, NON scompare e NON si ripete la storia
+    if (isFinal) {
+      return () => clearTimeout(enterTimer);
+    }
 
-    // Inizio dissolvenza in uscita dopo il tempo di lettura
+    const readDuration = currentSentence.durationMs ?? 4500;
+
+    // Dissolvenza in uscita dopo il tempo di lettura
     const fadeOutTimer = setTimeout(() => {
       setIsVisible(false);
     }, readDuration);
 
-    // Passaggio alla frase successiva dopo la dissolvenza in uscita
+    // Passaggio alla frase successiva
     const nextSentenceTimer = setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % ASSO_WORLD_STORY_SENTENCES.length);
-    }, readDuration + 800);
+      setCurrentIndex((prev) => prev + 1);
+    }, readDuration + 700);
 
     return () => {
       clearTimeout(enterTimer);
       clearTimeout(fadeOutTimer);
       clearTimeout(nextSentenceTimer);
     };
-  }, [currentIndex, currentSentence.durationMs]);
+  }, [currentIndex, isFinal, currentSentence.durationMs]);
+
+  const handleSelectSentence = (idx: number) => {
+    setIsVisible(false);
+    setTimeout(() => {
+      setCurrentIndex(idx);
+    }, 300);
+  };
 
   return (
     <div
@@ -46,7 +70,7 @@ export function AssoWorldStoryPlayer({ className }: AssoWorldStoryPlayerProps) {
         className,
       )}
     >
-      <div className="min-h-[140px] sm:min-h-[160px] md:min-h-[180px] flex items-center justify-center">
+      <div className="min-h-[120px] sm:min-h-[140px] md:min-h-[150px] flex items-center justify-center">
         <p
           role="region"
           aria-live="polite"
@@ -68,30 +92,64 @@ export function AssoWorldStoryPlayer({ className }: AssoWorldStoryPlayerProps) {
         </p>
       </div>
 
-      {/* Indicatori minimi delle frasi (puntini discreti) */}
+      {/* Indicatore tematico a mini carte da gioco */}
       <div
-        className="mt-4 flex items-center gap-1.5 opacity-60 transition-opacity hover:opacity-100"
-        aria-hidden="true"
+        className="mt-6 flex items-center gap-2.5 sm:gap-3 opacity-80 transition-opacity hover:opacity-100"
+        aria-label="Capitoli della storia"
       >
-        {ASSO_WORLD_STORY_SENTENCES.map((sentence, idx) => (
-          <button
-            key={sentence.id}
-            type="button"
-            onClick={() => {
-              setIsVisible(false);
-              setTimeout(() => {
-                setCurrentIndex(idx);
-              }, 400);
-            }}
-            title={`Frase ${idx + 1}`}
-            className={cn(
-              'h-1.5 rounded-full transition-all duration-500',
-              idx === currentIndex
-                ? 'w-6 bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.8)]'
-                : 'w-1.5 bg-white/30 hover:bg-white/60',
-            )}
-          />
-        ))}
+        {ASSO_WORLD_STORY_SENTENCES.map((sentence, idx) => {
+          const isActive = idx === currentIndex;
+          const isPassed = idx < currentIndex;
+          const suit = CARD_SUITS[idx % CARD_SUITS.length];
+          const isRed = suit === '♥' || suit === '♦';
+
+          return (
+            <button
+              key={sentence.id}
+              type="button"
+              onClick={() => handleSelectSentence(idx)}
+              title={`Capitolo ${idx + 1}`}
+              className={cn(
+                'group relative flex flex-col items-center justify-between rounded-[4px] p-0.5 sm:p-1 transition-all duration-500',
+                'w-5 h-7 sm:w-6 sm:h-9 border',
+                isActive
+                  ? 'border-amber-300 bg-amber-400/20 scale-110 -translate-y-1 shadow-[0_0_14px_rgba(252,211,77,0.7)]'
+                  : isPassed
+                    ? 'border-amber-400/40 bg-amber-500/10 hover:border-amber-300/70 hover:scale-105'
+                    : 'border-white/20 bg-white/5 hover:border-white/40 hover:scale-105',
+              )}
+            >
+              <span
+                className={cn(
+                  'text-[9px] sm:text-[11px] font-black leading-none select-none transition-colors',
+                  isActive
+                    ? 'text-amber-300'
+                    : isRed
+                      ? 'text-rose-400/80'
+                      : 'text-white/70',
+                )}
+              >
+                {suit}
+              </span>
+              <span
+                className={cn(
+                  'text-[7px] sm:text-[8px] font-mono font-bold leading-none select-none',
+                  isActive ? 'text-amber-200' : 'text-white/40',
+                )}
+              >
+                {idx + 1}
+              </span>
+              <span
+                className={cn(
+                  'absolute inset-[1px] rounded-[3px] border pointer-events-none transition-colors',
+                  isActive
+                    ? 'border-amber-300/40'
+                    : 'border-transparent group-hover:border-white/15',
+                )}
+              />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
