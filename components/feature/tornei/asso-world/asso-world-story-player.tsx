@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 interface AssoWorldStoryPlayerProps {
   className?: string;
   onSentenceChange?: (index: number, isFinal: boolean) => void;
+  onStoryEnded?: (ended: boolean) => void;
 }
 
 const CARD_SUITS = ['♠', '♥', '♦', '♣'] as const;
@@ -14,10 +15,12 @@ const CARD_SUITS = ['♠', '♥', '♦', '♣'] as const;
 export function AssoWorldStoryPlayer({
   className,
   onSentenceChange,
+  onStoryEnded,
 }: AssoWorldStoryPlayerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleWordCount, setVisibleWordCount] = useState(0);
   const [sentenceFadingOut, setSentenceFadingOut] = useState(false);
+  const [storyEnded, setStoryEnded] = useState(false);
 
   const isFinal = currentIndex === ASSO_WORLD_STORY_SENTENCES.length - 1;
   const currentSentence =
@@ -31,6 +34,8 @@ export function AssoWorldStoryPlayer({
   useEffect(() => {
     setVisibleWordCount(0);
     setSentenceFadingOut(false);
+    setStoryEnded(false);
+    onStoryEnded?.(false);
 
     let wordIdx = 0;
     const wordIntervalMs = isFinal ? 170 : 135;
@@ -44,8 +49,15 @@ export function AssoWorldStoryPlayer({
         clearInterval(wordTimer);
 
         if (isFinal) {
-          // Ultima frase: si notifica il climax per centrare i bottoni e NON scompare
           onSentenceChange?.(currentIndex, true);
+
+          // Passano esattamente 3 secondi: la frase e gli indicatori spariscono
+          const finalHoldTimer = setTimeout(() => {
+            setStoryEnded(true);
+            onStoryEnded?.(true);
+          }, 3000);
+
+          return () => clearTimeout(finalHoldTimer);
         } else {
           onSentenceChange?.(currentIndex, false);
 
@@ -69,10 +81,12 @@ export function AssoWorldStoryPlayer({
     return () => {
       clearInterval(wordTimer);
     };
-  }, [currentIndex, isFinal, words.length, onSentenceChange]);
+  }, [currentIndex, isFinal, words.length, onSentenceChange, onStoryEnded]);
 
   const handleSelectSentence = (idx: number) => {
     setSentenceFadingOut(true);
+    setStoryEnded(false);
+    onStoryEnded?.(false);
     setTimeout(() => {
       setCurrentIndex(idx);
     }, 280);
@@ -81,7 +95,10 @@ export function AssoWorldStoryPlayer({
   return (
     <div
       className={cn(
-        'relative flex w-full max-w-4xl flex-col items-center justify-center px-4 text-center',
+        'relative flex w-full max-w-4xl flex-col items-center justify-center px-4 text-center transition-all duration-700 ease-out',
+        storyEnded
+          ? 'opacity-0 -translate-y-3 scale-95 max-h-0 pointer-events-none overflow-hidden my-0'
+          : 'opacity-100 translate-y-0 scale-100 max-h-[400px] my-2',
         className,
       )}
     >

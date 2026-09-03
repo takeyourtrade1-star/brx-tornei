@@ -21,6 +21,7 @@ export function AssoWorldModal({
 }: AssoWorldModalProps) {
   const [mounted, setMounted] = useState(false);
   const [isFinal, setIsFinal] = useState(false);
+  const [storyEnded, setStoryEnded] = useState(false);
   const [betaPending, startBetaTransition] = useTransition();
   const [betaSuccessMessage, setBetaSuccessMessage] = useState<string | null>(null);
   const [betaError, setBetaError] = useState<string | null>(null);
@@ -30,6 +31,10 @@ export function AssoWorldModal({
 
   const handleSentenceChange = useCallback((_index: number, final: boolean) => {
     setIsFinal(final);
+  }, []);
+
+  const handleStoryEnded = useCallback((ended: boolean) => {
+    setStoryEnded(ended);
   }, []);
 
   // Gestione tasto ESC e blocco scroll di sfondo
@@ -55,6 +60,7 @@ export function AssoWorldModal({
   useEffect(() => {
     if (open) {
       setIsFinal(false);
+      setStoryEnded(false);
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
         videoRef.current.play().catch(() => {
@@ -140,22 +146,25 @@ export function AssoWorldModal({
             Asso World: Chapter 1 - Rising
           </p>
 
-          <AssoWorldStoryPlayer onSentenceChange={handleSentenceChange} />
+          <AssoWorldStoryPlayer
+            onSentenceChange={handleSentenceChange}
+            onStoryEnded={handleStoryEnded}
+          />
 
-          {/* CTA: all'ultima frase si sposta fluidamente dal fondo al centro */}
+          {/* CTA: dopo 3s dalla frase finale, frase e indicatori spariscono e i bottoni vanno al centro più grossi del 20% */}
           <div
             className={cn(
               'relative z-20 flex flex-col items-center justify-center px-4 text-center select-none',
               'transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]',
-              isFinal
-                ? 'translate-y-0 scale-105 sm:scale-110 opacity-100 mt-6 sm:mt-8'
-                : 'translate-y-[14vh] sm:translate-y-[18vh] scale-95 opacity-75 mt-2',
+              storyEnded
+                ? 'translate-y-0 scale-[1.2] opacity-100 mt-4 sm:mt-6 drop-shadow-[0_8px_36px_rgba(251,191,36,0.45)]'
+                : 'translate-y-[14vh] sm:translate-y-[18vh] scale-100 opacity-75 mt-2',
             )}
           >
             <p
               className={cn(
                 'text-xs sm:text-sm font-black uppercase tracking-[0.25em] text-amber-300 transition-colors',
-                isFinal && 'text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]',
+                storyEnded && 'text-amber-200 drop-shadow-[0_0_16px_rgba(251,191,36,0.8)]',
               )}
               style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}
             >
