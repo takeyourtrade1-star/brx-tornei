@@ -1,31 +1,60 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, CircleHelp, Copy, Printer, X } from 'lucide-react';
 
 /** Guida rapida ai proxy, disponibile anche senza uscire dall'arsenale. */
 export function ProxyInfoPopover() {
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const hoverCloseTimerRef = useRef<number | null>(null);
   const popoverId = useId();
   const titleId = `${popoverId}-title`;
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null);
   const visible = open || hovered || focused;
 
+  const cancelHoverClose = useCallback(() => {
+    if (hoverCloseTimerRef.current === null) return;
+    window.clearTimeout(hoverCloseTimerRef.current);
+    hoverCloseTimerRef.current = null;
+  }, []);
+
+  const scheduleHoverClose = useCallback(() => {
+    cancelHoverClose();
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      hoverCloseTimerRef.current = null;
+      setHovered(false);
+    }, 180);
+  }, [cancelHoverClose]);
+
+  const syncFocus = useCallback(() => {
+    const activeElement = document.activeElement;
+    const inside = activeElement instanceof Node
+      && (containerRef.current?.contains(activeElement) || popoverRef.current?.contains(activeElement));
+    setFocused(Boolean(inside));
+  }, []);
+
   const close = useCallback(() => {
+    cancelHoverClose();
     setOpen(false);
     setHovered(false);
     setFocused(false);
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-  }, []);
+  }, [cancelHoverClose]);
 
   useEffect(() => {
     if (!visible) return;
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (event.target instanceof Node && containerRef.current?.contains(event.target)) return;
+      if (
+        event.target instanceof Node
+        && (containerRef.current?.contains(event.target) || popoverRef.current?.contains(event.target))
+      ) return;
       close();
     };
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -40,19 +69,46 @@ export function ProxyInfoPopover() {
     };
   }, [close, visible]);
 
+  useEffect(() => () => cancelHoverClose(), [cancelHoverClose]);
+
+  const updatePopoverPosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.max(0, Math.min(368, window.innerWidth - 32));
+    const maxLeft = Math.max(16, window.innerWidth - width - 16);
+    const left = Math.min(Math.max(16, rect.right - width), maxLeft);
+    setPopoverPosition({ top: rect.bottom + 8, left });
+  }, []);
+
+  useEffect(() => {
+    if (!visible) {
+      setPopoverPosition(null);
+      return;
+    }
+
+    updatePopoverPosition();
+    const handleViewportChange = () => updatePopoverPosition();
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [updatePopoverPosition, visible]);
+
   return (
     <div
       ref={containerRef}
       className="relative"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocusCapture={() => setFocused(true)}
-      onBlurCapture={(event) => {
-        const nextTarget = event.relatedTarget;
-        if (!(nextTarget instanceof Node) || !containerRef.current?.contains(nextTarget)) {
-          setFocused(false);
-        }
+      onMouseEnter={() => {
+        cancelHoverClose();
+        setHovered(true);
       }}
+      onMouseLeave={scheduleHoverClose}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={() => window.setTimeout(syncFocus, 0)}
     >
       <button
         ref={triggerRef}
@@ -74,12 +130,22 @@ export function ProxyInfoPopover() {
         Come funziona?
       </button>
 
-      {visible ? (
+      {visible && popoverPosition && typeof document !== 'undefined'
+        ? createPortal(
         <div
+          ref={popoverRef}
           id={popoverId}
           role="dialog"
           aria-labelledby={titleId}
-          className="absolute right-0 top-full z-50 mt-2 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-marquee/25 bg-header-bg/95 text-left text-white shadow-2xl shadow-black/70 backdrop-blur-xl"
+          onMouseEnter={() => {
+            cancelHoverClose();
+            setHovered(true);
+          }}
+          onMouseLeave={scheduleHoverClose}
+          onFocusCapture={() => setFocused(true)}
+          onBlurCapture={() => window.setTimeout(syncFocus, 0)}
+          className="fixed z-[1000] w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-marquee/25 bg-header-bg/95 text-left text-white shadow-2xl shadow-black/70 backdrop-blur-xl"
+          style={{ top: popoverPosition.top, left: popoverPosition.left }}
         >
           <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-3">
             <div>
@@ -135,8 +201,10 @@ export function ProxyInfoPopover() {
               </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+          document.body,
+        )
+        : null}
     </div>
   );
 }
