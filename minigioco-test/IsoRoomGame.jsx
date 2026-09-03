@@ -2323,12 +2323,23 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   /* — stato — */
   const tutDone = typeof localStorage !== "undefined" && localStorage.getItem("irg-tutorial-done") === "1";
+  const initRoom = opts.initialRoom || "tournament";
   const st = {
     t: 0, last: 0, raf: null, pauseTimer: null, destroyed: false,
-    room: "tournament", transition: null,
+    room: initRoom, transition: null,
     view: { w: 1, h: 1, dpr: 1, scale: 1 },
-    cam: { x: DEFAULT_CAM.x, y: DEFAULT_CAM.y, z: 1, tween: null },
-    av: { from: { cx: 10, cy: 9 }, to: null, t: 0, fx: 10, fy: 9, queue: [], dir: "nw", wt: 0, stepN: 0, nextBlink: 2.6, blinkUntil: 0, seated: false },
+    cam: {
+      x: initRoom === "piazza" ? PIAZZA_DEFAULT_CAM.x : initRoom === "arcade" ? ARC_DEFAULT_CAM.x : DEFAULT_CAM.x,
+      y: initRoom === "piazza" ? PIAZZA_DEFAULT_CAM.y : initRoom === "arcade" ? ARC_DEFAULT_CAM.y : DEFAULT_CAM.y,
+      z: 1, tween: null,
+    },
+    av: {
+      from: initRoom === "piazza" ? { cx: PIAZZA_ENTRY_TILE.cx, cy: PIAZZA_ENTRY_TILE.cy } : { cx: 10, cy: 9 },
+      to: null, t: 0,
+      fx: initRoom === "piazza" ? PIAZZA_ENTRY_TILE.cx : 10,
+      fy: initRoom === "piazza" ? PIAZZA_ENTRY_TILE.cy : 9,
+      queue: [], dir: "nw", wt: 0, stepN: 0, nextBlink: 2.6, blinkUntil: 0, seated: false,
+    },
     pending: null, lock: false, modal: null,
     sitTarget: false, standBack: null,
     nearObj: null, nearSince: 0,
@@ -2384,8 +2395,16 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   for (let i = 0; i < 14; i++) {
     st.motes.push({ u: Math.random(), v: Math.random(), sp: 0.03 + Math.random() * 0.05, ph: Math.random() * 6.28, lift: 8 + Math.random() * 48 });
   }
-  // ingresso in scena
-  st.av.queue = findPath({ cx: 10, cy: 9 }, { cx: 5, cy: 6 }, blocked) || [];
+  if (initRoom === "piazza") {
+    tourData = { blocked, sprMap, entities, inter, sils, boardSp };
+    bg = piazzaBg; blocked = piazzaBlocked; sprMap = piazzaSprMap;
+    entities = piazzaEntities; inter = piazzaInter; sils = piazzaSils;
+    boardSp = piazzaBoardSp;
+    st.av.queue = [];
+  } else {
+    // ingresso in scena
+    st.av.queue = findPath({ cx: 10, cy: 9 }, { cx: 5, cy: 6 }, blocked) || [];
+  }
 
   const letterOverlayActive = () =>
     st.letter && ["lift", "open", "reveal", "done"].includes(st.letter.phase);
@@ -6582,6 +6601,7 @@ function AssoPixel() {
 export default function IsoRoomGame({
   roomName = "Sala Tornei",
   username = "PrincessLeo",
+  initialRoom = "tournament",
   tournaments: pTournaments,
   initialFriends = [],
   onOpenTournaments,
@@ -6601,7 +6621,7 @@ export default function IsoRoomGame({
 
   const [modal, setModal] = useState(null);
   const [closing, setClosing] = useState(false);
-  const [room, setRoom] = useState("tournament");
+  const [room, setRoom] = useState(initialRoom || "tournament");
   const [socialRoomOpen, setSocialRoomOpen] = useState(false);
   const [muted, setMuted] = useState(false);
   const [hint, setHint] = useState(true);
@@ -6731,6 +6751,7 @@ export default function IsoRoomGame({
       game = createGame(canvasRef.current, wrapRef.current, apiRef, __debug, {
         stats: statsRef.current,
         fx,
+        initialRoom,
       });
     } catch (err) {
       console.error("[IsoRoomGame] inizializzazione fallita:", err);

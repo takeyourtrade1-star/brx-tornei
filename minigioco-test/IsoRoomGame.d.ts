@@ -5,6 +5,7 @@ import type { SocialRoomFriendPresence } from '@/types/social';
 export interface IsoRoomGameProps {
   roomName?: string;
   username?: string;
+  initialRoom?: 'tournament' | 'arcade' | 'piazza';
   tournaments?: Tournament[];
   initialFriends?: SocialRoomFriendPresence[];
   /** Apre il mirror ufficiale dei tavoli correnti. */
