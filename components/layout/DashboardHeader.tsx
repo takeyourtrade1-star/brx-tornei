@@ -1,16 +1,11 @@
 'use client';
-
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Gamepad2 } from 'lucide-react';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
+import { DashboardHeaderOverlays } from '@/components/layout/dashboard-header-overlays';
 import { GameNavRail } from '@/components/layout/game-nav-rail';
-import { ProfileDrawer } from '@/components/feature/profile/profile-drawer';
 import { ProfileRankBadge } from '@/components/feature/profile/profile-rank-badge';
-import { PublicProfileModal } from '@/components/feature/profile/public-profile-modal';
-import { FriendsDrawer } from '@/components/feature/social/friends-drawer';
-import { DirectChallengeModal } from '@/components/feature/social/direct-challenge-modal';
-import { IncomingChallengeToast } from '@/components/feature/social/incoming-challenge-toast';
 import { NotificationBell } from '@/components/feature/notifications/NotificationBell';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { getFriendsListAction, getFriendRequestsAction } from '@/actions/social';
@@ -25,7 +20,6 @@ import type { NotificationSnapshot } from '@/types/notification';
 
 const HEADER_GLASS_ON = 24;
 const HEADER_GLASS_OFF = 8;
-
 interface DashboardHeaderProps {
   user: SessionUser;
   displayName?: string;
@@ -35,8 +29,9 @@ interface DashboardHeaderProps {
   onOpenMinigame?: () => void;
   reputation?: ReputationSummary | null;
   initialNotifications: NotificationSnapshot;
+  /** Evita di richiedere nuovamente gli amici già inclusi nella lobby RSC. */
+  initialOnlineFriendsCount?: number;
 }
-
 let lastKnownReputation: ReputationSummary | null = null;
 
 export function DashboardHeader({
@@ -47,6 +42,7 @@ export function DashboardHeader({
   onOpenMinigame,
   reputation,
   initialNotifications,
+  initialOnlineFriendsCount,
 }: DashboardHeaderProps) {
   const shownName = displayName ?? user.name ?? user.email;
   const [profileOpen, setProfileOpen] = useState(false);
@@ -54,7 +50,7 @@ export function DashboardHeader({
   const [publicProfileTarget, setPublicProfileTarget] = useState<string | null>(null);
   const [challengeTarget, setChallengeTarget] = useState<string | null>(null);
   const [avatarId, setAvatarId] = useState(() => getSavedAvatarId());
-  const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
+  const [onlineFriendsCount, setOnlineFriendsCount] = useState(initialOnlineFriendsCount ?? 0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [currentReputation, setCurrentReputation] = useState<ReputationSummary | null>(
     () => reputation ?? lastKnownReputation,
@@ -125,14 +121,26 @@ export function DashboardHeader({
 
   useEffect(() => {
     const fetchCounts = async () => {
-      const [friendsRes, reqRes] = await Promise.all([getFriendsListAction(), getFriendRequestsAction()]);
+      if (!friendsOpen && initialOnlineFriendsCount !== undefined) {
+        const reqRes = await getFriendRequestsAction();
+        if (reqRes.ok && reqRes.data) setPendingRequestsCount(reqRes.data.length);
+        return;
+      }
+      const [friendsRes, reqRes] = await Promise.all([
+        getFriendsListAction(),
+        getFriendRequestsAction(),
+      ]);
       if (friendsRes.ok && friendsRes.data) {
-        setOnlineFriendsCount(friendsRes.data.filter((f) => f.presence === 'online' || f.presence === 'in_game').length);
+        setOnlineFriendsCount(
+          friendsRes.data.filter((friend) =>
+            friend.presence === 'online' || friend.presence === 'in_game'
+          ).length,
+        );
       }
       if (reqRes.ok && reqRes.data) setPendingRequestsCount(reqRes.data.length);
     };
     void fetchCounts();
-  }, [friendsOpen]);
+  }, [friendsOpen, initialOnlineFriendsCount]);
 
   const dailyWins = calculateDailyWins(currentReputation);
   const winStreak = calculateWinStreak(currentReputation);
@@ -215,11 +223,21 @@ export function DashboardHeader({
           </div>
         </div>
 
-        <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} gamertag={shownName} initialReputation={currentReputation} />
-        <FriendsDrawer open={friendsOpen} onClose={() => setFriendsOpen(false)} onOpenProfile={setPublicProfileTarget} onChallenge={setChallengeTarget} myGamertag={shownName} />
-        <PublicProfileModal gamertag={publicProfileTarget} open={Boolean(publicProfileTarget)} onClose={() => setPublicProfileTarget(null)} onChallenge={setChallengeTarget} />
-        <DirectChallengeModal targetGamertag={challengeTarget} open={Boolean(challengeTarget)} onClose={() => setChallengeTarget(null)} />
-        <IncomingChallengeToast />
+        <DashboardHeaderOverlays
+          profileOpen={profileOpen}
+          friendsOpen={friendsOpen}
+          publicProfileTarget={publicProfileTarget}
+          challengeTarget={challengeTarget}
+          gamertag={shownName}
+          ebartexUsername={user.username}
+          reputation={currentReputation}
+          onCloseProfile={() => setProfileOpen(false)}
+          onCloseFriends={() => setFriendsOpen(false)}
+          onOpenProfile={setPublicProfileTarget}
+          onChallenge={setChallengeTarget}
+          onClosePublicProfile={() => setPublicProfileTarget(null)}
+          onCloseChallenge={() => setChallengeTarget(null)}
+        />
       </header>
       <GameNavRail
         friendsOpen={friendsOpen}

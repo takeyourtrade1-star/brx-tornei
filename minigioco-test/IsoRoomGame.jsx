@@ -2278,7 +2278,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   /* — stato — */
   const tutDone = typeof localStorage !== "undefined" && localStorage.getItem("irg-tutorial-done") === "1";
   const st = {
-    t: 0, last: 0, raf: 0, destroyed: false,
+    t: 0, last: 0, raf: null, pauseTimer: null, destroyed: false,
     room: "tournament", transition: null,
     view: { w: 1, h: 1, dpr: 1, scale: 1 },
     cam: { x: DEFAULT_CAM.x, y: DEFAULT_CAM.y, z: 1, tween: null },
@@ -5532,19 +5532,29 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
 
+  function scheduleFrame() {
+    if (st.destroyed || st.raf !== null || st.pauseTimer !== null) return;
+    st.raf = requestAnimationFrame(loop);
+  }
+
   function loop(ts) {
+    st.raf = null;
     if (st.destroyed) return;
-    st.raf = requestAnimationFrame(loop); // pianifica subito: un errore non uccide il loop
     // Il canvas della stanza non deve competere con quello del cabinato in primo
-    // piano. Anche una scheda nascosta resta sospesa senza accumulare un dt enorme.
+    // piano. In pausa scende a 5 controlli/s invece di richiamare 60 frame/s.
     if (
       document.hidden ||
       ARCADE_GAME_IDS.has(st.modal) ||
       (apiRef.current.isSocialRoomOpen && apiRef.current.isSocialRoomOpen())
     ) {
       frameLimiter.pause(ts);
+      st.pauseTimer = window.setTimeout(() => {
+        st.pauseTimer = null;
+        scheduleFrame();
+      }, 200);
       return;
     }
+    scheduleFrame(); // pianifica subito: un errore non uccide il loop
     const dt = frameLimiter.consume(ts);
     if (dt === null) return;
     st.t += dt;
@@ -5557,7 +5567,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       if (st.errCount > 240) { st.destroyed = true; cancelAnimationFrame(st.raf); }
     }
   }
-  st.raf = requestAnimationFrame(loop);
+  scheduleFrame();
 
   const api = {
     sfx,
@@ -5638,7 +5648,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     },
     destroy() {
       st.destroyed = true;
-      cancelAnimationFrame(st.raf);
+      if (st.raf !== null) cancelAnimationFrame(st.raf);
+      if (st.pauseTimer !== null) window.clearTimeout(st.pauseTimer);
+      st.raf = null;
+      st.pauseTimer = null;
       if (ro) ro.disconnect();
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);

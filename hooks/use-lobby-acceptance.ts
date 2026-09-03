@@ -32,6 +32,7 @@ export function useLobbyAcceptance({
   goLiveTo,
   onApprovalOpen,
 }: LobbyAcceptanceOptions) {
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
   const monitoredTable = useMemo(
     () => findMyTables(tournaments, userId).find((table) => table.status === 'in_registrazione'),
     [tournaments, userId],
@@ -39,6 +40,7 @@ export function useLobbyAcceptance({
   const realtimeHint = useTournamentRealtimeRefresh({
     tournamentId: actionTournament?.id ?? monitoredTable?.id,
     active: Boolean(actionTournament ?? monitoredTable),
+    onConnectionStateChange: setRealtimeConnected,
   });
   const trackedTournament = useMemo(() => {
     const trackedId = actionTournament?.id ?? monitoredTable?.id;
@@ -165,5 +167,6 @@ export function useLobbyAcceptance({
     approvalId,
     myReady,
     opponentReady,
+    realtimeConnected,
   };
 }

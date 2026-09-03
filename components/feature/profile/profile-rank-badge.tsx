@@ -153,7 +153,7 @@ export function ProfileRankBadge({
         type="button"
         onClick={onClick}
         aria-label={`Apri il profilo di ${gamertag}`}
-        className={cn('group relative flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 rounded-full', className)}
+        className={cn('profile-rank-badge group relative flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 rounded-full', className)}
       >
         {content}
       </button>
@@ -161,7 +161,7 @@ export function ProfileRankBadge({
   }
 
   return (
-    <div className={cn('relative flex flex-col items-center justify-center', className)}>
+    <div className={cn('profile-rank-badge relative flex flex-col items-center justify-center', className)}>
       {content}
     </div>
   );

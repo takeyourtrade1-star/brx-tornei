@@ -9,6 +9,7 @@ import type { FormatFilter, Selection } from '@/lib/validations/selection';
 import type { LobbyTable } from '@/lib/lobby';
 import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/player-api-client';
 import type { NotificationSnapshot } from '@/types/notification';
+import type { SocialRoomFriendPresence } from '@/types/social';
 import { ReputationSummary } from './reputation-summary';
 import { TableCard } from './table-card';
 
@@ -25,6 +26,7 @@ interface LobbyTableListProps {
   error: string | null;
   reputation: ReputationSummaryData | null;
   initialNotifications: NotificationSnapshot;
+  initialFriends: SocialRoomFriendPresence[];
   /** Su "Tutti i formati" i tavoli vuoti non sono creabili. */
   createLocked: boolean;
   onOpenMinigame: () => void;
@@ -46,6 +48,7 @@ export function LobbyTableList({
   error,
   reputation,
   initialNotifications,
+  initialFriends,
   createLocked,
   onOpenMinigame,
   onSit,
@@ -60,12 +63,15 @@ export function LobbyTableList({
         displayName={gamertag}
         reputation={reputation}
         initialNotifications={initialNotifications}
+        initialOnlineFriendsCount={initialFriends.filter((friend) =>
+          friend.presence === 'online' || friend.presence === 'in_game'
+        ).length}
         onOpenMinigame={onOpenMinigame}
       />
       <main
         data-lobby-focus-fallback="true"
         tabIndex={-1}
-        className="mx-auto mt-6 flex w-full max-w-content animate-auth-enter flex-col px-4 pb-16 focus:outline-none sm:px-6"
+        className="motion-pause-under-modal mx-auto mt-6 flex w-full max-w-content animate-auth-enter flex-col px-4 pb-16 focus:outline-none sm:px-6"
       >
         <div
           role="note"

@@ -15,6 +15,8 @@ const HEARTBEAT_MS = 15_000;
 interface TournamentRealtimeRefreshOptions {
   tournamentId?: string | null;
   active: boolean;
+  /** Segnala al chiamante se il canale ha completato l'autenticazione. */
+  onConnectionStateChange?: (connected: boolean) => void;
 }
 
 /**
@@ -25,12 +27,14 @@ interface TournamentRealtimeRefreshOptions {
 export function useTournamentRealtimeRefresh({
   tournamentId,
   active,
+  onConnectionStateChange,
 }: TournamentRealtimeRefreshOptions): TournamentRealtimeHint | undefined {
   const router = useRouter();
   const [hint, setHint] = useState<TournamentRealtimeHint>();
 
   useEffect(() => {
     setHint(undefined);
+    onConnectionStateChange?.(false);
     if (!active || !tournamentId) return;
     const wsUrl = getTournamentEventsWsUrl(tournamentId);
     if (!wsUrl) return;
@@ -88,6 +92,7 @@ export function useTournamentRealtimeRefresh({
               if (authTimer !== null) window.clearTimeout(authTimer);
               authTimer = null;
               attempts = 0;
+              onConnectionStateChange?.(true);
               if (heartbeatTimer !== null) window.clearInterval(heartbeatTimer);
               heartbeatTimer = window.setInterval(() => {
                 if (nextSocket.readyState === WebSocket.OPEN) {
@@ -123,7 +128,10 @@ export function useTournamentRealtimeRefresh({
           authTimer = null;
           if (heartbeatTimer !== null) window.clearInterval(heartbeatTimer);
           heartbeatTimer = null;
-          if (!cancelled) reconnect();
+          if (!cancelled) {
+            onConnectionStateChange?.(false);
+            reconnect();
+          }
         };
       } catch {
         reconnect();
@@ -145,7 +153,7 @@ export function useTournamentRealtimeRefresh({
       if (heartbeatTimer !== null) window.clearInterval(heartbeatTimer);
       socket?.close();
     };
-  }, [active, router, tournamentId]);
+  }, [active, onConnectionStateChange, router, tournamentId]);
 
   return active && tournamentId && hint?.tournamentId === tournamentId ? hint : undefined;
 }

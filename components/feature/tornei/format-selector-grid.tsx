@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FORMATS_WITH_MEDIA } from '@/lib/data/format-media';
@@ -33,26 +33,13 @@ export function FormatSelectorGrid({
   const router = useRouter();
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
-  // Dopo il mount forza il prefetch dei metadata: all'hover il play è subito
-  // fluido, senza che l'utente debba prima "svegliare" il video col mouse.
-  useEffect(() => {
-    for (const video of videoRefs.current.values()) {
-      try {
-        if (video.preload === 'none') {
-          video.preload = 'metadata';
-          video.load();
-        }
-      } catch {
-        /* prefetch non critico */
-      }
-    }
-  }, []);
-
   const playVideo = useCallback((id: string) => {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
     const video = videoRefs.current.get(id);
     if (!video) return;
     try {
-      if (video.preload === 'none') {
+      if (!video.getAttribute('src') && video.dataset.src) {
+        video.src = video.dataset.src;
         video.preload = 'auto';
         video.load();
       }
@@ -70,6 +57,9 @@ export function FormatSelectorGrid({
     try {
       video.pause();
       video.currentTime = 0;
+      video.removeAttribute('src');
+      video.preload = 'none';
+      video.load();
     } catch {
       /* noop */
     }
@@ -112,9 +102,9 @@ export function FormatSelectorGrid({
         )}
       >
         {FORMATS_WITH_MEDIA.map((format, index) => {
-        const isSelected = format.id === selectedFormatId;
-        return (
-          <button
+          const isSelected = format.id === selectedFormatId;
+          return (
+            <button
             key={format.id}
             type="button"
             onClick={() => selectFormat(format.id)}
@@ -142,10 +132,10 @@ export function FormatSelectorGrid({
             )}
           >
             <Image
-              src={format.image}
+              src={format.thumbnail}
               alt={format.name}
               fill
-              priority
+              priority={isSelected || (isAllSelected && index === 0)}
               unoptimized
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 12vw"
               className={cn(
@@ -160,11 +150,11 @@ export function FormatSelectorGrid({
                 if (el) videoRefs.current.set(format.id, el);
                 else videoRefs.current.delete(format.id);
               }}
-              src={format.video}
+              data-src={format.video}
               muted
               loop
               playsInline
-              preload="metadata"
+              preload="none"
               className={cn(
                 'pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-[opacity,filter] duration-300 ease-out group-hover:opacity-100 max-md:hidden motion-reduce:transition-none',
                 !isSelected &&
@@ -193,16 +183,16 @@ export function FormatSelectorGrid({
                 </span>
               </span>
             )}
-            {/* Alone luminoso sulla tile selezionata che "respira" piano */}
+            {/* Alone statico sulla tile selezionata: nessun repaint continuo. */}
             {isSelected && (
               <span
                 className="format-selected-glow pointer-events-none absolute inset-0 z-[3] rounded-2xl"
                 aria-hidden
               />
             )}
-          </button>
-        );
-      })}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

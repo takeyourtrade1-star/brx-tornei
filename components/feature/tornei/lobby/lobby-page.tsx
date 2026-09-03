@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
   createTableAction,
@@ -23,8 +24,15 @@ import { AcceptMatchModal } from './accept-match-modal';
 import { FeedbackNotices } from './feedback-notices';
 import { useServerConnectionQuality } from '@/hooks/use-server-connection-quality';
 import { useLobbyAcceptance } from '@/hooks/use-lobby-acceptance';
-import { ArcadeRoomLauncher } from './arcade-room-launcher';
-import { ArcadeAccessGate } from './arcade-access-gate';
+
+const ArcadeAccessGate = dynamic(
+  () => import('./arcade-access-gate').then((module) => module.ArcadeAccessGate),
+  { ssr: false },
+);
+const ArcadeRoomLauncher = dynamic(
+  () => import('./arcade-room-launcher').then((module) => module.ArcadeRoomLauncher),
+  { ssr: false },
+);
 
 interface LobbyPageProps {
   tournaments: Tournament[];
@@ -138,6 +146,7 @@ export function LobbyPage({
     approvalId,
     myReady,
     opponentReady,
+    realtimeConnected,
   } = useLobbyAcceptance({
     tournaments,
     userId: user.id,
@@ -243,19 +252,17 @@ export function LobbyPage({
         return;
       }
     }
-    // Poll fallback sempre attivo: più frequente sul proprio tavolo, dove la
-    // precisione della fase conta; la lobby generica resta più leggera.
     // Il timer resta difensivo: ogni refresh della lobby vale ~5 read
     // (tavoli, mazzi, profilo, reputazione, amici) e il backend ammette
-    // 120 read/min per utente — a 1s la quota esaurirebbe in ~24s e il 429
-    // successivo Crasherebbe l'RSC ("connessione momentaneamente interrotta").
-    // Il canale WebSocket copre già la reattività immediata.
-    const intervalMs = trackedTournament ? 5_000 : 10_000;
+    // 120 read/min per utente. Quando il WebSocket è autenticato copre già
+    // il proprio tavolo; il polling resta solo come fallback disconnesso.
+    if (arcadeGateOpen || arcadeOpen || (trackedTournament && realtimeConnected)) return;
+    const intervalMs = trackedTournament ? 15_000 : 30_000;
     const iv = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
     }, intervalMs);
     return () => clearInterval(iv);
-  }, [tournaments, user.id, router, goLiveTo, trackedTournament, selection.format, selection.mode]);
+  }, [arcadeGateOpen, arcadeOpen, tournaments, user.id, router, goLiveTo, realtimeConnected, trackedTournament, selection.format, selection.mode]);
 
   // Se l'host chiude la finestra del browser mentre attende da solo al tavolo,
   // invia il segnale asincrono di uscita per liberare immediatamente il tavolo.
@@ -446,6 +453,7 @@ export function LobbyPage({
         error={error}
         reputation={reputation}
         initialNotifications={initialNotifications}
+        initialFriends={initialFriends}
         createLocked={selection.format === 'all'}
         onOpenMinigame={handleOpenArcade}
         onSit={handleSit}
@@ -503,32 +511,36 @@ export function LobbyPage({
         negativeNotice={reputation?.negativeFeedbackNotice ?? null}
         positiveNotice={reputation?.positiveFeedbackNotice ?? null}
       />
-      <ArcadeAccessGate
-        open={arcadeGateOpen}
-        onClose={handleCloseArcadeGate}
-        onUnlocked={handleArcadeUnlocked}
-      />
-      <ArcadeRoomLauncher
-        open={arcadeOpen && arcadeUnlocked}
-        onClose={handleCloseArcade}
-        tournaments={tournaments}
-        tables={tables}
-        initialDecks={initialDecks}
-        initialFriends={initialFriends}
-        gamertag={gamertag}
-        formatId={formatId}
-        formatName={formatName}
-        modeId={selection.mode}
-        modeName={modeName}
-        busy={busy}
-        error={error}
-        createLocked={selection.format === 'all'}
-        onOpenCreateTournament={handleOpenArcadeCreate}
-        onSit={handleSit}
-        onOpen={handleOpen}
-        onLeave={handleLeave}
-        onGoLive={handleGoLive}
-      />
+      {arcadeGateOpen ? (
+        <ArcadeAccessGate
+          open
+          onClose={handleCloseArcadeGate}
+          onUnlocked={handleArcadeUnlocked}
+        />
+      ) : null}
+      {arcadeOpen && arcadeUnlocked ? (
+        <ArcadeRoomLauncher
+          open
+          onClose={handleCloseArcade}
+          tournaments={tournaments}
+          tables={tables}
+          initialDecks={initialDecks}
+          initialFriends={initialFriends}
+          gamertag={gamertag}
+          formatId={formatId}
+          formatName={formatName}
+          modeId={selection.mode}
+          modeName={modeName}
+          busy={busy}
+          error={error}
+          createLocked={selection.format === 'all'}
+          onOpenCreateTournament={handleOpenArcadeCreate}
+          onSit={handleSit}
+          onOpen={handleOpen}
+          onLeave={handleLeave}
+          onGoLive={handleGoLive}
+        />
+      ) : null}
     </>
   );
 }

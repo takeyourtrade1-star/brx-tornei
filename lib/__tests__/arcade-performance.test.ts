@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createFrameLimiter } from '../../minigioco-test/frame-limiter';
 
 interface FxFlags {
@@ -13,6 +13,7 @@ interface FxFlags {
 
 interface QualityConfig {
   getFxFlags: (quality: 'high' | 'low') => FxFlags;
+  resolveQuality: (quality: 'auto' | 'high' | 'low') => 'high' | 'low';
 }
 
 const ROOT_PATH = fileURLToPath(new URL('../../', import.meta.url));
@@ -24,6 +25,8 @@ function source(path: string): string {
 }
 
 describe('prestazioni Sala Arcade', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('rende la modalita leggera realmente meno costosa', () => {
     const high = qualityConfig.getFxFlags('high');
     const low = qualityConfig.getFxFlags('low');
@@ -32,8 +35,20 @@ describe('prestazioni Sala Arcade', () => {
     expect(low.targetFps).toBe(30);
     expect(low.dpr).toBeLessThan(high.dpr);
     expect(low.dpr).toBeLessThanOrEqual(0.75);
+    expect(high.dpr).toBeLessThanOrEqual(1.5);
     expect(high.uiTickMs).toBe(100);
     expect(low.uiTickMs).toBe(250);
+  });
+
+  it('sceglie automaticamente la modalita leggera su un telefono', () => {
+    vi.stubGlobal('window', {
+      innerWidth: 390,
+      screen: { width: 390 },
+      matchMedia: (query: string) => ({ matches: query === '(pointer: coarse)' }),
+    });
+    vi.stubGlobal('navigator', {});
+
+    expect(qualityConfig.resolveQuality('auto')).toBe('low');
   });
 
   it('limita i frame senza accelerare il tempo su display 60/144 Hz', () => {
@@ -89,6 +104,8 @@ describe('prestazioni Sala Arcade', () => {
 
     expect(room).toContain('ARCADE_GAME_IDS.has(st.modal)');
     expect(room).toContain('createFrameLimiter(fx.targetFps)');
+    expect(room).toContain('st.pauseTimer = window.setTimeout');
+    expect(room).toContain('}, 200);');
     expect(memory).not.toContain('requestAnimationFrame');
     expect(memory).toContain('window.setInterval(tick, tickMs)');
     expect(duel).not.toContain('requestAnimationFrame');

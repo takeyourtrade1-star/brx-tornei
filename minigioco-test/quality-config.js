@@ -27,10 +27,15 @@
 
     try {
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      const compactViewport = Math.min(
+        window.innerWidth || Number.POSITIVE_INFINITY,
+        window.screen && window.screen.width ? window.screen.width : Number.POSITIVE_INFINITY,
+      ) <= 900;
       const lowMem = navigator.deviceMemory && navigator.deviceMemory <= 4;
       const lowCpu = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
       const saveData = navigator.connection && navigator.connection.saveData;
-      if (reduced || lowMem || lowCpu || saveData) return "low";
+      if (reduced || (coarsePointer && compactViewport) || lowMem || lowCpu || saveData) return "low";
     } catch (e) {
       // fallback sicuro
     }
@@ -68,7 +73,7 @@
       // In modalita leggera il canvas viene renderizzato sotto la risoluzione CSS
       // e poi ingrandito dal browser: sulla pixel-art resta leggibile e dimezza
       // abbondantemente i pixel da comporre a ogni frame.
-      dpr: low ? Math.max(0.5, Math.min(dprBase, 0.75)) : Math.min(dprBase, 2),
+      dpr: low ? Math.max(0.5, Math.min(dprBase, 0.75)) : Math.min(dprBase, 1.5),
       targetFps: low ? 30 : 60,
       uiTickMs: low ? 250 : 100,
 

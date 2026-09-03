@@ -1,37 +1,45 @@
 import { FORMATS, type FormatId } from '@/lib/data/catalog';
 
 /** Asset orizzontali 16:9 per card formato (vista semplificata + PC minigioco). */
-export const FORMAT_MEDIA: Record<FormatId, { image: string; video: string }> = {
+export const FORMAT_MEDIA: Record<FormatId, { image: string; thumbnail: string; video: string }> = {
   'old-school': {
     image: '/immagini-formato-orizzontale/old-school-or.webp',
+    thumbnail: '/immagini-formato-orizzontale/thumbs/old-school-or.webp',
     video: '/video-animazione-orizzontale/animazione-old-school.webm',
   },
   premodern: {
     image: '/immagini-formato-orizzontale/pre-modern-or.webp',
+    thumbnail: '/immagini-formato-orizzontale/thumbs/pre-modern-or.webp',
     video: '/video-animazione-orizzontale/animazione-pre-modern.webm',
   },
   pioneer: {
     image: '/immagini-formato-orizzontale/pioneer-or.webp',
+    thumbnail: '/immagini-formato-orizzontale/thumbs/pioneer-or.webp',
     video: '/video-animazione-orizzontale/animazione-piooner.webm',
   },
   modern: {
     image: '/immagini-formato-orizzontale/modern-or.webp',
+    thumbnail: '/immagini-formato-orizzontale/thumbs/modern-or.webp',
     video: '/video-animazione-orizzontale/animazione-modern.webm',
   },
   standard: {
     image: '/immagini-formato-orizzontale/standard-or.webp',
+    thumbnail: '/immagini-formato-orizzontale/thumbs/standard-or.webp',
     video: '/video-animazione-orizzontale/animazione-standard.webm',
   },
   legacy: {
     image: '/immagini-formato-orizzontale/legacy-or.webp',
+    thumbnail: '/immagini-formato-orizzontale/thumbs/legacy-or.webp',
     video: '/video-animazione-orizzontale/animazione-legacy.webm',
   },
   pauper: {
     image: '/immagini-formato-orizzontale/pauper-or.webp',
+    thumbnail: '/immagini-formato-orizzontale/thumbs/pauper-or.webp',
     video: '/video-animazione-orizzontale/animazione-pauper.webm',
   },
   commander: {
     image: '/immagini-formato-orizzontale/commander-or.webp',
+    thumbnail: '/immagini-formato-orizzontale/thumbs/commander-or.webp',
     video: '/video-animazione-orizzontale/animazione-commander.webm',
   },
 };

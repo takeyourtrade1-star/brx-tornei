@@ -37,7 +37,7 @@ export default async function PartitePage() {
         initialNotifications={notifications}
       />
 
-      <main className="mx-auto w-full max-w-content px-4 py-5 sm:px-6 sm:py-6">
+      <main className="motion-static-icons mx-auto w-full max-w-content px-4 py-5 sm:px-6 sm:py-6">
         <h1 className="sr-only">Le mie partite</h1>
 
         <div className="mb-4">

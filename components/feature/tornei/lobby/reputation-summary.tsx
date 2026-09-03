@@ -37,7 +37,7 @@ export function ReputationSummary({ reputation }: { reputation: ReputationSummar
   return (
     <section
       aria-label="Le tue partite"
-      className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 text-white shadow-xl shadow-black/35 backdrop-blur-md"
+      className="motion-static-icons relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 text-white shadow-xl shadow-black/35 backdrop-blur-md"
     >
       <span
         aria-hidden

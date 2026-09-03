@@ -327,24 +327,12 @@
     }
   }
 
-  /* Alone che "respira" sul tile formato selezionato: pulsatore sobrio */
-  @keyframes format-glow-pulse {
-    0%, 100% {
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.55),
-        0 0 0 0 rgba(255, 255, 255, 0),
-        0 12px 28px -14px rgba(15, 23, 42, 0.6);
-    }
-    50% {
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.78),
-        0 0 22px 2px rgba(255, 255, 255, 0.18),
-        0 14px 32px -14px rgba(15, 23, 42, 0.55);
-    }
-  }
+  /* Alone statico: mantiene la selezione evidente senza repaint continuo. */
   .format-selected-glow {
-    animation: format-glow-pulse 2.6s ease-in-out infinite;
-    will-change: box-shadow;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+      0 0 18px 1px rgba(255, 255, 255, 0.12),
+      0 12px 28px -14px rgba(15, 23, 42, 0.6);
   }
 
   .mode-card-glow {
@@ -2416,7 +2404,7 @@
     radial-gradient(ellipse 55% 70% at 50% 100%, rgba(255, 90, 0, 0.34), transparent 70%),
     radial-gradient(ellipse 28% 50% at 50% 100%, rgba(255, 210, 80, 0.22), transparent 62%);
   filter: blur(18px);
-  animation: arena-hearth-breathe 5.6s ease-in-out infinite;
+  opacity: 0.82;
 }
 
 .arena-shaft {
@@ -2431,7 +2419,7 @@
     transparent 78%
   );
   filter: blur(12px);
-  animation: arena-shaft-sway 11s ease-in-out infinite;
+  opacity: 0.58;
 }
 .arena-shaft--left {
   left: 8%;
@@ -2440,15 +2428,13 @@
 .arena-shaft--right {
   right: 6%;
   transform: skewX(18deg);
-  animation-delay: -4.5s;
-  animation-duration: 13s;
 }
 
 .arena-orb {
   position: absolute;
   border-radius: 9999px;
   filter: blur(2px);
-  animation: arena-orb-pulse 7s ease-in-out infinite;
+  opacity: 0.72;
 }
 .arena-orb--gold {
   top: 9%;
@@ -2463,7 +2449,6 @@
   width: 11rem;
   height: 11rem;
   background: radial-gradient(circle, rgba(255, 115, 0, 0.18) 0%, transparent 72%);
-  animation-delay: -2.8s;
 }
 
 .arena-wisp {
@@ -2506,24 +2491,41 @@
     linear-gradient(180deg, rgba(6, 9, 16, 0.78) 0%, rgba(6, 9, 16, 0.38) 34%, rgba(6, 9, 16, 0.84) 100%);
 }
 
-@keyframes arena-hearth-breathe {
-  0%, 100% { opacity: 0.7; transform: scaleX(1) scaleY(1); }
-  50% { opacity: 1; transform: scaleX(1.08) scaleY(1.12); }
+/* Le decorazioni del profilo e delle statistiche restano complete ma ferme:
+   decine di loop SVG simultanei non devono consumare CPU a pagina inattiva. */
+.profile-rank-badge * {
+  animation-play-state: paused !important;
 }
-@keyframes arena-shaft-sway {
-  0%, 100% { opacity: 0.45; transform: skewX(-16deg) translateX(0); }
-  50% { opacity: 0.8; transform: skewX(-12deg) translateX(18px); }
+.profile-rank-badge:hover *,
+.profile-rank-badge:focus-visible * {
+  animation-play-state: running !important;
 }
-.arena-shaft--right {
-  animation-name: arena-shaft-sway-right;
+.motion-static-icons * {
+  animation: none !important;
 }
-@keyframes arena-shaft-sway-right {
-  0%, 100% { opacity: 0.4; transform: skewX(18deg) translateX(0); }
-  50% { opacity: 0.75; transform: skewX(14deg) translateX(-16px); }
+
+/* Quando una modale copre la lobby, sospende anche le animazioni sottostanti. */
+body:has([aria-modal="true"]) .arena-atmosphere *,
+body:has([aria-modal="true"]) .motion-pause-under-modal * {
+  animation-play-state: paused !important;
 }
-@keyframes arena-orb-pulse {
-  0%, 100% { opacity: 0.55; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.12); }
+
+/* Il tappetino home sostituisce completamente l'atmosfera standard. */
+body:has(.home-playmat-backdrop) .arena-atmosphere {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .arena-atmosphere .pt-ember,
+  .arena-atmosphere .arena-wisp {
+    display: none;
+  }
+
+  /* Sui telefoni il blur full-screen è molto più costoso della trasparenza. */
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
 }
 @keyframes arena-wisp-lick {
   0%, 100% { transform: scaleY(0.82) scaleX(1) skewX(0deg); opacity: 0.35; }
