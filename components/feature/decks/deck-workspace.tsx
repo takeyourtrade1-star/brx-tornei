@@ -91,7 +91,7 @@ export function DeckWorkspace({
           </div>
 
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto lg:justify-end">
-            <div className="grid flex-1 grid-cols-3 divide-x divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-slate-950/60 shadow-lg shadow-black/25 sm:flex-none">
+            <div className="grid flex-1 grid-cols-2 divide-x divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-slate-950/60 shadow-lg shadow-black/25 sm:flex-none">
               <WorkspaceMetric
                 label="Mazzi"
                 value={`${workspace.decks.length}/${MAX_DECKS_PER_USER}`}
@@ -103,10 +103,6 @@ export function DeckWorkspace({
                 value={totalCards}
                 Icon={SquareStack}
                 iconClassName="text-marquee"
-              />
-              <WorkspaceMetric
-                label="Proxy"
-                value="1:1"
               />
             </div>
 
