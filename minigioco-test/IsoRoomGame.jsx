@@ -5574,6 +5574,12 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       changeRoom("tournament");
       return;
     }
+    /* Invio nella Sala Piazza → attiva la barra chat */
+    if (st.room === "piazza" && (e.key === "Enter" || e.code === "Enter") && !st.lock) {
+      e.preventDefault();
+      if (apiRef.current.focusChat) apiRef.current.focusChat();
+      return;
+    }
     /* P = modalità foto */
     if (e.code === "KeyP" && !st.lock) {
       e.preventDefault();
@@ -5715,7 +5721,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     },
     setRemotePlayers(list) {
       if (st.destroyed) return;
-      syncRemotePlayers(remotePlayers, list, buildAvatar);
+      syncRemotePlayers(remotePlayers, list, buildAvatar, findPath, blocked);
+    },
+    showBubble(text, dur) {
+      if (st.destroyed) return;
+      showBubble(text, dur || 4.5);
     },
     /* stessa azione dei tasti 1/2/3/4/P, ma cliccando i badge a schermo */
     hotkey(which) {
@@ -6032,6 +6042,15 @@ const CSS_TEXT = [
   ".irg-look-sw{flex:0 0 auto;width:13px;height:13px;border-radius:4px;border:1px solid rgba(255,255,255,.45);",
   "box-shadow:inset 0 1px 1px rgba(255,255,255,.4);}",
   ".irg-look-sex{margin-left:auto;font-size:10px;opacity:.6;}",
+  ".irg-piazza-chat{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:25;display:flex;align-items:center;width:min(520px,90vw);pointer-events:auto;}",
+  ".irg-piazza-chat-box{display:flex;align-items:center;width:100%;background:rgba(16,22,38,.88);border:1.5px solid rgba(82,183,136,.55);border-radius:12px;padding:6px 10px;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 16px rgba(82,183,136,.18);backdrop-filter:blur(8px);}",
+  ".irg-piazza-chat-icon{font-size:16px;line-height:1;}",
+  ".irg-piazza-chat-input{flex:1;background:transparent;border:0;outline:none;color:#fff;font-size:13px;font-family:'Segoe UI',system-ui,sans-serif;font-weight:600;min-width:0;}",
+  ".irg-piazza-chat-input::placeholder{color:rgba(255,255,255,.45);font-weight:400;}",
+  ".irg-piazza-chat-btn{background:#52b788;border:0;color:#0b1912;font-family:'Press Start 2P',monospace;font-size:8px;font-weight:bold;padding:7px 12px;border-radius:8px;cursor:pointer;transition:transform .1s,background-color .15s;flex:0 0 auto;}",
+  ".irg-piazza-chat-btn:hover:not(:disabled){background:#74c69d;transform:scale(1.04);}",
+  ".irg-piazza-chat-btn:disabled{background:rgba(255,255,255,.1);color:rgba(255,255,255,.3);cursor:default;}",
+  ".irg-hint.irg-hint-piazza{bottom:72px;}",
 ].join("\n");
 
 let cssRefs = 0;
@@ -6677,9 +6696,25 @@ export default function IsoRoomGame({
   const social = useSocialRoomPresence({
     roomId: "piazza",
     gamertag: username,
+    avatarId: `look:${look.hair}:${look.outfit}`,
     initialFriends,
     enabled: room === "piazza",
   });
+
+  const [chatDraft, setChatDraft] = useState("");
+  const chatInputRef = useRef(null);
+
+  const handlePiazzaChat = useCallback((e) => {
+    if (e) e.preventDefault();
+    const clean = chatDraft.trim();
+    if (!clean) return;
+    if (social.sendChat(clean)) {
+      setChatDraft("");
+      if (gameRef.current && gameRef.current.showBubble) {
+        gameRef.current.showBubble(clean, 4.5);
+      }
+    }
+  }, [chatDraft, social]);
 
   useEffect(() => {
     apiRef.current.sendMove = social.sendMove;
@@ -6698,6 +6733,7 @@ export default function IsoRoomGame({
   apiRef.current.isSocialRoomOpen = () => socialRoomOpen;
   apiRef.current.setRoom = (r) => { if (mountedRef.current) setRoom(r); };
   apiRef.current.hideHint = () => { if (mountedRef.current) setHint(false); };
+  apiRef.current.focusChat = () => { if (chatInputRef.current) chatInputRef.current.focus(); };
   apiRef.current.setTutorial = (v) => { if (mountedRef.current) { setTutorialActive(v); if (!v) { setTutorialIntro(false); setTutorialOutro(false); setTutorialUiSpot(null); } } };
   apiRef.current.setTutorialCaption = (t) => { if (mountedRef.current) setTutorialCaption(t); };
   apiRef.current.setTutorialIntro = (v) => { if (mountedRef.current) setTutorialIntro(v); };
@@ -6981,9 +7017,35 @@ export default function IsoRoomGame({
           )}
         </button>
       </div>
-      <div className={"irg-chip irg-hint" + (hint ? "" : " irg-off")}>
+      <div className={"irg-chip irg-hint" + (room === "piazza" ? " irg-hint-piazza" : "") + (hint ? "" : " irg-off")}>
         {isTouch ? "TOCCA PER MUOVERTI" : room === "arcade" ? "CLICCA PER MUOVERTI · WASD · 1/2/3 CABINATI · 4 DUELLO · ESC TORNEI" : room === "piazza" ? "CLICCA PER MUOVERTI · WASD · 1/2/3 CABINATI · 4 TAVOLO · ESC TORNEI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
       </div>
+
+      {/* Barra Chat di Sala Piazza */}
+      {room === "piazza" && (
+        <form className="irg-piazza-chat" onSubmit={handlePiazzaChat}>
+          <div className="irg-piazza-chat-box">
+            <span className="irg-piazza-chat-icon" aria-hidden>💬</span>
+            <input
+              ref={chatInputRef}
+              type="text"
+              className="irg-piazza-chat-input"
+              placeholder="Scrivi un messaggio in piazza… (Invio per inviare)"
+              value={chatDraft}
+              maxLength={140}
+              onChange={(e) => setChatDraft(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="irg-piazza-chat-btn"
+              disabled={!chatDraft.trim()}
+              aria-label="Invia messaggio in chat"
+            >
+              INVIA
+            </button>
+          </div>
+        </form>
+      )}
       <div className="irg-keys">
         {room === "arcade" ? (
           <>

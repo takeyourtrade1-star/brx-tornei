@@ -18,35 +18,66 @@ export function getFriendLook(gamertag) {
   };
 }
 
-export function syncRemotePlayers(remoteMap, playerList, buildAvatar) {
+export function parseFriendLook(avatarId, gamertag) {
+  if (typeof avatarId === "string" && avatarId.startsWith("look:")) {
+    const parts = avatarId.split(":");
+    if (parts.length >= 3 && parts[1] && parts[2]) {
+      return { hair: parts[1], outfit: parts[2] };
+    }
+  }
+  return getFriendLook(gamertag);
+}
+
+export function syncRemotePlayers(remoteMap, playerList, buildAvatar, findPath, blocked) {
   const activeIds = new Set();
   for (const p of playerList || []) {
     if (p.isSelf) continue;
     activeIds.add(p.peerId);
     let rp = remoteMap.get(p.peerId);
+    const lookKey = p.avatarId || "default";
+
     if (!rp) {
-      const look = getFriendLook(p.gamertag);
+      const look = parseFriendLook(p.avatarId, p.gamertag);
+      const px = Number.isFinite(p.position?.x) ? p.position.x : 6;
+      const py = Number.isFinite(p.position?.y) ? p.position.y : 5;
       rp = {
         peerId: p.peerId,
         gamertag: p.gamertag || "Giocatore",
-        source: p.source,
+        lookKey,
         avatar: buildAvatar(look),
-        fx: Number.isFinite(p.position?.x) ? p.position.x : 6,
-        fy: Number.isFinite(p.position?.y) ? p.position.y : 5,
-        tx: Number.isFinite(p.position?.x) ? p.position.x : 6,
-        ty: Number.isFinite(p.position?.y) ? p.position.y : 5,
+        fx: px,
+        fy: py,
+        tx: px,
+        ty: py,
         dir: "se",
         wt: 0,
+        queue: [],
+        nextStep: null,
         bubble: p.bubble || null,
       };
       remoteMap.set(p.peerId, rp);
     } else {
-      if (Number.isFinite(p.position?.x)) rp.tx = p.position.x;
-      if (Number.isFinite(p.position?.y)) rp.ty = p.position.y;
+      if (rp.lookKey !== lookKey) {
+        rp.lookKey = lookKey;
+        rp.avatar = buildAvatar(parseFriendLook(p.avatarId, p.gamertag));
+      }
+      const ntx = Number.isFinite(p.position?.x) ? p.position.x : rp.tx;
+      const nty = Number.isFinite(p.position?.y) ? p.position.y : rp.ty;
+      if (ntx !== rp.tx || nty !== rp.ty) {
+        rp.tx = ntx;
+        rp.ty = nty;
+        if (findPath && blocked) {
+          const fromTile = { cx: Math.round(rp.fx), cy: Math.round(rp.fy) };
+          const toTile = { cx: Math.round(ntx), cy: Math.round(nty) };
+          const path = findPath(fromTile, toTile, blocked);
+          rp.queue = path && path.length ? path : [toTile];
+        } else {
+          rp.queue = [{ cx: ntx, cy: nty }];
+        }
+      }
       rp.bubble = p.bubble || null;
     }
   }
-  // Rimuovi giocatori disconnessi
   for (const id of Array.from(remoteMap.keys())) {
     if (!activeIds.has(id)) remoteMap.delete(id);
   }
@@ -54,21 +85,30 @@ export function syncRemotePlayers(remoteMap, playerList, buildAvatar) {
 
 export function tickRemotePlayers(remoteMap, dt) {
   for (const rp of remoteMap.values()) {
-    const dx = rp.tx - rp.fx;
-    const dy = rp.ty - rp.fy;
+    if (!rp.nextStep && rp.queue && rp.queue.length > 0) {
+      rp.nextStep = rp.queue.shift();
+    }
+    const targetX = rp.nextStep ? rp.nextStep.cx : rp.tx;
+    const targetY = rp.nextStep ? rp.nextStep.cy : rp.ty;
+    const dx = targetX - rp.fx;
+    const dy = targetY - rp.fy;
     const dist = Math.hypot(dx, dy);
+
     if (dist > 0.02) {
       rp.dir = Math.abs(dx) >= Math.abs(dy)
         ? (dx >= 0 ? "se" : "nw")
         : (dy >= 0 ? "sw" : "ne");
-      const step = Math.min(dist, dt * 3.4);
+      const step = Math.min(dist, dt * 3.8);
       rp.fx += (dx / dist) * step;
       rp.fy += (dy / dist) * step;
       rp.wt += dt * 6;
     } else {
-      rp.fx = rp.tx;
-      rp.fy = rp.ty;
-      rp.wt = 0;
+      rp.fx = targetX;
+      rp.fy = targetY;
+      if (rp.nextStep) {
+        rp.nextStep = rp.queue && rp.queue.length > 0 ? rp.queue.shift() : null;
+      }
+      if (!rp.nextStep) rp.wt = 0;
     }
   }
 }
@@ -77,7 +117,7 @@ export function drawRemotePlayer(wctx, rp, tileTop, HTH, tNow) {
   const c = tileTop(rp.fx, rp.fy);
   const cxp = c.x;
   const cyp = c.y + HTH;
-  const isMoving = Math.hypot(rp.tx - rp.fx, rp.ty - rp.fy) > 0.02;
+  const isMoving = rp.wt > 0;
 
   // Ombra a terra
   wctx.fillStyle = "rgba(25,22,40,0.28)";
@@ -85,7 +125,7 @@ export function drawRemotePlayer(wctx, rp, tileTop, HTH, tNow) {
   wctx.ellipse(cxp, cyp + 5, 12, 5, 0, 0, Math.PI * 2);
   wctx.fill();
 
-  // Sprite chibi ufficiale
+  // Sprite chibi ufficiale con vero outfit
   const D = rp.avatar[rp.dir] || rp.avatar.se;
   const sp = isMoving
     ? D.walk[Math.floor(rp.wt) % 4]
@@ -102,11 +142,11 @@ export function drawRemotePlayer(wctx, rp, tileTop, HTH, tNow) {
   const tagX = Math.round(cxp - pw / 2);
   const tagY = drawY - 14;
 
-  wctx.fillStyle = "rgba(16,22,38,0.85)";
+  wctx.fillStyle = "rgba(16,22,38,0.88)";
   wctx.beginPath();
   wctx.roundRect ? wctx.roundRect(tagX, tagY, pw, 14, 4) : wctx.rect(tagX, tagY, pw, 14);
   wctx.fill();
-  wctx.strokeStyle = "rgba(255,255,255,0.2)";
+  wctx.strokeStyle = "rgba(255,255,255,0.24)";
   wctx.lineWidth = 1;
   wctx.stroke();
 
@@ -147,7 +187,6 @@ function drawChatBubble(wctx, x, y, text) {
   wctx.lineWidth = 1.2;
   wctx.stroke();
 
-  // Puntina triangolare del fumetto
   wctx.fillStyle = "#ffffff";
   wctx.beginPath();
   wctx.moveTo(x - 4, by + bh);
