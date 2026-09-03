@@ -66,6 +66,7 @@ function TierGem({ tier, className }: { tier: AchievementTier; className?: strin
 export function PartiteMedals({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats: ReputationSummaryData = reputation ?? {
     played: 0,
+    qualifiedMatches30m: 0,
     wins: 0,
     losses: 0,
     abandoned: 0,

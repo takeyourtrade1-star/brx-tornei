@@ -24,6 +24,7 @@ interface MatchLiveHeaderProps {
   peerQuality?: ConnectionQuality;
   localName: string;
   opponentName: string;
+  qualifyingMatches: number;
   /** true: il video era già attivo ed è caduto (riconnessione, non prima connessione). */
   peerReconnecting?: boolean;
   /** true: ho una partita attiva da poter chiudere con una dichiarazione. */
@@ -49,6 +50,7 @@ export function MatchLiveHeader({
   peerQuality,
   localName,
   opponentName,
+  qualifyingMatches,
   peerReconnecting = false,
   canDeclare = false,
   declareBusy = false,
@@ -170,6 +172,7 @@ export function MatchLiveHeader({
         localName={localName}
         opponentName={opponentName}
         bestOf={bestOf}
+        qualifyingMatches={qualifyingMatches}
         busy={declareBusy}
         onDeclare={confirmDeclare}
         onClose={() => setDeclareOpen(false)}

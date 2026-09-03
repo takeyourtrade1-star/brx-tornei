@@ -1,20 +1,28 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { ChevronDown, Palette } from 'lucide-react';
+import { ChevronDown, Lock, Palette } from 'lucide-react';
 import { saveDefaultPlaymatAction } from '@/actions/decks';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getPlaymat, PLAYMATS, type PlaymatId } from '@/lib/playmats';
+import {
+  getPlaymat,
+  getPlaymatUnlockRequirement,
+  isPlaymatUnlocked,
+  PLAYMATS,
+  type PlaymatId,
+} from '@/lib/playmats';
 import { cn } from '@/lib/utils';
 
 interface DeckPlaymatSettingsProps {
   initialPlaymatId: PlaymatId;
   initialHomeBackgroundEnabled: boolean;
+  qualifyingMatches: number;
 }
 
 export function DeckPlaymatSettings({
   initialPlaymatId,
   initialHomeBackgroundEnabled,
+  qualifyingMatches,
 }: DeckPlaymatSettingsProps) {
   const [playmatId, setPlaymatId] = useState(initialPlaymatId);
   const [homeBackgroundEnabled, setHomeBackgroundEnabled] = useState(initialHomeBackgroundEnabled);
@@ -39,7 +47,11 @@ export function DeckPlaymatSettings({
   }
 
   function selectPlaymat(nextPlaymatId: PlaymatId) {
-    if (nextPlaymatId === playmatId || pending) return;
+    if (
+      nextPlaymatId === playmatId ||
+      pending ||
+      !isPlaymatUnlocked(nextPlaymatId, qualifyingMatches)
+    ) return;
     savePreference(nextPlaymatId, homeBackgroundEnabled);
   }
 
@@ -74,33 +86,50 @@ export function DeckPlaymatSettings({
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-white">Stile tappetino</p>
-            <p className="mt-0.5 text-[10px] text-white/45">Usato nelle partite fullscreen.</p>
+            <p className="mt-0.5 text-[10px] text-white/45">
+              3 iniziali · poi uno ogni 5 partite da almeno 30 minuti.
+            </p>
           </div>
           {pending ? <span className="text-[9px] font-bold uppercase tracking-wide text-primary">Salvataggio…</span> : null}
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {PLAYMATS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => selectPlaymat(item.id)}
-              aria-pressed={item.id === playmatId}
-              disabled={pending}
-              className={cn(
-                'relative aspect-[16/7] overflow-hidden rounded-lg border text-left transition disabled:cursor-wait disabled:opacity-50',
-                item.id === playmatId
-                  ? 'border-primary ring-1 ring-primary/50'
-                  : 'border-white/15 opacity-80 hover:border-primary/40 hover:opacity-100',
-              )}
-              style={{ backgroundImage: 'url(' + item.src + ')', backgroundPosition: 'center', backgroundSize: 'cover' }}
-            >
-              <span className="absolute inset-0 bg-gradient-to-t from-black/90 to-black/10" />
-              <span className="absolute inset-x-2 bottom-1.5 truncate text-[10px] font-black uppercase tracking-wide text-white">
-                {item.name}
-              </span>
-            </button>
-          ))}
+          {PLAYMATS.map((item) => {
+            const unlocked = isPlaymatUnlocked(item.id, qualifyingMatches);
+            const requiredMatches = getPlaymatUnlockRequirement(item.id) ?? 0;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => selectPlaymat(item.id)}
+                aria-pressed={item.id === playmatId}
+                aria-label={unlocked
+                  ? `Seleziona tappetino ${item.name}`
+                  : `${item.name} bloccato: servono ${requiredMatches} partite da almeno 30 minuti`}
+                title={unlocked ? item.name : `Si sblocca con ${requiredMatches} partite da almeno 30 minuti`}
+                disabled={pending || !unlocked}
+                className={cn(
+                  'relative aspect-[16/7] overflow-hidden rounded-lg border text-left transition disabled:cursor-not-allowed',
+                  item.id === playmatId
+                    ? 'border-primary ring-1 ring-primary/50'
+                    : unlocked
+                      ? 'border-white/15 opacity-80 hover:border-primary/40 hover:opacity-100'
+                      : 'border-white/10 opacity-45 grayscale',
+                )}
+                style={{ backgroundImage: 'url(' + item.src + ')', backgroundPosition: 'center', backgroundSize: 'cover' }}
+              >
+                <span className="absolute inset-0 bg-gradient-to-t from-black/90 to-black/10" />
+                <span className="absolute inset-x-2 bottom-1.5 truncate pr-5 text-[10px] font-black uppercase tracking-wide text-white">
+                  {item.name}
+                </span>
+                {!unlocked && (
+                  <span className="absolute bottom-1 right-1 grid h-5 w-5 place-items-center rounded-full bg-black/80 text-white">
+                    <Lock className="h-3 w-3" aria-hidden />
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/[0.07] px-3 py-2.5">

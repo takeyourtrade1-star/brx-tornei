@@ -7,6 +7,7 @@ interface SetGamertagViewProps {
   redirectTo: string;
   userName?: string | null;
   userEmail?: string | null;
+  qualifyingMatches?: number;
 }
 
 /**
@@ -17,6 +18,7 @@ export function SetGamertagView({
   redirectTo,
   userName,
   userEmail,
+  qualifyingMatches = 0,
 }: SetGamertagViewProps) {
   return (
     <OnboardingView
@@ -24,7 +26,7 @@ export function SetGamertagView({
       userEmail={userEmail}
       initialGamertag={initialGamertag}
       redirectTo={redirectTo}
+      qualifyingMatches={qualifyingMatches}
     />
   );
 }
-

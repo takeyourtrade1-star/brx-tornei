@@ -19,6 +19,7 @@ import { RecentResultsStrip } from './recent-results-strip';
 export function ReputationSummary({ reputation }: { reputation: ReputationSummaryData | null }) {
   const stats: ReputationSummaryData = reputation ?? {
     played: 0,
+    qualifiedMatches30m: 0,
     wins: 0,
     losses: 0,
     abandoned: 0,

@@ -12,6 +12,7 @@ import {
   saveDeckVerification,
 } from '@/lib/data/decks';
 import { TournamentApiError } from '@/lib/data/tournament-api-client';
+import { fetchMyReputation } from '@/lib/data/player-api-client';
 import { resolveTrustedDeckCards } from '@/lib/deck-card-boundary';
 import { getDeckStructureIssues } from '@/lib/deck-structure';
 import { deckDiffIsClean, diffDeckVsScanned } from '@/lib/deck-verification';
@@ -21,6 +22,7 @@ import {
   PLAYMAT_HOME_BACKGROUND_COOKIE,
   PLAYMAT_PREFERENCE_COOKIE,
 } from '@/lib/playmat-preference';
+import { getPlaymatUnlockRequirement, isPlaymatUnlocked } from '@/lib/playmats';
 import type { Deck } from '@/types/deck';
 
 function deckActionError(error: unknown, fallback: string): { error: string } {
@@ -185,6 +187,22 @@ export async function saveDefaultPlaymatAction(
   const parsed = deckActionSchemas.defaultPlaymatSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
+  }
+
+  const required = getPlaymatUnlockRequirement(parsed.data.playmatId) ?? 0;
+  if (required > 0) {
+    try {
+      const reputation = await fetchMyReputation();
+      if (!isPlaymatUnlocked(parsed.data.playmatId, reputation.qualifiedMatches30m)) {
+        return {
+          error: `Tappetino bloccato: servono ${required} partite da almeno 30 minuti.`,
+        };
+      }
+    } catch {
+      return {
+        error: 'Impossibile verificare gli sblocchi. Riprova tra poco.',
+      };
+    }
   }
 
   const cookieStore = await cookies();

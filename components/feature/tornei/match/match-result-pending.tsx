@@ -23,6 +23,7 @@ export function MatchResultPendingPanel({
   localId,
   opponentId,
   bestOf,
+  qualifyingMatches,
   claimedWinnerId,
   scoreByPlayerId,
   error,
@@ -38,6 +39,7 @@ export function MatchResultPendingPanel({
   localId: string;
   opponentId: string;
   bestOf: BestOf;
+  qualifyingMatches: number;
   claimedWinnerId?: string;
   scoreByPlayerId?: Record<string, number>;
   error?: string | null;
@@ -50,7 +52,7 @@ export function MatchResultPendingPanel({
   }, []);
 
   const winsNeeded = bestOf === 'BO5' ? 3 : bestOf === 'BO1' ? 1 : 2;
-  const myAvatar = getAvatarForPlayer(localName, true);
+  const myAvatar = getAvatarForPlayer(localName, true, qualifyingMatches);
   const oppAvatar = getAvatarForPlayer(opponentName, false);
   const proposedWinnerName =
     claimedWinnerId === localId

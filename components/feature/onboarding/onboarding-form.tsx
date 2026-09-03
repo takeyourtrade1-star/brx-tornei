@@ -6,19 +6,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
 import { checkGamertagAvailabilityAction, setGamertagAction } from '@/actions/players';
-import { GAME_AVATARS, getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
+import {
+  getSavedAvatarId,
+  getUnlockedAvatarId,
+  isAvatarUnlocked,
+  saveAvatarId,
+} from '@/lib/avatars';
 import type { GamertagAvailability } from '@/lib/data/player-api-client';
 import { OnboardingGuide } from './onboarding-guide';
 import { OnboardingCardPreview } from './onboarding-card-preview';
 import { OnboardingAgreements } from './onboarding-agreements';
+import { OnboardingAvatarPicker } from './onboarding-avatar-picker';
 import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface OnboardingFormProps {
   userName?: string | null;
   initialGamertag: string | null;
   suggestedGamertag?: string | null;
   redirectTo: string;
+  qualifyingMatches: number;
 }
 
 /**
@@ -30,11 +36,13 @@ export function OnboardingForm({
   initialGamertag,
   suggestedGamertag,
   redirectTo,
+  qualifyingMatches,
 }: OnboardingFormProps) {
   const router = useRouter();
   const defaultInitial = initialGamertag ?? suggestedGamertag ?? '';
   const [value, setValue] = useState(defaultInitial);
-  const [selectedAvatarId, setSelectedAvatarId] = useState(() => getSavedAvatarId());
+  const [selectedAvatarId, setSelectedAvatarId] = useState(() =>
+    getUnlockedAvatarId(getSavedAvatarId(), qualifyingMatches));
   const [error, setError] = useState<string | null>(null);
   const [availability, setAvailability] = useState<GamertagAvailability | null>(null);
   const [fairPlayAccepted, setFairPlayAccepted] = useState(false);
@@ -44,6 +52,7 @@ export function OnboardingForm({
   const [saving, startSaving] = useTransition();
 
   function handleAvatarSelect(id: string) {
+    if (!isAvatarUnlocked(id, qualifyingMatches)) return;
     setSelectedAvatarId(id);
     saveAvatarId(id);
   }
@@ -104,38 +113,11 @@ export function OnboardingForm({
           <OnboardingCardPreview gamertag={value} avatarId={selectedAvatarId} />
 
           <div className="space-y-3 rounded-2xl border border-slate-900/[0.08] bg-white p-4 shadow-xl sm:p-4.5 text-slate-900">
-            {/* Scelta Avatar Starter */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
-                  Scegli il tuo avatar
-                </label>
-                <span className="text-[10px] text-slate-500">Cambiabile quando vuoi</span>
-              </div>
-              <div className="grid grid-cols-5 gap-1.5">
-                {GAME_AVATARS.map((avatar) => {
-                  const Icon = avatar.icon;
-                  const isSelected = avatar.id === selectedAvatarId;
-                  return (
-                    <button
-                      key={avatar.id}
-                      type="button"
-                      onClick={() => handleAvatarSelect(avatar.id)}
-                      title={`${avatar.name} (${avatar.subtitle})`}
-                      aria-label={`Seleziona avatar ${avatar.name}`}
-                      className={cn(
-                        'group relative grid aspect-square place-items-center rounded-xl border p-1.5 transition-all',
-                        isSelected
-                          ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/40 scale-105'
-                          : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-100 hover:scale-105'
-                      )}
-                    >
-                      <Icon className="h-6 w-6 transition-transform group-hover:scale-110 sm:h-7 sm:w-7" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <OnboardingAvatarPicker
+              selectedAvatarId={selectedAvatarId}
+              qualifyingMatches={qualifyingMatches}
+              onSelect={handleAvatarSelect}
+            />
 
             {/* Inserimento Gamertag */}
             <div className="space-y-1.5 border-t border-slate-100 pt-2.5">

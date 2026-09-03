@@ -15,6 +15,7 @@ import { HomePlaymatBackdrop } from '@/components/layout/home-playmat-backdrop';
 import { hasArcadeAccess } from '@/lib/auth/arcade-access';
 import { listDecks } from '@/lib/data/decks';
 import { getHomePlaymatId } from '@/lib/playmat-preference';
+import { getUnlockedPlaymatId } from '@/lib/playmats';
 
 import { TournamentApiError } from '@/lib/data/tournament-api-client';
 
@@ -80,7 +81,11 @@ export default async function TorneiPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <HomePlaymatBackdrop playmatId={homePlaymatId} />
+      <HomePlaymatBackdrop
+        playmatId={homePlaymatId
+          ? getUnlockedPlaymatId(homePlaymatId, reputation?.qualifiedMatches30m ?? 0)
+          : null}
+      />
       <LobbyPage
         tournaments={tournaments}
         initialDecks={decks}

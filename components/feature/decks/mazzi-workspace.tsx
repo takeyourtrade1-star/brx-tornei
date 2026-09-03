@@ -49,6 +49,7 @@ export function MazziWorkspace({
         <DeckWorkspace initialDecks={initialDecks}
           defaultPlaymatId={defaultPlaymatId}
           homeBackgroundEnabled={homeBackgroundEnabled}
+          qualifyingMatches={reputation?.qualifiedMatches30m ?? 0}
         />
       </div>
     </div>

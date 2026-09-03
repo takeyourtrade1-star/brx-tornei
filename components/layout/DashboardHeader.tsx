@@ -15,7 +15,7 @@ import { NotificationBell } from '@/components/feature/notifications/Notificatio
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { getFriendsListAction, getFriendRequestsAction } from '@/actions/social';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
-import { getSavedAvatarId } from '@/lib/avatars';
+import { getSavedAvatarId, getUnlockedAvatarId } from '@/lib/avatars';
 import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import { publicConfig } from '@/lib/public-config';
 import { cn } from '@/lib/utils';
@@ -136,6 +136,10 @@ export function DashboardHeader({
 
   const dailyWins = calculateDailyWins(currentReputation);
   const winStreak = calculateWinStreak(currentReputation);
+  const visibleAvatarId = getUnlockedAvatarId(
+    avatarId,
+    currentReputation?.qualifiedMatches30m ?? 0,
+  );
 
   return (
     <>
@@ -201,7 +205,7 @@ export function DashboardHeader({
             </a>
             <NotificationBell initialNotifications={initialNotifications} />
             <ProfileRankBadge
-              avatarId={avatarId}
+              avatarId={visibleAvatarId}
               gamertag={shownName}
               wins={dailyWins}
               winStreak={winStreak}

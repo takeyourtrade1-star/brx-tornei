@@ -7,7 +7,12 @@ import { logoutAction } from '@/actions/auth';
 import { fetchMyAchievementsAction } from '@/actions/achievements';
 import { evaluateAchievements } from '@/lib/data/achievements';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
-import { getSavedAvatarId, saveAvatarId } from '@/lib/avatars';
+import {
+  getSavedAvatarId,
+  getUnlockedAvatarId,
+  isAvatarUnlocked,
+  saveAvatarId,
+} from '@/lib/avatars';
 import { calculateDailyWins, calculateWinStreak } from '@/lib/rank';
 import { getEbartexProfileUrl } from '@/lib/social-preferences';
 import type { ReputationSummary } from '@/lib/data/player-api-client';
@@ -77,6 +82,8 @@ export function ProfileDrawer({
   }, []);
 
   const handleSelectAvatar = (id: string) => {
+    const qualifyingMatches = rep?.qualifiedMatches30m ?? 0;
+    if (!isAvatarUnlocked(id, qualifyingMatches)) return;
     setSelectedAvatarId(id);
     saveAvatarId(id);
   };
@@ -101,6 +108,8 @@ export function ProfileDrawer({
   }, [open, state.status]);
 
   const rep = state.status === 'success' ? state.reputation : null;
+  const qualifyingMatches = rep?.qualifiedMatches30m ?? 0;
+  const visibleAvatarId = getUnlockedAvatarId(selectedAvatarId, qualifyingMatches);
   const dailyWins = calculateDailyWins(rep);
   const winStreak = calculateWinStreak(rep);
   const achievements = useMemo(() => (rep ? evaluateAchievements(rep) : []), [rep]);
@@ -122,7 +131,7 @@ export function ProfileDrawer({
         <header className="relative flex items-center justify-between gap-3 border-b border-slate-200 px-6 py-5">
           <div className="flex items-center gap-3.5 min-w-0">
             <ProfileRankBadge
-              avatarId={selectedAvatarId}
+              avatarId={visibleAvatarId}
               gamertag={gamertag}
               wins={dailyWins}
               winStreak={winStreak}
@@ -166,10 +175,11 @@ export function ProfileDrawer({
 
           {/* Sezione Avatar Collassabile */}
           <ProfileAvatarPicker
-            selectedAvatarId={selectedAvatarId}
+            selectedAvatarId={visibleAvatarId}
             onSelectAvatar={handleSelectAvatar}
             open={avatarOpen}
             onToggle={() => setAvatarOpen((prev) => !prev)}
+            qualifyingMatches={qualifyingMatches}
           />
 
           {/* Sezione Badge Collassabile */}

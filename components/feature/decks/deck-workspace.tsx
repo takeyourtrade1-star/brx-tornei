@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Layers, SquareStack, type LucideIcon } from 'lucide-react';
 import { MAX_DECKS_PER_USER } from '@/lib/deck-limits';
 import type { CreateDeckInput } from '@/lib/validations/deck';
-import type { PlaymatId } from '@/lib/playmats';
+import { getUnlockedPlaymatId, type PlaymatId } from '@/lib/playmats';
 import type { Deck } from '@/types/deck';
 import { DeckBuilder } from './deck-builder';
 import { DeckList } from './deck-list';
@@ -16,11 +16,13 @@ interface DeckWorkspaceProps {
   initialDecks: Deck[];
   defaultPlaymatId?: PlaymatId;
   homeBackgroundEnabled?: boolean;
+  qualifyingMatches?: number;
 }
 export function DeckWorkspace({
   initialDecks,
   defaultPlaymatId,
   homeBackgroundEnabled = false,
+  qualifyingMatches = 0,
 }: DeckWorkspaceProps) {
   const [view, setView] = useState<'list' | 'builder'>('list');
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
@@ -108,8 +110,9 @@ export function DeckWorkspace({
 
             {!inBuilder && defaultPlaymatId ? (
               <DeckPlaymatSettings
-                initialPlaymatId={defaultPlaymatId}
+                initialPlaymatId={getUnlockedPlaymatId(defaultPlaymatId, qualifyingMatches)}
                 initialHomeBackgroundEnabled={homeBackgroundEnabled}
+                qualifyingMatches={qualifyingMatches}
               />
             ) : null}
           </div>

@@ -15,6 +15,7 @@ describe('Rank & WinStreak Logic', () => {
   it('calcola la win streak attuale partendo dal match più recente', () => {
     const rep: ReputationSummary = {
       played: 5,
+      qualifiedMatches30m: 0,
       wins: 3,
       losses: 2,
       abandoned: 0,
@@ -58,6 +59,7 @@ describe('Rank & WinStreak Logic', () => {
   it('raggiunge on fire solo con 3 o più vittorie consecutive', () => {
     const makeRep = (outcomes: ('win' | 'loss')[]): ReputationSummary => ({
       played: outcomes.length,
+      qualifiedMatches30m: 0,
       wins: outcomes.filter((o) => o === 'win').length,
       losses: outcomes.filter((o) => o === 'loss').length,
       abandoned: 0,
@@ -82,6 +84,7 @@ describe('Rank & WinStreak Logic', () => {
   it('calcola le vittorie giornaliere solo nelle ultime 24 ore', () => {
     const rep: ReputationSummary = {
       played: 3,
+      qualifiedMatches30m: 0,
       wins: 2,
       losses: 1,
       abandoned: 0,

@@ -13,6 +13,7 @@ import {
   SparklesAvatarIcon,
   ZapAvatarIcon,
 } from '@/components/feature/profile/avatars/magic-avatars';
+import { isCosmeticIndexUnlocked } from '@/lib/cosmetic-unlocks';
 
 export interface ProfileAvatar {
   id: string;
@@ -109,6 +110,19 @@ export const GAME_AVATARS: ProfileAvatar[] = [
 export const DEFAULT_AVATAR_ID = 'crown';
 const STORAGE_KEY = 'ebartex_profile_avatar';
 
+export function isAvatarId(id: string): boolean {
+  return GAME_AVATARS.some((avatar) => avatar.id === id);
+}
+
+export function isAvatarUnlocked(id: string, qualifyingMatches: number): boolean {
+  const index = GAME_AVATARS.findIndex((avatar) => avatar.id === id);
+  return isCosmeticIndexUnlocked(index, qualifyingMatches);
+}
+
+export function getUnlockedAvatarId(id: string, qualifyingMatches: number): string {
+  return isAvatarUnlocked(id, qualifyingMatches) ? id : DEFAULT_AVATAR_ID;
+}
+
 export function getAvatarById(id?: string): ProfileAvatar {
   return GAME_AVATARS.find((a) => a.id === id) ?? GAME_AVATARS[0];
 }
@@ -116,14 +130,15 @@ export function getAvatarById(id?: string): ProfileAvatar {
 export function getSavedAvatarId(): string {
   if (typeof window === 'undefined') return DEFAULT_AVATAR_ID;
   try {
-    return localStorage.getItem(STORAGE_KEY) ?? DEFAULT_AVATAR_ID;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved && isAvatarId(saved) ? saved : DEFAULT_AVATAR_ID;
   } catch {
     return DEFAULT_AVATAR_ID;
   }
 }
 
 export function saveAvatarId(id: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !isAvatarId(id)) return;
   try {
     localStorage.setItem(STORAGE_KEY, id);
     window.dispatchEvent(new CustomEvent('ebartex-avatar-changed', { detail: { avatarId: id } }));
@@ -132,9 +147,13 @@ export function saveAvatarId(id: string): void {
   }
 }
 
-/** Restituisce l'avatar impostato per l'utente, oppure un avatar stabile per l'avversario. */
-export function getAvatarForPlayer(username: string, isMe?: boolean): ProfileAvatar {
-  if (isMe) return getAvatarById(getSavedAvatarId());
+/** Restituisce l'avatar sbloccato dell'utente, oppure un avatar stabile per l'avversario. */
+export function getAvatarForPlayer(
+  username: string,
+  isMe?: boolean,
+  qualifyingMatches = 0,
+): ProfileAvatar {
+  if (isMe) return getAvatarById(getUnlockedAvatarId(getSavedAvatarId(), qualifyingMatches));
   let hash = 0;
   for (let i = 0; i < username.length; i++) {
     hash = (hash << 5) - hash + username.charCodeAt(i);

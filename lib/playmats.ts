@@ -1,3 +1,8 @@
+import {
+  getRequiredQualifyingMatches,
+  isCosmeticIndexUnlocked,
+} from '@/lib/cosmetic-unlocks';
+
 export const PLAYMATS = [
   { id: 'ember-foundry', name: 'Forgia Ardente', src: '/images/playmats/ember-foundry.webp' },
   { id: 'tidal-archive', name: 'Archivio Sommerso', src: '/images/playmats/tidal-archive.webp' },
@@ -20,4 +25,18 @@ export function isPlaymatId(value: string): value is PlaymatId {
 
 export function getPlaymat(id: PlaymatId) {
   return PLAYMATS.find((playmat) => playmat.id === id) ?? PLAYMATS[0];
+}
+
+export function isPlaymatUnlocked(id: string, qualifyingMatches: number): id is PlaymatId {
+  const index = PLAYMATS.findIndex((playmat) => playmat.id === id);
+  return isCosmeticIndexUnlocked(index, qualifyingMatches);
+}
+
+export function getUnlockedPlaymatId(id: PlaymatId, qualifyingMatches: number): PlaymatId {
+  return isPlaymatUnlocked(id, qualifyingMatches) ? id : DEFAULT_PLAYMAT_ID;
+}
+
+export function getPlaymatUnlockRequirement(id: string): number | null {
+  const index = PLAYMATS.findIndex((playmat) => playmat.id === id);
+  return index < 0 ? null : getRequiredQualifyingMatches(index);
 }

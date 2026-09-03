@@ -32,6 +32,7 @@ interface MatchLiveViewProps {
   me: string;
   userId: string;
   isHost: boolean;
+  qualifyingMatches: number;
   defaultPlaymatId: PlaymatId;
 }
 
@@ -41,6 +42,7 @@ export function MatchLiveView({
   me,
   userId,
   isHost,
+  qualifyingMatches,
   defaultPlaymatId,
 }: MatchLiveViewProps) {
   const router = useRouter();
@@ -208,6 +210,7 @@ export function MatchLiveView({
   return (
     <MatchLiveContent
       tournament={tournament} me={me} userId={userId} isHost={isHost}
+      qualifyingMatches={qualifyingMatches}
       defaultPlaymatId={defaultPlaymatId} isObserver={isObserver} isPlayer={isPlayer}
       started={started} matchEnded={matchEnded} resultClaimPending={resultClaimPending}
       resultReselectionRequired={resultReselectionRequired} showResultPanel={showResultPanel}

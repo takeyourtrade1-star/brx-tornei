@@ -34,6 +34,7 @@ import { OpponentDeckReveal } from './opponent-deck-reveal';
 
 interface MatchLiveContentProps {
   tournament: Tournament; me: string; userId: string; isHost: boolean;
+  qualifyingMatches: number;
   defaultPlaymatId: PlaymatId; isObserver: boolean; isPlayer: boolean; started: boolean;
   matchEnded: boolean; resultClaimPending: boolean; resultReselectionRequired: boolean;
   showResultPanel: boolean; iClaimedResult: boolean; resultCountdown: number | null;
@@ -58,7 +59,7 @@ interface MatchLiveContentProps {
 
 export function MatchLiveContent(props: MatchLiveContentProps) {
   const {
-    tournament, me, userId, isHost, defaultPlaymatId, isObserver, isPlayer, started,
+    tournament, me, userId, isHost, qualifyingMatches, defaultPlaymatId, isObserver, isPlayer, started,
     matchEnded, resultClaimPending, resultReselectionRequired, showResultPanel,
     iClaimedResult, resultCountdown, reconnectGraceActive, disconnectedIsMe, didIWin,
     local, remote, players, leftPlayer, rightPlayer, playable, localStream, remoteStream,
@@ -113,6 +114,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         status={tournament.status} isPlayer={isPlayer} leaving={leave.leaving}
         peerState={peerState} peerError={peerError} peerTransport={peerTransport}
         peerQuality={peerQuality} localName={local.username} opponentName={remote.username}
+        qualifyingMatches={qualifyingMatches}
         peerReconnecting={peerReconnecting}
         canDeclare={showLiveNotices && !resultClaimPending && !resultReselectionRequired &&
           !reconnectGraceActive && tournament.matchStatus === 'ongoing'}
@@ -163,6 +165,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
           localId={local.id} opponentId={remote.id} bestOf={tournament.bestOf}
           claimedWinnerId={tournament.resultClaimedWinner}
           scoreByPlayerId={tournament.scoreByPlayerId} error={declareResult.error}
+          qualifyingMatches={qualifyingMatches}
           onDeclare={declareResult.declare}
         />
       )}

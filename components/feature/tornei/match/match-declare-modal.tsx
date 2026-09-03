@@ -13,6 +13,7 @@ export interface MatchDeclareModalProps {
   localName: string;
   opponentName: string;
   bestOf: BestOf;
+  qualifyingMatches: number;
   busy?: boolean;
   onDeclare: (iWon: boolean, loserScore: number) => void;
   onClose: () => void;
@@ -27,6 +28,7 @@ export function MatchDeclareModal({
   localName,
   opponentName,
   bestOf,
+  qualifyingMatches,
   busy = false,
   onDeclare,
   onClose,
@@ -48,7 +50,7 @@ export function MatchDeclareModal({
   if (!open || !mounted) return null;
 
   const winsNeeded = bestOf === 'BO5' ? 3 : bestOf === 'BO1' ? 1 : 2;
-  const myAvatar = getAvatarForPlayer(localName, true);
+  const myAvatar = getAvatarForPlayer(localName, true, qualifyingMatches);
   const oppAvatar = getAvatarForPlayer(opponentName, false);
 
   return createPortal(

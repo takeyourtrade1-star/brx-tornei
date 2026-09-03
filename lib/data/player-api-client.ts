@@ -99,6 +99,8 @@ export interface FeedbackNotice {
 
 export interface ReputationSummary {
   played: number;
+  /** Partite concluse con almeno 30 minuti di durata, valide per i cosmetici. */
+  qualifiedMatches30m: number;
   wins: number;
   losses: number;
   abandoned: number;
@@ -173,6 +175,7 @@ export async function fetchMyReputationPage(): Promise<ReputationSummary> {
   };
   return {
     played: toNumber(data.played),
+    qualifiedMatches30m: toNumber(data.qualified_matches_30m),
     wins: toNumber(data.wins),
     losses: toNumber(data.losses),
     abandoned: toNumber(data.abandoned),

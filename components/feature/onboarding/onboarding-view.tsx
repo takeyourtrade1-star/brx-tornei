@@ -11,6 +11,7 @@ interface OnboardingViewProps {
   initialGamertag: string | null;
   suggestedGamertag?: string | null;
   redirectTo: string;
+  qualifyingMatches: number;
 }
 
 /**
@@ -22,6 +23,7 @@ export function OnboardingView({
   initialGamertag,
   suggestedGamertag,
   redirectTo,
+  qualifyingMatches,
 }: OnboardingViewProps) {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0A0F1D] text-slate-100 antialiased">
@@ -49,6 +51,7 @@ export function OnboardingView({
             initialGamertag={initialGamertag}
             suggestedGamertag={suggestedGamertag}
             redirectTo={redirectTo}
+            qualifyingMatches={qualifyingMatches}
           />
         </main>
       </div>

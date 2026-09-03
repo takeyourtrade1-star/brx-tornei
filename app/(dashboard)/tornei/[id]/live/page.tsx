@@ -8,6 +8,7 @@ import { parseLiveViewSearch } from '@/lib/validations/live';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { MatchLiveView } from '@/components/feature/tornei/match/match-live-view';
 import { getDefaultPlaymatId } from '@/lib/playmat-preference';
+import { getUnlockedPlaymatId } from '@/lib/playmats';
 import { fetchNotificationSnapshot } from '@/lib/data/notifications';
 
 export const dynamic = 'force-dynamic';
@@ -66,7 +67,11 @@ export default async function TournamentLivePage({ params, searchParams }: PageP
         me={gamertag}
         userId={session.user.id}
         isHost={isHost}
-        defaultPlaymatId={defaultPlaymatId}
+        qualifyingMatches={reputation?.qualifiedMatches30m ?? 0}
+        defaultPlaymatId={getUnlockedPlaymatId(
+          defaultPlaymatId,
+          reputation?.qualifiedMatches30m ?? 0,
+        )}
       />
     </div>
   );

@@ -9,6 +9,7 @@ import type { ReputationSummary } from '@/lib/data/player-api-client';
 function rep(partial: Partial<ReputationSummary>): ReputationSummary {
   return {
     played: 0,
+    qualifiedMatches30m: 0,
     wins: 0,
     losses: 0,
     abandoned: 0,
