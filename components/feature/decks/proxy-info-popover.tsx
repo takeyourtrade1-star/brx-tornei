@@ -124,10 +124,10 @@ export function ProxyInfoPopover() {
           setHovered(false);
           setOpen(true);
         }}
-        className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/55 transition-colors hover:text-marquee focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marquee/70"
+        className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white/55 transition-colors hover:text-marquee focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marquee/70"
       >
-        <CircleHelp className="h-3.5 w-3.5" aria-hidden="true" />
-        Come funziona?
+        <CircleHelp className="h-3 w-3" aria-hidden="true" />
+        Come funziona
       </button>
 
       {visible && popoverPosition && typeof document !== 'undefined'
@@ -175,6 +175,17 @@ export function ProxyInfoPopover() {
               </p>
             </div>
 
+            <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5">
+              <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-primary">
+                Il gioco viene prima
+              </p>
+              <p>
+                Per Ebartex il valore di una partita sta nelle persone al tavolo, non nel
+                prezzo delle carte. Per questo ammettiamo proxy conformi: tutti devono poter
+                giocare e divertirsi, anche senza possedere carte rare o molto costose.
+              </p>
+            </div>
+
             <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2.5">
               <p className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-emerald-300">
                 <Check className="h-3.5 w-3.5" aria-hidden="true" />
@@ -200,6 +211,11 @@ export function ProxyInfoPopover() {
                 </ol>
               </div>
             </div>
+
+            <p className="border-l-2 border-marquee/40 pl-2.5 text-white/55">
+              Nei futuri tornei creati dalla community, ogni organizzatore potrà decidere in
+              autonomia se ammettere le proxy e indicare le regole del proprio evento.
+            </p>
           </div>
         </div>,
           document.body,
