@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ASSO_WORLD_STORY_SENTENCES } from '@/lib/data/asso-world-story';
 import { cn } from '@/lib/utils';
 
@@ -16,51 +16,66 @@ export function AssoWorldStoryPlayer({
   onSentenceChange,
 }: AssoWorldStoryPlayerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const [visibleWordCount, setVisibleWordCount] = useState(0);
+  const [sentenceFadingOut, setSentenceFadingOut] = useState(false);
 
   const isFinal = currentIndex === ASSO_WORLD_STORY_SENTENCES.length - 1;
   const currentSentence =
     ASSO_WORLD_STORY_SENTENCES[currentIndex] ?? ASSO_WORLD_STORY_SENTENCES[0];
 
+  const words = useMemo(() => {
+    return currentSentence.text.trim().split(/\s+/);
+  }, [currentSentence.text]);
+
+  // Gestione apparizione parola per parola in modo fluido e cadenzato
   useEffect(() => {
-    onSentenceChange?.(currentIndex, isFinal);
-  }, [currentIndex, isFinal, onSentenceChange]);
+    setVisibleWordCount(0);
+    setSentenceFadingOut(false);
 
-  useEffect(() => {
-    // Entrata dolce
-    const enterTimer = setTimeout(() => {
-      setIsVisible(true);
-    }, 150);
+    let wordIdx = 0;
+    const wordIntervalMs = isFinal ? 170 : 135;
 
-    // Se è la frase finale, NON scompare e NON si ripete la storia
-    if (isFinal) {
-      return () => clearTimeout(enterTimer);
-    }
+    const wordTimer = setInterval(() => {
+      wordIdx += 1;
+      setVisibleWordCount(wordIdx);
 
-    const readDuration = currentSentence.durationMs ?? 4500;
+      // Tutte le parole della frase corrente sono apparse
+      if (wordIdx >= words.length) {
+        clearInterval(wordTimer);
 
-    // Dissolvenza in uscita dopo il tempo di lettura
-    const fadeOutTimer = setTimeout(() => {
-      setIsVisible(false);
-    }, readDuration);
+        if (isFinal) {
+          // Ultima frase: si notifica il climax per centrare i bottoni e NON scompare
+          onSentenceChange?.(currentIndex, true);
+        } else {
+          onSentenceChange?.(currentIndex, false);
 
-    // Passaggio alla frase successiva
-    const nextSentenceTimer = setTimeout(() => {
-      setCurrentIndex((prev) => prev + 1);
-    }, readDuration + 700);
+          // Pausa di lettura distesa dopo l'apparizione completa
+          const pauseTimer = setTimeout(() => {
+            setSentenceFadingOut(true);
+
+            // Dissolvenza in uscita e passaggio alla frase successiva
+            const nextTimer = setTimeout(() => {
+              setCurrentIndex((prev) => prev + 1);
+            }, 650);
+
+            return () => clearTimeout(nextTimer);
+          }, 2400);
+
+          return () => clearTimeout(pauseTimer);
+        }
+      }
+    }, wordIntervalMs);
 
     return () => {
-      clearTimeout(enterTimer);
-      clearTimeout(fadeOutTimer);
-      clearTimeout(nextSentenceTimer);
+      clearInterval(wordTimer);
     };
-  }, [currentIndex, isFinal, currentSentence.durationMs]);
+  }, [currentIndex, isFinal, words.length, onSentenceChange]);
 
   const handleSelectSentence = (idx: number) => {
-    setIsVisible(false);
+    setSentenceFadingOut(true);
     setTimeout(() => {
       setCurrentIndex(idx);
-    }, 300);
+    }, 280);
   };
 
   return (
@@ -76,10 +91,10 @@ export function AssoWorldStoryPlayer({
           aria-live="polite"
           className={cn(
             'text-xl sm:text-2xl md:text-3xl lg:text-4xl font-serif italic text-amber-50/95 leading-relaxed sm:leading-loose tracking-wide select-none',
-            'transition-all duration-1000 ease-in-out',
-            isVisible
-              ? 'opacity-100 translate-y-0 scale-100 blur-0 drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]'
-              : 'opacity-0 -translate-y-2 scale-[0.98] blur-[2px] pointer-events-none',
+            'transition-all duration-700 ease-in-out',
+            sentenceFadingOut
+              ? 'opacity-0 -translate-y-3 blur-[3px]'
+              : 'opacity-100 translate-y-0',
           )}
           style={{
             fontFamily:
@@ -88,7 +103,25 @@ export function AssoWorldStoryPlayer({
               '0 2px 4px rgba(0,0,0,0.9), 0 8px 30px rgba(0,0,0,0.95)',
           }}
         >
-          {currentSentence.text}
+          {words.map((word, wIdx) => {
+            const isShown = wIdx < visibleWordCount;
+            const isLatest = wIdx === visibleWordCount - 1;
+            return (
+              <span
+                key={wIdx}
+                className={cn(
+                  'inline-block mr-[0.26em] transition-all duration-500 ease-out',
+                  isShown
+                    ? 'opacity-100 translate-y-0 scale-100 blur-0'
+                    : 'opacity-0 translate-y-2 scale-95 blur-[3px]',
+                  isLatest &&
+                    'text-amber-200 drop-shadow-[0_0_14px_rgba(252,211,77,0.9)]',
+                )}
+              >
+                {word}
+              </span>
+            );
+          })}
         </p>
       </div>
 
