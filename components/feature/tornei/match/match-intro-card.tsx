@@ -12,14 +12,26 @@ interface MatchIntroCardProps {
 }
 
 type CardBackSize = 'shuffle' | 'reveal';
+const SHUFFLE_FEATURES = [
+  'Scambi',
+  'Aste live',
+  'Tornei live',
+  'Marketplace',
+  'BRX Express',
+  'Scanner carte',
+  'I miei mazzi',
+  'Collezione',
+] as const;
 
 /** Dorso decorato della carta in stile TCG premium Ebartex. */
 function CardBack({
   className,
   size = 'reveal',
+  feature,
 }: {
   className?: string;
   size?: CardBackSize;
+  feature?: string;
 }) {
   const compact = size === 'shuffle';
 
@@ -60,6 +72,11 @@ function CardBack({
             aria-hidden
           />
         </div>
+        {feature && (
+          <strong className="mt-2 max-w-24 text-center font-display text-[8px] font-black uppercase tracking-[0.12em] text-primary sm:mt-3 sm:text-[10px]">
+            {feature}
+          </strong>
+        )}
       </div>
     </div>
   );
@@ -106,6 +123,8 @@ function CardFront({ starter, avatarId }: { starter: Participant; avatarId?: str
 }
 
 function ShufflePacket({ side }: { side: 'left' | 'right' }) {
+  const featureOffset = side === 'left' ? 0 : 3;
+
   return (
     <div
       className={cn(
@@ -119,7 +138,7 @@ function ShufflePacket({ side }: { side: 'left' | 'right' }) {
           key={index}
           className="intro-shuffle-packet-card absolute inset-0"
         >
-          <CardBack size="shuffle" />
+          <CardBack size="shuffle" feature={SHUFFLE_FEATURES[featureOffset + index]} />
         </div>
       ))}
     </div>
@@ -138,8 +157,11 @@ function RiffleCards() {
           )}
         >
           <span className="absolute inset-1 rounded-md border border-amber-300/25" />
-          <span className="relative grid place-items-center">
+          <span className="relative flex flex-col items-center gap-2 px-1">
             <Swords className="h-6 w-6 text-primary/80" aria-hidden />
+            <strong className="max-w-20 text-center font-display text-[7px] font-black uppercase tracking-[0.1em] text-primary sm:text-[9px]">
+              {SHUFFLE_FEATURES[index]}
+            </strong>
           </span>
         </span>
       ))}
@@ -155,7 +177,7 @@ function ShuffleStage() {
       <ShufflePacket side="right" />
       <RiffleCards />
       <div className="intro-shuffle-final-deck absolute left-1/2 top-1/2 z-20 h-[12rem] w-[8.25rem] sm:h-[15rem] sm:w-[10.25rem]">
-        <CardBack size="shuffle" />
+        <CardBack size="shuffle" feature="Tornei live" />
       </div>
       <span className="intro-shuffle-impact absolute left-1/2 top-1/2 z-30 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/35" />
     </div>
