@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Gamepad2 } from 'lucide-react';
+import { ExternalLink, Gamepad2, Globe2 } from 'lucide-react';
 import { BrxHeaderLogo } from '@/components/layout/brx-header-logo';
 import { DashboardHeaderOverlays } from '@/components/layout/dashboard-header-overlays';
 import { GameNavRail } from '@/components/layout/game-nav-rail';
@@ -187,17 +187,17 @@ export function DashboardHeader({
               <button
                 type="button"
                 onClick={onOpenMinigame}
-                aria-label="Apri Sala Arcade"
-                title="Apri Sala Arcade"
+                aria-label="Apri Asso World"
+                title="Apri Asso World"
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors sm:px-3',
+                  'group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-black uppercase tracking-wide transition-all sm:px-3',
                   scrolled
-                    ? 'border border-slate-900/10 bg-white/50 text-slate-700 hover:bg-white/80 hover:text-primary'
-                    : 'border border-white/15 bg-white/10 text-white/80 hover:border-primary/40 hover:bg-primary/15 hover:text-white',
+                    ? 'border border-slate-900/10 bg-white/50 text-slate-700 hover:border-amber-400/40 hover:bg-white/80 hover:text-amber-600'
+                    : 'border border-white/15 bg-white/10 text-white/80 hover:border-amber-400/40 hover:bg-amber-400/15 hover:text-white',
                 )}
               >
-                <Gamepad2 className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="hidden sm:inline">Sala Arcade</span>
+                <Globe2 className="h-3.5 w-3.5 text-amber-400 transition-transform duration-300 group-hover:rotate-45" aria-hidden="true" />
+                <span className="hidden sm:inline">Asso World</span>
               </button>
             )}
             <a
