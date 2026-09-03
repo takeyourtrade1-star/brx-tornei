@@ -92,7 +92,7 @@ export function DecklistImport({ onAddCard }: DecklistImportProps) {
           <FileInput className="h-4 w-4 text-primary" aria-hidden />
           <span>
             <span className="block text-xs font-black uppercase tracking-wide text-white">
-              Importa decklist
+              Aggiunta rapida
             </span>
             <span className="block text-[10px] text-white/45">Incolla tutta la lista in un colpo</span>
           </span>
@@ -108,7 +108,7 @@ export function DecklistImport({ onAddCard }: DecklistImportProps) {
     <div className="rounded-xl border border-primary/30 bg-primary/[0.07] p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide text-white">Importa decklist</p>
+          <p className="text-xs font-black uppercase tracking-wide text-white">Aggiunta rapida</p>
           <p className="text-[10px] text-white/45">Una carta per riga, quantità prima del nome.</p>
         </div>
         <button

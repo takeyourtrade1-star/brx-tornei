@@ -185,7 +185,7 @@ export function DeckCardSearch({
 
       {!debounced ? (
         <p className="text-center text-xs text-white/40">
-          Cerca nel catalogo Ebartex (Meilisearch) e aggiungi le carte al mazzo.
+          Trova le tue carte nel catalogo Ebartex e aggiungile al mazzo.
         </p>
       ) : null}
 
