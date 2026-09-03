@@ -105,7 +105,7 @@ export function DeckList({
                   {decks.length}/{MAX_DECKS_PER_USER}
                 </span>
               </div>
-              <p className="mt-0.5 text-xs text-white/40">Costruisci, controlla e porta il mazzo al tavolo.</p>
+              <p className="mt-0.5 text-xs text-white/40">Costruisci il mazzo con le stesse carte fisiche o proxy che porterai al tavolo.</p>
             </div>
           </div>
 
