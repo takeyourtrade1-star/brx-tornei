@@ -12,6 +12,12 @@ interface AssoWorldStoryPlayerProps {
 
 const CARD_SUITS = ['♠', '♥', '♦', '♣'] as const;
 
+// Ritmo rilassante e naturale per la lettura (~3 parole al secondo, zero sfarfallio)
+const NORMAL_WORD_INTERVAL_MS = 300;
+const FINAL_WORD_INTERVAL_MS = 380;
+const SENTENCE_READ_PAUSE_MS = 2800;
+const FADE_OUT_DURATION_MS = 750;
+
 export function AssoWorldStoryPlayer({
   className,
   onSentenceChange,
@@ -30,7 +36,7 @@ export function AssoWorldStoryPlayer({
     return currentSentence.text.trim().split(/\s+/);
   }, [currentSentence.text]);
 
-  // Gestione apparizione parola per parola in modo fluido e cadenzato
+  // Gestione apparizione parola per parola: pacata, morbida, senza strappi
   useEffect(() => {
     setVisibleWordCount(0);
     setSentenceFadingOut(false);
@@ -38,7 +44,7 @@ export function AssoWorldStoryPlayer({
     onStoryEnded?.(false);
 
     let wordIdx = 0;
-    const wordIntervalMs = isFinal ? 170 : 135;
+    const wordIntervalMs = isFinal ? FINAL_WORD_INTERVAL_MS : NORMAL_WORD_INTERVAL_MS;
 
     const wordTimer = setInterval(() => {
       wordIdx += 1;
@@ -65,13 +71,13 @@ export function AssoWorldStoryPlayer({
           const pauseTimer = setTimeout(() => {
             setSentenceFadingOut(true);
 
-            // Dissolvenza in uscita e passaggio alla frase successiva
+            // Dissolvenza morbida in uscita e passaggio alla frase successiva
             const nextTimer = setTimeout(() => {
               setCurrentIndex((prev) => prev + 1);
-            }, 650);
+            }, FADE_OUT_DURATION_MS);
 
             return () => clearTimeout(nextTimer);
-          }, 2400);
+          }, SENTENCE_READ_PAUSE_MS);
 
           return () => clearTimeout(pauseTimer);
         }
@@ -89,7 +95,7 @@ export function AssoWorldStoryPlayer({
     onStoryEnded?.(false);
     setTimeout(() => {
       setCurrentIndex(idx);
-    }, 280);
+    }, 300);
   };
 
   return (
@@ -110,7 +116,7 @@ export function AssoWorldStoryPlayer({
             'text-xl sm:text-2xl md:text-3xl lg:text-4xl font-serif italic text-amber-50/95 leading-relaxed sm:leading-loose tracking-wide select-none',
             'transition-all duration-700 ease-in-out',
             sentenceFadingOut
-              ? 'opacity-0 -translate-y-3 blur-[3px]'
+              ? 'opacity-0 -translate-y-2 blur-[2px]'
               : 'opacity-100 translate-y-0',
           )}
           style={{
@@ -122,17 +128,12 @@ export function AssoWorldStoryPlayer({
         >
           {words.map((word, wIdx) => {
             const isShown = wIdx < visibleWordCount;
-            const isLatest = wIdx === visibleWordCount - 1;
             return (
               <span
                 key={wIdx}
                 className={cn(
-                  'inline-block mr-[0.26em] transition-all duration-500 ease-out',
-                  isShown
-                    ? 'opacity-100 translate-y-0 scale-100 blur-0'
-                    : 'opacity-0 translate-y-2 scale-95 blur-[3px]',
-                  isLatest &&
-                    'text-amber-200 drop-shadow-[0_0_14px_rgba(252,211,77,0.9)]',
+                  'inline-block mr-[0.28em] transition-opacity duration-700 ease-out',
+                  isShown ? 'opacity-100' : 'opacity-0',
                 )}
               >
                 {word}
