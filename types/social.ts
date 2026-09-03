@@ -8,6 +8,11 @@ export interface SocialActionState<T = unknown> {
   error?: string;
 }
 
+export interface SocialPreferencesData {
+  dndUntil: number | null;
+  showEbartexProfile: boolean;
+}
+
 export type FriendPresenceStatus = 'online' | 'in_game' | 'dnd' | 'recent' | 'offline';
 
 export type FriendshipRelation = 'friend' | 'pending_sent' | 'pending_received' | 'none' | 'self';
