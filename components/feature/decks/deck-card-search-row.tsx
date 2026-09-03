@@ -26,18 +26,18 @@ export async function fetchSearchPage(q: string, page: number) {
 interface SearchHitRowProps {
   hit: SearchHit;
   lang: string;
-  canAddMain: boolean;
-  canAddSide: boolean;
+  mainAddQuantity: number;
+  sideAddQuantity: number;
   maxSide: number;
-  onAddMain: () => void;
-  onAddSide: () => void;
+  onAddMain: (quantity: number) => void;
+  onAddSide: (quantity: number) => void;
 }
 
 export function SearchHitRow({
   hit,
   lang,
-  canAddMain,
-  canAddSide,
+  mainAddQuantity,
+  sideAddQuantity,
   maxSide,
   onAddMain,
   onAddSide,
@@ -79,20 +79,20 @@ export function SearchHitRow({
       <div className="flex shrink-0 flex-col justify-center gap-1.5 self-center">
         <button
           type="button"
-          disabled={!canAddMain}
-          onClick={onAddMain}
-          className="rounded-md bg-[#FF7300]/15 px-2 py-1 text-[10px] font-bold uppercase text-[#FF7300] transition-colors hover:bg-[#FF7300]/25 disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={mainAddQuantity === 0}
+          onClick={() => onAddMain(mainAddQuantity)}
+          className="rounded-lg bg-primary/15 px-2.5 py-1.5 text-[10px] font-black uppercase text-primary ring-1 ring-primary/25 transition hover:bg-primary/25 disabled:cursor-not-allowed disabled:opacity-35"
         >
-          + Main
+          {mainAddQuantity > 0 ? `+${mainAddQuantity} Main` : 'Main max'}
         </button>
         {maxSide > 0 ? (
           <button
             type="button"
-            disabled={!canAddSide}
-            onClick={onAddSide}
-            className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase text-white/80 transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={sideAddQuantity === 0}
+            onClick={() => onAddSide(sideAddQuantity)}
+            className="rounded-lg border border-white/15 bg-white/[0.07] px-2.5 py-1.5 text-[10px] font-black uppercase text-white/75 transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-35"
           >
-            + Side
+            {sideAddQuantity > 0 ? `+${sideAddQuantity} Side` : 'Side max'}
           </button>
         ) : null}
       </div>

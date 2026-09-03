@@ -51,6 +51,7 @@ export function DeckCard({
           <button
             type="button"
             onClick={() => onChangeQuantity(Math.max(0, card.quantity - 1))}
+            aria-label={`Riduci quantità di ${card.name}`}
             className="grid h-6 w-6 place-items-center rounded-md border border-white/15 bg-white/10 text-xs font-bold text-white transition-colors hover:bg-white/20"
           >
             −
@@ -61,7 +62,9 @@ export function DeckCard({
           <button
             type="button"
             onClick={() => onChangeQuantity(Math.min(maxQuantity, card.quantity + 1))}
-            className="grid h-6 w-6 place-items-center rounded-md border border-white/15 bg-white/10 text-xs font-bold text-white transition-colors hover:bg-white/20"
+            disabled={card.quantity >= maxQuantity}
+            aria-label={`Aumenta quantità di ${card.name}`}
+            className="grid h-6 w-6 place-items-center rounded-md border border-white/15 bg-white/10 text-xs font-bold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-35"
           >
             +
           </button>

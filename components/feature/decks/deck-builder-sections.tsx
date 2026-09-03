@@ -1,6 +1,6 @@
 'use client';
 
-import { Crown } from 'lucide-react';
+import { Crown, Library, Search, Sparkles } from 'lucide-react';
 import { getMaxQuantityForDeckRow } from '@/lib/deck-copy-limits';
 import { countCards, getMainDeckMinSize, getSideboardMaxSize } from '@/lib/data/deck-utils';
 import { getCommanderCard } from '@/lib/deck-structure';
@@ -11,7 +11,11 @@ import { DeckCardSearch } from './deck-card-search';
 
 interface DeckBuilderSectionsProps {
   deck: Deck;
-  onAddCard: (card: CardCatalogHit, section: 'main' | 'side') => void;
+  onAddCard: (
+    card: CardCatalogHit,
+    section: 'main' | 'side',
+    quantity?: number,
+  ) => void;
   onUpdateQuantity: (
     blueprintId: number,
     section: 'main' | 'side',
@@ -44,8 +48,19 @@ export function DeckBuilderSections({
   const libraryCount = commanderMode ? mainCount - (commander?.quantity ?? 0) : mainCount;
 
   return (
-    <div className="grid min-h-[420px] grid-cols-1 gap-4 lg:min-h-[520px] lg:grid-cols-3">
-      <SectionShell>
+    <div className="grid min-h-[520px] grid-cols-1 gap-4 lg:grid-cols-[minmax(320px,0.82fr)_minmax(0,1.18fr)]">
+      <SectionShell className="border-primary/20 bg-primary/[0.025] lg:max-h-[720px]">
+        <div className="mb-3 flex items-center gap-2 border-b border-white/[0.08] pb-3">
+          <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/25">
+            <Search className="h-4 w-4" aria-hidden />
+          </span>
+          <div>
+            <p className="font-display text-xs font-black uppercase tracking-wide text-white">
+              Aggiungi carte
+            </p>
+            <p className="text-[10px] text-white/40">Cerca, aggiungi un playset o importa la lista</p>
+          </div>
+        </div>
         <DeckCardSearch
           formatId={deck.formatId}
           main={deck.main}
@@ -55,55 +70,16 @@ export function DeckBuilderSections({
         />
       </SectionShell>
 
-      <SectionShell>
-        <SectionHeader
-          title={commanderMode ? 'Grimorio' : 'Main deck'}
-          count={`${libraryCount}/${libraryTarget}`}
-          complete={libraryCount === libraryTarget}
-        />
-        <CardList
-          cards={mainCards}
-          empty="Cerca una carta e aggiungila al main deck"
-          renderCard={(card) => {
-            const blueprintId = Number(card.id);
-            const max = getMaxQuantityForDeckRow(
-              deck.formatId,
-              card,
-              deck.main,
-              deck.side,
-              'main',
-            );
-            return (
-              <DeckCard
-                key={blueprintId}
-                card={card}
-                maxQuantity={max}
-                onChangeQuantity={(quantity) =>
-                  onUpdateQuantity(blueprintId, 'main', quantity, max)
-                }
-                onMove={commanderMode ? undefined : () => onMoveCard(blueprintId, 'main', 'side')}
-                onRemove={() => onRemoveCard(blueprintId, 'main')}
-                moveLabel={commanderMode ? undefined : '→ Side'}
-                commanderControl={commanderMode
-                  ? { selected: false, onSelect: () => onSetCommander(blueprintId) }
-                  : undefined}
-              />
-            );
-          }}
-        />
-      </SectionShell>
-
-      {commanderMode ? (
-        <CommanderSlot
-          commander={commander}
-          onRemove={(blueprintId) => onRemoveCard(blueprintId, 'main')}
-        />
-      ) : (
-        <SectionShell>
-          <SectionHeader title="Sideboard" count={`${sideCount}/${maxSide}`} />
+      <div className="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-2">
+        <SectionShell className="lg:max-h-[720px]">
+          <SectionHeader
+            title={commanderMode ? 'Grimorio' : 'Main deck'}
+            count={`${libraryCount}/${libraryTarget}`}
+            complete={libraryCount === libraryTarget}
+          />
           <CardList
-            cards={deck.side}
-            empty="Aggiungi carte al sideboard dalla ricerca"
+            cards={mainCards}
+            empty="Cerca una carta o importa la tua decklist"
             renderCard={(card) => {
               const blueprintId = Number(card.id);
               const max = getMaxQuantityForDeckRow(
@@ -111,7 +87,7 @@ export function DeckBuilderSections({
                 card,
                 deck.main,
                 deck.side,
-                'side',
+                'main',
               );
               return (
                 <DeckCard
@@ -119,26 +95,70 @@ export function DeckBuilderSections({
                   card={card}
                   maxQuantity={max}
                   onChangeQuantity={(quantity) =>
-                    onUpdateQuantity(blueprintId, 'side', quantity, max)
+                    onUpdateQuantity(blueprintId, 'main', quantity, max)
                   }
-                  onMove={() => onMoveCard(blueprintId, 'side', 'main')}
-                  onRemove={() => onRemoveCard(blueprintId, 'side')}
-                  moveLabel="→ Main"
+                  onMove={commanderMode ? undefined : () => onMoveCard(blueprintId, 'main', 'side')}
+                  onRemove={() => onRemoveCard(blueprintId, 'main')}
+                  moveLabel={commanderMode ? undefined : '→ Side'}
+                  commanderControl={commanderMode
+                    ? { selected: false, onSelect: () => onSetCommander(blueprintId) }
+                    : undefined}
                 />
               );
             }}
           />
         </SectionShell>
-      )}
+
+        {commanderMode ? (
+          <CommanderSlot
+            commander={commander}
+            onRemove={(blueprintId) => onRemoveCard(blueprintId, 'main')}
+          />
+        ) : (
+          <SectionShell className="lg:max-h-[720px]">
+            <SectionHeader title="Sideboard" count={`${sideCount}/${maxSide}`} />
+            <CardList
+              cards={deck.side}
+              empty="Aggiungi le risposte per le partite successive"
+              renderCard={(card) => {
+                const blueprintId = Number(card.id);
+                const max = getMaxQuantityForDeckRow(
+                  deck.formatId,
+                  card,
+                  deck.main,
+                  deck.side,
+                  'side',
+                );
+                return (
+                  <DeckCard
+                    key={blueprintId}
+                    card={card}
+                    maxQuantity={max}
+                    onChangeQuantity={(quantity) =>
+                      onUpdateQuantity(blueprintId, 'side', quantity, max)
+                    }
+                    onMove={() => onMoveCard(blueprintId, 'side', 'main')}
+                    onRemove={() => onRemoveCard(blueprintId, 'side')}
+                    moveLabel="→ Main"
+                  />
+                );
+              }}
+            />
+          </SectionShell>
+        )}
+      </div>
     </div>
   );
 }
 
-function SectionShell({ children }: { children: React.ReactNode }) {
+function SectionShell({ children, className = '' }: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="flex min-h-[280px] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-3 lg:min-h-0">
+    <section className={`flex min-h-[320px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-3.5 shadow-inner shadow-black/20 lg:min-h-0 ${className}`}>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -148,9 +168,12 @@ function SectionHeader({ title, count, complete = false }: {
   complete?: boolean;
 }) {
   return (
-    <div className="mb-2 flex items-center justify-between">
-      <p className="font-display text-xs font-black uppercase tracking-wide text-white/80">{title}</p>
-      <span className={complete ? 'text-[11px] font-bold text-emerald-300' : 'text-[11px] font-bold text-white/50'}>
+    <div className="mb-3 flex items-center justify-between border-b border-white/[0.08] pb-3">
+      <p className="flex items-center gap-2 font-display text-xs font-black uppercase tracking-wide text-white/85">
+        <Library className="h-3.5 w-3.5 text-white/40" aria-hidden />
+        {title}
+      </p>
+      <span className={complete ? 'rounded-full bg-emerald-500/15 px-2 py-1 text-[10px] font-black text-emerald-300' : 'rounded-full bg-white/[0.07] px-2 py-1 text-[10px] font-black text-white/55'}>
         {count}
       </span>
     </div>
@@ -163,9 +186,16 @@ function CardList({ cards, empty, renderCard }: {
   renderCard: (card: DeckCardType) => React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-col gap-2 overflow-auto pr-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto pr-1">
       {cards.length === 0
-        ? <p className="py-6 text-center text-xs text-white/40">{empty}</p>
+        ? (
+          <div className="grid flex-1 place-items-center rounded-xl border border-dashed border-white/10 bg-black/10 px-6 py-10 text-center">
+            <div>
+              <Sparkles className="mx-auto h-6 w-6 text-primary/55" aria-hidden />
+              <p className="mt-2 text-xs font-semibold leading-relaxed text-white/40">{empty}</p>
+            </div>
+          </div>
+        )
         : cards.map(renderCard)}
     </div>
   );

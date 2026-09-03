@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { getRemainingCopies } from '@/lib/deck-copy-limits';
-import { countCards, getSideboardMaxSize } from '@/lib/data/deck-utils';
+import {
+  countCards,
+  getMainDeckMinSize,
+  getSideboardMaxSize,
+} from '@/lib/data/deck-utils';
 import type { CardCatalogHit } from '@/types/card';
 import type { Deck, DeckCard } from '@/types/deck';
 import type { CreateDeckInput } from '@/lib/validations/deck';
@@ -50,7 +54,8 @@ export interface UseDecksReturn {
   addCard: (
     deckId: string,
     catalogCard: CardCatalogHit,
-    section: 'main' | 'side'
+    section: 'main' | 'side',
+    quantity?: number,
   ) => { success: boolean; reason?: string };
   removeCard: (deckId: string, blueprintId: number, section: 'main' | 'side') => void;
   updateQuantity: (
@@ -110,7 +115,8 @@ export function useDecks(): UseDecksReturn {
     (
       deckId: string,
       catalogCard: CardCatalogHit,
-      section: 'main' | 'side'
+      section: 'main' | 'side',
+      quantity = 1,
     ): { success: boolean; reason?: string } => {
       const blueprintId = Number(catalogCard.id);
       if (!Number.isInteger(blueprintId) || blueprintId <= 0) {
@@ -121,13 +127,24 @@ export function useDecks(): UseDecksReturn {
         const deck = prev.find((d) => d.id === deckId);
         if (!deck) return prev;
 
-        const remaining = getRemainingCopies(deck.formatId, catalogCard, deck.main, deck.side);
-        if (remaining <= 0) return prev;
+        const remainingCopies = getRemainingCopies(
+          deck.formatId,
+          catalogCard,
+          deck.main,
+          deck.side,
+        );
+        if (remainingCopies <= 0) return prev;
 
         const maxSide = getSideboardMaxSize(deck.formatId);
-        if (section === 'side' && maxSide > 0 && countCards(deck.side) >= maxSide) {
-          return prev;
-        }
+        const sectionCapacity = section === 'main'
+          ? getMainDeckMinSize(deck.formatId) - countCards(deck.main)
+          : maxSide - countCards(deck.side);
+        const requestedQuantity = Number.isFinite(quantity) ? Math.trunc(quantity) : 0;
+        const addedQuantity = Math.max(
+          0,
+          Math.min(requestedQuantity, remainingCopies, sectionCapacity),
+        );
+        if (addedQuantity === 0) return prev;
 
         const target = section === 'main' ? deck.main : deck.side;
         const idx = findCardIndex(target, blueprintId);
@@ -135,10 +152,13 @@ export function useDecks(): UseDecksReturn {
 
         if (idx >= 0) {
           const nextSection = [...target];
-          nextSection[idx] = { ...nextSection[idx], quantity: nextSection[idx].quantity + 1 };
+          nextSection[idx] = {
+            ...nextSection[idx],
+            quantity: nextSection[idx].quantity + addedQuantity,
+          };
           next[section] = nextSection;
         } else {
-          const newCard: DeckCard = { ...catalogCard, quantity: 1 };
+          const newCard: DeckCard = { ...catalogCard, quantity: addedQuantity };
           next[section] = [...target, newCard];
         }
 

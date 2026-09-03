@@ -1,12 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Hammer, AlertCircle, CircleCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowRight,
+  CircleCheck,
+  Layers3,
+  Plus,
+  Sparkles,
+} from 'lucide-react';
 import { MAX_DECKS_PER_USER } from '@/lib/deck-limits';
+import type { CreateDeckInput } from '@/lib/validations/deck';
 import type { Deck } from '@/types/deck';
 import { CreateDeckForm } from './create-deck-form';
 import { DeckListCard } from './deck-list-card';
-import type { CreateDeckInput } from '@/lib/validations/deck';
 
 interface DeckListProps {
   decks: Deck[];
@@ -35,11 +42,12 @@ export function DeckList({
   autoCreate = false,
   onAutoCreateConsumed,
 }: DeckListProps) {
-  const [creating, setCreating] = useState(
-    autoCreate && decks.length < MAX_DECKS_PER_USER,
-  );
-
+  const [creating, setCreating] = useState(autoCreate && decks.length < MAX_DECKS_PER_USER);
   const isLimitReached = decks.length >= MAX_DECKS_PER_USER;
+
+  useEffect(() => {
+    if (autoCreate && !isLimitReached) setCreating(true);
+  }, [autoCreate, isLimitReached]);
 
   const handleCreate = (input: CreateDeckInput) => {
     onCreate(input);
@@ -47,116 +55,120 @@ export function DeckList({
     onAutoCreateConsumed?.();
   };
 
+  const startCreating = () => {
+    onClearError?.();
+    onClearSuccess?.();
+    setCreating(true);
+  };
+
+  if (creating) {
+    return (
+      <div>
+        {successMessage ? (
+          <Notice tone="success" message={successMessage} onClose={onClearSuccess} />
+        ) : null}
+        {error ? <Notice tone="error" message={error} onClose={onClearError} /> : null}
+        <CreateDeckForm
+          onCreate={handleCreate}
+          onCancel={() => {
+            setCreating(false);
+            onAutoCreateConsumed?.();
+          }}
+          isSubmitting={isCreating}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      {error && (
-        <div className="flex items-center justify-between rounded-xl border border-red-400/25 bg-red-500/10 p-3 text-xs font-semibold text-red-200">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-            <span>{error}</span>
-          </div>
-          {onClearError && (
-            <button
-              type="button"
-              onClick={onClearError}
-              className="text-[11px] font-bold underline hover:no-underline"
-            >
-              Chiudi
-            </button>
-          )}
-        </div>
-      )}
+    <section className="arena-panel overflow-visible p-4 sm:p-6">
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-r from-primary/10 via-primary/[0.02] to-transparent" aria-hidden />
+      <div className="relative">
+        {error ? (
+          <Notice tone="error" message={error} onClose={onClearError} />
+        ) : null}
+        {successMessage ? (
+          <Notice tone="success" message={successMessage} onClose={onClearSuccess} />
+        ) : null}
 
-      {successMessage && (
-        <div role="status" className="flex items-center justify-between rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-100">
-          <div className="flex items-center gap-2">
-            <CircleCheck className="h-4 w-4 shrink-0 text-emerald-300" />
-            <span>{successMessage}</span>
+        <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-primary/25 bg-primary/10 text-primary shadow-lg shadow-primary/10">
+              <Layers3 className="h-5 w-5" aria-hidden />
+            </span>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h2 className="font-display text-xl font-black uppercase tracking-wide text-white sm:text-2xl">
+                  I miei deck
+                </h2>
+                <span className="rounded-full border border-white/15 bg-white/[0.07] px-2.5 py-1 text-[10px] font-black text-white/60">
+                  {decks.length}/{MAX_DECKS_PER_USER}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-white/40">Costruisci, controlla e porta il mazzo al tavolo.</p>
+            </div>
           </div>
-          {onClearSuccess && (
-            <button type="button" onClick={onClearSuccess} className="text-[11px] font-bold underline hover:no-underline">
-              Chiudi
-            </button>
-          )}
-        </div>
-      )}
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <h2 className="font-display text-lg font-black uppercase tracking-wide text-white">
-            I miei deck
-          </h2>
-          <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-xs font-black text-white/70">
-            {decks.length}/{MAX_DECKS_PER_USER}
-          </span>
-        </div>
-        {!creating && (
-          isLimitReached ? (
-            <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold text-amber-300">
-              Limite {MAX_DECKS_PER_USER}/{MAX_DECKS_PER_USER} mazzi
+          {isLimitReached ? (
+            <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-3.5 py-2 text-[10px] font-black uppercase tracking-wide text-amber-200">
+              Tutti gli slot occupati
             </span>
           ) : (
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              disabled={isCreating}
-              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-[0_6px_18px_rgba(255,115,0,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
+            <button type="button" onClick={startCreating} disabled={isCreating} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-red-500 px-4 py-2.5 text-xs font-black uppercase tracking-wide text-white shadow-lg shadow-primary/25 transition hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">
+              <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden />
               Nuovo mazzo
             </button>
-          )
+          )}
+        </header>
+
+        {decks.length === 0 ? (
+          <div className="grid min-h-64 place-items-center rounded-3xl border border-dashed border-white/15 bg-white/[0.025] px-6 text-center">
+            <div>
+              <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/25">
+                <Sparkles className="h-6 w-6" aria-hidden />
+              </span>
+              <p className="mt-4 font-display text-lg font-black uppercase text-white">Il primo slot è vuoto</p>
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-white/45">Dagli un nome, scegli il formato e incolla la tua lista: il builder fa il resto.</p>
+              <button type="button" onClick={startCreating} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-black uppercase text-white shadow-lg shadow-primary/20">
+                Crea il primo mazzo
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {decks.map((deck) => (
+              <DeckListCard key={deck.id} deck={deck} onEdit={() => onEdit(deck.id)} onDelete={() => onDelete(deck.id)} />
+            ))}
+            {Array.from({ length: MAX_DECKS_PER_USER - decks.length }, (_, index) => (
+              <button key={`empty-slot-${index}`} type="button" onClick={startCreating} className="group min-h-64 rounded-3xl border border-dashed border-white/15 bg-white/[0.02] p-5 text-left transition hover:-translate-y-1 hover:border-primary/35 hover:bg-primary/[0.035]">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/[0.06] text-white/45 ring-1 ring-white/10 transition group-hover:bg-primary/15 group-hover:text-primary group-hover:ring-primary/30">
+                  <Plus className="h-5 w-5" aria-hidden />
+                </span>
+                <span className="mt-12 block text-[9px] font-black uppercase tracking-[0.18em] text-white/25">Slot {decks.length + index + 1}</span>
+                <span className="mt-1 block font-display text-base font-black uppercase text-white/75 group-hover:text-white">Nuovo mazzo</span>
+                <span className="mt-1 block max-w-xs text-xs leading-relaxed text-white/35">Crea la base in pochi secondi, poi importa l’intera decklist.</span>
+                <span className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-primary">Inizia ora <ArrowRight className="h-3.5 w-3.5" /></span>
+              </button>
+            ))}
+          </div>
         )}
       </div>
+    </section>
+  );
+}
 
-      {creating && (
-        <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 sm:p-5">
-          <p className="mb-4 font-display text-sm font-black uppercase tracking-wide text-white">
-            Nuovo mazzo
-          </p>
-          <CreateDeckForm
-            onCreate={handleCreate}
-            onCancel={() => {
-              setCreating(false);
-              onAutoCreateConsumed?.();
-            }}
-            isSubmitting={isCreating}
-          />
-        </div>
-      )}
-
-      {decks.length === 0 && !creating ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/20 bg-white/[0.03] px-6 py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FF7300]/15 text-[#FF7300]">
-            <Hammer className="h-6 w-6" />
-          </div>
-          <p className="font-display text-base font-black uppercase tracking-wide text-white">
-            Nessun mazzo
-          </p>
-          <p className="max-w-xs text-xs leading-relaxed text-white/55">
-            Crea il tuo primo mazzo usando le carte del tuo inventario.
-          </p>
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#FF7300] to-[#e0564d] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-            Crea mazzo
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {decks.map((deck) => (
-            <DeckListCard
-              key={deck.id}
-              deck={deck}
-              onEdit={() => onEdit(deck.id)}
-              onDelete={() => onDelete(deck.id)}
-            />
-          ))}
-        </div>
-      )}
+function Notice({ tone, message, onClose }: {
+  tone: 'error' | 'success';
+  message: string;
+  onClose?: () => void;
+}) {
+  const success = tone === 'success';
+  const Icon = success ? CircleCheck : AlertCircle;
+  return (
+    <div role={success ? 'status' : 'alert'} className={`mb-4 flex items-center justify-between rounded-xl border p-3 text-xs font-semibold ${success ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-100' : 'border-red-400/25 bg-red-500/10 text-red-200'}`}>
+      <span className="flex items-center gap-2"><Icon className="h-4 w-4 shrink-0" />{message}</span>
+      {onClose ? <button type="button" onClick={onClose} className="text-[10px] font-black uppercase underline hover:no-underline">Chiudi</button> : null}
     </div>
   );
 }

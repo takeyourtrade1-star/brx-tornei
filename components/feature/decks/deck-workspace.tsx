@@ -129,15 +129,16 @@ export function DeckWorkspace({
         />
       ) : null}
 
-      <div className="arena-panel p-4 sm:p-6">
-        {inBuilder ? (
+      {inBuilder ? (
+        <div className="arena-panel p-4 sm:p-6">
           <DeckBuilder
             deck={editingDeck}
             onBack={() => {
               setView('list');
               setEditingDeckId(null);
             }}
-            onAddCard={(card, section) => workspace.addCard(editingDeck.id, card, section)}
+            onAddCard={(card, section, quantity) =>
+              workspace.addCard(editingDeck.id, card, section, quantity)}
             onUpdateQuantity={(blueprintId, section, quantity, maxQuantity) =>
               workspace.updateQuantity(editingDeck.id, blueprintId, section, quantity, maxQuantity)}
             onMoveCard={(blueprintId, from, to) =>
@@ -157,25 +158,25 @@ export function DeckWorkspace({
               workspace.decks.map((current) => current.id === deck.id ? deck : current),
             )}
           />
-        ) : (
-          <DeckList
-            decks={workspace.decks}
-            onCreate={handleCreate}
-            onEdit={(deckId) => {
-              setEditingDeckId(deckId);
-              setView('builder');
-            }}
-            onDelete={workspace.deleteDeck}
-            isCreating={workspace.isPending}
-            error={workspace.error}
-            onClearError={workspace.clearError}
-            successMessage={successMessage}
-            onClearSuccess={() => setSuccessMessage(null)}
-            autoCreate={createAnother}
-            onAutoCreateConsumed={() => setCreateAnother(false)}
-          />
-        )}
-      </div>
+        </div>
+      ) : (
+        <DeckList
+          decks={workspace.decks}
+          onCreate={handleCreate}
+          onEdit={(deckId) => {
+            setEditingDeckId(deckId);
+            setView('builder');
+          }}
+          onDelete={workspace.deleteDeck}
+          isCreating={workspace.isPending}
+          error={workspace.error}
+          onClearError={workspace.clearError}
+          successMessage={successMessage}
+          onClearSuccess={() => setSuccessMessage(null)}
+          autoCreate={createAnother}
+          onAutoCreateConsumed={() => setCreateAnother(false)}
+        />
+      )}
     </div>
   );
 }

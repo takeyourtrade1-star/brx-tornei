@@ -163,8 +163,13 @@ export function useServerDecks(initialDecks: Deck[], options: UseServerDecksOpti
   );
 
   const addCard = useCallback(
-    (deckId: string, catalogCard: CardCatalogHit, section: 'main' | 'side') => {
-      patchDeck(deckId, (deck) => addCardToDeck(deck, catalogCard, section));
+    (
+      deckId: string,
+      catalogCard: CardCatalogHit,
+      section: 'main' | 'side',
+      quantity = 1,
+    ) => {
+      patchDeck(deckId, (deck) => addCardToDeck(deck, catalogCard, section, quantity));
       return { success: true as const };
     },
     [patchDeck]

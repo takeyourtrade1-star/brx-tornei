@@ -11,6 +11,7 @@ import type { DeckCard } from '@/types/deck';
 import type { SearchHit } from '@/types/search';
 import { cn } from '@/lib/utils';
 import { fetchSearchPage, SearchHitRow } from './deck-card-search-row';
+import { DecklistImport } from './decklist-import';
 
 const SEARCH_LANGS = [
   { id: 'it', label: 'IT' },
@@ -26,7 +27,11 @@ interface DeckCardSearchProps {
   main: DeckCard[];
   side: DeckCard[];
   sideCount: number;
-  onAddCard: (card: CardCatalogHit, section: 'main' | 'side') => void;
+  onAddCard: (
+    card: CardCatalogHit,
+    section: 'main' | 'side',
+    quantity?: number,
+  ) => void;
 }
 
 export function DeckCardSearch({
@@ -104,19 +109,19 @@ export function DeckCardSearch({
     }
   }, [debounced, page, totalPages, loadingMore]);
 
-  const canAddForHit = useMemo(() => {
+  const getAddQuantity = useMemo(() => {
     return (hit: SearchHit, section: 'main' | 'side') => {
       const catalog = searchHitToCatalogHit(hit);
-      const remaining = getRemainingCopies(formatId, catalog, main, side);
-      if (remaining <= 0) return false;
-      if (section === 'main' && mainCount >= mainTarget) return false;
-      if (section === 'side' && maxSide > 0 && sideCount >= maxSide) return false;
-      return true;
+      const copyCapacity = getRemainingCopies(formatId, catalog, main, side);
+      const sectionCapacity = section === 'main'
+        ? mainTarget - mainCount
+        : maxSide - sideCount;
+      return Math.max(0, Math.min(4, copyCapacity, sectionCapacity));
     };
   }, [formatId, main, side, mainCount, mainTarget, maxSide, sideCount]);
 
-  const handleAdd = (hit: SearchHit, section: 'main' | 'side') => {
-    onAddCard(searchHitToCatalogHit(hit), section);
+  const handleAdd = (hit: SearchHit, section: 'main' | 'side', quantity: number) => {
+    onAddCard(searchHitToCatalogHit(hit), section, quantity);
   };
 
   return (
@@ -133,7 +138,7 @@ export function DeckCardSearch({
               onClick={() => setLang(id)}
               className={cn(
                 'rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase transition-colors',
-                lang === id ? 'bg-[#FF7300] text-white' : 'text-white/50 hover:text-white'
+                lang === id ? 'bg-primary text-white' : 'text-white/50 hover:text-white'
               )}
             >
               {label}
@@ -142,7 +147,7 @@ export function DeckCardSearch({
         </div>
       </div>
 
-      <div className="relative mb-3">
+      <div className="relative mb-2">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
           aria-hidden
@@ -152,9 +157,13 @@ export function DeckCardSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Nome carta in qualsiasi lingua…"
-          className="w-full rounded-xl border border-white/15 bg-white/5 py-2 pl-9 pr-3 text-xs text-white placeholder:text-white/35 focus:border-[#FF7300] focus:outline-none"
+          className="w-full rounded-xl border border-white/15 bg-white/5 py-2.5 pl-9 pr-3 text-xs text-white placeholder:text-white/35 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
           autoComplete="off"
         />
+      </div>
+
+      <div className="mb-3">
+        <DecklistImport onAddCard={onAddCard} />
       </div>
 
       {loading && debounced ? (
@@ -182,6 +191,9 @@ export function DeckCardSearch({
 
       {hits.length > 0 ? (
         <div className="flex min-h-0 flex-1 flex-col">
+          <p className="mb-2 text-[10px] font-semibold text-white/40">
+            Aggiunta rapida: inserisce fino a 4 copie rispettando i limiti del formato.
+          </p>
           <ul className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-black/20">
             {hits.map((hit) => (
               <SearchHitRow
@@ -189,10 +201,10 @@ export function DeckCardSearch({
                 hit={hit}
                 lang={lang}
                 maxSide={maxSide}
-                canAddMain={canAddForHit(hit, 'main')}
-                canAddSide={canAddForHit(hit, 'side')}
-                onAddMain={() => handleAdd(hit, 'main')}
-                onAddSide={() => handleAdd(hit, 'side')}
+                mainAddQuantity={getAddQuantity(hit, 'main')}
+                sideAddQuantity={getAddQuantity(hit, 'side')}
+                onAddMain={(quantity) => handleAdd(hit, 'main', quantity)}
+                onAddSide={(quantity) => handleAdd(hit, 'side', quantity)}
               />
             ))}
           </ul>

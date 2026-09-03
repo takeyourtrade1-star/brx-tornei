@@ -10,30 +10,34 @@ export function findCardIndex(cards: DeckCard[], blueprintId: number): number {
 export function addCardToDeck(
   deck: Deck,
   catalogCard: CardCatalogHit,
-  section: 'main' | 'side'
+  section: 'main' | 'side',
+  quantity = 1,
 ): Deck {
   const blueprintId = Number(catalogCard.id);
   if (!Number.isInteger(blueprintId) || blueprintId <= 0) return deck;
 
-  const remaining = getRemainingCopies(deck.formatId, catalogCard, deck.main, deck.side);
-  if (remaining <= 0) return deck;
+  const remainingCopies = getRemainingCopies(deck.formatId, catalogCard, deck.main, deck.side);
+  if (remainingCopies <= 0) return deck;
 
   const maxSide = getSideboardMaxSize(deck.formatId);
-  if (section === 'side' && maxSide > 0 && countCards(deck.side) >= maxSide) {
-    return deck;
-  }
-  if (section === 'main' && countCards(deck.main) >= getMainDeckMinSize(deck.formatId)) {
-    return deck;
-  }
+  const sectionCapacity = section === 'main'
+    ? getMainDeckMinSize(deck.formatId) - countCards(deck.main)
+    : maxSide - countCards(deck.side);
+  const requestedQuantity = Number.isFinite(quantity) ? Math.trunc(quantity) : 0;
+  const addedQuantity = Math.max(0, Math.min(requestedQuantity, remainingCopies, sectionCapacity));
+  if (addedQuantity === 0) return deck;
 
   const target = section === 'main' ? deck.main : deck.side;
   const idx = findCardIndex(target, blueprintId);
-  const card: DeckCard = { ...catalogCard, quantity: 1 };
+  const card: DeckCard = { ...catalogCard, quantity: addedQuantity };
   const next = { ...deck };
 
   if (idx >= 0) {
     const sectionCards = [...target];
-    sectionCards[idx] = { ...sectionCards[idx], quantity: sectionCards[idx].quantity + 1 };
+    sectionCards[idx] = {
+      ...sectionCards[idx],
+      quantity: sectionCards[idx].quantity + addedQuantity,
+    };
     next[section] = sectionCards;
   } else {
     next[section] = [...target, card];

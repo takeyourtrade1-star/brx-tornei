@@ -45,7 +45,7 @@ export function DecksModal() {
       <DeckBuilder
         deck={editingDeck}
         onBack={handleBack}
-        onAddCard={(card, section) => addCard(editingDeck.id, card, section)}
+        onAddCard={(card, section, quantity) => addCard(editingDeck.id, card, section, quantity)}
         onUpdateQuantity={(bp, section, qty, max) =>
           updateQuantity(editingDeck.id, bp, section, qty, max)
         }
