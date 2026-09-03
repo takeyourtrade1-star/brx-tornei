@@ -32,6 +32,8 @@ import {
   FURN_PIAZZA, INTERACTIVES_PIAZZA,
   PIAZZA_ENTRY_TILE, PIAZZA_DEFAULT_CAM,
 } from "./social-room/piazza-config";
+import { syncRemotePlayers, tickRemotePlayers, drawRemotePlayer } from "./social-room/piazza-remote-players.js";
+import { useSocialRoomPresence } from "./social-room/use-social-room-presence";
 import ArcadeGameModal from "./arcade-room/ArcadeGameModal";
 import { createFrameLimiter } from "./frame-limiter";
 import {
@@ -2225,6 +2227,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     doorBack: null,
   };
   const piazzaBoardSp = { cv: mkCanvas(1, 1), wx: 0, wy: 0 };
+  const remotePlayers = new Map();
 
   let tourData = null;  // snapshot dei binding Sala Tornei quando si entra in arcade o piazza
 
@@ -2467,6 +2470,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const path = findPath(origin, tl, blocked);
     if (!path) return false;
     st.av.queue = path;
+    if (st.room === "piazza" && apiRef.current.sendMove) {
+      apiRef.current.sendMove({ x: tl.cx, y: tl.cy });
+    }
     return true;
   }
 
@@ -3011,6 +3017,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       return;
     }
     const isTour = st.room === "tournament";
+    if (st.room === "piazza") tickRemotePlayers(remotePlayers, dt);
     const av = st.av;
     // tween camera
     const tw = st.cam.tween;
@@ -4739,6 +4746,11 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const dyn = isTour ? (drawCatOnFurniture ? [avBox, dogBox] : [avBox, catBox, dogBox]) : [avBox];
     if (isTour && st.ghost) dyn.push({ ghost: true, minX: GHOST_TILE.cx - 0.01, maxX: GHOST_TILE.cx + 0.01, minY: GHOST_TILE.cy - 0.01, maxY: GHOST_TILE.cy + 0.01 });
     if (isTour && st.tut.active) { const sp = updateSpettro(); dyn.push({ spettro: true, minX: sp.fx - 0.01, maxX: sp.fx + 0.01, minY: sp.fy - 0.01, maxY: sp.fy + 0.01 }); }
+    if (st.room === "piazza") {
+      for (const rp of remotePlayers.values()) {
+        dyn.push({ remotePlayer: rp, minX: rp.fx - 0.01, maxX: rp.fx + 0.01, minY: rp.fy - 0.01, maxY: rp.fy + 0.01 });
+      }
+    }
     const sorted = entities.concat(dyn).sort(cmpDepth);
     const plantIdx = [0, 1, 2, 1][Math.floor(st.t * 1.4) % 4];
     const turnIdx = sfx.musicOn() ? Math.floor(st.t * 7) % 4 : 0;
@@ -4746,6 +4758,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const pcAlert = isTour && st.alert > st.t && !st.modal;
     for (const e of sorted) {
       if (e.avatar) { drawAvatarSprite(); continue; }
+      if (e.remotePlayer) { drawRemotePlayer(wctx, e.remotePlayer, tileTop, HTH, st.t); continue; }
       if (e.cat) { drawCatSprite(); continue; }
       if (e.dog) { drawDogSprite(); continue; }
       if (e.ghost) { drawGhostSprite(); continue; }
@@ -5699,6 +5712,10 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         const dw = sp.cv.width * s, dh = sp.cv.height * s;
         cx.drawImage(sp.cv, Math.round((canvasEl.width - dw) / 2), Math.round((canvasEl.height - dh) / 2), dw, dh);
       } catch (e) { /* canvas non pronto */ }
+    },
+    setRemotePlayers(list) {
+      if (st.destroyed) return;
+      syncRemotePlayers(remotePlayers, list, buildAvatar);
     },
     /* stessa azione dei tasti 1/2/3/4/P, ma cliccando i badge a schermo */
     hotkey(which) {
@@ -6656,6 +6673,21 @@ export default function IsoRoomGame({
   );
   const openSocialRoom = useCallback(() => setSocialRoomOpen(true), []);
   const closeSocialRoom = useCallback(() => setSocialRoomOpen(false), []);
+
+  const social = useSocialRoomPresence({
+    roomId: "piazza",
+    gamertag: username,
+    initialFriends,
+    enabled: room === "piazza",
+  });
+
+  useEffect(() => {
+    apiRef.current.sendMove = social.sendMove;
+    apiRef.current.sendChat = social.sendChat;
+    if (gameRef.current && gameRef.current.setRemotePlayers) {
+      gameRef.current.setRemotePlayers(social.players);
+    }
+  }, [social.players, social.sendMove, social.sendChat]);
 
   apiRef.current.openModal = (id) => {
     if (!mountedRef.current) return;
