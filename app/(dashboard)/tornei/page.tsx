@@ -11,8 +11,10 @@ import { fetchNotificationSnapshot } from '@/lib/data/notifications';
 import { fetchFriendsList } from '@/lib/data/social-api-client';
 import { DEFAULT_TOURNAMENTS_PATH } from '@/lib/constants/tournament-defaults';
 import { LobbyPage } from '@/components/feature/tornei/lobby/lobby-page';
+import { HomePlaymatBackdrop } from '@/components/layout/home-playmat-backdrop';
 import { hasArcadeAccess } from '@/lib/auth/arcade-access';
 import { listDecks } from '@/lib/data/decks';
+import { getHomePlaymatId } from '@/lib/playmat-preference';
 
 import { TournamentApiError } from '@/lib/data/tournament-api-client';
 
@@ -39,6 +41,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   const gamertag = await requireGamertag(
     `/tornei?format=${selection.format}&mode=${selection.mode}${inviteQuery}`,
   );
+  const homePlaymatId = await getHomePlaymatId();
 
   const formatName = selection.format === 'all' ? 'Tutti i formati' : getFormat(selection.format)!.name;
   const modeName = getMode(selection.mode)!.name;
@@ -76,21 +79,24 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   }
 
   return (
-    <LobbyPage
-      tournaments={tournaments}
-      initialDecks={decks}
-      user={session.user}
-      gamertag={gamertag}
-      selection={selection}
-      formatId={selection.format}
-      formatName={formatName}
-      modeName={modeName}
-      reputation={reputation}
-      initialNotifications={notifications}
-      initialFriends={initialFriends}
-      arcadeAccessGranted={arcadeAccessGranted}
-      focusTableId={lobbyFocus.tableId}
-      openCreate={lobbyFocus.create === '1'}
-    />
+    <>
+      <HomePlaymatBackdrop playmatId={homePlaymatId} />
+      <LobbyPage
+        tournaments={tournaments}
+        initialDecks={decks}
+        user={session.user}
+        gamertag={gamertag}
+        selection={selection}
+        formatId={selection.format}
+        formatName={formatName}
+        modeName={modeName}
+        reputation={reputation}
+        initialNotifications={notifications}
+        initialFriends={initialFriends}
+        arcadeAccessGranted={arcadeAccessGranted}
+        focusTableId={lobbyFocus.tableId}
+        openCreate={lobbyFocus.create === '1'}
+      />
+    </>
   );
 }

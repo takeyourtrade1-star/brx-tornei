@@ -16,6 +16,7 @@ interface MazziWorkspaceProps {
   /** Gamertag torneo-only mostrato nell'header al posto di email/username. */
   gamertag?: string;
   defaultPlaymatId: PlaymatId;
+  homeBackgroundEnabled: boolean;
   reputation?: ReputationSummary | null;
   initialNotifications: NotificationSnapshot;
 }
@@ -25,6 +26,7 @@ export function MazziWorkspace({
   user,
   gamertag,
   defaultPlaymatId,
+  homeBackgroundEnabled,
   reputation,
   initialNotifications,
 }: MazziWorkspaceProps) {
@@ -44,7 +46,10 @@ export function MazziWorkspace({
             Torna ai tornei
           </Link>
         </div>
-        <DeckWorkspace initialDecks={initialDecks} defaultPlaymatId={defaultPlaymatId} />
+        <DeckWorkspace initialDecks={initialDecks}
+          defaultPlaymatId={defaultPlaymatId}
+          homeBackgroundEnabled={homeBackgroundEnabled}
+        />
       </div>
     </div>
   );

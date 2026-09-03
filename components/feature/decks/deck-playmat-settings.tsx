@@ -3,30 +3,49 @@
 import { useState, useTransition } from 'react';
 import { ChevronDown, Palette } from 'lucide-react';
 import { saveDefaultPlaymatAction } from '@/actions/decks';
+import { Checkbox } from '@/components/ui/checkbox';
 import { getPlaymat, PLAYMATS, type PlaymatId } from '@/lib/playmats';
 import { cn } from '@/lib/utils';
 
 interface DeckPlaymatSettingsProps {
   initialPlaymatId: PlaymatId;
+  initialHomeBackgroundEnabled: boolean;
 }
 
-export function DeckPlaymatSettings({ initialPlaymatId }: DeckPlaymatSettingsProps) {
+export function DeckPlaymatSettings({
+  initialPlaymatId,
+  initialHomeBackgroundEnabled,
+}: DeckPlaymatSettingsProps) {
   const [playmatId, setPlaymatId] = useState(initialPlaymatId);
+  const [homeBackgroundEnabled, setHomeBackgroundEnabled] = useState(initialHomeBackgroundEnabled);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const playmat = getPlaymat(playmatId);
 
-  function selectPlaymat(nextPlaymatId: PlaymatId) {
-    if (nextPlaymatId === playmatId || pending) return;
+  function savePreference(nextPlaymatId: PlaymatId, nextHomeBackgroundEnabled: boolean) {
     setError(null);
     startTransition(async () => {
-      const result = await saveDefaultPlaymatAction({ playmatId: nextPlaymatId });
+      const result = await saveDefaultPlaymatAction({
+        playmatId: nextPlaymatId,
+        homeBackgroundEnabled: nextHomeBackgroundEnabled,
+      });
       if ('error' in result) {
         setError(result.error);
         return;
       }
       setPlaymatId(nextPlaymatId);
+      setHomeBackgroundEnabled(nextHomeBackgroundEnabled);
     });
+  }
+
+  function selectPlaymat(nextPlaymatId: PlaymatId) {
+    if (nextPlaymatId === playmatId || pending) return;
+    savePreference(nextPlaymatId, homeBackgroundEnabled);
+  }
+
+  function toggleHomeBackground(enabled: boolean) {
+    if (pending) return;
+    savePreference(playmatId, enabled);
   }
 
   return (
@@ -43,7 +62,7 @@ export function DeckPlaymatSettings({ initialPlaymatId }: DeckPlaymatSettingsPro
             Decorazione tappetino
           </span>
           <span className="mt-0.5 block truncate text-xs text-white/55">
-            Predefinito fullscreen: {playmat.name}
+            Fullscreen: {playmat.name} · Home: {homeBackgroundEnabled ? 'attiva' : 'non attiva'}
           </span>
         </span>
         <span className="grid h-7 w-7 place-items-center rounded-full border border-white/15 text-white/50 transition-transform duration-200 group-open:rotate-180">
@@ -77,6 +96,22 @@ export function DeckPlaymatSettings({ initialPlaymatId }: DeckPlaymatSettingsPro
               </span>
             </button>
           ))}
+        </div>
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/[0.08] px-3 py-3">
+          <Checkbox
+            id="home-playmat-background"
+            checked={homeBackgroundEnabled}
+            onCheckedChange={toggleHomeBackground}
+            disabled={pending}
+            aria-label="Imposta come sfondo home"
+            className="border-white/40 bg-transparent"
+          />
+          <label htmlFor="home-playmat-background" className="cursor-pointer">
+            <span className="block text-sm font-black text-white">Imposta come sfondo home</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-white/55">
+              Usa il tappetino selezionato anche come sfondo della home dei tornei.
+            </span>
+          </label>
         </div>
         {error && <p className="mt-3 text-xs font-semibold text-red-300">{error}</p>}
       </div>

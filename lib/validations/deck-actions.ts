@@ -95,6 +95,7 @@ export const saveVerificationSchema = z.object({
 
 export const defaultPlaymatSchema = z.object({
   playmatId: z.string().refine(isPlaymatId, 'Seleziona un tappetino valido.'),
+  homeBackgroundEnabled: z.boolean().optional(),
 });
 
 export type UpdateDeckInput = z.infer<typeof updateDeckSchema>;

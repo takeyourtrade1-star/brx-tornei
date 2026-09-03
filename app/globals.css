@@ -2227,6 +2227,30 @@
   width: 1.8rem;
 }
 
+/* Tappetino scelto dall'utente come sfondo della sola home tornei. */
+.home-playmat-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.home-playmat-backdrop-image {
+  position: absolute;
+  inset: -2%;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.58;
+  filter: saturate(0.9);
+}
+.home-playmat-backdrop-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 85% 72% at 50% 36%, rgba(6, 9, 16, 0.24) 0%, rgba(3, 5, 12, 0.58) 100%),
+    linear-gradient(180deg, rgba(6, 9, 16, 0.78) 0%, rgba(6, 9, 16, 0.38) 34%, rgba(6, 9, 16, 0.84) 100%);
+}
+
 @keyframes arena-hearth-breathe {
   0%, 100% { opacity: 0.7; transform: scaleX(1) scaleY(1); }
   50% { opacity: 1; transform: scaleX(1.08) scaleY(1.12); }

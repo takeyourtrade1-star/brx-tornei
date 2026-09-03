@@ -17,7 +17,10 @@ import { getDeckStructureIssues } from '@/lib/deck-structure';
 import { deckDiffIsClean, diffDeckVsScanned } from '@/lib/deck-verification';
 import { createDeckSchema } from '@/lib/validations/deck';
 import * as deckActionSchemas from '@/lib/validations/deck-actions';
-import { PLAYMAT_PREFERENCE_COOKIE } from '@/lib/playmat-preference';
+import {
+  PLAYMAT_HOME_BACKGROUND_COOKIE,
+  PLAYMAT_PREFERENCE_COOKIE,
+} from '@/lib/playmat-preference';
 import type { Deck } from '@/types/deck';
 
 function deckActionError(error: unknown, fallback: string): { error: string } {
@@ -184,13 +187,23 @@ export async function saveDefaultPlaymatAction(
     return { error: parsed.error.errors[0]?.message ?? 'Dati non validi.' };
   }
 
-  (await cookies()).set(PLAYMAT_PREFERENCE_COOKIE, parsed.data.playmatId, {
+  const cookieStore = await cookies();
+  const cookieOptions = {
     httpOnly: true,
     maxAge: 60 * 60 * 24 * 365,
     path: '/',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     secure: process.env.NODE_ENV === 'production',
-  });
+  };
+  cookieStore.set(PLAYMAT_PREFERENCE_COOKIE, parsed.data.playmatId, cookieOptions);
+  if (parsed.data.homeBackgroundEnabled !== undefined) {
+    cookieStore.set(
+      PLAYMAT_HOME_BACKGROUND_COOKIE,
+      parsed.data.homeBackgroundEnabled ? '1' : '0',
+      cookieOptions,
+    );
+  }
   revalidatePath('/mazzi');
+  revalidatePath('/tornei');
   return { ok: true };
 }

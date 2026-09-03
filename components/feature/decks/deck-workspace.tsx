@@ -15,10 +15,12 @@ import { useServerDecks } from './use-server-decks';
 interface DeckWorkspaceProps {
   initialDecks: Deck[];
   defaultPlaymatId?: PlaymatId;
+  homeBackgroundEnabled?: boolean;
 }
 export function DeckWorkspace({
   initialDecks,
   defaultPlaymatId,
+  homeBackgroundEnabled = false,
 }: DeckWorkspaceProps) {
   const [view, setView] = useState<'list' | 'builder'>('list');
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
@@ -119,7 +121,10 @@ export function DeckWorkspace({
       </header>
 
       {!inBuilder && defaultPlaymatId ? (
-        <DeckPlaymatSettings initialPlaymatId={defaultPlaymatId} />
+        <DeckPlaymatSettings
+          initialPlaymatId={defaultPlaymatId}
+          initialHomeBackgroundEnabled={homeBackgroundEnabled}
+        />
       ) : null}
 
       <div className="arena-panel p-4 sm:p-6">
