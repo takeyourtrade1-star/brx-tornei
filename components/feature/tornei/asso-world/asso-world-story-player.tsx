@@ -1,192 +1,97 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { FastForward, RotateCcw, Sparkles } from 'lucide-react';
-import {
-  ASSO_WORLD_STORY_SEGMENTS,
-  getStoryWordTokens,
-  type StoryWordToken,
-} from '@/lib/data/asso-world-story';
+import { useEffect, useState } from 'react';
+import { ASSO_WORLD_STORY_SENTENCES } from '@/lib/data/asso-world-story';
 import { cn } from '@/lib/utils';
-
-const WORD_REVEAL_INTERVAL_MS = 75;
 
 interface AssoWorldStoryPlayerProps {
   className?: string;
-  onStoryComplete?: () => void;
 }
 
-export function AssoWorldStoryPlayer({
-  className,
-  onStoryComplete,
-}: AssoWorldStoryPlayerProps) {
-  const tokens = useMemo(() => getStoryWordTokens(), []);
-  const [revealedCount, setRevealedCount] = useState(1);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const activeWordRef = useRef<HTMLSpanElement>(null);
+export function AssoWorldStoryPlayer({ className }: AssoWorldStoryPlayerProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
 
-  const isComplete = revealedCount >= tokens.length;
+  const currentSentence = ASSO_WORLD_STORY_SENTENCES[currentIndex] ?? ASSO_WORLD_STORY_SENTENCES[0];
 
   useEffect(() => {
-    if (isComplete) {
-      onStoryComplete?.();
-      return undefined;
-    }
+    // Entrata dolce
+    const enterTimer = setTimeout(() => {
+      setIsVisible(true);
+    }, 150);
 
-    const timer = setInterval(() => {
-      setRevealedCount((prev) => {
-        const next = prev + 1;
-        if (next >= tokens.length) {
-          clearInterval(timer);
-          onStoryComplete?.();
-          return tokens.length;
-        }
-        return next;
-      });
-    }, WORD_REVEAL_INTERVAL_MS);
+    const readDuration = currentSentence.durationMs ?? 5000;
 
-    return () => clearInterval(timer);
-  }, [isComplete, onStoryComplete, tokens.length]);
+    // Inizio dissolvenza in uscita dopo il tempo di lettura
+    const fadeOutTimer = setTimeout(() => {
+      setIsVisible(false);
+    }, readDuration);
 
-  // Scorrimento morbido per seguire l'ultima parola apparsa
-  useEffect(() => {
-    if (activeWordRef.current && !isComplete) {
-      activeWordRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
-    }
-  }, [revealedCount, isComplete]);
+    // Passaggio alla frase successiva dopo la dissolvenza in uscita
+    const nextSentenceTimer = setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % ASSO_WORLD_STORY_SENTENCES.length);
+    }, readDuration + 800);
 
-  const handleSkip = () => {
-    setRevealedCount(tokens.length);
-    onStoryComplete?.();
-  };
-
-  const handleRestart = () => {
-    setRevealedCount(1);
-    containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const visibleTokens = useMemo(
-    () => tokens.slice(0, revealedCount),
-    [tokens, revealedCount],
-  );
-
-  // Raggruppa le parole visibili per segmento per mantenere la spaziatura in paragrafi
-  const visibleSegments = useMemo(() => {
-    const grouped = new Map<string, StoryWordToken[]>();
-    for (const token of visibleTokens) {
-      const list = grouped.get(token.segmentId) ?? [];
-      list.push(token);
-      grouped.set(token.segmentId, list);
-    }
-    return ASSO_WORLD_STORY_SEGMENTS.filter((seg) => grouped.has(seg.id)).map(
-      (seg) => ({
-        ...seg,
-        tokens: grouped.get(seg.id) ?? [],
-      }),
-    );
-  }, [visibleTokens]);
+    return () => {
+      clearTimeout(enterTimer);
+      clearTimeout(fadeOutTimer);
+      clearTimeout(nextSentenceTimer);
+    };
+  }, [currentIndex, currentSentence.durationMs]);
 
   return (
-    <div className={cn('relative flex flex-col', className)}>
-      <div className="mb-2 flex items-center justify-between px-1 text-xs text-white/60">
-        <div className="flex items-center gap-1.5 font-medium tracking-wide">
-          <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
-          <span className="uppercase text-[11px] tracking-widest text-amber-300 font-bold">
-            La visione di Ebartex
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {!isComplete ? (
-            <button
-              type="button"
-              onClick={handleSkip}
-              className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/80 transition hover:bg-white/20 hover:text-white"
-            >
-              <FastForward className="h-3 w-3" />
-              <span>Mostra tutto</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleRestart}
-              className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/80 transition hover:bg-white/20 hover:text-white"
-            >
-              <RotateCcw className="h-3 w-3" />
-              <span>Rileggi</span>
-            </button>
+    <div
+      className={cn(
+        'relative flex w-full max-w-4xl flex-col items-center justify-center px-4 text-center',
+        className,
+      )}
+    >
+      <div className="min-h-[140px] sm:min-h-[160px] md:min-h-[180px] flex items-center justify-center">
+        <p
+          role="region"
+          aria-live="polite"
+          className={cn(
+            'text-xl sm:text-2xl md:text-3xl lg:text-4xl font-serif italic text-amber-50/95 leading-relaxed sm:leading-loose tracking-wide select-none',
+            'transition-all duration-1000 ease-in-out',
+            isVisible
+              ? 'opacity-100 translate-y-0 scale-100 blur-0 drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]'
+              : 'opacity-0 -translate-y-2 scale-[0.98] blur-[2px] pointer-events-none',
           )}
-        </div>
+          style={{
+            fontFamily:
+              "'Georgia', 'Cambria', 'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+            textShadow:
+              '0 2px 4px rgba(0,0,0,0.9), 0 8px 30px rgba(0,0,0,0.95)',
+          }}
+        >
+          {currentSentence.text}
+        </p>
       </div>
 
+      {/* Indicatori minimi delle frasi (puntini discreti) */}
       <div
-        ref={containerRef}
-        role="region"
-        aria-label="Fiaba Asso World"
-        aria-live="polite"
-        className="scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent max-h-[38vh] sm:max-h-[44vh] md:max-h-[48vh] overflow-y-auto pr-2 space-y-3.5 text-left"
+        className="mt-4 flex items-center gap-1.5 opacity-60 transition-opacity hover:opacity-100"
+        aria-hidden="true"
       >
-        {visibleSegments.map((segment) => {
-          if (segment.isHeading) {
-            return (
-              <h3
-                key={segment.id}
-                className="font-display text-base sm:text-lg md:text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-yellow-300"
-              >
-                {segment.tokens.map((token) => {
-                  const isLatest =
-                    token.index === revealedCount - 1 && !isComplete;
-                  return (
-                    <span
-                      key={token.index}
-                      ref={isLatest ? activeWordRef : undefined}
-                      className={cn(
-                        'inline-block mr-[0.25em] transition-opacity duration-200',
-                        isLatest && 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]',
-                      )}
-                    >
-                      {token.word}
-                    </span>
-                  );
-                })}
-              </h3>
-            );
-          }
-
-          return (
-            <p
-              key={segment.id}
-              className="text-xs sm:text-sm md:text-base leading-relaxed sm:leading-loose text-white/90 font-sans"
-            >
-              {segment.tokens.map((token) => {
-                const isLatest =
-                  token.index === revealedCount - 1 && !isComplete;
-                return (
-                  <span
-                    key={token.index}
-                    ref={isLatest ? activeWordRef : undefined}
-                    className={cn(
-                      'inline-block mr-[0.25em] transition-opacity duration-200',
-                      isLatest && 'text-amber-200 font-semibold drop-shadow-[0_0_6px_rgba(253,230,138,0.7)]',
-                    )}
-                  >
-                    {token.word}
-                  </span>
-                );
-              })}
-              {!isComplete &&
-                segment.tokens[segment.tokens.length - 1]?.index ===
-                  revealedCount - 1 && (
-                  <span
-                    aria-hidden="true"
-                    className="inline-block h-3.5 w-1.5 align-middle bg-amber-400 animate-pulse ml-0.5 rounded-sm"
-                  />
-                )}
-            </p>
-          );
-        })}
+        {ASSO_WORLD_STORY_SENTENCES.map((sentence, idx) => (
+          <button
+            key={sentence.id}
+            type="button"
+            onClick={() => {
+              setIsVisible(false);
+              setTimeout(() => {
+                setCurrentIndex(idx);
+              }, 400);
+            }}
+            title={`Frase ${idx + 1}`}
+            className={cn(
+              'h-1.5 rounded-full transition-all duration-500',
+              idx === currentIndex
+                ? 'w-6 bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.8)]'
+                : 'w-1.5 bg-white/30 hover:bg-white/60',
+            )}
+          />
+        ))}
       </div>
     </div>
   );

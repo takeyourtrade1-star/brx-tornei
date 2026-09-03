@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, Gamepad2, Loader2, Sparkles, X } from 'lucide-react';
+import { CheckCircle2, Gamepad2, Loader2, X } from 'lucide-react';
 import { requestAssoBetaAction } from '@/actions/asso-world';
 import { Button } from '@/components/ui/button';
 import { AssoWorldStoryPlayer } from './asso-world-story-player';
@@ -50,7 +50,7 @@ export function AssoWorldModal({
     if (open && videoRef.current) {
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {
-        // Autoplay policy ignorata
+        // Autoplay policy ignorata dal browser
       });
     }
   }, [open]);
@@ -73,23 +73,23 @@ export function AssoWorldModal({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8 animate-auth-enter">
-      {/* Sfondo scuro sfumato dietro la finestra quasi a tutto schermo */}
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-0 sm:p-2 md:p-3 lg:p-4 animate-auth-enter">
+      {/* Sfondo scuro attorno al modal quasi a tutto schermo */}
       <div
         tabIndex={-1}
         aria-hidden="true"
         onClick={onClose}
-        className="absolute inset-0 bg-black/85 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity"
       />
 
-      {/* Finestra quasi a tutto schermo (full screen quasi) */}
+      {/* Finestra quasi a tutto schermo (molto larga, video cinematico) */}
       <section
         role="dialog"
         aria-modal="true"
         aria-label="Asso World — Anteprima e Beta"
-        className="relative flex h-full max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl sm:rounded-3xl border border-white/20 bg-slate-950 text-white shadow-2xl"
+        className="relative flex h-full w-full flex-col justify-between overflow-hidden rounded-none sm:rounded-2xl md:rounded-3xl border-0 sm:border sm:border-white/15 bg-black text-white shadow-2xl"
       >
-        {/* Video WebM di sottofondo */}
+        {/* Video WebM di sottofondo a tutto schermo */}
         <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
           <video
             ref={videoRef}
@@ -99,102 +99,94 @@ export function AssoWorldModal({
             playsInline
             preload="auto"
             poster="/videos/asso-world_building.jpeg"
-            className="h-full w-full object-cover scale-[1.02] filter brightness-90 contrast-105"
+            className="h-full w-full object-cover filter brightness-[0.85] contrast-105"
           >
             <source
               src="/videos/asso-world_building-video.webm"
               type="video/webm"
             />
           </video>
-          {/* Sfumature per garantire leggibilità assoluta del testo */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/65 to-slate-950/75" />
-          <div className="absolute inset-0 bg-radial-vignette opacity-60 pointer-events-none" />
+          {/* Sfumatura morbida per rendere il testo e i bottoni leggibili senza box */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/35 to-black/75" />
         </div>
 
-        {/* Intestazione con pulsante X in alto a destra */}
-        <header className="relative z-10 flex shrink-0 items-center justify-between px-4 sm:px-6 pt-4 pb-2 sm:pt-5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-black tracking-widest text-amber-300 uppercase backdrop-blur-md shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Asso World • Prossimamente</span>
-          </div>
-
+        {/* Solo la X in alto a destra (niente pillole né icone superflue) */}
+        <div className="relative z-20 flex justify-end p-4 sm:p-6">
           <button
             type="button"
             onClick={onClose}
-            aria-label="Chiudi anteprima"
-            title="Chiudi anteprima (Esc)"
-            className="group grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur-md transition hover:border-white/40 hover:bg-white/20 hover:text-white"
+            aria-label="Chiudi"
+            title="Chiudi (Esc)"
+            className="group grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/40 text-white/80 backdrop-blur-md transition hover:border-white/50 hover:bg-black/70 hover:text-white"
           >
             <X className="h-5 w-5 transition-transform group-hover:scale-110" aria-hidden="true" />
           </button>
-        </header>
-
-        {/* Centro in sovraimpressione: Fiaba / Storia romanzata animata parola per parola */}
-        <div className="relative z-10 flex flex-1 items-center justify-center px-3 sm:px-6 py-2">
-          <div className="w-full max-w-3xl rounded-2xl border border-white/15 bg-slate-950/75 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl ring-1 ring-white/10">
-            <AssoWorldStoryPlayer />
-          </div>
         </div>
 
-        {/* Sezione inferiore centrata: Partecipa alla beta con bottone Richiedi di partecipare */}
-        <footer className="relative z-10 shrink-0 border-t border-white/10 bg-slate-950/80 px-4 py-4 sm:px-6 sm:py-5 backdrop-blur-xl">
-          <div className="mx-auto flex flex-col items-center justify-center text-center max-w-xl">
-            <p className="text-xs sm:text-sm font-bold tracking-wide uppercase text-amber-300/90">
-              Partecipa alla beta
-            </p>
-            <p className="mt-0.5 text-xs text-white/70 max-w-md">
-              Unisciti ai primi pionieri di Asso World e aiutaci a forgiare il futuro del gioco di carte.
-            </p>
+        {/* Centro del video: Fiaba romanzata frase per frase, nessun riquadro di sfondo */}
+        <div className="relative z-10 flex flex-1 items-center justify-center px-4 sm:px-8 py-4">
+          <AssoWorldStoryPlayer />
+        </div>
 
-            {betaSuccessMessage ? (
-              <div className="mt-3 flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-950/60 px-4 py-2 text-xs font-semibold text-emerald-300 shadow-md">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
-                <span>{betaSuccessMessage}</span>
-              </div>
-            ) : (
-              <div className="mt-3 flex flex-col sm:flex-row items-center gap-2.5">
-                <Button
-                  type="button"
-                  variant="default"
-                  size="default"
-                  onClick={handleBetaRequest}
-                  disabled={betaPending}
-                  className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 px-6 py-2.5 text-sm font-black uppercase tracking-wider shadow-lg shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-yellow-300 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  {betaPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      <span>Invio in corso…</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      <span>Richiedi di partecipare</span>
-                    </>
-                  )}
-                </Button>
+        {/* In basso centrato direttamente sul video: Partecipa alla beta + bottone (nessun box sfondo) */}
+        <div className="relative z-10 flex flex-col items-center justify-center px-4 pb-6 sm:pb-8 pt-2 text-center">
+          <p
+            className="text-xs sm:text-sm font-black uppercase tracking-[0.25em] text-amber-300 select-none"
+            style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}
+          >
+            Partecipa alla beta
+          </p>
 
-                {onOpenVintageArcade && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onOpenVintageArcade();
-                    }}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/50 hover:text-white/80 transition-colors underline-offset-4 hover:underline"
-                  >
-                    <Gamepad2 className="h-3 w-3" />
-                    <span>Accesso sala arcade vintage</span>
-                  </button>
+          {betaSuccessMessage ? (
+            <div className="mt-3 flex items-center gap-2 rounded-full border border-emerald-400/50 bg-black/60 px-5 py-2.5 text-xs font-semibold text-emerald-300 shadow-xl backdrop-blur-md">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+              <span>{betaSuccessMessage}</span>
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-col sm:flex-row items-center gap-3">
+              <Button
+                type="button"
+                variant="default"
+                size="default"
+                onClick={handleBetaRequest}
+                disabled={betaPending}
+                className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider px-8 py-3 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 border border-amber-300/40 drop-shadow-[0_4px_20px_rgba(0,0,0,0.8)]"
+              >
+                {betaPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Invio in corso…</span>
+                  </>
+                ) : (
+                  <span>Richiedi di partecipare</span>
                 )}
-              </div>
-            )}
+              </Button>
 
-            {betaError && (
-              <p className="mt-2 text-xs text-rose-400 font-medium">{betaError}</p>
-            )}
-          </div>
-        </footer>
+              {onOpenVintageArcade && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenVintageArcade();
+                  }}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/50 hover:text-white/90 transition-colors drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] underline-offset-4 hover:underline"
+                >
+                  <Gamepad2 className="h-3.5 w-3.5" />
+                  <span>Accesso sala arcade vintage</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {betaError && (
+            <p
+              className="mt-2 text-xs text-rose-400 font-medium"
+              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}
+            >
+              {betaError}
+            </p>
+          )}
+        </div>
       </section>
     </div>,
     document.body,
