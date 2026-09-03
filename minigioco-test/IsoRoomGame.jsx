@@ -26,9 +26,14 @@ import {
   FURN_ARCADE, INTERACTIVES_ARCADE, DOOR_TOUR,
   ARC_ENTRY_TILE, TOUR_ENTRY_TILE, ARC_DEFAULT_CAM,
 } from "./arcade-room/arcade-config";
+import { buildPiazzaBackground, piazzaDoorBounds } from "./social-room/PiazzaBackground";
+import { buildPiazzaFurniture } from "./social-room/PiazzaSprites";
+import {
+  FURN_PIAZZA, INTERACTIVES_PIAZZA,
+  PIAZZA_ENTRY_TILE, PIAZZA_DEFAULT_CAM,
+} from "./social-room/piazza-config";
 import ArcadeGameModal from "./arcade-room/ArcadeGameModal";
 import { createFrameLimiter } from "./frame-limiter";
-import { SocialRoom } from "./social-room/SocialRoom";
 import {
   ASSO_BODY_COL, ASSO_EYE_CELLS, ASSO_GH, ASSO_GRID, ASSO_GW,
 } from "../lib/asso-pixel";
@@ -91,7 +96,7 @@ const INTERACTIVES = {
   socialDoor: { name: "Porta Sala Piazza", icon: "🧑‍🤝‍🧑", desc: "Incontra gli amici online",
                 approach: [[6, 0], [6, 1], [7, 0]], footTiles: [],
                 focus: { x: 520, y: 232, z: 1.45 }, faceTile: null,
-                action: "openSocialRoom" },
+                action: "changeRoom", target: "piazza" },
 };
 
 const OFFICIAL_SURFACE_IDS = new Set(["pc", "board", "decks"]);
@@ -2180,7 +2185,48 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   };
   const arcadeBoardSp = { cv: mkCanvas(1, 1), wx: 0, wy: 0 };
 
-  let tourData = null;  // snapshot dei binding Sala Tornei quando si entra in arcade
+  /* ====================== SALA PIAZZA — dati stanza ====================== */
+  const piazzaBg = buildPiazzaBackground(phase);
+  const piazzaF = buildPiazzaFurniture();
+  const piazzaBlocked = new Set();
+  FURN_PIAZZA.forEach((f) => f.tiles.forEach(([x, y]) => piazzaBlocked.add(tkey(x, y))));
+  const piazzaSprMap = {
+    cabinet1: outlined(piazzaF.cabinet1), cabinet2: outlined(piazzaF.cabinet2),
+    cabinet3: outlined(piazzaF.cabinet3), table1: outlined(piazzaF.table1),
+    table2: outlined(piazzaF.table2), plant: outlined(piazzaF.plant),
+    bench: outlined(piazzaF.bench),
+  };
+  const piazzaEntities = FURN_PIAZZA.map((f) => {
+    const xs = f.tiles.map((t) => t[0]), ys = f.tiles.map((t) => t[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const anchor = tileTop(minX, minY);
+    return {
+      key: f.key, inter: f.inter || null, minX, maxX, minY, maxY, anchor,
+      spr: piazzaSprMap[f.key], frames: null,
+    };
+  });
+  const piazzaInter = {};
+  for (const [id, def] of Object.entries(INTERACTIVES_PIAZZA)) piazzaInter[id] = { id, ...def };
+  const pzRectOf = (k) => { const e = piazzaEntities.find((x) => x.key === k); const s = e.spr; return { x: e.anchor.x - s.ax, y: e.anchor.y - s.ay, w: s.cv.width, h: s.cv.height }; };
+  piazzaInter.piazzaCab1.hitRect = pzRectOf("cabinet1"); piazzaInter.piazzaCab1.hitCv = piazzaSprMap.cabinet1.cv;
+  piazzaInter.piazzaCab2.hitRect = pzRectOf("cabinet2"); piazzaInter.piazzaCab2.hitCv = piazzaSprMap.cabinet2.cv;
+  piazzaInter.piazzaCab3.hitRect = pzRectOf("cabinet3"); piazzaInter.piazzaCab3.hitCv = piazzaSprMap.cabinet3.cv;
+  piazzaInter.piazzaTable1.hitRect = pzRectOf("table1"); piazzaInter.piazzaTable1.hitCv = piazzaSprMap.table1.cv;
+  piazzaInter.piazzaTable2.hitRect = pzRectOf("table2"); piazzaInter.piazzaTable2.hitCv = piazzaSprMap.table2.cv;
+  piazzaInter.doorBack.hitRect = piazzaDoorBounds().hit;
+  piazzaInter.doorBack.hitCv = null;
+  const piazzaSils = {
+    piazzaCab1: makeSil(piazzaSprMap.cabinet1, "#05d9e8"),
+    piazzaCab2: makeSil(piazzaSprMap.cabinet2, "#39ff14"),
+    piazzaCab3: makeSil(piazzaSprMap.cabinet3, "#b026ff"),
+    piazzaTable1: makeSil(piazzaSprMap.table1, "#52b788"),
+    piazzaTable2: makeSil(piazzaSprMap.table2, "#3a86ff"),
+    doorBack: null,
+  };
+  const piazzaBoardSp = { cv: mkCanvas(1, 1), wx: 0, wy: 0 };
+
+  let tourData = null;  // snapshot dei binding Sala Tornei quando si entra in arcade o piazza
 
   function changeRoom(target) {
     if (st.transition) return;
@@ -2365,8 +2411,18 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
 
   function startInteract(o) {
     if (o.action === "changeRoom") { changeRoom(o.target); return; }
+    if (o.action === "inspect") {
+      const t = st.av.from;
+      if (o.faceTile) {
+        const dx = o.faceTile[0] - t.cx, dy = o.faceTile[1] - t.cy;
+        st.av.dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "se" : "nw") : (dy >= 0 ? "sw" : "ne");
+      }
+      showBubble(o.bubbleText || "...", 3.6);
+      sfx.tap && sfx.tap();
+      return;
+    }
     if (o.action === "openSocialRoom") {
-      apiRef.current.openSocialRoom && apiRef.current.openSocialRoom();
+      changeRoom("piazza");
       return;
     }
     st.lock = true;
@@ -2376,7 +2432,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       const dx = o.faceTile[0] - t.cx, dy = o.faceTile[1] - t.cy;
       st.av.dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "se" : "nw") : (dy >= 0 ? "sw" : "ne");
     } else st.av.dir = "ne";
-    const dcam = st.room === "arcade" ? ARC_DEFAULT_CAM : DEFAULT_CAM;
+    const dcam = st.room === "arcade" ? ARC_DEFAULT_CAM : st.room === "piazza" ? PIAZZA_DEFAULT_CAM : DEFAULT_CAM;
     const fx = lerp(o.focus.x, dcam.x, 0.2), fy = lerp(o.focus.y, dcam.y, 0.2);
     camTo({ x: fx, y: fy, z: o.focus.z }, 0.62, () => {
       sfx.open();
@@ -2900,13 +2956,21 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       if (!st.transition.swapped && st.transition.t >= 0.4) {
         st.transition.swapped = true;
         if (st.transition.target === "arcade") {
-          tourData = { blocked, sprMap, entities, inter, sils, boardSp };
+          if (st.room === "tournament") tourData = { blocked, sprMap, entities, inter, sils, boardSp };
           bg = arcadeBg; blocked = arcadeBlocked; sprMap = arcadeSprMap;
           entities = arcadeEntities; inter = arcadeInter; sils = arcadeSils;
           boardSp = arcadeBoardSp;
           st.room = "arcade";
           st.av.from = { cx: ARC_ENTRY_TILE.cx, cy: ARC_ENTRY_TILE.cy };
           st.av.fx = ARC_ENTRY_TILE.cx; st.av.fy = ARC_ENTRY_TILE.cy;
+        } else if (st.transition.target === "piazza") {
+          if (st.room === "tournament") tourData = { blocked, sprMap, entities, inter, sils, boardSp };
+          bg = piazzaBg; blocked = piazzaBlocked; sprMap = piazzaSprMap;
+          entities = piazzaEntities; inter = piazzaInter; sils = piazzaSils;
+          boardSp = piazzaBoardSp;
+          st.room = "piazza";
+          st.av.from = { cx: PIAZZA_ENTRY_TILE.cx, cy: PIAZZA_ENTRY_TILE.cy };
+          st.av.fx = PIAZZA_ENTRY_TILE.cx; st.av.fy = PIAZZA_ENTRY_TILE.cy;
         } else {
           bg = buildBackground(phase, stats, posters);
           blocked = tourData.blocked; sprMap = tourData.sprMap; entities = tourData.entities;
@@ -2918,7 +2982,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         st.av.to = null; st.av.queue = []; st.av.t = 0; st.av.seated = false;
         st.av.dir = "se"; st.av.wt = 0; st.av.stepN = 0;
         st.av.nextBlink = 2.6; st.av.blinkUntil = 0;
-        const cam = st.room === "arcade" ? ARC_DEFAULT_CAM : DEFAULT_CAM;
+        const cam = st.room === "arcade" ? ARC_DEFAULT_CAM : st.room === "piazza" ? PIAZZA_DEFAULT_CAM : DEFAULT_CAM;
         st.cam.x = cam.x; st.cam.y = cam.y; st.cam.z = cam.z; st.cam.tween = null;
         st.nearObj = null; st.pending = null; st.sitTarget = false; st.standBack = null;
         sfx.open();
@@ -5472,8 +5536,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const tag = e.target && e.target.tagName;
     if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || st.modal || st.cinematic
       || (apiRef.current.isSocialRoomOpen && apiRef.current.isSocialRoomOpen())) return;
-    /* ESC nella Sala Arcade → torna alla Sala Tornei */
-    if (e.key === "Escape" && !st.lock && st.room === "arcade") {
+    /* ESC nella Sala Arcade o Sala Piazza → torna alla Sala Tornei */
+    if (e.key === "Escape" && !st.lock && (st.room === "arcade" || st.room === "piazza")) {
       e.preventDefault();
       changeRoom("tournament");
       return;
@@ -5491,6 +5555,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       const which = e.code === "Digit1" ? 1 : e.code === "Digit2" ? 2 : e.code === "Digit3" ? 3 : 4;
       const target = st.room === "arcade"
         ? (which === 1 ? inter.arcade1 : which === 2 ? inter.arcade2 : which === 3 ? inter.arcade3 : inter.kakegurui)
+        : st.room === "piazza"
+        ? (which === 1 ? inter.piazzaCab1 : which === 2 ? inter.piazzaCab2 : which === 3 ? inter.piazzaCab3 : inter.piazzaTable1)
         : (which === 1 ? inter.pc : which === 2 ? inter.decks : inter.board);
       if (!target) return;
       e.preventDefault();
@@ -5624,6 +5690,8 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       if (which === "P") { takePhoto(); return; }
       const target = st.room === "arcade"
         ? (which === 1 ? inter.arcade1 : which === 2 ? inter.arcade2 : which === 3 ? inter.arcade3 : which === 4 ? inter.kakegurui : null)
+        : st.room === "piazza"
+        ? (which === 1 ? inter.piazzaCab1 : which === 2 ? inter.piazzaCab2 : which === 3 ? inter.piazzaCab3 : which === 4 ? inter.piazzaTable1 : null)
         : (which === 1 ? inter.pc : which === 2 ? inter.decks : which === 3 ? inter.board : null);
       if (!target) return;
       teleportInteract(target);
@@ -5636,7 +5704,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
       st.modal = null;
       st.lastAct = st.t;
       st.lock = true;
-      const cam = st.room === "arcade" ? ARC_DEFAULT_CAM : DEFAULT_CAM;
+      const cam = st.room === "arcade" ? ARC_DEFAULT_CAM : st.room === "piazza" ? PIAZZA_DEFAULT_CAM : DEFAULT_CAM;
       camTo(cam, 0.55, () => {
         st.lock = false;
         if (st.av.seated) {
@@ -6839,7 +6907,7 @@ export default function IsoRoomGame({
       <canvas ref={canvasRef} className="irg-canvas" />
 
       {/* HUD */}
-      <div className="irg-chip irg-title"><span aria-hidden>{room === "arcade" ? "🕹️" : "🏆"}</span>{room === "arcade" ? "Sala Arcade" : roomName}</div>
+      <div className="irg-chip irg-title"><span aria-hidden>{room === "arcade" ? "🕹️" : room === "piazza" ? "💬" : "🏆"}</span>{room === "arcade" ? "Sala Arcade" : room === "piazza" ? "Sala Piazza" : roomName}</div>
       <div className="irg-controls">
         <button type="button" className="irg-quality" onClick={toggleQuality}
           aria-label={quality === "low" ? "Attiva qualità alta" : "Attiva qualità leggera"}>
@@ -6861,7 +6929,7 @@ export default function IsoRoomGame({
         </button>
       </div>
       <div className={"irg-chip irg-hint" + (hint ? "" : " irg-off")}>
-        {isTouch ? "TOCCA PER MUOVERTI" : room === "arcade" ? "CLICCA PER MUOVERTI · WASD · 1/2/3 CABINATI · 4 DUELLO · ESC TORNEI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
+        {isTouch ? "TOCCA PER MUOVERTI" : room === "arcade" ? "CLICCA PER MUOVERTI · WASD · 1/2/3 CABINATI · 4 DUELLO · ESC TORNEI" : room === "piazza" ? "CLICCA PER MUOVERTI · WASD · 1/2/3 CABINATI · 4 TAVOLO · ESC TORNEI" : "CLICCA PER MUOVERTI · WASD · 1/2/3 OGGETTI"}
       </div>
       <div className="irg-keys">
         {room === "arcade" ? (
@@ -6877,6 +6945,21 @@ export default function IsoRoomGame({
             </button>
             <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(4)}>
               <b>Tasto 4</b><span>Tavolo Duello</span>
+            </button>
+          </>
+        ) : room === "piazza" ? (
+          <>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(1)}>
+              <b>Tasto 1</b><span>Pixel Strike</span>
+            </button>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(2)}>
+              <b>Tasto 2</b><span>Dragon Clash</span>
+            </button>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(3)}>
+              <b>Tasto 3</b><span>Space Duellist</span>
+            </button>
+            <button type="button" className="irg-key" onClick={() => gameRef.current && gameRef.current.hotkey(4)}>
+              <b>Tasto 4</b><span>Tavolo Duelli</span>
             </button>
           </>
         ) : (
@@ -6991,14 +7074,6 @@ export default function IsoRoomGame({
         <ModalShell id="kakegurui" closing={closing} onClose={closeModal} className="irg-m-arcade">
           <ArcadeGameModal gameId="kakegurui" onExit={closeModal} username={username} integrationMode={integrationMode} quality={quality} />
         </ModalShell>
-      )}
-
-      {socialRoomOpen && (
-        <SocialRoom
-          gamertag={username}
-          initialFriends={initialFriends}
-          onExit={closeSocialRoom}
-        />
       )}
 
       {/* Asso persistente: resta a destra dopo il tutorial, cliccabile. */}
