@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type FormEvent } from 'react';
-import { CircleHelp, LoaderCircle, X } from 'lucide-react';
+import { CircleHelp, LoaderCircle, Sparkles, X } from 'lucide-react';
 import type { MatchJudgeState } from '@/types/tournament';
 import type { MatchJudgeController } from '@/hooks/use-match-judge';
 import type { MatchJudgeActivityState } from '@/hooks/use-match-judge-activity';
@@ -144,6 +144,17 @@ export function MatchJudge({
                 <X className="h-4 w-4" />
               </button>
             </header>
+
+            <div
+              className="flex shrink-0 items-center gap-2 border-b border-amber-300/20 bg-amber-300/10 px-4 py-2 text-[10px] leading-relaxed text-amber-50"
+              role="note"
+            >
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden="true" />
+              <p>
+                <span className="font-bold">Asso impara da ogni mano:</span>{' '}
+                le chat vengono salvate per migliorare il servizio e le competenze di Asso.
+              </p>
+            </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
               {judge?.status === 'failed' && (
