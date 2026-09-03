@@ -127,7 +127,7 @@ export function ProxyInfoPopover() {
         className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white/55 transition-colors hover:text-marquee focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marquee/70"
       >
         <CircleHelp className="h-3 w-3" aria-hidden="true" />
-        Come funziona
+        Come funzionano le proxy
       </button>
 
       {visible && popoverPosition && typeof document !== 'undefined'
