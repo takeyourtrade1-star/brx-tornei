@@ -5,6 +5,10 @@ export const PLAYMATS = [
   { id: 'astral-observatory', name: 'Osservatorio Astrale', src: '/images/playmats/astral-observatory.webp' },
   { id: 'ivory-citadel', name: 'Cittadella d\u2019Avorio', src: '/images/playmats/ivory-citadel.webp' },
   { id: 'neon-necropolis', name: 'Necropoli Neon', src: '/images/playmats/neon-necropolis.webp' },
+  { id: 'glacial-sanctuary', name: 'Santuario Glaciale', src: '/images/playmats/glacial-sanctuary.webp' },
+  { id: 'sun-temple', name: 'Tempio Solare', src: '/images/playmats/sun-temple.webp' },
+  { id: 'moonlit-garden', name: 'Giardino Lunare', src: '/images/playmats/moonlit-garden.webp' },
+  { id: 'aether-workshop', name: 'Officina Eterea', src: '/images/playmats/aether-workshop.webp' },
 ] as const;
 
 export type PlaymatId = (typeof PLAYMATS)[number]['id'];

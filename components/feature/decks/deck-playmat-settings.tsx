@@ -71,7 +71,7 @@ export function DeckPlaymatSettings({
         <p className="mb-3 text-xs text-white/55">
           Questa scelta verrà mostrata come sfondo del tavolo in tutte le tue partite fullscreen.
         </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {PLAYMATS.map((item) => (
             <button
               key={item.id}
