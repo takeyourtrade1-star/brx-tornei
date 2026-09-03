@@ -34,6 +34,7 @@ const lobbyFocusTableSchema = z
 export const lobbyFocusSchema = z.object({
   tableId: lobbyFocusTableSchema.optional(),
   create: z.literal('1').optional(),
+  assoWorld: z.literal('1').optional(),
 });
 
 export type LobbyFocus = z.infer<typeof lobbyFocusSchema>;
@@ -55,9 +56,22 @@ export function parseSelection(
 export function parseLobbyFocus(
   searchParams: Record<string, string | string[] | undefined>,
 ): LobbyFocus {
+  const rawTable = Array.isArray(searchParams.focusTable)
+    ? searchParams.focusTable[0]
+    : searchParams.focusTable;
+  const rawCreate = Array.isArray(searchParams.focusCreate)
+    ? searchParams.focusCreate[0]
+    : searchParams.focusCreate;
+  const rawAssoWorld = Array.isArray(searchParams.asso_world)
+    ? searchParams.asso_world[0]
+    : (Array.isArray(searchParams.focusAssoWorld)
+      ? searchParams.focusAssoWorld[0]
+      : (searchParams.asso_world ?? searchParams.focusAssoWorld));
+
   const result = lobbyFocusSchema.safeParse({
-    tableId: searchParams.focusTable,
-    create: searchParams.focusCreate,
+    tableId: rawTable,
+    create: rawCreate,
+    assoWorld: rawAssoWorld,
   });
   return result.success ? result.data : {};
 }

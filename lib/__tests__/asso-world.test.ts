@@ -5,6 +5,7 @@ import {
   getStoryWordTokens,
 } from '@/lib/data/asso-world-story';
 import { assoBetaRequestSchema } from '@/lib/validations/asso-beta';
+import { parseLobbyFocus } from '@/lib/validations/selection';
 import { isBetaUserRegistered, registerBetaUser } from '@/lib/data/asso-beta-store';
 
 describe('Asso World Story Data', () => {
@@ -53,5 +54,15 @@ describe('Asso World Beta Validation & Store', () => {
     expect(isBetaUserRegistered(testUserId)).toBe(false);
     registerBetaUser(testUserId);
     expect(isBetaUserRegistered(testUserId)).toBe(true);
+  });
+});
+
+describe('Asso World Navigation & Focus', () => {
+  it('parsa correttamente il parametro asso_world=1 da searchParams', () => {
+    expect(parseLobbyFocus({ asso_world: '1' })).toEqual({ assoWorld: '1' });
+    expect(parseLobbyFocus({ focusAssoWorld: '1' })).toEqual({ assoWorld: '1' });
+    expect(parseLobbyFocus({ asso_world: ['1'] })).toEqual({ assoWorld: '1' });
+    expect(parseLobbyFocus({ asso_world: '0' })).toEqual({});
+    expect(parseLobbyFocus({})).toEqual({});
   });
 });

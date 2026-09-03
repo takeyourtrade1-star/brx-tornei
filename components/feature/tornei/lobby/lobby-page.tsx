@@ -55,6 +55,7 @@ interface LobbyPageProps {
   /** Apertura una tantum della modale richiesta da una superficie secondaria. */
   focusTableId?: string;
   openCreate?: boolean;
+  openAssoWorld?: boolean;
 }
 
 type ModalState = { mode: 'host'; tournamentId: string } | null;
@@ -74,13 +75,14 @@ export function LobbyPage({
   arcadeAccessGranted,
   focusTableId,
   openCreate = false,
+  openAssoWorld = false,
 }: LobbyPageProps) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>(null);
   const [arcadeUnlocked, setArcadeUnlocked] = useState(arcadeAccessGranted);
   const [arcadeGateOpen, setArcadeGateOpen] = useState(false);
   const [arcadeOpen, setArcadeOpen] = useState(false);
-  const [assoWorldOpen, setAssoWorldOpen] = useState(false);
+  const [assoWorldOpen, setAssoWorldOpen] = useState(openAssoWorld);
   const [error, setError] = useState<string | null>(null);
   /** Mazzo facoltativo dichiarato nel modale di accettazione ('' = senza). */
   const [approvalDeckId, setApprovalDeckId] = useState('');
@@ -213,6 +215,21 @@ export function LobbyPage({
     }
     clearArcadeFocus();
   }, [clearArcadeFocus, focusKey, focusTableId, openCreate, runCreate, runJoin, selection.format, tournaments, user.id]);
+
+  useEffect(() => {
+    if (openAssoWorld) {
+      setAssoWorldOpen(true);
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('asso_world') || params.has('focusAssoWorld')) {
+          params.delete('asso_world');
+          params.delete('focusAssoWorld');
+          const query = params.toString();
+          router.replace(`${window.location.pathname}${query ? `?${query}` : ''}`, { scroll: false });
+        }
+      }
+    }
+  }, [openAssoWorld, router]);
   /** Mazzi compatibili col formato del tavolo in accettazione (dichiarazione
    * facoltativa al via): dai dati già in pagina, nessuna fetch extra. */
   const approvalDecks = useMemo(

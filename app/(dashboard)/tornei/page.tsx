@@ -33,8 +33,10 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const invite = parseFriendInviteGamertag(params.add);
   const inviteQuery = invite ? `&add=${encodeURIComponent(invite)}` : '';
+  const isAssoWorld = params.asso_world === '1' || params.focusAssoWorld === '1';
+  const assoWorldQuery = isAssoWorld ? '&asso_world=1' : '';
   const selection = parseSelection(params);
-  if (!selection) redirect(`${DEFAULT_TOURNAMENTS_PATH}${inviteQuery}`);
+  if (!selection) redirect(`${DEFAULT_TOURNAMENTS_PATH}${inviteQuery}${assoWorldQuery}`);
   const lobbyFocus = parseLobbyFocus(params);
 
   const session = await getSession();
@@ -101,6 +103,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
         arcadeAccessGranted={arcadeAccessGranted}
         focusTableId={lobbyFocus.tableId}
         openCreate={lobbyFocus.create === '1'}
+        openAssoWorld={lobbyFocus.assoWorld === '1'}
       />
     </>
   );
