@@ -49,29 +49,37 @@ export function DeckPlaymatSettings({
   }
 
   return (
-    <details className="arena-panel group">
-      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 marker:hidden sm:px-5">
+    <details className="group relative z-30 w-full sm:w-auto">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-white/10 bg-slate-950/65 p-1.5 pr-2.5 shadow-lg shadow-black/25 marker:hidden transition hover:border-primary/30 hover:bg-slate-900/80">
         <span
-          className="h-10 w-16 shrink-0 rounded-lg bg-cover bg-center ring-1 ring-white/15"
+          className="h-9 w-12 shrink-0 rounded-lg bg-cover bg-center ring-1 ring-white/15"
           style={{ backgroundImage: 'url(' + playmat.src + ')' }}
           aria-hidden
         />
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 text-sm font-black text-white">
-            <Palette className="h-4 w-4 text-primary" />
-            Stile tappetino &amp; home
+          <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.14em] text-primary">
+            <Palette className="h-3 w-3" />
+            Stile tappetino
+          </span>
+          <span className="mt-0.5 block max-w-36 truncate text-[11px] font-bold text-white/80">
+            {playmat.name}
           </span>
         </span>
-        <span className="grid h-7 w-7 place-items-center rounded-full border border-white/15 text-white/50 transition-transform duration-200 group-open:rotate-180">
-          <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        <span className="grid h-6 w-6 place-items-center rounded-md text-white/45 transition duration-200 group-open:rotate-180 group-hover:text-white/70">
+          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
         </span>
       </summary>
 
-      <div className="border-t border-white/10 px-4 py-4 sm:px-5">
-        <p className="mb-3 text-xs text-white/55">
-          Questa scelta verrà mostrata come sfondo del tavolo in tutte le tue partite fullscreen.
-        </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="absolute right-0 top-full z-40 mt-2 w-[calc(100vw-2rem)] max-w-xl rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-2xl shadow-black/60 backdrop-blur-xl sm:p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-white">Stile tappetino</p>
+            <p className="mt-0.5 text-[10px] text-white/45">Usato nelle partite fullscreen.</p>
+          </div>
+          {pending ? <span className="text-[9px] font-bold uppercase tracking-wide text-primary">Salvataggio…</span> : null}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {PLAYMATS.map((item) => (
             <button
               key={item.id}
@@ -80,9 +88,9 @@ export function DeckPlaymatSettings({
               aria-pressed={item.id === playmatId}
               disabled={pending}
               className={cn(
-                'relative aspect-[16/7] overflow-hidden rounded-xl border text-left transition disabled:cursor-wait disabled:opacity-50',
+                'relative aspect-[16/7] overflow-hidden rounded-lg border text-left transition disabled:cursor-wait disabled:opacity-50',
                 item.id === playmatId
-                  ? 'border-primary ring-2 ring-primary/40'
+                  ? 'border-primary ring-1 ring-primary/50'
                   : 'border-white/15 opacity-80 hover:border-primary/40 hover:opacity-100',
               )}
               style={{ backgroundImage: 'url(' + item.src + ')', backgroundPosition: 'center', backgroundSize: 'cover' }}
@@ -94,7 +102,8 @@ export function DeckPlaymatSettings({
             </button>
           ))}
         </div>
-        <div className="mt-4 flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/[0.08] px-3 py-3">
+
+        <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/[0.07] px-3 py-2.5">
           <Checkbox
             id="home-playmat-background"
             checked={homeBackgroundEnabled}
@@ -103,14 +112,12 @@ export function DeckPlaymatSettings({
             aria-label="Imposta come sfondo home"
             className="border-white/40 bg-transparent"
           />
-          <label htmlFor="home-playmat-background" className="cursor-pointer">
-            <span className="block text-sm font-black text-white">Imposta come sfondo home</span>
-            <span className="mt-0.5 block text-xs leading-relaxed text-white/55">
-              Usa il tappetino selezionato anche come sfondo della home dei tornei.
-            </span>
+          <label htmlFor="home-playmat-background" className="min-w-0 cursor-pointer">
+            <span className="block text-xs font-black text-white">Usa anche nella home</span>
+            <span className="mt-0.5 block text-[10px] text-white/45">Applica questo sfondo alla home dei tornei.</span>
           </label>
         </div>
-        {error && <p className="mt-3 text-xs font-semibold text-red-300">{error}</p>}
+        {error && <p className="mt-2 text-[10px] font-semibold text-red-300">{error}</p>}
       </div>
     </details>
   );

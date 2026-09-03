@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Copy, Layers, SquareStack } from 'lucide-react';
-import { StatBadgeCard } from '@/components/feature/tornei/partite/stat-badge-card';
+import { Copy, Layers, SquareStack, type LucideIcon } from 'lucide-react';
 import { MAX_DECKS_PER_USER } from '@/lib/deck-limits';
 import type { CreateDeckInput } from '@/lib/validations/deck';
 import type { PlaymatId } from '@/lib/playmats';
@@ -76,58 +75,53 @@ export function DeckWorkspace({
 
   return (
     <div className="space-y-5">
-      <header className="arena-panel overflow-visible px-5 py-5 sm:px-7 sm:py-6">
+      <header className="arena-panel z-20 !overflow-visible px-4 py-4 sm:px-5">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(500px_200px_at_15%_0%,rgba(255,115,0,0.12),transparent_70%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(440px_160px_at_10%_0%,rgba(255,115,0,0.11),transparent_70%)]"
         />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl">
+            <h1 className="font-display text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl">
               I miei mazzi
             </h1>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="text-[11px] text-white/40">Deck, stile del tavolo e regole proxy in un unico spazio.</p>
+              <ProxyInfoPopover />
+            </div>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-1.5">
-            <div className="grid w-full grid-cols-3 gap-2 sm:w-auto">
-              <StatBadgeCard
+
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto lg:justify-end">
+            <div className="grid flex-1 grid-cols-3 divide-x divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-slate-950/60 shadow-lg shadow-black/25 sm:flex-none">
+              <WorkspaceMetric
                 label="Mazzi"
                 value={`${workspace.decks.length}/${MAX_DECKS_PER_USER}`}
                 Icon={Layers}
-                iconColor="text-primary"
-                bgGlow="rgba(255,115,0,0.22)"
-                variant="compact"
-                className="sm:w-[112px]"
+                iconClassName="text-primary"
               />
-              <StatBadgeCard
+              <WorkspaceMetric
                 label="Carte"
                 value={totalCards}
                 Icon={SquareStack}
-                iconColor="text-marquee"
-                bgGlow="rgba(243,199,106,0.20)"
-                variant="compact"
-                className="sm:w-[112px]"
+                iconClassName="text-marquee"
               />
-              <StatBadgeCard
+              <WorkspaceMetric
                 label="Proxy"
                 value="1:1"
                 Icon={Copy}
-                iconColor="text-marquee"
-                bgGlow="rgba(243,199,106,0.22)"
-                variant="compact"
-                className="sm:w-[112px]"
+                iconClassName="text-marquee"
               />
             </div>
-            <ProxyInfoPopover />
+
+            {!inBuilder && defaultPlaymatId ? (
+              <DeckPlaymatSettings
+                initialPlaymatId={defaultPlaymatId}
+                initialHomeBackgroundEnabled={homeBackgroundEnabled}
+              />
+            ) : null}
           </div>
         </div>
       </header>
-
-      {!inBuilder && defaultPlaymatId ? (
-        <DeckPlaymatSettings
-          initialPlaymatId={defaultPlaymatId}
-          initialHomeBackgroundEnabled={homeBackgroundEnabled}
-        />
-      ) : null}
 
       {inBuilder ? (
         <div className="arena-panel p-4 sm:p-6">
@@ -177,6 +171,28 @@ export function DeckWorkspace({
           onAutoCreateConsumed={() => setCreateAnother(false)}
         />
       )}
+    </div>
+  );
+}
+
+function WorkspaceMetric({
+  label,
+  value,
+  Icon,
+  iconClassName,
+}: {
+  label: string;
+  value: string | number;
+  Icon: LucideIcon;
+  iconClassName: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 px-2.5 py-2 sm:min-w-24">
+      <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClassName}`} aria-hidden />
+      <span className="min-w-0">
+        <span className="block text-[7px] font-black uppercase tracking-[0.12em] text-white/35">{label}</span>
+        <span className="block font-display text-sm font-black leading-none text-white">{value}</span>
+      </span>
     </div>
   );
 }
