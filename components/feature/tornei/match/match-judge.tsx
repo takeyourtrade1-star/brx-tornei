@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useRef, type FormEvent } from 'react';
-import { CircleHelp, LoaderCircle, Sparkles, X } from 'lucide-react';
+import { CircleHelp, LoaderCircle, X } from 'lucide-react';
 import type { MatchJudgeState } from '@/types/tournament';
 import type { MatchJudgeController } from '@/hooks/use-match-judge';
 import type { MatchJudgeActivityState } from '@/hooks/use-match-judge-activity';
-import { AssoMascot } from './asso-mascot';
 import { MatchJudgeButton } from './match-judge-button';
 import { MatchJudgeTranscript } from './match-judge-transcript';
 import { cn } from '@/lib/utils';
@@ -101,60 +100,52 @@ export function MatchJudge({
             onClick={(event) => event.stopPropagation()}
             className="flex h-[min(88dvh,720px)] w-full flex-col overflow-hidden rounded-t-3xl border border-white/15 bg-header-bg text-white shadow-2xl shadow-black/70 md:h-[calc(100dvh-2rem)] md:max-h-[760px] md:w-[min(430px,calc(100vw-2rem))] md:rounded-3xl"
           >
-            <header className="flex shrink-0 items-center gap-3 border-b border-white/10 px-4 py-3 bg-white/[0.02]">
-              <div className="relative grid h-14 w-12 place-items-center rounded-2xl border border-primary/40 bg-black/40 shadow-inner">
-                <AssoMascot variant="judge" size={44} active={!processing} />
-                {processing && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                    <span className="relative inline-flex h-3 w-3 rounded-full border border-header-bg bg-primary" />
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-black tracking-tight text-white" id={`${titleId}-heading`}>
-                    Judge Asso
-                  </h2>
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold',
-                      processing
-                        ? 'bg-amber-400/20 text-amber-200 border border-amber-400/30'
-                        : 'bg-emerald-400/15 text-emerald-300 border border-emerald-400/30',
-                    )}
-                  >
+            <header className="shrink-0 border-b border-white/[0.08] bg-white/[0.015] px-5 py-4">
+              <div className="flex items-start gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <h2
+                      className="text-base font-bold tracking-tight text-white"
+                      id={`${titleId}-heading`}
+                    >
+                      Judge Asso
+                    </h2>
                     <span
                       className={cn(
-                        'h-1.5 w-1.5 rounded-full',
-                        processing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400',
+                        'inline-flex items-center gap-1.5 text-[10px] font-semibold',
+                        processing ? 'text-amber-200/80' : 'text-emerald-300/80',
                       )}
-                    />
-                    {processing ? 'Analisi in corso' : 'Pronto'}
-                  </span>
+                    >
+                      <span
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full',
+                          processing ? 'animate-pulse bg-amber-300' : 'bg-emerald-300',
+                        )}
+                      />
+                      {processing ? 'Analisi in corso' : 'Pronto'}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-white/45">
+                    Arbitro AI ufficiale del tavolo
+                  </p>
                 </div>
-                <p className="text-xs text-white/55">Arbitro AI ufficiale del tavolo</p>
+                <button
+                  type="button"
+                  onClick={close}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-white/45 transition hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label="Chiudi Judge"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={close}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-white/65 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Chiudi Judge"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </header>
 
-            <div
-              className="flex shrink-0 items-center gap-2 border-b border-amber-300/20 bg-amber-300/10 px-4 py-2 text-[10px] leading-relaxed text-amber-50"
-              role="note"
-            >
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden="true" />
-              <p>
-                <span className="font-bold">Asso impara da ogni mano:</span>{' '}
-                le chat vengono salvate per migliorare il servizio e le competenze di Asso.
-              </p>
-            </div>
+              <div className="mt-4 border-t border-white/[0.07] pt-3" role="note">
+                <p className="max-w-[360px] text-[10px] leading-relaxed text-white/40">
+                  <span className="font-medium text-white/60">Miglioramento del servizio.</span>{' '}
+                  Le chat vengono salvate per migliorare Asso e la qualità delle risposte.
+                </p>
+              </div>
+            </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
               {judge?.status === 'failed' && (
