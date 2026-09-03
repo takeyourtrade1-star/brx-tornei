@@ -71,7 +71,7 @@ export function DeckPlaymatSettings({
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.14em] text-primary">
             <Palette className="h-3 w-3" />
-            Stile tappetino
+            Tappetino
           </span>
           <span className="mt-0.5 block max-w-36 truncate text-[11px] font-bold text-white/80">
             {playmat.name}

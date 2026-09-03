@@ -77,7 +77,6 @@ export function MatchIntroCountdown({
           {remainingSeconds ?? '—'}
         </span>
       </div>
-
     </div>
   );
 }

@@ -33,6 +33,10 @@ const ArcadeRoomLauncher = dynamic(
   () => import('./arcade-room-launcher').then((module) => module.ArcadeRoomLauncher),
   { ssr: false },
 );
+const AssoWorldModal = dynamic(
+  () => import('../asso-world/asso-world-modal').then((module) => module.AssoWorldModal),
+  { ssr: false },
+);
 
 interface LobbyPageProps {
   tournaments: Tournament[];
@@ -76,6 +80,7 @@ export function LobbyPage({
   const [arcadeUnlocked, setArcadeUnlocked] = useState(arcadeAccessGranted);
   const [arcadeGateOpen, setArcadeGateOpen] = useState(false);
   const [arcadeOpen, setArcadeOpen] = useState(false);
+  const [assoWorldOpen, setAssoWorldOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Mazzo facoltativo dichiarato nel modale di accettazione ('' = senza). */
   const [approvalDeckId, setApprovalDeckId] = useState('');
@@ -419,6 +424,10 @@ export function LobbyPage({
   const modalFormatName = getFormat(modalFormatId)?.name ?? formatName;
 
   const handleOpenArcade = useCallback(() => {
+    setAssoWorldOpen(true);
+  }, []);
+
+  const handleOpenVintageArcade = useCallback(() => {
     if (arcadeUnlocked) {
       setArcadeOpen(true);
       return;
@@ -511,6 +520,13 @@ export function LobbyPage({
         negativeNotice={reputation?.negativeFeedbackNotice ?? null}
         positiveNotice={reputation?.positiveFeedbackNotice ?? null}
       />
+      {assoWorldOpen ? (
+        <AssoWorldModal
+          open
+          onClose={() => setAssoWorldOpen(false)}
+          onOpenVintageArcade={handleOpenVintageArcade}
+        />
+      ) : null}
       {arcadeGateOpen ? (
         <ArcadeAccessGate
           open
