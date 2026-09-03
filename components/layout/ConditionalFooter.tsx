@@ -1,7 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { Footer } from '@/components/layout/Footer';
 
 /**
  * Nasconde il footer nelle schermate di gioco live o sessioni webcam telefono
@@ -14,10 +14,10 @@ function shouldHideFooter(pathname: string | null): boolean {
   return false;
 }
 
-export function ConditionalFooter() {
+export function ConditionalFooter({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (shouldHideFooter(pathname)) {
     return null;
   }
-  return <Footer />;
+  return <>{children}</>;
 }

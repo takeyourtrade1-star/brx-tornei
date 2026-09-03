@@ -63,6 +63,15 @@ describe('middleware CSP', () => {
     expect(secondCsp).not.toBe(firstCsp);
   });
 
+  it('lascia pubblico il metadata della build per la diagnostica del deploy', () => {
+    const response = middleware(
+      new NextRequest('https://tornei.ebartex.com/build-info.json'),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
   it('applica la CSP anche ai redirect di autenticazione', () => {
     const response = middleware(
       new NextRequest('https://tornei.ebartex.com/tornei/privato'),

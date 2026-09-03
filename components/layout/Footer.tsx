@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { BuildInfoBadge } from '@/components/dev/BuildInfoBadge';
 import { publicConfig, getCdnImageUrl } from '@/lib/public-config';
 import { COMPANY_INFO } from '@/lib/legal/company-info';
 
@@ -171,6 +172,9 @@ export function Footer() {
           <span className="hidden sm:inline text-gray-300">•</span>
           <span>Fatto col ❤️ a Ivrea, terra di idee iconiche.</span>
         </span>
+        <div className="mt-3 flex justify-center">
+          <BuildInfoBadge />
+        </div>
       </div>
     </footer>
   );

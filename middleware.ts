@@ -25,7 +25,13 @@ const REFRESH_COOKIE = appConfig.auth.refreshCookie;
 // QR: deve essere raggiungibile senza login (il telefono non è autenticato).
 // `/auth/bridge` include rinnovo locale e handoff SSO: senza eccezione il
 // middleware li rimbalzerebbe a /login prima che possano creare la sessione.
-const PUBLIC_PATHS = ['/login', '/registrati', '/tornei/webcam', '/auth/bridge'];
+const PUBLIC_PATHS = [
+  '/login',
+  '/registrati',
+  '/tornei/webcam',
+  '/auth/bridge',
+  '/build-info.json',
+];
 
 function getTournamentWebSocketSource(): string | null {
   return appConfig.api.tournamentsWebSocketOrigin || null;

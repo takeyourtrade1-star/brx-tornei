@@ -58,6 +58,16 @@ describe('footer dual-hub layout and conditional footer contract', () => {
     expect(footerSource).toContain('Fatto col ❤️ a Ivrea, terra di idee iconiche.');
   });
 
+  it('shows the build commit at the bottom of the footer', () => {
+    const footerSource = readFileSync(
+      new URL('../../components/layout/Footer.tsx', import.meta.url),
+      'utf8',
+    );
+
+    expect(footerSource).toContain("import { BuildInfoBadge } from '@/components/dev/BuildInfoBadge'");
+    expect(footerSource).toContain('<BuildInfoBadge />');
+  });
+
   it('is integrated into root layout', () => {
     const layoutSource = readFileSync(
       new URL('../../app/layout.tsx', import.meta.url),
@@ -65,6 +75,7 @@ describe('footer dual-hub layout and conditional footer contract', () => {
     );
 
     expect(layoutSource).toContain("import { ConditionalFooter } from '@/components/layout/ConditionalFooter'");
-    expect(layoutSource).toContain('<ConditionalFooter />');
+    expect(layoutSource).toContain('<ConditionalFooter>');
+    expect(layoutSource).toContain('<Footer />');
   });
 });
