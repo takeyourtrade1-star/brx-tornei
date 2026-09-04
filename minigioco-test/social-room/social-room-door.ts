@@ -12,6 +12,6 @@ export const SOCIAL_ROOM_ENTRY = {
   id: "social-room",
   name: "Sala Piazza",
   component: "SocialRoom",
-  transport: "local-tabs-only",
+  transport: "authenticated-websocket",
   door: SOCIAL_ROOM_DOOR,
 } as const;

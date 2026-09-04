@@ -132,7 +132,7 @@ function readParticipant(value: Record<string, unknown>): { gamertag: string; av
   return { gamertag, avatarId };
 }
 
-/** Parser unico per BroadcastChannel e storage: scarta dati estranei o malformati. */
+/** Parser unico dei frame realtime della Piazza: scarta dati estranei o malformati. */
 export function parseSocialRoomEvent(value: unknown, expectedRoomId?: string): SocialRoomEvent | null {
   if (!isRecord(value) || typeof value.type !== "string") return null;
   const base = readBase(value, expectedRoomId);

@@ -5,16 +5,12 @@ import {
   type SocialRoomPlayer,
   type SocialRoomPosition,
 } from "./social-room-protocol";
-import type {
-  SocialRoomTransport,
-  SocialRoomTransportMode,
-} from "./social-room-transport";
 
 export interface UseSocialRoomPresenceOptions {
   readonly roomId: string;
   readonly gamertag: string;
   readonly avatarId: string;
-  readonly initialFriends?: readonly unknown[];
+  readonly initialPosition?: SocialRoomPosition;
   readonly enabled?: boolean;
 }
 
@@ -22,40 +18,37 @@ export interface SocialRoomPresenceApi {
   readonly players: SocialRoomPlayer[];
   readonly self: SocialRoomPlayer;
   readonly connected: boolean;
-  readonly transportMode: SocialRoomTransportMode;
+  readonly transportMode: "websocket" | "unavailable";
+  readonly connectionError: string | null;
   readonly sendMove: (position: unknown) => boolean;
   readonly sendChat: (text: unknown) => boolean;
   readonly removePlayer: (peerId: string) => void;
   readonly close: () => void;
 }
 
-export function createSelfPlayer(peerId: string, gamertag: string, avatarId: string): SocialRoomPlayer {
+export function createSelfPlayer(
+  peerId: string,
+  gamertag: string,
+  avatarId: string,
+  position: SocialRoomPosition = SOCIAL_ROOM_SPAWN,
+): SocialRoomPlayer {
   return {
     peerId,
     gamertag,
     avatarId,
-    position: SOCIAL_ROOM_SPAWN,
+    position,
     source: "self",
     isSelf: true,
-    isSeed: false,
-    idle: false,
     bubble: null,
+    movementTrail: [],
   };
 }
 
 export function sortPlayers(players: SocialRoomPlayer[]): SocialRoomPlayer[] {
   return [...players].sort((left, right) => {
     if (left.isSelf !== right.isSelf) return left.isSelf ? -1 : 1;
-    if (left.source !== right.source) return left.source === "live-tab" ? -1 : 1;
     return left.peerId.localeCompare(right.peerId);
   });
-}
-
-export function createInitialPlayers(
-  self: SocialRoomPlayer,
-  seeds: readonly { readonly player: SocialRoomPlayer }[],
-): SocialRoomPlayer[] {
-  return sortPlayers([self, ...seeds.map((seed) => seed.player)]);
 }
 
 function playerFromEvent(
@@ -67,16 +60,31 @@ function playerFromEvent(
   const bubble = event.type === "chat"
     ? { id: `${event.peerId}:${event.sequence}`, text: event.text, expiresAt: now + CHAT_BUBBLE_DURATION_MS }
     : existing?.bubble ?? null;
+  const previousTrail = existing?.movementTrail ?? [];
+  const moved = event.type === "join" || event.type === "move";
+  const movementTrail = moved && (
+    !existing
+    || existing.position.x !== event.position.x
+    || existing.position.y !== event.position.y
+  )
+    ? [
+        ...previousTrail,
+        {
+          sequence: event.sequence,
+          position: event.position,
+          reset: event.type === "join",
+        },
+      ].slice(-24)
+    : previousTrail;
   return {
     peerId: event.peerId,
     gamertag: event.gamertag,
     avatarId: event.avatarId,
     position,
-    source: "live-tab",
+    source: "live-network",
     isSelf: false,
-    isSeed: false,
-    idle: false,
     bubble,
+    movementTrail,
   };
 }
 
@@ -88,20 +96,14 @@ export function applyRemoteEvent(
   if (event.type === "leave") return sortPlayers(players.filter((player) => player.peerId !== event.peerId));
 
   const liveIndex = players.findIndex((player) => player.peerId === event.peerId);
-  const seedIndex = players.findIndex(
-    (player) => player.isSeed && player.gamertag === event.gamertag,
-  );
   const existing = liveIndex >= 0 ? players[liveIndex] : undefined;
   const nextPlayer = playerFromEvent(event, existing, now);
-  const withoutSeed = seedIndex >= 0 && liveIndex < 0
-    ? players.filter((_, index) => index !== seedIndex)
-    : players;
   if (liveIndex >= 0) {
-    return sortPlayers(withoutSeed.map((player) => (
+    return sortPlayers(players.map((player) => (
       player.peerId === event.peerId ? nextPlayer : player
     )));
   }
-  return sortPlayers([...withoutSeed, nextPlayer]);
+  return sortPlayers([...players, nextPlayer]);
 }
 
 export function nextSequence(sequenceRef: { current: number }): number {
@@ -109,16 +111,42 @@ export function nextSequence(sequenceRef: { current: number }): number {
   return sequenceRef.current;
 }
 
-export function postOrMarkDisconnected(
-  transport: SocialRoomTransport,
-  event: SocialRoomEvent,
-  setConnected: (connected: boolean) => void,
-  setTransportMode: (mode: SocialRoomTransportMode) => void,
-): boolean {
-  const posted = transport.post(event);
-  if (!posted) {
-    setConnected(false);
-    setTransportMode(transport.mode);
-  }
-  return posted;
+export function acknowledgeSelfChat(
+  players: SocialRoomPlayer[],
+  sequence: number,
+  text: string,
+  now: number,
+): SocialRoomPlayer[] {
+  return sortPlayers(players.map((player) => (
+    player.isSelf
+      ? {
+          ...player,
+          bubble: {
+            id: `${player.peerId}:${sequence}`,
+            text,
+            expiresAt: now + CHAT_BUBBLE_DURATION_MS,
+          },
+        }
+      : player
+  )));
+}
+
+export function pruneRemotePlayers(
+  players: SocialRoomPlayer[],
+  lastSeen: Map<string, number>,
+  now: number,
+  staleAfterMs: number,
+): SocialRoomPlayer[] {
+  let changed = false;
+  const next = players.flatMap((player) => {
+    if (!player.isSelf && (lastSeen.get(player.peerId) ?? 0) <= now - staleAfterMs) {
+      lastSeen.delete(player.peerId);
+      changed = true;
+      return [];
+    }
+    if (!player.bubble || player.bubble.expiresAt > now) return [player];
+    changed = true;
+    return [{ ...player, bubble: null }];
+  });
+  return changed ? next : players;
 }

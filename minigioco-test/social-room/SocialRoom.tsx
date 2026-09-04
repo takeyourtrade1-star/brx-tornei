@@ -2,14 +2,13 @@
 
 import React from "react";
 import IsoRoomGame from "../IsoRoomGame";
-import type { SocialRoomFriendPresence } from "@/types/social";
-import type { SocialRoomFriendInput } from "./social-room-protocol";
+import type { AssoWorldLook } from "@/types/asso-world";
 
 export interface SocialRoomProps {
   readonly roomId?: string;
   readonly gamertag?: string;
   readonly avatarId?: string;
-  readonly initialFriends?: readonly SocialRoomFriendInput[];
+  readonly initialLook?: AssoWorldLook;
   readonly enabled?: boolean;
   readonly onExit?: () => void;
 }
@@ -22,18 +21,16 @@ export interface SocialRoomProps {
  */
 export function SocialRoom({
   gamertag = "PrincessLeo",
-  initialFriends = [],
+  initialLook,
   onExit,
 }: SocialRoomProps): React.JSX.Element {
-  const friends = (initialFriends || []) as unknown as SocialRoomFriendPresence[];
-
   return (
     <div className="relative h-full w-full overflow-hidden bg-slate-950">
       <IsoRoomGame
         initialRoom="piazza"
         roomName="Sala Piazza"
         username={gamertag}
-        initialFriends={friends}
+        initialLook={initialLook}
         onExitToSimple={onExit}
       />
     </div>

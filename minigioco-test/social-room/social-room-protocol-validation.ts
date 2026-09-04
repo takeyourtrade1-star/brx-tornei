@@ -61,28 +61,26 @@ export function sanitizeChatText(value: unknown): string {
   return Array.from(sanitized).slice(0, 160).join("").trimEnd();
 }
 
-function roundCoordinate(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
 export function clampPosition(
   position: SocialRoomPosition,
   bounds: SocialRoomBounds = SOCIAL_ROOM_BOUNDS,
 ): SocialRoomPosition {
   return {
-    x: roundCoordinate(Math.min(bounds.maxX, Math.max(bounds.minX, position.x))),
-    y: roundCoordinate(Math.min(bounds.maxY, Math.max(bounds.minY, position.y))),
+    x: Math.round(Math.min(bounds.maxX, Math.max(bounds.minX, position.x))),
+    y: Math.round(Math.min(bounds.maxY, Math.max(bounds.minY, position.y))),
   };
 }
 
-/** Converte un valore esterno in coordinate finite e nel rettangolo della stanza. */
+/** Accetta soltanto caselle intere già comprese nel rettangolo della stanza. */
 export function normalizePosition(
   value: unknown,
   bounds: SocialRoomBounds = SOCIAL_ROOM_BOUNDS,
 ): SocialRoomPosition | null {
   if (!isRecord(value) || typeof value.x !== "number" || typeof value.y !== "number") return null;
-  if (!Number.isFinite(value.x) || !Number.isFinite(value.y)) return null;
-  return clampPosition({ x: value.x, y: value.y }, bounds);
+  if (!Number.isSafeInteger(value.x) || !Number.isSafeInteger(value.y)) return null;
+  if (value.x < bounds.minX || value.x > bounds.maxX) return null;
+  if (value.y < bounds.minY || value.y > bounds.maxY) return null;
+  return { x: value.x, y: value.y };
 }
 
 export function stableHash(value: string): number {

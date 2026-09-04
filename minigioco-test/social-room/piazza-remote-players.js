@@ -1,34 +1,23 @@
 /**
  * Gestione e rendering dei giocatori remoti (amici) in Sala Piazza.
- * Sincronizzati via BroadcastChannel cross-tab o lista amici.
+ * Sincronizzati dal WebSocket autenticato della Piazza.
  */
 
 const HAIRS = ["m1", "m2", "m3", "f1", "f2", "f3"];
-const OUTFITS = ["tank", "hoodie", "shirt", "jersey"];
+const OUTFITS = ["tank", "hoodie", "jacket", "shirt", "jersey"];
+const DEFAULT_LOOK = Object.freeze({ hair: "m3", outfit: "tank" });
 
-export function getFriendLook(gamertag) {
-  let h = 0;
-  const s = String(gamertag || "Ospite");
-  for (let i = 0; i < s.length; i++) {
-    h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  }
-  return {
-    hair: HAIRS[h % HAIRS.length],
-    outfit: OUTFITS[(h >> 3) % OUTFITS.length],
-  };
-}
-
-export function parseFriendLook(avatarId, gamertag) {
+export function parseFriendLook(avatarId) {
   if (typeof avatarId === "string" && avatarId.startsWith("look:")) {
     const parts = avatarId.split(":");
-    if (parts.length >= 3 && parts[1] && parts[2]) {
+    if (parts.length === 3 && HAIRS.includes(parts[1]) && OUTFITS.includes(parts[2])) {
       return { hair: parts[1], outfit: parts[2] };
     }
   }
-  return getFriendLook(gamertag);
+  return { ...DEFAULT_LOOK };
 }
 
-export function syncRemotePlayers(remoteMap, playerList, buildAvatar, findPath, blocked) {
+export function syncRemotePlayers(remoteMap, playerList, buildAvatar) {
   const activeIds = new Set();
   for (const p of playerList || []) {
     if (p.isSelf) continue;
@@ -37,9 +26,9 @@ export function syncRemotePlayers(remoteMap, playerList, buildAvatar, findPath, 
     const lookKey = p.avatarId || "default";
 
     if (!rp) {
-      const look = parseFriendLook(p.avatarId, p.gamertag);
-      const px = Number.isFinite(p.position?.x) ? p.position.x : 6;
-      const py = Number.isFinite(p.position?.y) ? p.position.y : 5;
+      const look = parseFriendLook(p.avatarId);
+      const px = Number.isFinite(p.position?.x) ? p.position.x : 9;
+      const py = Number.isFinite(p.position?.y) ? p.position.y : 3;
       rp = {
         peerId: p.peerId,
         gamertag: p.gamertag || "Giocatore",
@@ -53,27 +42,36 @@ export function syncRemotePlayers(remoteMap, playerList, buildAvatar, findPath, 
         wt: 0,
         queue: [],
         nextStep: null,
+        lastMovementSequence: Math.max(0, ...(p.movementTrail || []).map((step) => step.sequence)),
         bubble: p.bubble || null,
       };
       remoteMap.set(p.peerId, rp);
     } else {
+      rp.gamertag = p.gamertag || "Giocatore";
       if (rp.lookKey !== lookKey) {
         rp.lookKey = lookKey;
-        rp.avatar = buildAvatar(parseFriendLook(p.avatarId, p.gamertag));
+        rp.avatar = buildAvatar(parseFriendLook(p.avatarId));
       }
-      const ntx = Number.isFinite(p.position?.x) ? p.position.x : rp.tx;
-      const nty = Number.isFinite(p.position?.y) ? p.position.y : rp.ty;
-      if (ntx !== rp.tx || nty !== rp.ty) {
-        rp.tx = ntx;
-        rp.ty = nty;
-        if (findPath && blocked) {
-          const fromTile = { cx: Math.round(rp.fx), cy: Math.round(rp.fy) };
-          const toTile = { cx: Math.round(ntx), cy: Math.round(nty) };
-          const path = findPath(fromTile, toTile, blocked);
-          rp.queue = path && path.length ? path : [toTile];
-        } else {
-          rp.queue = [{ cx: ntx, cy: nty }];
+      const unseenSteps = (p.movementTrail || []).filter(
+        (step) => step.sequence > (rp.lastMovementSequence || 0),
+      );
+      for (const step of unseenSteps) {
+        const target = { cx: Math.round(step.position.x), cy: Math.round(step.position.y) };
+        const queued = rp.queue[rp.queue.length - 1] || rp.nextStep;
+        const origin = queued || { cx: rp.tx, cy: rp.ty };
+        const contiguous = Math.abs(origin.cx - target.cx) + Math.abs(origin.cy - target.cy) === 1;
+        if (step.reset || !contiguous) {
+          rp.queue = [];
+          rp.nextStep = null;
+          rp.fx = target.cx;
+          rp.fy = target.cy;
+        } else if (origin.cx !== target.cx || origin.cy !== target.cy) {
+          rp.queue.push(target);
+          if (rp.queue.length > 24) rp.queue.splice(0, rp.queue.length - 24);
         }
+        rp.tx = target.cx;
+        rp.ty = target.cy;
+        rp.lastMovementSequence = step.sequence;
       }
       rp.bubble = p.bubble || null;
     }

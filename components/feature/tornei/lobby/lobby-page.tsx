@@ -17,6 +17,7 @@ import type { Tournament } from '@/types/tournament';
 import type { Deck } from '@/types/deck';
 import type { NotificationSnapshot } from '@/types/notification';
 import type { SocialRoomFriendPresence } from '@/types/social';
+import type { AssoWorldLook } from '@/types/asso-world';
 import { getFormat, type FormatId } from '@/lib/data/catalog';
 import { TableSeatModal } from './table-seat-modal';
 import { LobbyTableList } from './lobby-table-list';
@@ -51,6 +52,7 @@ interface LobbyPageProps {
   reputation: ReputationSummary | null;
   initialNotifications: NotificationSnapshot;
   initialFriends: SocialRoomFriendPresence[];
+  initialAssoWorldLook: AssoWorldLook;
   arcadeAccessGranted: boolean;
   /** Apertura una tantum della modale richiesta da una superficie secondaria. */
   focusTableId?: string;
@@ -72,6 +74,7 @@ export function LobbyPage({
   reputation,
   initialNotifications,
   initialFriends,
+  initialAssoWorldLook,
   arcadeAccessGranted,
   focusTableId,
   openCreate = false,
@@ -558,7 +561,7 @@ export function LobbyPage({
           tournaments={tournaments}
           tables={tables}
           initialDecks={initialDecks}
-          initialFriends={initialFriends}
+          initialAssoWorldLook={initialAssoWorldLook}
           gamertag={gamertag}
           formatId={formatId}
           formatName={formatName}

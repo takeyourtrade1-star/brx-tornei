@@ -9,7 +9,7 @@ import type { FormatId, ModeId } from '@/lib/data/catalog';
 import type { Tournament } from '@/types/tournament';
 import type { Deck } from '@/types/deck';
 import type { LobbyTable } from '@/lib/lobby';
-import type { SocialRoomFriendPresence } from '@/types/social';
+import type { AssoWorldLook } from '@/types/asso-world';
 import type { ArcadeOfficialSurface } from './arcade-official-modal';
 
 const ArcadeOfficialModal = dynamic(
@@ -35,7 +35,7 @@ interface ArcadeRoomLauncherProps {
   tournaments: Tournament[];
   tables: LobbyTable[];
   initialDecks: Deck[];
-  initialFriends: SocialRoomFriendPresence[];
+  initialAssoWorldLook: AssoWorldLook;
   gamertag: string;
   formatId: FormatFilter;
   formatName: string;
@@ -61,7 +61,7 @@ export function ArcadeRoomLauncher({
   tournaments,
   tables,
   initialDecks,
-  initialFriends,
+  initialAssoWorldLook,
   gamertag,
   formatId,
   formatName,
@@ -128,7 +128,7 @@ export function ArcadeRoomLauncher({
         <IsoRoomGame
           roomName={`Sala Tornei · ${formatName}`}
           username={gamertag}
-          initialFriends={initialFriends}
+          initialLook={initialAssoWorldLook}
           tournaments={tournaments}
           integrationMode="site"
           onOpenTournaments={handleOpenTournaments}

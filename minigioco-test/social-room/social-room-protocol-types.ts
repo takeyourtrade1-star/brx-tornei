@@ -17,19 +17,25 @@ export interface SocialRoomPosition {
 
 export const SOCIAL_ROOM_BOUNDS: SocialRoomBounds = Object.freeze({
   minX: 0,
-  maxX: 12,
+  maxX: 11,
   minY: 0,
-  maxY: 10,
+  maxY: 9,
 });
 
-export const SOCIAL_ROOM_SPAWN: SocialRoomPosition = Object.freeze({ x: 6, y: 5 });
+export const SOCIAL_ROOM_SPAWN: SocialRoomPosition = Object.freeze({ x: 9, y: 3 });
 
-export type SocialRoomPlayerSource = "self" | "live-tab" | "seed-demo";
+export type SocialRoomPlayerSource = "self" | "live-network";
 
 export interface SocialRoomBubble {
   readonly id: string;
   readonly text: string;
   readonly expiresAt: number;
+}
+
+export interface SocialRoomMovementStep {
+  readonly sequence: number;
+  readonly position: SocialRoomPosition;
+  readonly reset: boolean;
 }
 
 export interface SocialRoomPlayer {
@@ -39,18 +45,8 @@ export interface SocialRoomPlayer {
   readonly position: SocialRoomPosition;
   readonly source: SocialRoomPlayerSource;
   readonly isSelf: boolean;
-  readonly isSeed: boolean;
-  readonly idle: boolean;
   readonly bubble: SocialRoomBubble | null;
-}
-
-export interface SocialRoomFriendInput {
-  readonly id?: string;
-  readonly gamertag: string;
-  readonly avatarId?: string;
-  readonly presence?: string;
-  readonly position?: SocialRoomPosition;
-  readonly idle?: boolean;
+  readonly movementTrail: readonly SocialRoomMovementStep[];
 }
 
 export interface SocialRoomEventBase {
@@ -93,8 +89,3 @@ export type SocialRoomEvent =
   | SocialRoomLeaveEvent
   | SocialRoomMoveEvent
   | SocialRoomChatEvent;
-
-export interface NormalizedSeedFriend {
-  readonly player: SocialRoomPlayer;
-  readonly origin: SocialRoomPosition;
-}

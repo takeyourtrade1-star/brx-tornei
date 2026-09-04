@@ -15,9 +15,11 @@
  *   onOpenDecks         ()=>{}   — apre il gestore mazzi ufficiale
  *
  * Rendering: Canvas 2D puro, grafica 100% procedurale e senza asset esterni.
- * Le sole preferenze persistenti sono tutorial e qualità grafica locali.
+ * Tutorial/qualità restano locali; l'aspetto Asso World è persistito via backend.
  */
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
+import { saveAssoWorldLookAction } from "../actions/asso-world-look";
+import { parseAssoWorldLook } from "../lib/asso-world-look";
 import { getCspNonce } from "./csp-nonce";
 import { resolveQuality, getFxFlags, loadQuality, saveQuality } from "./quality-config";
 import { buildArcadeBackground, arcadeDoorBounds } from "./arcade-room/ArcadeBackground";
@@ -2061,7 +2063,7 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
   const dogSp = buildDog();
   let boardSp = buildBoard(false);
   let bracketOn = false;
-  let currentLook = { ...DEFAULT_LOOK };
+  let currentLook = { ...DEFAULT_LOOK, ...(opts.look || {}) };
   let avatar = buildAvatar(currentLook);     // ricostruito quando si cambia look allo specchio
   const sfx = makeAudio();
   const world = mkCanvas(WW, WH);
@@ -2470,9 +2472,6 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     const path = findPath(origin, tl, blocked);
     if (!path) return false;
     st.av.queue = path;
-    if (st.room === "piazza" && apiRef.current.sendMove) {
-      apiRef.current.sendMove({ x: tl.cx, y: tl.cy });
-    }
     return true;
   }
 
@@ -3070,6 +3069,9 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
         const carry = av.t - 1;
         av.from = av.to; av.to = null; av.t = 0;
         av.stepN++; sfx.step(av.stepN);
+        if (st.room === "piazza" && apiRef.current.sendMove) {
+          apiRef.current.sendMove({ x: av.from.cx, y: av.from.cy });
+        }
         if (onRug(av.from.cx, av.from.cy) && fx.prints) {
           const fp = tileTop(av.from.cx, av.from.cy);
           st.prints.push({ x: fp.x + (av.stepN % 2 ? 5 : -5), y: fp.y + HTH, t0: st.t, s: 1 });
@@ -5721,7 +5723,21 @@ function createGame(canvas, wrap, apiRef, dbg, opts = {}) {
     },
     setRemotePlayers(list) {
       if (st.destroyed) return;
-      syncRemotePlayers(remotePlayers, list, buildAvatar, findPath, blocked);
+      syncRemotePlayers(remotePlayers, list, buildAvatar);
+    },
+    setLocalPosition(value) {
+      if (st.destroyed || st.room !== "piazza") return;
+      const cx = Number(value && value.x), cy = Number(value && value.y);
+      if (!Number.isSafeInteger(cx) || !Number.isSafeInteger(cy)) return;
+      if (!inGrid(cx, cy) || blocked.has(tkey(cx, cy))) return;
+      if (!st.av.to && st.av.from.cx === cx && st.av.from.cy === cy) return;
+      st.av.from = { cx, cy };
+      st.av.to = null;
+      st.av.queue = [];
+      st.av.fx = cx;
+      st.av.fy = cy;
+      st.pending = null;
+      st.sitTarget = false;
     },
     showBubble(text, dur) {
       if (st.destroyed) return;
@@ -6639,7 +6655,7 @@ export default function IsoRoomGame({
   username = "PrincessLeo",
   initialRoom = "tournament",
   tournaments: pTournaments,
-  initialFriends = [],
+  initialLook,
   onOpenTournaments,
   onOpenCreateTournament,
   onOpenDecks,
@@ -6661,7 +6677,12 @@ export default function IsoRoomGame({
   const [socialRoomOpen, setSocialRoomOpen] = useState(false);
   const [muted, setMuted] = useState(false);
   const [hint, setHint] = useState(true);
-  const [look, setLookState] = useState(() => ({ ...DEFAULT_LOOK }));
+  const resolvedInitialLook = useMemo(() => parseAssoWorldLook(initialLook), [initialLook]);
+  const [look, setLookState] = useState(() => ({ ...resolvedInitialLook }));
+  const [syncedLook, setSyncedLook] = useState(() => ({ ...resolvedInitialLook }));
+  const syncedLookRef = useRef({ ...resolvedInitialLook });
+  const lookSaveRevisionRef = useRef(0);
+  const lookSaveQueueRef = useRef(Promise.resolve());
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialCaption, setTutorialCaption] = useState(null);
   const [tutorialIntro, setTutorialIntro] = useState(false);
@@ -6696,8 +6717,8 @@ export default function IsoRoomGame({
   const social = useSocialRoomPresence({
     roomId: "piazza",
     gamertag: username,
-    avatarId: `look:${look.hair}:${look.outfit}`,
-    initialFriends,
+    avatarId: `look:${syncedLook.hair}:${syncedLook.outfit}`,
+    initialPosition: { x: PIAZZA_ENTRY_TILE.cx, y: PIAZZA_ENTRY_TILE.cy },
     enabled: room === "piazza",
   });
 
@@ -6710,11 +6731,28 @@ export default function IsoRoomGame({
     if (!clean) return;
     if (social.sendChat(clean)) {
       setChatDraft("");
-      if (gameRef.current && gameRef.current.showBubble) {
-        gameRef.current.showBubble(clean, 4.5);
-      }
     }
   }, [chatDraft, social]);
+
+  const shownSelfBubbleRef = useRef(null);
+  useEffect(() => {
+    const bubble = social.self.bubble;
+    if (!bubble || bubble.id === shownSelfBubbleRef.current) return;
+    shownSelfBubbleRef.current = bubble.id;
+    if (gameRef.current && gameRef.current.showBubble) {
+      gameRef.current.showBubble(bubble.text, 4.5);
+    }
+  }, [social.self.bubble]);
+
+  const shownSocialErrorRef = useRef(null);
+  useEffect(() => {
+    if (!social.connected || !social.connectionError
+      || social.connectionError === shownSocialErrorRef.current) return;
+    shownSocialErrorRef.current = social.connectionError;
+    if (gameRef.current && gameRef.current.showBubble) {
+      gameRef.current.showBubble(social.connectionError, 4.5);
+    }
+  }, [social.connected, social.connectionError]);
 
   useEffect(() => {
     apiRef.current.sendMove = social.sendMove;
@@ -6723,6 +6761,12 @@ export default function IsoRoomGame({
       gameRef.current.setRemotePlayers(social.players);
     }
   }, [social.players, social.sendMove, social.sendChat]);
+
+  useEffect(() => {
+    if (gameRef.current && gameRef.current.setLocalPosition) {
+      gameRef.current.setLocalPosition(social.self.position);
+    }
+  }, [social.self.position]);
 
   apiRef.current.openModal = (id) => {
     if (!mountedRef.current) return;
@@ -6820,6 +6864,7 @@ export default function IsoRoomGame({
         stats: statsRef.current,
         fx,
         initialRoom,
+        look: resolvedInitialLook,
       });
     } catch (err) {
       console.error("[IsoRoomGame] inizializzazione fallita:", err);
@@ -6945,12 +6990,38 @@ export default function IsoRoomGame({
 
   /* specchio: applica il look (capelli/outfit) e aggiorna l'avatar nel gioco */
   const applyLook = useCallback((patch) => {
-    setLookState((prev) => {
-      const next = { ...prev, ...patch };
-      if (gameRef.current && gameRef.current.setLook) gameRef.current.setLook(next);
-      return next;
+    const next = parseAssoWorldLook({ ...look, ...patch });
+    const revision = ++lookSaveRevisionRef.current;
+    setLookState(next);
+    if (gameRef.current && gameRef.current.setLook) gameRef.current.setLook(next);
+
+    lookSaveQueueRef.current = lookSaveQueueRef.current.catch(() => undefined).then(async () => {
+      let result;
+      try {
+        result = await saveAssoWorldLookAction(next);
+      } catch {
+        result = { ok: false, error: "Personalizzazione non salvata." };
+      }
+      if (result.ok && result.data) {
+        syncedLookRef.current = result.data;
+        if (revision === lookSaveRevisionRef.current && mountedRef.current) {
+          setLookState(result.data);
+          setSyncedLook(result.data);
+          if (gameRef.current && gameRef.current.setLook) gameRef.current.setLook(result.data);
+        }
+        return;
+      }
+      if (revision === lookSaveRevisionRef.current && mountedRef.current) {
+        const persisted = syncedLookRef.current;
+        setLookState(persisted);
+        setSyncedLook(persisted);
+        if (gameRef.current && gameRef.current.setLook) gameRef.current.setLook(persisted);
+        if (gameRef.current && gameRef.current.showBubble) {
+          gameRef.current.showBubble(result.error || "Personalizzazione non salvata.", 4.5);
+        }
+      }
     });
-  }, []);
+  }, [look]);
   const drawLookPreview = useCallback((canvasEl, lk) => {
     if (gameRef.current && gameRef.current.drawLookPreview) gameRef.current.drawLookPreview(canvasEl, lk);
   }, []);
@@ -7030,7 +7101,9 @@ export default function IsoRoomGame({
               ref={chatInputRef}
               type="text"
               className="irg-piazza-chat-input"
-              placeholder="Scrivi un messaggio in piazza… (Invio per inviare)"
+              placeholder={social.connected
+                ? "Scrivi un messaggio in piazza… (Invio per inviare)"
+                : social.connectionError || "Connessione alla Piazza…"}
               value={chatDraft}
               maxLength={140}
               onChange={(e) => setChatDraft(e.target.value)}
@@ -7038,7 +7111,7 @@ export default function IsoRoomGame({
             <button
               type="submit"
               className="irg-piazza-chat-btn"
-              disabled={!chatDraft.trim()}
+              disabled={!chatDraft.trim() || !social.connected}
               aria-label="Invia messaggio in chat"
             >
               INVIA

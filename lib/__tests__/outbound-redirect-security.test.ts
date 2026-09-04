@@ -8,6 +8,7 @@ const SECRET_BEARING_FETCH_FILES = [
   'app/api/tornei/webcam/[sessionId]/authorize/route.ts',
   'app/api/tournaments/ice-servers/route.ts',
   'app/api/tournaments/match/[matchId]/chat-ticket/route.ts',
+  'app/api/tournaments/social-room/ticket/route.ts',
   'app/brx-match/[...path]/route.ts',
   'lib/auth/session.ts',
   'lib/data/catalog-cards.ts',

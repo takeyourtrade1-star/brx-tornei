@@ -14,6 +14,8 @@ import { LobbyPage } from '@/components/feature/tornei/lobby/lobby-page';
 import { HomePlaymatBackdrop } from '@/components/layout/home-playmat-backdrop';
 import { hasArcadeAccess } from '@/lib/auth/arcade-access';
 import { listDecks } from '@/lib/data/decks';
+import { fetchAssoWorldLook } from '@/lib/data/asso-world-look-client';
+import { DEFAULT_ASSO_WORLD_LOOK } from '@/types/asso-world';
 import { getHomePlaymatId } from '@/lib/playmat-preference';
 import { getUnlockedPlaymatId } from '@/lib/playmats';
 
@@ -57,9 +59,10 @@ export default async function TorneiPage({ searchParams }: PageProps) {
   let notifications;
   let arcadeAccessGranted;
   let initialFriends;
+  let initialAssoWorldLook;
 
   try {
-    [tournaments, decks, reputation, notifications, arcadeAccessGranted, initialFriends] =
+    [tournaments, decks, reputation, notifications, arcadeAccessGranted, initialFriends, initialAssoWorldLook] =
       await Promise.all([
         getTournaments({ format: 'all', mode: selection.mode }),
         listDecks(session.user.id).catch(() => []),
@@ -73,6 +76,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
             presence,
           })))
           .catch(() => []),
+        fetchAssoWorldLook().catch(() => DEFAULT_ASSO_WORLD_LOOK),
       ]);
   } catch (err) {
     if (err instanceof TournamentApiError && err.status === 401) {
@@ -100,6 +104,7 @@ export default async function TorneiPage({ searchParams }: PageProps) {
         reputation={reputation}
         initialNotifications={notifications}
         initialFriends={initialFriends}
+        initialAssoWorldLook={initialAssoWorldLook}
         arcadeAccessGranted={arcadeAccessGranted}
         focusTableId={lobbyFocus.tableId}
         openCreate={lobbyFocus.create === '1'}
