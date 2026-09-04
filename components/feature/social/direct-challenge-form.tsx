@@ -78,7 +78,7 @@ export function DirectChallengeForm({
 
       <Button
         type="button"
-        disabled={sending || loadingDecks || !deckId}
+        disabled={sending || loadingDecks}
         onClick={onSend}
         className="mt-2 h-11 w-full gap-2 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-xs font-black uppercase tracking-wider text-white shadow-md hover:brightness-105"
       >

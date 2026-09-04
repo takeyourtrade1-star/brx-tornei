@@ -162,7 +162,7 @@ export function IncomingChallengeToast() {
         <div className="mt-3.5 flex items-center gap-2">
           <Button
             type="button"
-            disabled={acting || loadingDecks || !deckId}
+            disabled={acting || loadingDecks}
             onClick={handleAccept}
             className="h-8 flex-1 gap-1.5 rounded-xl bg-gradient-to-r from-[#FF7300] to-[#e0564d] text-xs font-black uppercase tracking-wider text-white shadow-sm hover:brightness-105"
           >

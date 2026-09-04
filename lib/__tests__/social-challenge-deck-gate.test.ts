@@ -68,11 +68,21 @@ describe('dichiarazione mazzo nei duelli social', () => {
     mocks.attachDeck.mockResolvedValue({ id: 'table-1' });
   });
 
-  it('non crea una sfida senza deck e applica il gate prima della mutazione', async () => {
-    await expect(sendGameChallengeAction('Alice', 'modern', 'BO3', ''))
-      .resolves.toMatchObject({ ok: false });
-    expect(mocks.createChallenge).not.toHaveBeenCalled();
+  it('permette di creare una sfida senza mazzo associato ed evita il gate deck', async () => {
+    const res = await sendGameChallengeAction('Alice', 'modern', 'BO3', '');
+    expect(res).toMatchObject({ ok: true });
+    expect(mocks.gate).not.toHaveBeenCalled();
+    expect(mocks.createChallenge).toHaveBeenCalledWith({
+      challengerGamertag: 'Bob',
+      challengerAvatarId: 'crown',
+      recipientGamertag: 'Alice',
+      format: 'modern',
+      bestOf: 'BO3',
+    });
+    expect(mocks.attachDeck).not.toHaveBeenCalled();
+  });
 
+  it('applica il gate e associa lo snapshot quando viene dichiarato un mazzo', async () => {
     await sendGameChallengeAction('Alice', 'modern', 'BO3', 'deck-1');
     expect(mocks.gate.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.createChallenge.mock.invocationCallOrder[0]!,
@@ -82,11 +92,16 @@ describe('dichiarazione mazzo nei duelli social', () => {
     });
   });
 
-  it('non accetta senza deck e associa lo snapshot dopo la risposta backend', async () => {
+  it('permette di accettare senza mazzo associato ed evita il gate deck', async () => {
+    mocks.fetchMyGamertag.mockResolvedValue('Charlie');
     await expect(respondGameChallengeAction('challenge-1', 'accept'))
-      .resolves.toMatchObject({ ok: false });
-    expect(mocks.fetchChallenge).not.toHaveBeenCalled();
+      .resolves.toEqual({ ok: true, data: { tableId: 'table-1' } });
+    expect(mocks.gate).not.toHaveBeenCalled();
+    expect(mocks.respondChallenge).toHaveBeenCalledWith('challenge-1', 'accept');
+    expect(mocks.attachDeck).not.toHaveBeenCalled();
+  });
 
+  it('associa il mazzo dichiarato se specificato durante l\'accettazione', async () => {
     mocks.fetchMyGamertag.mockResolvedValue('Charlie');
     await expect(respondGameChallengeAction('challenge-1', 'accept', 'deck-2'))
       .resolves.toEqual({ ok: true, data: { tableId: 'table-1' } });

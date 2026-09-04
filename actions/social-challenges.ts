@@ -32,7 +32,7 @@ export async function sendGameChallengeAction(
   targetGamertag: string,
   format: string,
   bestOf: 'BO1' | 'BO3' | 'BO5',
-  deckId: string,
+  deckId?: string,
 ): Promise<SocialActionState<DirectGameChallenge>> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Sessione non valida.' };
@@ -50,12 +50,14 @@ export async function sendGameChallengeAction(
     }
 
     const validFormat = formatIdSchema.parse(parsed.data.format);
-    const gate = await assertDeclaredDeckRequirements(session.user.id, {
-      deckId: parsed.data.deckId,
-      format: validFormat,
-      requireScryfall: false,
-    });
-    if (!gate.ok) return { ok: false, error: gate.error };
+    if (parsed.data.deckId) {
+      const gate = await assertDeclaredDeckRequirements(session.user.id, {
+        deckId: parsed.data.deckId,
+        format: validFormat,
+        requireScryfall: false,
+      });
+      if (!gate.ok) return { ok: false, error: gate.error };
+    }
 
     if (isPlayerDnd(parsed.data.targetGamertag)) {
       return {
@@ -72,7 +74,7 @@ export async function sendGameChallengeAction(
       bestOf: parsed.data.bestOf,
     });
 
-    if (challenge.tableId) {
+    if (challenge.tableId && parsed.data.deckId) {
       try {
         await attachChallengeDeck(challenge.tableId, {
           userId: session.user.id,
@@ -90,7 +92,7 @@ export async function sendGameChallengeAction(
       const tournament = await createChallengeTableWithDeck({
         userId: session.user.id,
         username: myGamertag,
-        deckId: parsed.data.deckId,
+        deckId: parsed.data.deckId || undefined,
         format: validFormat,
         bestOf: parsed.data.bestOf,
       });
@@ -156,9 +158,9 @@ export async function respondGameChallengeAction(
     }
 
     const validFormat = formatIdSchema.safeParse(existing.format).data ?? 'modern';
-    if (parsed.data.action === 'accept') {
+    if (parsed.data.action === 'accept' && parsed.data.deckId) {
       const gate = await assertDeclaredDeckRequirements(session.user.id, {
-        deckId: parsed.data.deckId!,
+        deckId: parsed.data.deckId,
         format: validFormat,
         requireScryfall: false,
       });
@@ -170,7 +172,7 @@ export async function respondGameChallengeAction(
       const tournament = await createChallengeTableWithDeck({
         userId: session.user.id,
         username: myGamertag ?? session.user.name ?? session.user.email,
-        deckId: parsed.data.deckId!,
+        deckId: parsed.data.deckId || undefined,
         format: validFormat,
         bestOf: existing.bestOf || 'BO3',
       });
@@ -187,12 +189,12 @@ export async function respondGameChallengeAction(
     if (parsed.data.action === 'accept' && !challenge?.tableId) {
       return { ok: false, error: 'La sfida è stata accettata ma il tavolo non è pronto.' };
     }
-    if (parsed.data.action === 'accept' && challenge?.tableId) {
+    if (parsed.data.action === 'accept' && challenge?.tableId && parsed.data.deckId) {
       try {
         await attachChallengeDeck(challenge.tableId, {
           userId: session.user.id,
           username: myGamertag ?? session.user.name ?? session.user.email,
-          deckId: parsed.data.deckId!,
+          deckId: parsed.data.deckId,
         });
       } catch (error) {
         await leaveTournament(challenge.tableId).catch(() => {});

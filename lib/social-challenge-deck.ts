@@ -7,7 +7,7 @@ import type { Tournament } from '@/types/tournament';
 interface ChallengeSeatInput {
   userId: string;
   username: string;
-  deckId: string;
+  deckId?: string | null;
 }
 
 export async function attachChallengeDeck(
@@ -17,7 +17,7 @@ export async function attachChallengeDeck(
   const result = await joinTournament(tableId, {
     id: seat.userId,
     username: seat.username,
-  }, seat.deckId);
+  }, seat.deckId || undefined);
   return result.tournament;
 }
 
@@ -38,7 +38,10 @@ export async function createChallengeTableWithDeck(input: ChallengeSeatInput & {
       enablePhysicalVerification: false,
     }, { id: input.userId, username: input.username });
     createdId = tournament.id;
-    return await attachChallengeDeck(tournament.id, input);
+    if (input.deckId) {
+      return await attachChallengeDeck(tournament.id, input);
+    }
+    return tournament;
   } catch (error) {
     if (createdId) await leaveTournament(createdId).catch(() => {});
     throw error;

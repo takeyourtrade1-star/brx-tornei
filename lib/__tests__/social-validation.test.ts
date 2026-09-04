@@ -43,7 +43,7 @@ describe('Social Validations, Scalability & Privacy Bucketing', () => {
     expect(respondFriendRequestSchema.safeParse({ requestId: 'r-1', action: 'decline' }).success).toBe(true);
     expect(respondFriendRequestSchema.safeParse({ requestId: 'r-1', action: 'invalid' }).success).toBe(false);
 
-    expect(respondGameChallengeSchema.safeParse({ challengeId: 'ch-1', action: 'accept' }).success).toBe(false);
+    expect(respondGameChallengeSchema.safeParse({ challengeId: 'ch-1', action: 'accept' }).success).toBe(true);
     expect(respondGameChallengeSchema.safeParse({
       challengeId: 'ch-1', action: 'accept', deckId: 'deck-1',
     }).success).toBe(true);
@@ -57,6 +57,14 @@ describe('Social Validations, Scalability & Privacy Bucketing', () => {
         format: 'modern',
         bestOf: 'BO3',
         deckId: 'deck-1',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      sendGameChallengeSchema.safeParse({
+        targetGamertag: 'Kurogane',
+        format: 'modern',
+        bestOf: 'BO3',
       }).success,
     ).toBe(true);
 
