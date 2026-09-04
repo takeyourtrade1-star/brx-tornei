@@ -1,200 +1,203 @@
 /**
- * Gestione e rendering dei giocatori remoti (amici) in Sala Piazza.
- * Sincronizzati dal WebSocket autenticato della Piazza.
+ * Stato/interpolazione dei giocatori remoti della Sala Piazza.
+ * La presentazione canvas vive in piazza-remote-player-presentation.js.
  */
 
-const HAIRS = ["m1", "m2", "m3", "f1", "f2", "f3"];
-const OUTFITS = ["tank", "hoodie", "jacket", "shirt", "jersey"];
-const DEFAULT_LOOK = Object.freeze({ hair: "m3", outfit: "tank" });
+import { parseAssoWorldLook } from "../../lib/asso-world-look";
+import {
+  SOCIAL_ROOM_BOUNDS,
+  SOCIAL_ROOM_SPAWN,
+  normalizeGamertag,
+  normalizePeerId,
+} from "./social-room-protocol";
+import {
+  getRemotePlayerRenderOptions,
+  normalizeRemoteBubble,
+} from "./piazza-remote-player-presentation.js";
 
+export {
+  drawRemotePlayer,
+  formatRemoteChatLines,
+  getRemotePlayerRenderOptions,
+  isRemotePlayerMoving,
+  normalizeRemoteBubble,
+} from "./piazza-remote-player-presentation.js";
+
+const MAX_REMOTE_QUEUE = 24;
+const MAX_DELTA_SECONDS = 0.05;
+const REMOTE_SPEED = 3.8;
+const WALK_PHASE_RATE = 6;
+const TILE_EPSILON = 0.02;
+const avatarCaches = new WeakMap();
+
+/** Parser condiviso con il profilo: il fallback è deciso dal contratto canonico. */
 export function parseFriendLook(avatarId) {
-  if (typeof avatarId === "string" && avatarId.startsWith("look:")) {
-    const parts = avatarId.split(":");
-    if (parts.length === 3 && HAIRS.includes(parts[1]) && OUTFITS.includes(parts[2])) {
-      return { hair: parts[1], outfit: parts[2] };
-    }
-  }
-  return { ...DEFAULT_LOOK };
+  return parseAssoWorldLook(avatarId);
 }
 
-export function syncRemotePlayers(remoteMap, playerList, buildAvatar) {
-  const activeIds = new Set();
-  for (const p of playerList || []) {
-    if (p.isSelf) continue;
-    activeIds.add(p.peerId);
-    let rp = remoteMap.get(p.peerId);
-    const lookKey = p.avatarId || "default";
+export function clampRemoteDelta(dt, maxDelta = MAX_DELTA_SECONDS) {
+  if (!Number.isFinite(dt) || dt <= 0) return 0;
+  const limit = Number.isFinite(maxDelta) && maxDelta > 0 ? maxDelta : MAX_DELTA_SECONDS;
+  return Math.min(dt, limit);
+}
 
+function readTile(position) {
+  const x = position && position.x;
+  const y = position && position.y;
+  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y)) return null;
+  if (x < SOCIAL_ROOM_BOUNDS.minX || x > SOCIAL_ROOM_BOUNDS.maxX
+    || y < SOCIAL_ROOM_BOUNDS.minY || y > SOCIAL_ROOM_BOUNDS.maxY) return null;
+  return { cx: x, cy: y };
+}
+
+function spawnTile() {
+  return { cx: SOCIAL_ROOM_SPAWN.x, cy: SOCIAL_ROOM_SPAWN.y };
+}
+
+function readTrail(value) {
+  if (!Array.isArray(value)) return { steps: [], maxSequence: 0 };
+  const seen = new Set();
+  const steps = value.map((step) => {
+    const position = readTile(step && step.position);
+    const sequence = step && step.sequence;
+    if (!position || !Number.isSafeInteger(sequence) || sequence < 1 || seen.has(sequence)) return null;
+    seen.add(sequence);
+    return { sequence, reset: step.reset === true, ...position };
+  }).filter(Boolean).sort((left, right) => left.sequence - right.sequence);
+  return { steps, maxSequence: steps.reduce((max, step) => Math.max(max, step.sequence), 0) };
+}
+
+function cachedAvatar(buildAvatar, lookKey, look) {
+  if (typeof buildAvatar !== "function") return null;
+  let cache = avatarCaches.get(buildAvatar);
+  if (!cache) {
+    cache = new Map();
+    avatarCaches.set(buildAvatar, cache);
+  }
+  if (cache.has(lookKey)) return cache.get(lookKey);
+  try {
+    const avatar = buildAvatar(look);
+    cache.set(lookKey, avatar);
+    return avatar;
+  } catch {
+    return null;
+  }
+}
+
+function enqueueStep(rp, target) {
+  const last = rp.queue[rp.queue.length - 1] || rp.nextStep;
+  if (last && last.cx === target.cx && last.cy === target.cy) return;
+  rp.queue.push(target);
+  if (rp.queue.length > MAX_REMOTE_QUEUE) rp.queue.splice(0, rp.queue.length - MAX_REMOTE_QUEUE);
+}
+
+function applyTrail(rp, trail) {
+  for (const step of trail.steps) {
+    if (step.sequence <= (rp.lastMovementSequence || 0)) continue;
+    const queued = rp.queue[rp.queue.length - 1] || rp.nextStep;
+    const origin = queued || { cx: rp.tx, cy: rp.ty };
+    const contiguous = Math.abs(origin.cx - step.cx) + Math.abs(origin.cy - step.cy) === 1;
+    if (step.reset || !contiguous) {
+      rp.queue = [];
+      rp.nextStep = null;
+      rp.fx = step.cx;
+      rp.fy = step.cy;
+    } else if (origin.cx !== step.cx || origin.cy !== step.cy) {
+      enqueueStep(rp, { cx: step.cx, cy: step.cy });
+    }
+    rp.tx = step.cx;
+    rp.ty = step.cy;
+    rp.lastMovementSequence = step.sequence;
+  }
+}
+
+export function syncRemotePlayers(remoteMap, playerList, buildAvatar, options = {}) {
+  const nowMs = getRemotePlayerRenderOptions(options).nowMs;
+  const activeIds = new Set();
+  const list = Array.isArray(playerList) ? playerList : [];
+  for (const player of list) {
+    if (!player || typeof player !== "object" || player.isSelf) continue;
+    const peerId = normalizePeerId(player.peerId);
+    if (!peerId) continue;
+    activeIds.add(peerId);
+    const look = parseFriendLook(player.avatarId);
+    const lookKey = "look:" + look.hair + ":" + look.outfit;
+    const trail = readTrail(player.movementTrail);
+    const latestTrailTile = trail.steps[trail.steps.length - 1];
+    const tile = readTile(player.position) || latestTrailTile || spawnTile();
+    let rp = remoteMap.get(peerId);
     if (!rp) {
-      const look = parseFriendLook(p.avatarId);
-      const px = Number.isFinite(p.position?.x) ? p.position.x : 9;
-      const py = Number.isFinite(p.position?.y) ? p.position.y : 3;
       rp = {
-        peerId: p.peerId,
-        gamertag: p.gamertag || "Giocatore",
+        peerId,
+        gamertag: normalizeGamertag(player.gamertag),
         lookKey,
-        avatar: buildAvatar(look),
-        fx: px,
-        fy: py,
-        tx: px,
-        ty: py,
+        avatar: cachedAvatar(buildAvatar, lookKey, look),
+        fx: tile.cx,
+        fy: tile.cy,
+        tx: tile.cx,
+        ty: tile.cy,
         dir: "se",
         wt: 0,
         queue: [],
         nextStep: null,
-        lastMovementSequence: Math.max(0, ...(p.movementTrail || []).map((step) => step.sequence)),
-        bubble: p.bubble || null,
+        lastMovementSequence: trail.maxSequence,
+        bubble: normalizeRemoteBubble(player.bubble, nowMs),
       };
-      remoteMap.set(p.peerId, rp);
-    } else {
-      rp.gamertag = p.gamertag || "Giocatore";
-      if (rp.lookKey !== lookKey) {
-        rp.lookKey = lookKey;
-        rp.avatar = buildAvatar(parseFriendLook(p.avatarId));
-      }
-      const unseenSteps = (p.movementTrail || []).filter(
-        (step) => step.sequence > (rp.lastMovementSequence || 0),
-      );
-      for (const step of unseenSteps) {
-        const target = { cx: Math.round(step.position.x), cy: Math.round(step.position.y) };
-        const queued = rp.queue[rp.queue.length - 1] || rp.nextStep;
-        const origin = queued || { cx: rp.tx, cy: rp.ty };
-        const contiguous = Math.abs(origin.cx - target.cx) + Math.abs(origin.cy - target.cy) === 1;
-        if (step.reset || !contiguous) {
-          rp.queue = [];
-          rp.nextStep = null;
-          rp.fx = target.cx;
-          rp.fy = target.cy;
-        } else if (origin.cx !== target.cx || origin.cy !== target.cy) {
-          rp.queue.push(target);
-          if (rp.queue.length > 24) rp.queue.splice(0, rp.queue.length - 24);
-        }
-        rp.tx = target.cx;
-        rp.ty = target.cy;
-        rp.lastMovementSequence = step.sequence;
-      }
-      rp.bubble = p.bubble || null;
+      remoteMap.set(peerId, rp);
+      continue;
     }
+    rp.gamertag = normalizeGamertag(player.gamertag);
+    if (rp.lookKey !== lookKey) {
+      rp.lookKey = lookKey;
+      rp.avatar = cachedAvatar(buildAvatar, lookKey, look);
+    }
+    if (!Array.isArray(rp.queue)) rp.queue = [];
+    applyTrail(rp, trail);
+    rp.bubble = normalizeRemoteBubble(player.bubble, nowMs);
   }
   for (const id of Array.from(remoteMap.keys())) {
     if (!activeIds.has(id)) remoteMap.delete(id);
   }
 }
 
-export function tickRemotePlayers(remoteMap, dt) {
-  for (const rp of remoteMap.values()) {
-    if (!rp.nextStep && rp.queue && rp.queue.length > 0) {
-      rp.nextStep = rp.queue.shift();
-    }
-    const targetX = rp.nextStep ? rp.nextStep.cx : rp.tx;
-    const targetY = rp.nextStep ? rp.nextStep.cy : rp.ty;
-    const dx = targetX - rp.fx;
-    const dy = targetY - rp.fy;
-    const dist = Math.hypot(dx, dy);
+function snapOneTile(rp) {
+  if (!rp.nextStep && rp.queue.length) rp.nextStep = rp.queue.shift();
+  const target = rp.nextStep || { cx: rp.tx, cy: rp.ty };
+  rp.fx = target.cx;
+  rp.fy = target.cy;
+  if (rp.nextStep) rp.nextStep = rp.queue.length ? rp.queue.shift() : null;
+  rp.wt = 0;
+}
 
-    if (dist > 0.02) {
-      rp.dir = Math.abs(dx) >= Math.abs(dy)
-        ? (dx >= 0 ? "se" : "nw")
-        : (dy >= 0 ? "sw" : "ne");
-      const step = Math.min(dist, dt * 3.8);
-      rp.fx += (dx / dist) * step;
-      rp.fy += (dy / dist) * step;
-      rp.wt += dt * 6;
-    } else {
-      rp.fx = targetX;
-      rp.fy = targetY;
-      if (rp.nextStep) {
-        rp.nextStep = rp.queue && rp.queue.length > 0 ? rp.queue.shift() : null;
-      }
+export function tickRemotePlayers(remoteMap, dt, options = {}) {
+  const settings = getRemotePlayerRenderOptions(options);
+  if (settings.inactive) return;
+  const delta = clampRemoteDelta(dt);
+  if (!settings.reducedMotion && delta === 0) return;
+  for (const rp of remoteMap.values()) {
+    if (!rp || !Number.isFinite(rp.fx) || !Number.isFinite(rp.fy)) continue;
+    if (!Array.isArray(rp.queue)) rp.queue = [];
+    if (settings.reducedMotion) {
+      snapOneTile(rp);
+      continue;
+    }
+    if (!rp.nextStep && rp.queue.length) rp.nextStep = rp.queue.shift();
+    const target = rp.nextStep || { cx: rp.tx, cy: rp.ty };
+    const dx = target.cx - rp.fx;
+    const dy = target.cy - rp.fy;
+    const distance = Math.hypot(dx, dy);
+    if (!Number.isFinite(distance)) continue;
+    if (distance > TILE_EPSILON && delta > 0) {
+      rp.dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "se" : "nw") : (dy >= 0 ? "sw" : "ne");
+      const amount = Math.min(distance, delta * REMOTE_SPEED);
+      rp.fx += (dx / distance) * amount;
+      rp.fy += (dy / distance) * amount;
+      rp.wt = (Number.isFinite(rp.wt) ? rp.wt : 0) + delta * WALK_PHASE_RATE;
+    } else if (distance <= TILE_EPSILON) {
+      rp.fx = target.cx;
+      rp.fy = target.cy;
+      if (rp.nextStep) rp.nextStep = rp.queue.length ? rp.queue.shift() : null;
       if (!rp.nextStep) rp.wt = 0;
     }
   }
-}
-
-export function drawRemotePlayer(wctx, rp, tileTop, HTH, tNow) {
-  const c = tileTop(rp.fx, rp.fy);
-  const cxp = c.x;
-  const cyp = c.y + HTH;
-  const isMoving = rp.wt > 0;
-
-  // Ombra a terra
-  wctx.fillStyle = "rgba(25,22,40,0.28)";
-  wctx.beginPath();
-  wctx.ellipse(cxp, cyp + 5, 12, 5, 0, 0, Math.PI * 2);
-  wctx.fill();
-
-  // Sprite chibi ufficiale con vero outfit
-  const D = rp.avatar[rp.dir] || rp.avatar.se;
-  const sp = isMoving
-    ? D.walk[Math.floor(rp.wt) % 4]
-    : D.idle[Math.floor(tNow * 1.3) % 2];
-  const bob = isMoving ? -Math.abs(Math.sin(rp.wt * 1.2)) * 1.4 : 0;
-  const drawY = Math.round(cyp + 6 - sp.feet.y + bob);
-  wctx.drawImage(sp.cv, Math.round(cxp - sp.feet.x), drawY);
-
-  // Nametag badge con punto verde online
-  wctx.save();
-  wctx.font = "bold 9px 'Segoe UI', system-ui, sans-serif";
-  const tw = wctx.measureText(rp.gamertag).width;
-  const pw = tw + 18;
-  const tagX = Math.round(cxp - pw / 2);
-  const tagY = drawY - 14;
-
-  wctx.fillStyle = "rgba(16,22,38,0.88)";
-  wctx.beginPath();
-  wctx.roundRect ? wctx.roundRect(tagX, tagY, pw, 14, 4) : wctx.rect(tagX, tagY, pw, 14);
-  wctx.fill();
-  wctx.strokeStyle = "rgba(255,255,255,0.24)";
-  wctx.lineWidth = 1;
-  wctx.stroke();
-
-  // Punto verde online
-  wctx.fillStyle = "#52b788";
-  wctx.beginPath();
-  wctx.arc(tagX + 7, tagY + 7, 3, 0, Math.PI * 2);
-  wctx.fill();
-
-  // Testo gamertag
-  wctx.fillStyle = "#ffffff";
-  wctx.textAlign = "left";
-  wctx.textBaseline = "middle";
-  wctx.fillText(rp.gamertag, tagX + 13, tagY + 7);
-
-  // Fumetto chat se presente
-  if (rp.bubble && rp.bubble.text && rp.bubble.expiresAt > Date.now()) {
-    drawChatBubble(wctx, cxp, tagY - 8, rp.bubble.text);
-  }
-
-  wctx.restore();
-}
-
-function drawChatBubble(wctx, x, y, text) {
-  wctx.font = "10px 'Segoe UI', system-ui, sans-serif";
-  const maxW = 140;
-  const tw = Math.min(maxW, wctx.measureText(text).width);
-  const bw = tw + 16;
-  const bh = 20;
-  const bx = Math.round(x - bw / 2);
-  const by = Math.round(y - bh);
-
-  wctx.fillStyle = "#ffffff";
-  wctx.beginPath();
-  wctx.roundRect ? wctx.roundRect(bx, by, bw, bh, 6) : wctx.rect(bx, by, bw, bh);
-  wctx.fill();
-  wctx.strokeStyle = "#1a1f36";
-  wctx.lineWidth = 1.2;
-  wctx.stroke();
-
-  wctx.fillStyle = "#ffffff";
-  wctx.beginPath();
-  wctx.moveTo(x - 4, by + bh);
-  wctx.lineTo(x, by + bh + 5);
-  wctx.lineTo(x + 4, by + bh);
-  wctx.closePath();
-  wctx.fill();
-
-  wctx.fillStyle = "#111827";
-  wctx.textAlign = "center";
-  wctx.textBaseline = "middle";
-  wctx.fillText(text, x, by + bh / 2, maxW - 4);
 }

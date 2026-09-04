@@ -9,6 +9,10 @@ interface FxFlags {
   dpr: number;
   targetFps: number;
   uiTickMs: number;
+  reducedMotion: boolean;
+  particles: boolean;
+  flicker: boolean;
+  cssAnimations: boolean;
 }
 
 interface QualityConfig {
@@ -51,6 +55,19 @@ describe('prestazioni Sala Arcade', () => {
     expect(qualityConfig.resolveQuality('auto')).toBe('low');
   });
 
+  it('rispetta il movimento ridotto anche con qualità alta salvata', () => {
+    vi.stubGlobal('window', {
+      devicePixelRatio: 2,
+      matchMedia: (query: string) => ({ matches: query === '(prefers-reduced-motion: reduce)' }),
+    });
+    const high = qualityConfig.getFxFlags('high');
+    expect(high.dpr).toBe(1.5);
+    expect(high.reducedMotion).toBe(true);
+    expect(high.particles).toBe(false);
+    expect(high.flicker).toBe(false);
+    expect(high.cssAnimations).toBe(false);
+  });
+
   it('limita i frame senza accelerare il tempo su display 60/144 Hz', () => {
     for (const [targetFps, displayHz] of [[30, 60], [30, 144], [60, 144]]) {
       const limiter = createFrameLimiter(targetFps);
@@ -73,7 +90,8 @@ describe('prestazioni Sala Arcade', () => {
     const stack = source('minigioco-test/arcade-room/StackAttackGame.jsx');
     const jump = source('minigioco-test/arcade-room/TcgJumpGame.jsx');
 
-    expect(room.match(/quality=\{quality\}/g)).toHaveLength(4);
+    expect(room).toMatch(/<ArcadeGameModal[\s\S]*?quality=\{quality\}/);
+    expect(room).toContain("new Set(['arcade1', 'arcade2', 'arcade3', 'kakegurui'])");
     expect(modal).toContain('quality={quality}');
     expect(kit).toContain('getFxFlags(quality)');
     expect(kit).toContain('createFrameLimiter(perf.targetFps)');
@@ -98,13 +116,13 @@ describe('prestazioni Sala Arcade', () => {
   });
 
   it('ferma la stanza dietro ai giochi e limita i timer React', () => {
-    const room = source('minigioco-test/IsoRoomGame.jsx');
+    const room = source('minigioco-test/world-engine/loop.js') + source('minigioco-test/world-engine/initialize-scenes.js');
     const memory = source('minigioco-test/arcade-room/CardMemoryGame.jsx');
     const duel = source('minigioco-test/arcade-room/KakeguruiGame.jsx');
 
-    expect(room).toContain('ARCADE_GAME_IDS.has(st.modal)');
-    expect(room).toContain('createFrameLimiter(fx.targetFps)');
-    expect(room).toContain('st.pauseTimer = window.setTimeout');
+    expect(room).toContain('ARCADE_GAME_IDS.has(engine.st.modal)');
+    expect(room).toContain('createFrameLimiter(engine.fx.targetFps)');
+    expect(room).toContain('engine.st.pauseTimer = window.setTimeout');
     expect(room).toContain('}, 200);');
     expect(memory).not.toContain('requestAnimationFrame');
     expect(memory).toContain('window.setInterval(tick, tickMs)');

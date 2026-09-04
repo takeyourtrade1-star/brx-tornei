@@ -67,6 +67,9 @@
   function getFxFlags(quality) {
     const low = quality === "low";
     const dprBase = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    const reducedMotion = typeof window !== "undefined" && typeof window.matchMedia === "function"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const animated = !low && !reducedMotion;
 
     return {
       // rendering fisico
@@ -76,28 +79,29 @@
       dpr: low ? Math.max(0.5, Math.min(dprBase, 0.75)) : Math.min(dprBase, 1.5),
       targetFps: low ? 30 : 60,
       uiTickMs: low ? 250 : 100,
+      reducedMotion: Boolean(reducedMotion),
 
       // effetti canvas pesanti
-      particles: !low,      // cuori, zzz, note, scintille generiche
-      petParticles: !low,   // particelle extra su gatto/cane
+      particles: animated, // cuori, zzz, note, scintille generiche
+      petParticles: animated, // particelle extra su gatto/cane
       glows: !low,          // glow monitor, lampada, giradischi
-      flicker: !low,        // lampeggio monitor e lampada
-      motes: !low,          // pulviscolo nel fascio di luce
+      flicker: animated,   // lampeggio monitor e lampada
+      motes: animated,     // pulviscolo nel fascio di luce
       beams: !low,          // fascio di luce dalla finestra
       reflections: !low,    // riflesso notturno dell'avatar
-      shadowEffects: !low,  // nebulosa, matrix, carte caotiche, glifi
-      holo: !low,           // holo animato sulle carte
+      shadowEffects: animated, // nebulosa, matrix, carte caotiche, glifi
+      holo: animated,      // holo animato sulle carte
       prints: !low,         // orme sul tappeto
-      chairSpin: !low,      // sedia che ruota quando ci salta il gatto
-      scatter: !low,        // carte sparpagliate con fisica
+      chairSpin: animated, // sedia che ruota quando ci salta il gatto
+      scatter: animated,   // carte sparpagliate con fisica
 
       // effetti CSS / DOM
-      crtScanline: !low,    // scanline CRT sullo schermo PC
+      crtScanline: animated, // scanline CRT sullo schermo PC
       backdropBlur: !low,   // blur sulle modali
-      videoHover: !low,     // video MP4 all'hover nella modale PC
-      cssAnimations: !low,  // animazioni CSS non essenziali
-      sheen: !low,          // riflesso animato sulle carte leggendarie
-      ledPulse: !low,       // LED lampeggiante
+      videoHover: animated, // video MP4 all'hover nella modale PC
+      cssAnimations: animated, // animazioni CSS non essenziali
+      sheen: animated,     // riflesso animato sulle carte leggendarie
+      ledPulse: animated,  // LED lampeggiante
     };
   }
 

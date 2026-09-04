@@ -66,7 +66,7 @@ describe('arcade deployment boundary', () => {
     expect(nonceHelper).toContain('getCspNonce');
 
     const arcadeFiles = [
-      'minigioco-test/IsoRoomGame.jsx',
+      'minigioco-test/world-client/world-styles.js',
       'minigioco-test/arcade-room/ArcadeGameModal.jsx',
       'minigioco-test/arcade-room/CardMemoryGame.jsx',
       'minigioco-test/arcade-room/KakeguruiGame.jsx',
@@ -76,8 +76,8 @@ describe('arcade deployment boundary', () => {
       const source = readFileSync(join(ROOT_PATH, file), 'utf8');
       expect(source).toContain('getCspNonce');
     }
-    const room = readFileSync(join(ROOT_PATH, 'minigioco-test/IsoRoomGame.jsx'), 'utf8');
-    expect(room).toContain('s.setAttribute("nonce", nonce)');
+    const room = readFileSync(join(ROOT_PATH, 'minigioco-test/world-client/world-styles.js'), 'utf8');
+    expect(room).toContain("style.setAttribute('nonce', nonce)");
     expect(room).not.toContain('fonts.googleapis.com');
   });
 
@@ -118,7 +118,10 @@ describe('arcade deployment boundary', () => {
 
     expect(room).toContain('onOpenTournaments');
     expect(room).toContain('onOpenCreateTournament');
-    expect(room).toContain('OFFICIAL_SURFACE_IDS');
+    const controls = readFileSync(join(ROOT_PATH, 'minigioco-test/world-client/use-world-controls.js'), 'utf8');
+    expect(controls).toContain("new Set(['pc', 'board', 'decks'])");
+    expect(controls).toContain('onOpenDecks');
+    expect(controls).toContain('gameRef.current?.zoomOut()');
     expect(room).not.toContain('function PcModal');
     expect(room).not.toContain('function BoardModal');
     expect(room).not.toContain('<DecksModal');

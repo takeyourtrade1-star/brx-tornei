@@ -18,7 +18,10 @@ export interface IsoRoomGameProps {
   onExitToSimple?: () => void;
   /** Distingue l'integrazione autenticata dai minigiochi del prototipo. */
   integrationMode?: 'prototype' | 'site';
-  __debug?: boolean;
+  /** Sospende il motore quando una superficie ufficiale copre la stanza. */
+  paused?: boolean;
+  quality?: 'auto' | 'high' | 'low';
+  __debug?: boolean | ((state: unknown) => void);
 }
 
 export default function IsoRoomGame(props: IsoRoomGameProps): React.JSX.Element;

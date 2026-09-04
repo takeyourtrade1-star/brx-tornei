@@ -131,6 +131,7 @@ export function ArcadeRoomLauncher({
           initialLook={initialAssoWorldLook}
           tournaments={tournaments}
           integrationMode="site"
+          paused={officialSurface !== null}
           onOpenTournaments={handleOpenTournaments}
           onOpenCreateTournament={handleCreateTournament}
           onOpenDecks={handleOpenDecks}
