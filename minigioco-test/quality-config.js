@@ -72,6 +72,7 @@
     const animated = !low && !reducedMotion;
 
     return {
+      highDetail: !low,
       // rendering fisico
       // In modalita leggera il canvas viene renderizzato sotto la risoluzione CSS
       // e poi ingrandito dal browser: sulla pixel-art resta leggibile e dimezza

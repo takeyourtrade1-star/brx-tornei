@@ -3,7 +3,7 @@ import * as dependencies from "./dependencies";
 
 export function renderLabels(engine, frame) {
     /* — frecce guida + etichette sopra gli oggetti (sempre visibili, solo Sala Tornei) — */
-    if (frame.isTour && !engine.st.photoHide) {
+    if (frame.isTour && !engine.fx.highDetail && !engine.st.photoHide) {
         const GUIDE = {
             pc: "Tornei live ufficiali",
             board: "Crea un nuovo torneo",

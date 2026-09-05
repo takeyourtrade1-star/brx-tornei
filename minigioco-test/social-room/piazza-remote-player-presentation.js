@@ -23,7 +23,6 @@ function safeNowMs(value) {
   const now = Date.now();
   return Number.isSafeInteger(now) && now >= 0 ? now : 0;
 }
-
 function mediaPreference(query) {
   try {
     if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
@@ -34,7 +33,6 @@ function mediaPreference(query) {
   }
   return false;
 }
-
 function tabIsInactive() {
   try {
     return typeof document !== "undefined" && document.hidden === true;
@@ -42,7 +40,6 @@ function tabIsInactive() {
     return false;
   }
 }
-
 /** Opzioni facoltative: il consumer attuale può ometterle e usare le media query. */
 export function getRemotePlayerRenderOptions(overrides = {}) {
   const input = overrides && typeof overrides === "object" ? overrides : {};
@@ -55,7 +52,6 @@ export function getRemotePlayerRenderOptions(overrides = {}) {
     nowMs: safeNowMs(input.nowMs),
   };
 }
-
 function cleanBubbleText(value) {
   if (typeof value !== "string") return "";
   return Array.from(value.normalize("NFKC")
@@ -65,7 +61,6 @@ function cleanBubbleText(value) {
     .replace(/[<>]/gu, ""))
     .slice(0, MAX_CHAT_LENGTH).join("").trim();
 }
-
 export function normalizeRemoteBubble(value, nowMs = safeNowMs()) {
   if (!value || typeof value !== "object") return null;
   const text = cleanBubbleText(value.text);
@@ -79,12 +74,10 @@ export function normalizeRemoteBubble(value, nowMs = safeNowMs()) {
     expiresAt: Math.min(expiresAt, currentTime + CHAT_BUBBLE_DURATION_MS),
   };
 }
-
 export function isRemotePlayerMoving(rp) {
   return !!(rp && (rp.nextStep || (Array.isArray(rp.queue) && rp.queue.length)
     || (Number.isFinite(rp.wt) && rp.wt > 0)));
 }
-
 function measureText(ctx, value) {
   try {
     const width = ctx.measureText(value).width; return Number.isFinite(width) ? width : Array.from(value).length * 6;
@@ -92,7 +85,6 @@ function measureText(ctx, value) {
     return Array.from(value).length * 6;
   }
 }
-
 function fitText(ctx, value, maxWidth) {
   const chars = Array.from(value);
   if (measureText(ctx, value) <= maxWidth) return value;
@@ -100,14 +92,12 @@ function fitText(ctx, value, maxWidth) {
   while (end > 0 && measureText(ctx, chars.slice(0, end).join("") + "…") > maxWidth) end -= 1;
   return chars.slice(0, end).join("") + "…";
 }
-
 function appendEllipsis(ctx, value, maxWidth) {
   const chars = Array.from(value);
   let end = chars.length;
   while (end > 0 && measureText(ctx, chars.slice(0, end).join("") + "…") > maxWidth) end -= 1;
   return chars.slice(0, end).join("") + "…";
 }
-
 function wrapLine(ctx, value, maxWidth) {
   const words = value.trim().split(/\s+/u).filter(Boolean);
   if (!words.length) return [""];
@@ -135,7 +125,6 @@ function wrapLine(ctx, value, maxWidth) {
   if (line || !lines.length) lines.push(line);
   return lines;
 }
-
 /** Divide il testo già limitato dal protocollo in righe leggibili per il canvas. */
 export function formatRemoteChatLines(ctx, value, maxWidth = BUBBLE_TEXT_WIDTH, maxLines = BUBBLE_MAX_LINES) {
   const width = Number.isFinite(maxWidth) && maxWidth > 20 ? maxWidth : BUBBLE_TEXT_WIDTH;
@@ -148,13 +137,11 @@ export function formatRemoteChatLines(ctx, value, maxWidth = BUBBLE_TEXT_WIDTH, 
   visible[count - 1] = appendEllipsis(ctx, visible[count - 1], width);
   return visible;
 }
-
 function roundedRect(ctx, x, y, width, height, radius) {
   ctx.beginPath();
   if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, width, height, radius);
   else ctx.rect(x, y, width, height);
 }
-
 function drawChatBubble(ctx, x, y, text, palette) {
   ctx.font = "10px 'Segoe UI', system-ui, sans-serif";
   const lines = formatRemoteChatLines(ctx, text);
@@ -183,7 +170,6 @@ function drawChatBubble(ctx, x, y, text, palette) {
   ctx.textBaseline = "middle";
   lines.forEach((line, index) => ctx.fillText(line, bx + bubbleWidth / 2, by + 6 + lineHeight * (index + 0.5)));
 }
-
 export function drawRemotePlayer(wctx, rp, tileTop, HTH, tNow, options = {}) {
   if (!wctx || !rp || typeof tileTop !== "function") return;
   const settings = getRemotePlayerRenderOptions(options);
@@ -198,12 +184,10 @@ export function drawRemotePlayer(wctx, rp, tileTop, HTH, tNow, options = {}) {
   const cxp = c.x;
   const cyp = c.y + halfTileH;
   const palette = settings.lightMode ? LIGHT_PALETTE : DARK_PALETTE;
-
   wctx.fillStyle = palette.shadow;
   wctx.beginPath();
   wctx.ellipse(cxp, cyp + 5, 12, 5, 0, 0, Math.PI * 2);
   wctx.fill();
-
   const direction = ["se", "sw", "ne", "nw"].includes(rp.dir) ? rp.dir : "se";
   const directionData = rp.avatar && (rp.avatar[direction] || rp.avatar.se);
   const idle = directionData && Array.isArray(directionData.idle) ? directionData.idle : [];
@@ -220,7 +204,11 @@ export function drawRemotePlayer(wctx, rp, tileTop, HTH, tNow, options = {}) {
     ? -Math.abs(Math.sin((Number.isFinite(rp.wt) ? rp.wt : 0) * 1.2)) * 1.4 : 0;
   const drawY = Math.round(cyp + 6 - feetY + bob);
   if (sprite && sprite.cv) wctx.drawImage(sprite.cv, Math.round(cxp - feetX), drawY);
-
+  drawRemotePlayerAnnotations(wctx, rp, cxp, drawY, options);
+}
+export function drawRemotePlayerAnnotations(wctx, rp, cxp, drawY, options = {}) {
+  const settings = getRemotePlayerRenderOptions(options);
+  const palette = settings.lightMode ? LIGHT_PALETTE : DARK_PALETTE;
   wctx.save();
   wctx.font = "bold 9px 'Segoe UI', system-ui, sans-serif";
   const label = fitText(wctx, normalizeGamertag(rp.gamertag), NAMEPLATE_TEXT_WIDTH);
@@ -242,7 +230,6 @@ export function drawRemotePlayer(wctx, rp, tileTop, HTH, tNow, options = {}) {
   wctx.textAlign = "left";
   wctx.textBaseline = "middle";
   wctx.fillText(label, plateX + 14, plateY + 8);
-
   const bubble = normalizeRemoteBubble(rp.bubble, settings.nowMs);
   if (bubble) drawChatBubble(wctx, cxp, plateY - 7, bubble.text, palette);
   wctx.restore();

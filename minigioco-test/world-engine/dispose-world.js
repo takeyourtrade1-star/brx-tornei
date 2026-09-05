@@ -1,3 +1,4 @@
+import { releaseDetailedScene } from "../high-detail/scene-cache";
 /** Cleanup idempotente anche quando l'avvio si interrompe prima di creare l'API. */
 export function disposeWorld(engine) {
   if (engine.disposed) return;
@@ -10,6 +11,8 @@ export function disposeWorld(engine) {
     engine.st.raf = null;
     engine.st.pauseTimer = null;
   }
+  releaseDetailedScene(engine);
+  engine.detailBackdrop = null;
   engine.ro?.disconnect();
   engine.removeInput?.();
   engine.sfx?.dispose();

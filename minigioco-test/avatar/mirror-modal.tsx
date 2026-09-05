@@ -10,6 +10,7 @@ import {
   randomCanonicalAssoWorldLook,
   type AssoWorldLookPatch,
 } from './mirror-contract';
+import { CharacterPreview } from '../high-detail/character-preview';
 import { buildAvatar } from './avatar-sprite-renderer';
 import {
   AVATAR_DIRECTION_LABELS,
@@ -31,6 +32,7 @@ export interface MirrorModalProps {
   readonly retrySave?: () => void;
   readonly disabled?: boolean;
   readonly className?: string;
+  readonly quality?: 'high' | 'low';
 }
 const OUTFIT_SWATCH_CLASSES: Readonly<Record<AssoWorldOutfit, string>> = {
   tank: 'bg-foreground',
@@ -58,6 +60,7 @@ export function MirrorModal({
   retrySave,
   disabled = false,
   className,
+  quality = 'high',
 }: MirrorModalProps) {
   const titleId = useId();
   const helpId = `${titleId}-help`;
@@ -71,7 +74,7 @@ export function MirrorModal({
   const directionLabel = AVATAR_DIRECTION_LABELS[frame.direction];
   const locked = disabled;
   useEffect(() => {
-    if (reducedMotion) {
+    if (reducedMotion || quality === 'high') {
       setPreview((current) => staticAvatarPreviewFrame(current, true));
       return undefined;
     }
@@ -87,7 +90,7 @@ export function MirrorModal({
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [motion, reducedMotion]);
+  }, [motion, reducedMotion, quality]);
   const renderPreview = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -118,7 +121,9 @@ export function MirrorModal({
       <div className="grid gap-5 md:grid-cols-[minmax(11rem,0.8fr)_minmax(0,1.2fr)]">
         <div className="flex flex-col gap-3">
           <div className="grid min-h-[12rem] md:min-h-[18rem] place-items-center overflow-hidden rounded-2xl border border-border bg-muted/40 p-3">
-            <canvas
+            {quality === 'high' ? <CharacterPreview look={safeLook} direction={frame.direction}
+              walking={motion === 'walk'} reducedMotion={reducedMotion}
+              label={`Anteprima avatar: vista ${directionLabel}, modalità ${motion === 'walk' ? 'cammino' : 'fermo'}`} /> : <canvas
               ref={canvasRef}
               width={132}
               height={232}
@@ -128,7 +133,7 @@ export function MirrorModal({
               aria-describedby={helpId}
             >
               Anteprima avatar Asso World
-            </canvas>
+            </canvas>}
           </div>
           <p id={helpId} className="text-center text-[11px] leading-relaxed text-muted-foreground">
             {reducedMotion ? 'Animazioni ridotte: anteprima fissa.' : `Vista: ${directionLabel}.`}

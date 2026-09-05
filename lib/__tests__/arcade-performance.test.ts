@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createFrameLimiter } from '../../minigioco-test/frame-limiter';
 
 interface FxFlags {
+  highDetail: boolean;
   dpr: number;
   targetFps: number;
   uiTickMs: number;
@@ -36,6 +37,8 @@ describe('prestazioni Sala Arcade', () => {
     const low = qualityConfig.getFxFlags('low');
 
     expect(high.targetFps).toBe(60);
+    expect(high.highDetail).toBe(true);
+    expect(low.highDetail).toBe(false);
     expect(low.targetFps).toBe(30);
     expect(low.dpr).toBeLessThan(high.dpr);
     expect(low.dpr).toBeLessThanOrEqual(0.75);

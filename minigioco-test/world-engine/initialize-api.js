@@ -1,3 +1,4 @@
+import { releaseDetailedScene } from "../high-detail/scene-cache";
 import { disposeWorld } from "./dispose-world";
 // Motore Asso World: initialize api.
 import * as dependencies from "./dependencies";
@@ -38,6 +39,7 @@ export function initializeApi(engine) {
             if (engine.st.destroyed)
                 return;
             engine.fx = dependencies.getFxFlags(q);
+            if (!engine.fx.highDetail) releaseDetailedScene(engine);
             engine.remoteRenderOptions.reducedMotion = engine.fx.reducedMotion;
             engine.frameLimiter.setTargetFps(engine.fx.targetFps);
             engine.resize();

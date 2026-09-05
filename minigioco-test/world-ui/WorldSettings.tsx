@@ -37,7 +37,7 @@ function QualityChoice({ value, current, disabled, onChange }: QualityChoiceProp
       disabled={disabled}
       aria-pressed={active}
     >
-      <span>{value === 'high' ? 'Qualità alta' : 'Modalità leggera'}</span>
+      <span className="py-3"><span className="block font-bold">{value === 'high' ? 'Qualità alta' : 'Modalità leggera'}</span><span className="mt-1 block text-[11px] font-normal text-muted-foreground">{value === 'high' ? 'Diorama, luci e materiali' : 'Pixel art, consumi ridotti'}</span></span>
       {active && <span className="text-[10px] font-bold uppercase tracking-wide text-primary">Attiva</span>}
     </button>
   );
@@ -79,7 +79,7 @@ export function WorldSettings({
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          La modalità leggera riduce frame ed effetti per telefoni e PC meno potenti.
+          La qualità alta ridisegna ambienti e personaggi. La modalità leggera conserva la pixel art e riduce i consumi.
         </p>
       </section>
 

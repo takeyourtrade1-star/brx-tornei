@@ -111,8 +111,21 @@ export function initializeState(engine) {
     for (let i = 0; i < 14; i++) {
         engine.st.motes.push({ u: Math.random(), v: Math.random(), sp: 0.03 + Math.random() * 0.05, ph: Math.random() * 6.28, lift: 8 + Math.random() * 48 });
     }
-    if (engine.initRoom === "piazza") {
-        engine.tourData = { blocked: engine.blocked, sprMap: engine.sprMap, entities: engine.entities, inter: engine.inter, sils: engine.sils, boardSp: engine.boardSp };
+    engine.tourData = { bg: engine.bg, blocked: engine.blocked, sprMap: engine.sprMap, entities: engine.entities, inter: engine.inter, sils: engine.sils, boardSp: engine.boardSp };
+    if (engine.initRoom === "arcade") {
+        engine.bg = engine.arcadeBg;
+        engine.blocked = engine.arcadeBlocked;
+        engine.sprMap = engine.arcadeSprMap;
+        engine.entities = engine.arcadeEntities;
+        engine.inter = engine.arcadeInter;
+        engine.sils = engine.arcadeSils;
+        engine.boardSp = engine.arcadeBoardSp;
+        const entry = dependencies.ARC_ENTRY_TILE;
+        engine.st.av.from = { cx: entry.cx, cy: entry.cy };
+        engine.st.av.fx = entry.cx;
+        engine.st.av.fy = entry.cy;
+    }
+    else if (engine.initRoom === "piazza") {
         engine.bg = engine.piazzaBg;
         engine.blocked = engine.piazzaBlocked;
         engine.sprMap = engine.piazzaSprMap;

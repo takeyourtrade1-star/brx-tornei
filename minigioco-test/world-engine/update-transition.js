@@ -12,7 +12,7 @@ export function updateTransition(engine, frame) {
             engine.st.transition.swapped = true;
             if (engine.st.transition.target === "arcade") {
                 if (engine.st.room === "tournament")
-                    engine.tourData = { blocked: engine.blocked, sprMap: engine.sprMap, entities: engine.entities, inter: engine.inter, sils: engine.sils, boardSp: engine.boardSp };
+                    engine.tourData = { bg: engine.bg, blocked: engine.blocked, sprMap: engine.sprMap, entities: engine.entities, inter: engine.inter, sils: engine.sils, boardSp: engine.boardSp };
                 engine.bg = engine.arcadeBg;
                 engine.blocked = engine.arcadeBlocked;
                 engine.sprMap = engine.arcadeSprMap;
@@ -27,7 +27,7 @@ export function updateTransition(engine, frame) {
             }
             else if (engine.st.transition.target === "piazza") {
                 if (engine.st.room === "tournament")
-                    engine.tourData = { blocked: engine.blocked, sprMap: engine.sprMap, entities: engine.entities, inter: engine.inter, sils: engine.sils, boardSp: engine.boardSp };
+                    engine.tourData = { bg: engine.bg, blocked: engine.blocked, sprMap: engine.sprMap, entities: engine.entities, inter: engine.inter, sils: engine.sils, boardSp: engine.boardSp };
                 engine.bg = engine.piazzaBg;
                 engine.blocked = engine.piazzaBlocked;
                 engine.sprMap = engine.piazzaSprMap;

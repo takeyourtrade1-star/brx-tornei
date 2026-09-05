@@ -18,6 +18,27 @@ Server Action e la Piazza usa il WebSocket autenticato esistente.
   dalla Sala Tornei quando non esiste una porta diretta.
 - HUD compatto, comandi accessibili, focus nelle finestre e ripristino alla chiusura.
 
+## Diorama in qualità alta
+
+La qualità alta usa un renderer dedicato in `high-detail/`, con contorni morbidi
+alla risoluzione del display: parquet, pareti con boiserie, monitor panoramico,
+tavolo in legno con bordo intarsiato, carte e materiali sfumati. La Piazza ha
+una pergola con piante sospese, fioriere, luci e tavoli da gioco; la Sala Arcade
+mantiene un'identità distinta con arredi e illuminazione dedicati.
+
+Personaggi e animali sono disegnati con volumi e ombre. Il guardaroba usa lo
+stesso renderer del mondo, incluse rotazione e animazione del cammino; le 30
+combinazioni conservano i colori e le chiavi del profilo ufficiale.
+
+Fondali e arredi sono precalcolati a risoluzione tripla. La cache conserva una
+sola stanza e viene liberata al cambio di qualità, stanza o fase del giorno e
+allo smontaggio. I clic usano maschere della nuova sagoma; percorsi e collider
+mantengono il reticolo originale. La qualità leggera conserva il renderer pixel
+art e i suoi limiti di consumo. Non sono state aggiunte dipendenze.
+
+Il cambio della luce aggiorna correttamente anche una Sala Tornei mai lasciata;
+l'ingresso diretto nella Sala Arcade inizializza la scena corrispondente.
+
 ## Confini del codice
 
 `IsoRoomGame.jsx` compone le foglie interattive. `world-client/` contiene gli
@@ -58,6 +79,9 @@ Sono coperti da test contratto look, cache e sprite, concorrenza dei salvataggi,
 percorsi e collider, collegamento degli oggetti Piazza, input, proiezione,
 qualità e confini CSP/integrazione ufficiale. Typecheck, lint e build production
 sono controlli distinti dalla verifica visiva.
+La revisione del diorama passa 719 test in 141 file con due worker, oltre a
+typecheck, lint e build. I test aggiunti coprono maschere dei clic, rilascio
+della cache, coordinate non valide e cambio della luce nelle stanze.
 
 La prova browser locale usa il componente reale con fixture esplicite per la
 Server Action e le callback della lobby, fuori dal repository. Verifica

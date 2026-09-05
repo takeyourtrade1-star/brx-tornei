@@ -78,6 +78,7 @@ export default function IsoRoomGame({
       className={`irg-root bg-header-bg text-white${quality === 'low' ? ' irg-quality-low' : ''}${powering ? ' irg-powering' : ''}`}
       aria-label="Asso World"
       data-world-room={room}
+      data-world-quality={quality}
     >
       <canvas ref={canvasRef} className="irg-canvas" tabIndex={0} aria-label={`${roomLabel}. Clicca per muoverti oppure usa WASD e frecce.`} />
       <WorldHud
@@ -109,7 +110,7 @@ export default function IsoRoomGame({
       {modal === 'mirror' && (
         <WorldModalShell id="mirror" title="Il tuo guardaroba" closing={closing}
           onClose={controls.closeModal} className="irg-m-mirror">
-          <MirrorModal look={look.draft} onChange={look.applyLook}
+          <MirrorModal quality={quality} look={look.draft} onChange={look.applyLook}
             pending={look.pending} error={look.error} retrySave={look.retrySave} />
         </WorldModalShell>
       )}

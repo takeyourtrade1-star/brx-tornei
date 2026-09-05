@@ -2,14 +2,16 @@
 import * as dependencies from "./dependencies";
 
 export function updateAmbience(engine, frame) {
-    /* — ricontrolla la fase del giorno (ogni 30s, solo Sala Tornei) — */
-    if (frame.isTour && engine.st.t > engine.st.phaseCheck) {
+    /* — ricontrolla la fase del giorno (ogni 30s, anche sulla terrazza) — */
+    if (engine.st.t > engine.st.phaseCheck) {
         engine.st.phaseCheck = engine.st.t + 30;
         const ph = dependencies.dayPhase();
         if (ph.id !== engine.phase.id) {
             engine.phase = ph;
-            engine.bg = dependencies.buildBackground(engine.phase, engine.stats, engine.posters);
-            engine.tourData.bg = engine.bg;
+            engine.tourData.bg = dependencies.buildBackground(engine.phase, engine.stats, engine.posters);
+            engine.piazzaBg = dependencies.buildPiazzaBackground(engine.phase);
+            if (frame.isTour) engine.bg = engine.tourData.bg;
+            else if (engine.st.room === "piazza") engine.bg = engine.piazzaBg;
         }
     }
     /* — gatto: stati e movimento — */

@@ -5,6 +5,10 @@ const WORLD_CSS = `
 .irg-root{position:relative;width:100%;height:100%;min-height:0;overflow:hidden;font-family:var(--font-sans,system-ui);user-select:none;isolation:isolate}
 .irg-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .irg-helper{z-index:15}
+.irg-root .asso-diorama{display:none}
+.irg-root[data-world-quality="high"] .asso-diorama{display:block}
+.irg-root[data-world-quality="high"] .asso-mascot>i{visibility:hidden}
+.irg-root[data-world-quality="high"] .irg-helper-asso{filter:drop-shadow(0 5px 10px rgba(0,0,0,.18));width:44px;height:58px}
 .irg-canvas:focus-visible{outline:2px solid currentColor;outline-offset:-3px}
 .irg-m-arcade{width:min(1100px,96vw);height:calc(100% - 40px);max-height:calc(100% - 40px);display:flex;flex-direction:column;padding:0;overflow:hidden}
 .irg-m-mirror{width:min(780px,96vw);max-width:100%}

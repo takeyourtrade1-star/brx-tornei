@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { ASSO_ACCENTS, ASSO_BODY_COL, ASSO_GH, ASSO_GRID, ASSO_GW } from '@/lib/asso-pixel';
 import { cn } from '@/lib/utils';
+import { AssoDiorama } from './asso-diorama';
 
 export interface AssoPixelProps {
   readonly className?: string;
@@ -19,7 +20,7 @@ const PIXEL_COLORS: Readonly<Record<string, string>> = {
 export function AssoPixel({ className, label, style }: AssoPixelProps): React.JSX.Element {
   return (
     <span
-      className={cn('relative grid shrink-0', className)}
+      className={cn('asso-mascot relative grid shrink-0', className)}
       style={{
         aspectRatio: `${ASSO_GW} / ${ASSO_GH}`,
         gridTemplateColumns: `repeat(${ASSO_GW}, minmax(0, 1fr))`,
@@ -30,6 +31,7 @@ export function AssoPixel({ className, label, style }: AssoPixelProps): React.JS
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
+      <AssoDiorama />
       {ASSO_GRID.flatMap((row, rowIndex) =>
         Array.from(row).map((cell, columnIndex) => {
           if (cell === '.') return null;
