@@ -12,6 +12,7 @@ export function installPetDog(engine) {
         dog.until = engine.st.t + 4;
     }
     dog.pets++;
+    dog.lastPet = engine.st.t;
     let isPendingChair = false;
     if (!dog.perch && !dog.to) {
         dog.pendingChairAt = engine.st.t + 1.5;

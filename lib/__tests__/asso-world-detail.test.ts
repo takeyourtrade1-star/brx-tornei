@@ -19,9 +19,11 @@ describe('diorama Asso World', () => {
 
   it('libera tutti i canvas anche dopo un avvio incompleto e ripetuti cleanup', () => {
     const cv = { width: 1200, height: 900 };
-    const engine = { detailScene: { background: null, furniture: new Map([['desk', { cv }]]) } };
+    const foliage = { width: 200, height: 150 };
+    const engine = { detailScene: { background: null, furniture: new Map([['desk', { cv }]]), foliage: [{ cv: foliage }] } };
     releaseDetailedScene(engine); releaseDetailedScene(engine);
     expect(cv).toEqual({ width: 1, height: 1 });
+    expect(foliage).toEqual({ width: 1, height: 1 });
     expect(engine.detailScene).toBeNull();
   });
 

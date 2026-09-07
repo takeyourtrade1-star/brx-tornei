@@ -1,6 +1,7 @@
 import { getDetailedScene, drawDetailedLayer } from './scene-cache';
 import { drawSceneActors } from './scene-actors';
 import { point, polygon, ellipse, roundRect, glow } from './primitives';
+import { drawAmbientMotion, drawFoliageLayers } from './ambient-motion';
 
 function drawGroundFeedback(engine, ctx) {
   const { st, fx } = engine;
@@ -113,6 +114,8 @@ export function renderDetailedWorld(engine, frame) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   drawDetailedLayer(ctx, scene.background);
+  drawFoliageLayers(ctx, scene.foliage, st.t, engine.fx.reducedMotion);
+  drawAmbientMotion(ctx, st.room, st.t, { reducedMotion: engine.fx.reducedMotion, fx: engine.fx, phase: engine.phase });
   drawGroundFeedback(engine, ctx);
   drawSceneActors(engine, scene, ctx);
   drawAtmosphere(engine, ctx);

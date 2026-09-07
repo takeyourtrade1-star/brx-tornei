@@ -1,6 +1,7 @@
 import { drawDetailedBackground } from './background';
 import { drawDetailedFurniture } from './furniture';
 import { point } from './primitives';
+import { TERRACE_FOLIAGE_ITEMS, drawFoliageItem } from './terrace-garden';
 
 // Una sola stanza in memoria. Il dettaglio è precalcolato, mai ridisegnato a 60 FPS.
 const RESOLUTION = 3;
@@ -16,7 +17,7 @@ function layer(bounds, draw) {
 
 export function releaseDetailedScene(engine) {
   if (!engine.detailScene) return;
-  for (const entry of [engine.detailScene.background, ...engine.detailScene.furniture.values()]) {
+  for (const entry of [engine.detailScene.background, ...engine.detailScene.furniture.values(), ...(engine.detailScene.foliage || [])]) {
     if (entry) { entry.cv.width = 1; entry.cv.height = 1; }
   }
   engine.detailScene = null;
@@ -27,10 +28,15 @@ export function getDetailedScene(engine) {
   if (engine.detailScene?.key === key) return engine.detailScene;
   releaseDetailedScene(engine);
   const furniture = new Map();
-  const scene = { key, furniture, background: null };
+  const scene = { key, furniture, background: null, foliage: [] };
   // Registrazione immediata: il cleanup libera anche una costruzione incompleta.
   engine.detailScene = scene;
   scene.background = layer({ x: 0, y: 0, w: 736, h: 560 }, (ctx) => drawDetailedBackground(ctx, engine.st.room, engine.phase));
+  if (engine.st.room === 'piazza') {
+    for (const [index, item] of TERRACE_FOLIAGE_ITEMS.entries()) {
+      scene.foliage.push({ ...item, ...layer(item.bounds, (ctx) => drawFoliageItem(ctx, index)) });
+    }
+  }
   for (const e of engine.entities) {
     const left = point(e.minX, e.maxY + 1);
     const right = point(e.maxX + 1, e.minY);

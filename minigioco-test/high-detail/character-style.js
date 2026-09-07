@@ -8,8 +8,11 @@ export const CHARACTER_COLORS = Object.freeze({
   skinLight: "#e9bb8d",
   skinShadow: "#b37d4f",
   skinDeep: "#8f5e38",
-  eye: "#263d48",
-  mouth: "#914f4c",
+  eye: "#2d4145",
+  eyeSoft: "#9c765f",
+  brow: "#a77e61",
+  cheek: "#df837b",
+  mouth: "#92545a",
   ivory: "#f3ead9",
   ivoryLight: "#fff8ec",
   ivoryShadow: "#c6bda9",
@@ -46,7 +49,7 @@ export const OUTFIT_STYLES = Object.freeze({
     base: "#3a4660", light: "#52617f", shadow: "#26304a", accent: "#e8b13c", inner: "#e7e3d8", kind: "jacket",
   },
   shirt: {
-    base: "#dfe7f2", light: "#f3f7fc", shadow: "#b9c6da", accent: "#9fb0c6", kind: "shirt",
+    base: "#d3dfec", light: "#edf3f8", shadow: "#aebfd2", accent: "#8fa4bd", kind: "shirt",
   },
   jersey: {
     base: "#2f9e6b", light: "#46c08a", shadow: "#1f7350", accent: "#e8b13c", stripe: "#f5f5ee", kind: "jersey",

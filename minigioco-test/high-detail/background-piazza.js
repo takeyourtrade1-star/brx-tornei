@@ -103,7 +103,8 @@ export function drawPiazzaBackground(ctx, phase = {}) {
   drawPlanter(ctx, 0.62, 1.65, M.terracotta);
   drawPlanter(ctx, 0.62, 7.18, M.terracottaDeep);
   drawStringLights(ctx);
-  drawTerraceGarden(ctx);
+  // Il foliage della pergola vive in layer cacheati e viene mosso prima degli attori.
+  drawTerraceGarden(ctx, { omitFoliage: true });
   drawWallDoor(ctx, "right", 8.65, 10.2, {
     frame: M.walnutDeep, frameEdge: rgba(M.amberLight, 0.58), leafTop: M.walnutLight,
     leafBottom: M.walnut, panel: rgba(M.walnutDeep, 0.54), panelEdge: rgba(M.amberLight, 0.38),

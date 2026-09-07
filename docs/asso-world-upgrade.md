@@ -39,6 +39,24 @@ art e i suoi limiti di consumo. Non sono state aggiunte dipendenze.
 Il cambio della luce aggiorna correttamente anche una Sala Tornei mai lasciata;
 l'ingresso diretto nella Sala Arcade inizializza la scena corrispondente.
 
+## Rifinitura dei personaggi e movimento
+
+L'avatar ha collo corto, viso sorridente, mani e scarpe arrotondate, pantaloni
+denim e dettagli coerenti degli abiti. Le quattro direzioni condividono respiro,
+sguardo, battito delle palpebre e passo con appoggi alternati; il guardaroba usa
+lo stesso disegno e sospende il proprio loop quando la scheda è nascosta.
+La posa seduta appoggia il bacino alla nuova sedia, senza l'offset pixel art.
+
+Cane e gatto distinguono cammino, seduta, sonno e carezze, con coda, orecchie e
+zampe animate. Il movimento effettivo prevale sullo stato di riposo conservato
+dal motore durante gli spostamenti. Anche il cane registra l'ultima carezza.
+
+PC, cabinati, carte e giradischi aggiungono dettagli animati sopra gli arredi
+precalcolati. Il disco ruota quando la musica è attiva. Le sei fronde della
+pergola sono bitmap separate: ondeggiano senza ricostruire foglie o gradienti
+a ogni frame. Restano visibili e ferme con movimento ridotto; il cambio di
+stanza, qualità e lo smontaggio liberano anche questa cache.
+
 ## Confini del codice
 
 `IsoRoomGame.jsx` compone le foglie interattive. `world-client/` contiene gli
@@ -79,9 +97,16 @@ Sono coperti da test contratto look, cache e sprite, concorrenza dei salvataggi,
 percorsi e collider, collegamento degli oggetti Piazza, input, proiezione,
 qualità e confini CSP/integrazione ufficiale. Typecheck, lint e build production
 sono controlli distinti dalla verifica visiva.
-La revisione del diorama passa 719 test in 141 file con due worker, oltre a
-typecheck, lint e build. I test aggiunti coprono maschere dei clic, rilascio
-della cache, coordinate non valide e cambio della luce nelle stanze.
+La rifinitura del 7 settembre passa 734 test in 145 file con un worker, oltre a
+typecheck, lint e build. I test includono maschere dei clic, rilascio della cache,
+coordinate non valide, cambio della luce, pose, animazioni e movimento ridotto.
+
+Per questa rifinitura la verifica grafica usa il renderer reale con un canvas
+nativo esterno all'app, senza aprire browser o server. Sono stati confrontati
+272 render di avatar e animali, incluse le 120 combinazioni look/direzione,
+e le tre stanze: fotogrammi animati differenti, fotogrammi ridotti identici,
+cache riutilizzata e canvas liberati. Questi controlli non misurano gli FPS
+del browser né sostituiscono una prova interattiva sul dispositivo.
 
 La prova browser locale usa il componente reale con fixture esplicite per la
 Server Action e le callback della lobby, fuori dal repository. Verifica
