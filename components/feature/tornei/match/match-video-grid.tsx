@@ -5,6 +5,7 @@ import type { Participant } from '@/types/tournament';
 import type { StickerShot } from '@/hooks/use-match-sticker-shot';
 import { cn } from '@/lib/utils';
 import { MatchWebcamDisconnectOverlay } from './match-live-parts';
+import { MatchLifeBadge } from './match-life-badge';
 import { MatchPlayerTile } from './match-player-tile';
 import { MatchStickerIcon } from './match-sticker-icons';
 
@@ -45,8 +46,8 @@ interface MatchVideoGridProps {
   onLifeReset?: () => void;
   onRetryPeer?: () => void;
   /**
-   * Pannello centrale (chat): su desktop sta in mezzo alle due webcam,
-   * su mobile va in coda dopo entrambe. Solo presentazione, nessun
+   * Pannello centrale della riga vita-chat-vita sotto le webcam (desktop).
+   * Su mobile va in coda dopo webcam e vite. Solo presentazione, nessun
    * cambiamento ai callback vita/video.
    */
   chat?: ReactNode;
@@ -62,6 +63,9 @@ export function MatchVideoGrid({
   onToggleOpponentMute, onToggleMirrorLocal, onToggleMirrorRemote,
   onFullscreen, onLifeChange, onLifeReset, onRetryPeer, chat,
 }: MatchVideoGridProps) {
+  // Con chat presente le console vita escono dalle tile e formano la riga
+  // vita-chat-vita sotto le webcam; senza chat restano sotto il video.
+  const detachedLife = chat !== undefined;
   return (
     <div className="relative min-w-0">
       {stickerShot && (
@@ -80,16 +84,14 @@ export function MatchVideoGrid({
         </div>
       )}
 
-      {/* Arena: webcam laterali con vita sotto, chat in mezzo su desktop */}
+      {/* Arena: webcam grandi sopra, riga vita-chat-vita sotto su desktop */}
       <div
         className={cn(
           'grid min-w-0 grid-cols-1 gap-3.5',
-          chat
-            ? 'lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)_minmax(0,1fr)] lg:items-stretch'
-            : 'lg:grid-cols-2',
+          detachedLife ? 'lg:grid-cols-12 lg:items-center' : 'lg:grid-cols-2',
         )}
       >
-        <div className="min-w-0 order-1">
+        <div className="min-w-0 lg:order-1 lg:col-span-6">
         <MatchPlayerTile
           player={leftPlayer}
           formatName={formatName}
@@ -107,6 +109,7 @@ export function MatchVideoGrid({
           interactiveLife={isPlayer && started}
           onLifeChange={onLifeChange}
           onLifeReset={onLifeReset}
+          hideLife={detachedLife}
           micOn={micOn}
           camOn={camOn}
           onToggleMic={isPlayer ? onToggleMic : undefined}
@@ -125,13 +128,24 @@ export function MatchVideoGrid({
         />
         </div>
 
-        {chat && (
-          <div className="min-w-0 order-3 lg:order-2 lg:min-h-[380px]">
-            {chat}
+        {detachedLife && (
+          <div className="min-w-0 lg:order-3 lg:col-span-3">
+            <MatchLifeBadge
+              username={leftPlayer.username}
+              life={lifeByPlayerId[leftPlayer.id] ?? startingLife}
+              playerId={leftPlayer.id}
+              connected={lifeConnected}
+              variant="local"
+              interactive={isPlayer && started}
+              startingLife={startingLife}
+              onChange={onLifeChange}
+              onReset={onLifeReset}
+              layout="stacked"
+            />
           </div>
         )}
 
-        <div className="min-w-0 order-2 lg:order-3">
+        <div className="min-w-0 lg:order-2 lg:col-span-6">
         <MatchPlayerTile
           player={rightPlayer}
           formatName={formatName}
@@ -148,6 +162,7 @@ export function MatchVideoGrid({
           lifeConnected={lifeConnected}
           interactiveLife={false}
           onLifeChange={onLifeChange}
+          hideLife={detachedLife}
           opponentMuted={opponentMuted}
           onToggleOpponentMute={isPlayer ? onToggleOpponentMute : undefined}
           onFullscreen={isPlayer && started ? onFullscreen : undefined}
@@ -164,6 +179,27 @@ export function MatchVideoGrid({
           }
         />
         </div>
+
+        {detachedLife && (
+          <>
+            <div className="min-w-0 lg:order-5 lg:col-span-3">
+              <MatchLifeBadge
+                username={rightPlayer.username}
+                life={lifeByPlayerId[rightPlayer.id] ?? startingLife}
+                playerId={rightPlayer.id}
+                connected={lifeConnected}
+                variant="remote"
+                interactive={false}
+                startingLife={startingLife}
+                onChange={onLifeChange}
+                layout="stacked"
+              />
+            </div>
+            <div className="min-w-0 lg:order-4 lg:col-span-6">
+              {chat}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

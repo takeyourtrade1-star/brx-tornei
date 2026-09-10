@@ -35,6 +35,11 @@ export interface MatchPlayerTileProps {
   onToggleOpponentMute?: () => void;
   onFullscreen?: () => void;
   disconnectOverlay?: ReactNode;
+  /**
+   * true: nasconde il footer vita (la console viene renderizzata altrove,
+   * es. riga dedicata sotto le webcam). Stessi dati e callback.
+   */
+  hideLife?: boolean;
 }
 
 /**
@@ -69,6 +74,7 @@ export function MatchPlayerTile({
   onToggleOpponentMute,
   onFullscreen,
   disconnectOverlay,
+  hideLife = false,
 }: MatchPlayerTileProps) {
   const local = variant === 'local';
 
@@ -152,6 +158,7 @@ export function MatchPlayerTile({
       </div>
 
       {/* Console punti vita sotto la webcam: fuori dal video, sempre visibile */}
+      {!hideLife && (
       <footer
         className={cn(
           'border-t px-2.5 py-2.5 backdrop-blur-md',
@@ -172,6 +179,7 @@ export function MatchPlayerTile({
           layout="stacked"
         />
       </footer>
+      )}
     </div>
   );
 }
