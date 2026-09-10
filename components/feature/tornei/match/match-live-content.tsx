@@ -192,8 +192,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
           )}
         </MatchEndedPanel>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="mx-auto w-full lg:max-w-[calc((100dvh-390px)*3.5556+0.75rem)]">
+        <div className="flex min-h-0 flex-1 flex-col">
             <MatchVideoGrid
               isObserver={isObserver} isPlayer={isPlayer} started={playable}
               leftPlayer={leftPlayer} rightPlayer={rightPlayer} formatName={formatName}
@@ -213,11 +212,12 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
               onToggleMirrorRemote={setMirroredRemote ? () => setMirroredRemote((v) => !v) : undefined}
               onFullscreen={() => setFullscreenOpen(true)} onLifeChange={life.changeLife}
               onLifeReset={life.resetLife} onRetryPeer={retryPeer}
+              chat={
+                <div className="h-full min-h-[300px] lg:min-h-0">
+                  <MatchCommentsPanel {...chatPanelProps} onSticker={sticker.handleSticker} />
+                </div>
+              }
             />
-          </div>
-          <div className="min-h-[220px] flex-1 lg:min-h-[150px]">
-            <MatchCommentsPanel {...chatPanelProps} onSticker={sticker.handleSticker} />
-          </div>
         </div>
       )}
       {!fullscreenActive && judgePanel}

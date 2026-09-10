@@ -26,6 +26,10 @@ interface MatchFullscreenHeaderProps {
   onClose: () => void;
 }
 
+/**
+ * HUD superiore fullscreen: capsule giocatore con vita inline sopra i video.
+ * Solo presentazione: stessi props e callback di prima.
+ */
 export function MatchFullscreenHeader({
   localUsername,
   remoteUsername,
@@ -47,18 +51,20 @@ export function MatchFullscreenHeader({
   onClose,
 }: MatchFullscreenHeaderProps) {
   return (
-    <header className="relative z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-header-bg/95 px-4 shadow-xl backdrop-blur-xl sm:px-6">
-      {/* Sinistra: Capsula Tu + Punti Vita */}
-      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-primary/30 bg-black/40 px-3 py-1 shadow-sm backdrop-blur-md">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <span className="rounded-md bg-primary/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
+    <header className="relative z-30 flex min-h-16 shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-header-bg/95 px-3 py-2 shadow-xl backdrop-blur-xl sm:gap-3 sm:px-5">
+      {/* Filo luce in basso */}
+      <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+
+      {/* Sinistra: capsula Tu + vita inline */}
+      <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-primary/40 bg-gradient-to-b from-primary/[0.14] to-black/50 py-1.5 pl-3 pr-2 shadow-[0_8px_24px_-10px_rgba(255,115,0,0.6)] backdrop-blur-md">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 rounded-lg bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_0_12px_rgba(255,115,0,0.5)]">
             Tu
           </span>
-          <span className="truncate text-xs font-black text-white sm:text-sm max-w-[100px] sm:max-w-[160px]">
+          <span className="truncate text-xs font-black text-white sm:text-sm max-w-[80px] sm:max-w-[140px]">
             {localUsername}
           </span>
-        </div>
-        <div className="h-4 w-px bg-white/15" aria-hidden="true" />
+        </span>
         <MatchLifeBadge
           username={localUsername}
           life={lifeByPlayerId[localPlayerId] ?? startingLife}
@@ -70,18 +76,20 @@ export function MatchFullscreenHeader({
           onChange={onLifeChange}
           onReset={onLifeReset}
           hideUsername
+          layout="inline"
         />
       </div>
 
-      {/* Centro: Distintivo VS sobrio ed elegante */}
-      <div className="hidden md:flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-0.5 text-[11px] font-black tracking-widest text-white/40 uppercase">
-        VS
+      {/* Centro: VS in stile display */}
+      <div className="hidden shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-4 py-1 shadow-inner md:flex" aria-hidden>
+        <span className="h-1 w-1 rounded-full bg-primary" />
+        <span className="font-display text-xs font-bold uppercase tracking-[0.3em] text-white/60">VS</span>
+        <span className="h-1 w-1 rounded-full bg-sky-400" />
       </div>
 
-      {/* Destra: Capsula Avversario + Comandi */}
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        {/* Capsula Avversario */}
-        <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-sky-400/30 bg-black/40 px-3 py-1 shadow-sm backdrop-blur-md">
+      {/* Destra: capsula avversario + toolbar */}
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-sky-400/40 bg-gradient-to-b from-sky-400/[0.14] to-black/50 py-1.5 pl-2 pr-3 shadow-[0_8px_24px_-10px_rgba(56,189,248,0.6)] backdrop-blur-md">
           <MatchLifeBadge
             username={remoteUsername}
             life={lifeByPlayerId[remotePlayerId] ?? startingLife}
@@ -91,20 +99,19 @@ export function MatchFullscreenHeader({
             interactive={false}
             onChange={onLifeChange}
             hideUsername
+            layout="inline"
           />
-          <div className="h-4 w-px bg-white/15" aria-hidden="true" />
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-xs font-black text-white sm:text-sm max-w-[100px] sm:max-w-[160px]">
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-xs font-black text-white sm:text-sm max-w-[80px] sm:max-w-[140px]">
               {remoteUsername}
             </span>
-            <span className="rounded-md bg-sky-400/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-sky-300">
+            <span className="shrink-0 rounded-lg bg-sky-400/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#060814] shadow-[0_0_12px_rgba(56,189,248,0.5)]">
               Avversario
             </span>
-          </div>
+          </span>
         </div>
 
-        {/* Toolbar controlli multimediali, chat e riduci */}
-        <div className="flex items-center gap-1.5 border-l border-white/15 pl-2">
+        <div className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5">
           <MatchMediaButton on={micOn} label="microfono" onClick={onToggleMic} />
           <MatchMediaButton on={camOn} label="camera" onClick={onToggleCam} />
           {onToggleOpponentMute && (

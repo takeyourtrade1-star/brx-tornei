@@ -38,8 +38,9 @@ export interface MatchPlayerTileProps {
 }
 
 /**
- * Modulo player arena: barra di controllo e punti vita esterna in alto,
- * riquadro webcam 16:9 completamente libero da sovrapposizioni in basso.
+ * Modulo player arena: header identità in alto, riquadro webcam 16:9
+ * completamente libero da sovrapposizioni al centro, console punti vita
+ * sotto la webcam in basso. Stesse props e callback di prima.
  */
 export function MatchPlayerTile({
   player,
@@ -80,10 +81,10 @@ export function MatchPlayerTile({
           : 'border-sky-400/35 bg-gradient-to-b from-[#0e1828]/90 via-[#0e1222]/90 to-[#060814]/90 shadow-[0_16px_40px_-15px_rgba(56,189,248,0.25)] ring-1 ring-sky-400/20',
       )}
     >
-      {/* Barra superiore HUD (ESTERNA AL VIDEO): identità, mazzo, punti vita e comandi */}
+      {/* Barra superiore: identità, mazzo e comandi (la vita sta sotto il video) */}
       <header
         className={cn(
-          'flex h-12 items-center justify-between gap-2 border-b px-3.5 py-1.5 backdrop-blur-md',
+          'flex min-h-12 items-center justify-between gap-2 border-b px-3.5 py-2 backdrop-blur-md',
           local
             ? 'border-primary/25 bg-black/40'
             : 'border-sky-400/25 bg-black/40',
@@ -107,24 +108,8 @@ export function MatchPlayerTile({
           <MatchDeckChip player={player} formatName={formatName} />
         </div>
 
-        {/* Punti vita fuori dal video */}
-        <div className="flex items-center justify-center">
-          <MatchLifeBadge
-            username={player.username}
-            life={life}
-            playerId={player.id}
-            connected={lifeConnected}
-            variant={variant}
-            interactive={interactiveLife}
-            startingLife={startingLife}
-            onChange={onLifeChange}
-            onReset={onLifeReset}
-            hideUsername
-          />
-        </div>
-
         {/* Controlli rapidi e Fullscreen */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           {local && onToggleMic && micOn !== undefined && (
             <TileMediaButton on={micOn} kind="mic" onClick={onToggleMic} />
           )}
@@ -165,6 +150,28 @@ export function MatchPlayerTile({
         />
         {disconnectOverlay}
       </div>
+
+      {/* Console punti vita sotto la webcam: fuori dal video, sempre visibile */}
+      <footer
+        className={cn(
+          'border-t px-2.5 py-2.5 backdrop-blur-md',
+          local ? 'border-primary/25 bg-black/45' : 'border-sky-400/25 bg-black/45',
+        )}
+      >
+        <MatchLifeBadge
+          username={player.username}
+          life={life}
+          playerId={player.id}
+          connected={lifeConnected}
+          variant={variant}
+          interactive={interactiveLife}
+          startingLife={startingLife}
+          onChange={onLifeChange}
+          onReset={onLifeReset}
+          hideUsername
+          layout="stacked"
+        />
+      </footer>
     </div>
   );
 }

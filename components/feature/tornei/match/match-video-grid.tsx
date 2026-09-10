@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import type { Participant } from '@/types/tournament';
 import type { StickerShot } from '@/hooks/use-match-sticker-shot';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,12 @@ interface MatchVideoGridProps {
   onLifeChange: (playerId: string, delta: number) => void;
   onLifeReset?: () => void;
   onRetryPeer?: () => void;
+  /**
+   * Pannello centrale (chat): su desktop sta in mezzo alle due webcam,
+   * su mobile va in coda dopo entrambe. Solo presentazione, nessun
+   * cambiamento ai callback vita/video.
+   */
+  chat?: ReactNode;
 }
 
 export function MatchVideoGrid({
@@ -53,7 +60,7 @@ export function MatchVideoGrid({
   mirroredRemote = false, lifeByPlayerId, startingLife, lifeConnected,
   stickerShot, participantNames, userId, me, onToggleMic, onToggleCam,
   onToggleOpponentMute, onToggleMirrorLocal, onToggleMirrorRemote,
-  onFullscreen, onLifeChange, onLifeReset, onRetryPeer,
+  onFullscreen, onLifeChange, onLifeReset, onRetryPeer, chat,
 }: MatchVideoGridProps) {
   return (
     <div className="relative min-w-0">
@@ -73,7 +80,16 @@ export function MatchVideoGrid({
         </div>
       )}
 
-      <div className="grid min-w-0 grid-cols-1 gap-3.5 lg:grid-cols-2">
+      {/* Arena: webcam laterali con vita sotto, chat in mezzo su desktop */}
+      <div
+        className={cn(
+          'grid min-w-0 grid-cols-1 gap-3.5',
+          chat
+            ? 'lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)_minmax(0,1fr)] lg:items-stretch'
+            : 'lg:grid-cols-2',
+        )}
+      >
+        <div className="min-w-0 order-1">
         <MatchPlayerTile
           player={leftPlayer}
           formatName={formatName}
@@ -107,7 +123,15 @@ export function MatchVideoGrid({
             ) : undefined
           }
         />
+        </div>
 
+        {chat && (
+          <div className="min-w-0 order-3 lg:order-2 lg:min-h-[380px]">
+            {chat}
+          </div>
+        )}
+
+        <div className="min-w-0 order-2 lg:order-3">
         <MatchPlayerTile
           player={rightPlayer}
           formatName={formatName}
@@ -139,6 +163,7 @@ export function MatchVideoGrid({
             ) : undefined
           }
         />
+        </div>
       </div>
     </div>
   );
