@@ -51,20 +51,22 @@ export function MatchFullscreenHeader({
   onClose,
 }: MatchFullscreenHeaderProps) {
   return (
-    <header className="relative z-30 flex min-h-16 shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-header-bg/95 px-3 py-2 shadow-xl backdrop-blur-xl sm:gap-3 sm:px-5">
+    <header className="relative z-30 flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-header-bg/95 px-3 py-2 shadow-xl backdrop-blur-xl sm:gap-3 sm:px-5">
       {/* Filo luce in basso */}
       <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
 
-      {/* Sinistra: capsula Tu + vita inline */}
-      <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-primary/40 bg-gradient-to-b from-primary/[0.14] to-black/50 py-1.5 pl-3 pr-2 shadow-[0_8px_24px_-10px_rgba(255,115,0,0.6)] backdrop-blur-md">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <span className="shrink-0 rounded-lg bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_0_12px_rgba(255,115,0,0.5)]">
-            Tu
-          </span>
-          <span className="truncate text-xs font-black text-white sm:text-sm max-w-[80px] sm:max-w-[140px]">
-            {localUsername}
-          </span>
+      {/* Sinistra: capsula Tu */}
+      <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-primary/40 bg-gradient-to-b from-primary/[0.14] to-black/50 px-3 py-2 shadow-[0_8px_24px_-10px_rgba(255,115,0,0.6)] backdrop-blur-md">
+        <span className="shrink-0 rounded-lg bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_0_12px_rgba(255,115,0,0.5)]">
+          Tu
         </span>
+        <span className="truncate text-xs font-black text-white sm:text-sm max-w-[80px] sm:max-w-[140px]">
+          {localUsername}
+        </span>
+      </div>
+
+      {/* Centro: vite vicine al VS */}
+      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:gap-3">
         <MatchLifeBadge
           username={localUsername}
           life={lifeByPlayerId[localPlayerId] ?? startingLife}
@@ -78,36 +80,32 @@ export function MatchFullscreenHeader({
           hideUsername
           layout="inline"
         />
-      </div>
-
-      {/* Centro: VS in stile display */}
-      <div className="hidden shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-4 py-1 shadow-inner md:flex" aria-hidden>
-        <span className="h-1 w-1 rounded-full bg-primary" />
-        <span className="font-display text-xs font-bold uppercase tracking-[0.3em] text-white/60">VS</span>
-        <span className="h-1 w-1 rounded-full bg-sky-400" />
+        <div className="hidden shrink-0 items-center gap-2.5 rounded-full border border-white/20 bg-white/[0.05] px-5 py-1.5 shadow-[0_0_20px_-4px_rgba(255,115,0,0.4)] md:flex" aria-hidden>
+          <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,115,0,0.9)]" />
+          <span className="font-display text-sm font-bold uppercase tracking-[0.35em] text-white/80">VS</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.9)]" />
+        </div>
+        <MatchLifeBadge
+          username={remoteUsername}
+          life={lifeByPlayerId[remotePlayerId] ?? startingLife}
+          playerId={remotePlayerId}
+          connected={lifeConnected}
+          variant="remote"
+          interactive={false}
+          onChange={onLifeChange}
+          hideUsername
+          layout="inline"
+        />
       </div>
 
       {/* Destra: capsula avversario + toolbar */}
       <div className="flex min-w-0 items-center gap-2">
-        <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-sky-400/40 bg-gradient-to-b from-sky-400/[0.14] to-black/50 py-1.5 pl-2 pr-3 shadow-[0_8px_24px_-10px_rgba(56,189,248,0.6)] backdrop-blur-md">
-          <MatchLifeBadge
-            username={remoteUsername}
-            life={lifeByPlayerId[remotePlayerId] ?? startingLife}
-            playerId={remotePlayerId}
-            connected={lifeConnected}
-            variant="remote"
-            interactive={false}
-            onChange={onLifeChange}
-            hideUsername
-            layout="inline"
-          />
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-xs font-black text-white sm:text-sm max-w-[80px] sm:max-w-[140px]">
-              {remoteUsername}
-            </span>
-            <span className="shrink-0 rounded-lg bg-sky-400/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#060814] shadow-[0_0_12px_rgba(56,189,248,0.5)]">
-              Avversario
-            </span>
+        <div className="flex min-w-0 items-center gap-1.5 rounded-2xl border border-sky-400/40 bg-gradient-to-b from-sky-400/[0.14] to-black/50 px-3 py-2 shadow-[0_8px_24px_-10px_rgba(56,189,248,0.6)] backdrop-blur-md">
+          <span className="truncate text-xs font-black text-white sm:text-sm max-w-[80px] sm:max-w-[140px]">
+            {remoteUsername}
+          </span>
+          <span className="shrink-0 rounded-lg bg-sky-400/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#060814] shadow-[0_0_12px_rgba(56,189,248,0.5)]">
+            Avversario
           </span>
         </div>
 
