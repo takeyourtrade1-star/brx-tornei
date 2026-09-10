@@ -2,166 +2,142 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageSquare, Minimize2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { getPlaymat, type PlaymatId } from '@/lib/playmats';
 import { MatchCompactChat, type MatchCompactChatProps } from './match-compact-chat';
-import { MatchLifeBadge } from './match-life-badge';
-import { MatchMediaButton } from './match-media-button';
+import { MatchFullscreenHeader } from './match-fullscreen-header';
 import { MatchWebcamDisconnectOverlay } from './match-live-parts';
 import { WebcamTile } from './webcam-tile';
+
 interface MatchFullscreenArenaProps {
   open: boolean;
   localStream?: MediaStream | null;
   remoteStream?: MediaStream | null;
-  localUsername: string;
-  remoteUsername: string;
-  localPlayerId: string;
-  remotePlayerId: string;
-  localFeedLabel?: string;
-  connecting?: boolean;
-  peerReconnecting?: boolean;
-  graceRemaining?: number | null;
-  remoteEmptyLabel?: string;
-  camOn: boolean;
-  micOn: boolean;
-  opponentMuted?: boolean;
-  mirroredLocal?: boolean;
-  mirroredRemote?: boolean;
-  startingLife: number;
-  lifeByPlayerId: Record<string, number>;
-  lifeConnected: boolean;
-  playmatId: PlaymatId;
-  chat: MatchCompactChatProps;
+  localUsername: string; remoteUsername: string;
+  localPlayerId: string; remotePlayerId: string;
+  localFeedLabel?: string; connecting?: boolean;
+  peerReconnecting?: boolean; graceRemaining?: number | null;
+  remoteEmptyLabel?: string; camOn: boolean; micOn: boolean;
+  opponentMuted?: boolean; mirroredLocal?: boolean; mirroredRemote?: boolean;
+  startingLife: number; lifeByPlayerId: Record<string, number>;
+  lifeConnected: boolean; playmatId: PlaymatId; chat: MatchCompactChatProps;
   judge?: ReactNode;
-  onToggleCam: () => void;
-  onToggleMic: () => void;
-  onToggleOpponentMute?: () => void;
-  onToggleMirrorLocal?: () => void;
+  onToggleCam: () => void; onToggleMic: () => void;
+  onToggleOpponentMute?: () => void; onToggleMirrorLocal?: () => void;
   onToggleMirrorRemote?: () => void;
   onLifeChange: (playerId: string, delta: number) => void;
-  onLifeReset?: () => void;
-  onRetryPeer?: () => void;
-  onClose: () => void;
+  onLifeReset?: () => void; onRetryPeer?: () => void; onClose: () => void;
 }
-export function MatchFullscreenArena({
-  open, localStream, remoteStream, localUsername, remoteUsername,
-  localPlayerId, remotePlayerId, localFeedLabel, connecting = false,
-  peerReconnecting = false, graceRemaining = null,
-  remoteEmptyLabel, camOn, micOn, opponentMuted = false,
-  mirroredLocal = false, mirroredRemote = false, startingLife,
-  lifeByPlayerId, lifeConnected, playmatId, chat, judge, onToggleCam,
-  onToggleMic, onToggleOpponentMute, onToggleMirrorLocal,
-  onToggleMirrorRemote, onLifeChange, onLifeReset, onRetryPeer, onClose,
-}: MatchFullscreenArenaProps) {
+
+export function MatchFullscreenArena(props: MatchFullscreenArenaProps) {
+  const {
+    open, localStream, remoteStream, localUsername, remoteUsername,
+    localPlayerId, remotePlayerId, localFeedLabel, connecting = false,
+    peerReconnecting = false, graceRemaining = null,
+    remoteEmptyLabel, camOn, micOn, opponentMuted = false,
+    mirroredLocal = false, mirroredRemote = false, startingLife,
+    lifeByPlayerId, lifeConnected, playmatId, chat, judge, onToggleCam,
+    onToggleMic, onToggleOpponentMute, onToggleMirrorLocal,
+    onToggleMirrorRemote, onLifeChange, onLifeReset, onRetryPeer, onClose,
+  } = props;
   const [mounted, setMounted] = useState(false);
-  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'split' | 'focus'>('split');
   const dialogRef = useRef<HTMLElement | null>(null);
   const playmat = getPlaymat(playmatId);
+
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!open) return;
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = dialogRef.current;
     const background = Array.from(document.body.children)
-      .filter((element) => element !== dialog)
-      .map((element) => ({
-        element,
-        ariaHidden: element.getAttribute('aria-hidden'),
-        inert: element.hasAttribute('inert'),
-      }));
-    background.forEach(({ element }) => {
-      element.setAttribute('aria-hidden', 'true');
-      element.setAttribute('inert', '');
-    });
+      .filter((el) => el !== dialog)
+      .map((el) => ({ el, ariaHidden: el.getAttribute('aria-hidden'), inert: el.hasAttribute('inert') }));
+    background.forEach(({ el }) => { el.setAttribute('aria-hidden', 'true'); el.setAttribute('inert', ''); });
+
     const focusable = () => Array.from(
       dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled])') ?? [],
     );
     focusable()[0]?.focus();
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         onClose();
       }
-      if (event.key !== 'Tab') return;
-      const items = focusable();
-      if (!items.length) return;
-      const first = items[0]!;
-      const last = items.at(-1)!;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
     };
-    const previousOverflow = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow = prevOverflow;
       document.removeEventListener('keydown', onKeyDown);
-      background.forEach(({ element, ariaHidden, inert }) => {
-        if (ariaHidden === null) element.removeAttribute('aria-hidden');
-        else element.setAttribute('aria-hidden', ariaHidden);
-        if (!inert) element.removeAttribute('inert');
+      background.forEach(({ el, ariaHidden, inert }) => {
+        if (ariaHidden === null) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', ariaHidden);
+        if (!inert) el.removeAttribute('inert');
       });
-      previousFocus?.focus();
     };
   }, [open, onClose]);
+
   if (!open || !mounted) return null;
+
   return createPortal(
     <section
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-label="Partita in fullscreen"
-      className="fixed inset-0 z-[1200] overflow-hidden bg-header-bg text-white"
-      style={{ backgroundImage: 'url(' + playmat.src + ')', backgroundPosition: 'center', backgroundSize: 'cover' }}
+      aria-label="Partita a schermo intero"
+      className="fixed inset-0 z-[1200] flex flex-col overflow-hidden bg-[#060814] text-white"
+      style={{ backgroundImage: `url(${playmat.src})`, backgroundPosition: 'center', backgroundSize: 'cover' }}
     >
-      <div className="absolute inset-0 bg-black/35" aria-hidden />
-      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 bg-gradient-to-b from-black/85 to-transparent py-4 pl-4 pr-16 sm:pl-6 sm:pr-20">
-        <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Il tuo tavolo</p>
-          <h2 className="font-sans text-lg font-black sm:text-xl">{localUsername}</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setMobileChatOpen((current) => !current)}
-            aria-expanded={mobileChatOpen}
-            aria-controls="match-fullscreen-mobile-chat"
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 backdrop-blur-md md:hidden"
-            aria-label={mobileChatOpen ? 'Nascondi chat' : 'Mostra chat'}
-          >
-            <MessageSquare className="h-4 w-4" />
-          </button>
-          <MatchMediaButton on={micOn} label="microfono" onClick={onToggleMic} />
-          <MatchMediaButton on={camOn} label="camera" onClick={onToggleCam} />
-          {onToggleOpponentMute && (
-            <MatchMediaButton on={!opponentMuted} label="audio avversario" onClick={onToggleOpponentMute} />
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Riduci fullscreen"
-            className="inline-flex h-10 items-center gap-2 rounded-full border border-white/20 bg-black/50 px-3 text-xs font-black uppercase backdrop-blur-md hover:bg-black/70 sm:px-4"
-          >
-            <Minimize2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Riduci</span>
-          </button>
-        </div>
-      </div>
-      <div className="relative z-10 grid h-full min-h-0 grid-cols-1 gap-3 px-3 pb-24 pt-20 sm:px-6 sm:pt-24 md:grid-cols-[minmax(17rem,20rem)_minmax(0,1fr)] md:gap-5">
-        {/* Fuori dall'overlay della webcam: sul desktop la chat occupa una vera
-            colonna laterale, allineata verticalmente all'area video. */}
-        <aside className="hidden h-full min-h-0 md:block" aria-label="Chat della partita">
-          <MatchCompactChat {...chat} fullHeight />
-        </aside>
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" aria-hidden />
 
-        <div className="grid min-h-0 place-items-center">
-          <div className="relative w-[min(91vw,138vh)] max-w-full overflow-hidden rounded-[1.35rem] bg-black/70 p-1.5 shadow-[0_30px_90px_rgba(0,0,0,0.7)] border border-sky-400/30 ring-1 ring-sky-400/35 [aspect-ratio:16/9] sm:rounded-[2rem] sm:p-2.5 md:w-[min(100%,calc((100dvh-12rem)*16/9))]">
-            <div className="absolute inset-1.5 sm:inset-2.5">
+      {/* MASTER TOP HUD: punti vita e controlli completamente FUORI dai video */}
+      <MatchFullscreenHeader
+        localUsername={localUsername}
+        remoteUsername={remoteUsername}
+        localPlayerId={localPlayerId}
+        remotePlayerId={remotePlayerId}
+        startingLife={startingLife}
+        lifeByPlayerId={lifeByPlayerId}
+        lifeConnected={lifeConnected}
+        onLifeChange={onLifeChange}
+        onLifeReset={onLifeReset}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        camOn={camOn}
+        micOn={micOn}
+        opponentMuted={opponentMuted}
+        onToggleCam={onToggleCam}
+        onToggleMic={onToggleMic}
+        onToggleOpponentMute={onToggleOpponentMute}
+        chatOpen={chatOpen}
+        onToggleChat={() => setChatOpen((c) => !c)}
+        onClose={onClose}
+      />
+
+      {/* ARENA WEBCAM: priorità assoluta allo spazio video */}
+      <main className="relative z-10 flex min-h-0 flex-1 items-center justify-center p-2 sm:p-4">
+        {viewMode === 'split' ? (
+          <div className="grid h-full w-full grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-center justify-center">
+            {/* Webcam Locale */}
+            <div className="relative flex h-full max-h-[calc(100dvh-5.5rem)] w-full items-center justify-center overflow-hidden rounded-2xl border border-primary/35 bg-black/85 shadow-2xl ring-1 ring-primary/20">
+              <WebcamTile
+                stream={localStream}
+                username={localUsername}
+                feedLabel={localFeedLabel}
+                videoDisabled={!camOn}
+                mirrored={mirroredLocal}
+                onToggleMirror={onToggleMirrorLocal}
+                hideUsername
+              />
+              <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-full border border-primary/30 bg-primary/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary backdrop-blur-md">
+                Tu ({localUsername})
+              </span>
+            </div>
+
+            {/* Webcam Avversario */}
+            <div className="relative flex h-full max-h-[calc(100dvh-5.5rem)] w-full items-center justify-center overflow-hidden rounded-2xl border border-sky-400/35 bg-black/85 shadow-2xl ring-1 ring-sky-400/20">
               <WebcamTile
                 stream={remoteStream}
                 username={remoteUsername}
@@ -170,73 +146,88 @@ export function MatchFullscreenArena({
                 mirrored={mirroredRemote}
                 onToggleMirror={onToggleMirrorRemote}
                 emptyLabel={remoteEmptyLabel}
-              />
-            </div>
-            <MatchWebcamDisconnectOverlay
-              reconnecting={peerReconnecting}
-              remaining={graceRemaining}
-              disconnectedIsMe={false}
-              opponentName={remoteUsername}
-              onRetry={onRetryPeer}
-            />
-            <span className="pointer-events-none absolute left-5 top-5 z-10 rounded-full bg-sky-500/90 border border-sky-400/30 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg backdrop-blur-md">
-              Webcam avversario
-            </span>
-          </div>
-        </div>
-      </div>
-      {mobileChatOpen && (
-        <aside id="match-fullscreen-mobile-chat" className="absolute inset-x-3 bottom-24 z-50 md:hidden" aria-label="Chat della partita">
-          <MatchCompactChat {...chat} />
-        </aside>
-      )}
-      {/* La tua preview e i tuoi punti vita (interattivi) in basso a destra. */}
-      <div className="absolute bottom-5 right-4 z-40 flex items-end gap-2">
-        <div className="min-w-0">
-          <MatchLifeBadge
-            username={localUsername}
-            life={lifeByPlayerId[localPlayerId] ?? startingLife}
-            playerId={localPlayerId}
-            connected={lifeConnected}
-            variant="local"
-            startingLife={startingLife}
-            onChange={onLifeChange}
-            onReset={onLifeReset}
-          />
-        </div>
-        <div className="w-[min(28vw,300px)] rounded-2xl border border-primary/30 bg-black/75 p-1.5 shadow-[0_22px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:min-w-[240px]">
-          <div className="mb-1.5 flex items-center justify-between px-1">
-            <span className="text-[9px] font-black uppercase tracking-[0.16em] text-primary">La tua webcam</span>
-            <span className="truncate pl-2 text-[10px] font-bold text-white">{localUsername}</span>
-          </div>
-          <div className="relative w-full overflow-hidden rounded-xl [aspect-ratio:16/9]">
-            <div className="absolute inset-0">
-              <WebcamTile
-                stream={localStream}
-                username={localUsername}
-                feedLabel={localFeedLabel}
-                videoDisabled={!camOn}
-                mirrored={mirroredLocal}
-                onToggleMirror={onToggleMirrorLocal}
-                compact
                 hideUsername
               />
+              <MatchWebcamDisconnectOverlay
+                reconnecting={peerReconnecting}
+                remaining={graceRemaining}
+                disconnectedIsMe={false}
+                opponentName={remoteUsername}
+                onRetry={onRetryPeer}
+              />
+              <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-full border border-sky-400/30 bg-sky-500/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-sky-300 backdrop-blur-md">
+                Avversario ({remoteUsername})
+              </span>
             </div>
           </div>
-        </div>
-      </div>
-      {/* Punti vita dell'avversario al centro, sotto il suo riquadro video principale. */}
-      <div className="absolute bottom-5 left-1/2 z-40 -translate-x-1/2">
-        <MatchLifeBadge
-          username={remoteUsername}
-          life={lifeByPlayerId[remotePlayerId] ?? startingLife}
-          playerId={remotePlayerId}
-          connected={lifeConnected}
-          variant="remote"
-          interactive={false}
-          onChange={onLifeChange}
-        />
-      </div>
+        ) : (
+          <div className="relative flex h-full max-h-[calc(100dvh-5.5rem)] w-full items-center justify-center">
+            {/* Webcam Avversario a tutto schermo */}
+            <div className="relative h-full w-full max-w-[calc((100dvh-5.5rem)*1.7778)] overflow-hidden rounded-2xl border border-sky-400/35 bg-black/85 shadow-2xl ring-1 ring-sky-400/20">
+              <WebcamTile
+                stream={remoteStream}
+                username={remoteUsername}
+                connecting={connecting}
+                muted={opponentMuted}
+                mirrored={mirroredRemote}
+                onToggleMirror={onToggleMirrorRemote}
+                emptyLabel={remoteEmptyLabel}
+                hideUsername
+              />
+              <MatchWebcamDisconnectOverlay
+                reconnecting={peerReconnecting}
+                remaining={graceRemaining}
+                disconnectedIsMe={false}
+                opponentName={remoteUsername}
+                onRetry={onRetryPeer}
+              />
+              <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-full border border-sky-400/30 bg-sky-500/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-sky-300 backdrop-blur-md">
+                Webcam avversario
+              </span>
+            </div>
+
+            {/* Picture-in-Picture del proprio tavolo */}
+            <div className="absolute bottom-4 right-4 z-30 w-52 sm:w-64 rounded-xl border border-primary/40 bg-black/80 p-1 shadow-2xl backdrop-blur-xl">
+              <div className="mb-1 flex items-center justify-between px-1">
+                <span className="text-[9px] font-black uppercase text-primary">La tua webcam</span>
+              </div>
+              <div className="relative w-full overflow-hidden rounded-lg aspect-video">
+                <WebcamTile
+                  stream={localStream}
+                  username={localUsername}
+                  feedLabel={localFeedLabel}
+                  videoDisabled={!camOn}
+                  mirrored={mirroredLocal}
+                  onToggleMirror={onToggleMirrorLocal}
+                  compact
+                  hideUsername
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* CASSETTO CHAT FLUTTUANTE (non sottrae larghezza alle webcam) */}
+      {chatOpen && (
+        <aside className="absolute bottom-4 right-4 top-20 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-white/15 bg-header-bg/95 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-right-4 duration-200">
+          <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-2">
+            <span className="text-xs font-black uppercase text-primary">Chat di partita</span>
+            <button
+              type="button"
+              onClick={() => setChatOpen(false)}
+              aria-label="Chiudi chat"
+              className="grid h-7 w-7 place-items-center rounded-full border border-white/10 text-white/60 hover:text-white"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <MatchCompactChat {...chat} fullHeight />
+          </div>
+        </aside>
+      )}
+
       {judge}
     </section>,
     document.body,

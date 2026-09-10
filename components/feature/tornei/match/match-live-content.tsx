@@ -9,15 +9,15 @@ import type { useMatchLife } from '@/hooks/use-match-life';
 import type { useMatchReady } from '@/hooks/use-match-ready';
 import type { useMatchStartCountdown } from '@/hooks/use-match-start-countdown';
 import type { useMatchStickerShot } from '@/hooks/use-match-sticker-shot';
+import { useMatchJudge } from '@/hooks/use-match-judge';
+import { useMatchJudgeActivity } from '@/hooks/use-match-judge-activity';
+import { useMatchAvatars } from '@/hooks/use-match-avatars';
 import { getFormat, getMode } from '@/lib/data/catalog';
 import type { PlaymatId } from '@/lib/playmats';
 import { publicConfig } from '@/lib/public-config';
 import type { PeerTransport } from '@/lib/webrtc/match-peer-link';
 import type { PeerLinkState } from '@/lib/webrtc/match-peer-types';
 import type { ConnectionQuality, Participant, Tournament } from '@/types/tournament';
-import { useMatchJudge } from '@/hooks/use-match-judge';
-import { useMatchJudgeActivity } from '@/hooks/use-match-judge-activity';
-import { useMatchAvatars } from '@/hooks/use-match-avatars';
 import { MatchCommentsPanel } from './match-comments-panel';
 import { MatchJudge } from './match-judge';
 import { MatchEndFeedback } from './match-end-feedback';
@@ -34,8 +34,7 @@ import { MatchVideoGrid } from './match-video-grid';
 import { OpponentDeckReveal } from './opponent-deck-reveal';
 
 interface MatchLiveContentProps {
-  tournament: Tournament; me: string; userId: string; isHost: boolean;
-  qualifyingMatches: number;
+  tournament: Tournament; me: string; userId: string; isHost: boolean; qualifyingMatches: number;
   defaultPlaymatId: PlaymatId; isObserver: boolean; isPlayer: boolean; started: boolean;
   matchEnded: boolean; resultClaimPending: boolean; resultReselectionRequired: boolean;
   showResultPanel: boolean; iClaimedResult: boolean; resultCountdown: number | null;
@@ -103,9 +102,9 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
   const formatName = getFormat(tournament.format)?.name ?? tournament.format;
   const winnerId = tournament.winnerUserId;
   const loserId = winnerId ? players.find((player) => player.id !== winnerId)?.id : undefined;
-  const winnerScore = winnerId ? tournament.scoreByPlayerId?.[winnerId] : undefined;
-  const loserScore = loserId ? tournament.scoreByPlayerId?.[loserId] : undefined;
-  const resultScore = winnerScore !== undefined && loserScore !== undefined ? `${winnerScore} – ${loserScore}` : undefined;
+  const score = tournament.scoreByPlayerId;
+  const resultScore = winnerId && loserId && score && score[winnerId] !== undefined && score[loserId] !== undefined
+    ? `${score[winnerId]} – ${score[loserId]}` : undefined;
   const fullscreenActive = fullscreenOpen && !matchEnded;
   const judgePanel = isPlayer && tournament.matchId ? (
     <MatchJudge
@@ -138,13 +137,11 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
       {ready.readyPhase && isPlayer && (
         <MatchReadyPanel
           local={local} remote={remote} myReady={ready.myReady} opponentReady={ready.opponentReady}
-          acceptanceOpensAt={tournament.acceptanceOpensAt}
-          readyDeadline={tournament.readyDeadline} serverTime={tournament.serverTime}
-          pending={ready.pending} startingLife={life.startingLife}
+          acceptanceOpensAt={tournament.acceptanceOpensAt} readyDeadline={tournament.readyDeadline}
+          serverTime={tournament.serverTime} pending={ready.pending} startingLife={life.startingLife}
           lifeConnected={chat.connectionState === 'connected' && life.synced}
           canSetStartingLife={isHost} onStartingLifeChange={life.setStartingLife}
-          onReady={ready.toggleReady} onDecline={exit.fireExit}
-          onOpponentDeclined={exit.markOpponentDeclined}
+          onReady={ready.toggleReady} onDecline={exit.fireExit} onOpponentDeclined={exit.markOpponentDeclined}
         />
       )}
       {ready.error && isPlayer && <MatchErrorNotice message={ready.error} />}
@@ -155,9 +152,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
       )}
 
       {isPlayer && started && tournament.matchId && (
-        <MatchGapProtectionNotice snapshot={gapProtection.snapshot}
-          onConsent={gapProtection.grantUploadConsent} onDecline={gapProtection.declineUpload}
-          onRetry={gapProtection.retryUpload} />
+        <MatchGapProtectionNotice snapshot={gapProtection.snapshot} onConsent={gapProtection.grantUploadConsent} onDecline={gapProtection.declineUpload} onRetry={gapProtection.retryUpload} />
       )}
       {publicConfig.features.matchGapRecording && isPlayer && tournament.matchId && (
         <MatchGapPeerReview matchId={tournament.matchId} opponentName={remote.username} />
@@ -174,37 +169,31 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
           localId={local.id} opponentId={remote.id} bestOf={tournament.bestOf}
           claimedWinnerId={tournament.resultClaimedWinner}
           scoreByPlayerId={tournament.scoreByPlayerId} error={declareResult.error}
-          qualifyingMatches={qualifyingMatches}
-          onDeclare={declareResult.declare}
+          qualifyingMatches={qualifyingMatches} onDeclare={declareResult.declare}
         />
       )}
       {exit.opponentDeclined ? (
-        <MatchDeclinedPanel leaving={exit.exitFired} secondsLeft={exit.declinedLeftSeconds}
-          onLeave={exit.fireExit} />
+        <MatchDeclinedPanel leaving={exit.exitFired} secondsLeft={exit.declinedLeftSeconds} onLeave={exit.fireExit} />
       ) : matchEnded ? (
-        <>
-          <MatchEndedPanel
-            opponentLeft={isPlayer && peerState === 'peer-left'}
-            didIWin={didIWin}
-            endReason={tournament.endReason}
-            resultScore={resultScore}
-          >
-            {isPlayer && (
-              <>
-                <OpponentDeckReveal opponent={remote} formatName={formatName} />
-                <MatchEndFeedback
-                  matchId={tournament.matchId ?? null}
-                  endReason={tournament.endReason}
-                  didIWin={didIWin}
-                  opponentName={remote.username}
-                />
-              </>
-            )}
-          </MatchEndedPanel>
-        </>
+        <MatchEndedPanel
+          opponentLeft={isPlayer && peerState === 'peer-left'}
+          didIWin={didIWin}
+          endReason={tournament.endReason}
+          resultScore={resultScore}
+        >
+          {isPlayer && (
+            <>
+              <OpponentDeckReveal opponent={remote} formatName={formatName} />
+              <MatchEndFeedback
+                matchId={tournament.matchId ?? null}
+                endReason={tournament.endReason} didIWin={didIWin} opponentName={remote.username}
+              />
+            </>
+          )}
+        </MatchEndedPanel>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="mx-auto w-full lg:max-w-[calc((100dvh-340px)*3.5556+0.75rem)]">
+          <div className="mx-auto w-full lg:max-w-[calc((100dvh-390px)*3.5556+0.75rem)]">
             <MatchVideoGrid
               isObserver={isObserver} isPlayer={isPlayer} started={playable}
               leftPlayer={leftPlayer} rightPlayer={rightPlayer} formatName={formatName}
@@ -237,20 +226,19 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
         localUsername={local.username} remoteUsername={remote.username}
         localPlayerId={local.id} remotePlayerId={remote.id} localFeedLabel={feedLabel}
         connecting={peerConnecting} peerReconnecting={peerReconnecting}
-        graceRemaining={graceRemaining}
-        remoteEmptyLabel={remoteEmptyLabel} camOn={camOn} micOn={micOn}
-        opponentMuted={opponentMuted} mirroredLocal={mirroredLocal} mirroredRemote={mirroredRemote}
+        graceRemaining={graceRemaining} remoteEmptyLabel={remoteEmptyLabel}
+        camOn={camOn} micOn={micOn} opponentMuted={opponentMuted}
+        mirroredLocal={mirroredLocal} mirroredRemote={mirroredRemote}
         startingLife={life.startingLife} lifeByPlayerId={life.lifeByPlayerId}
         lifeConnected={chat.connectionState === 'connected' && life.synced}
         playmatId={defaultPlaymatId} chat={chatPanelProps}
         judge={fullscreenActive ? judgePanel : null}
-        onToggleCam={() => setCamOn((value) => !value)}
-        onToggleMic={() => setMicOn((value) => !value)}
+        onToggleCam={() => setCamOn((v) => !v)}
+        onToggleMic={() => setMicOn((v) => !v)}
         onToggleOpponentMute={() => setOpponentMuted((v) => !v)}
         onToggleMirrorLocal={setMirroredLocal ? () => setMirroredLocal((v) => !v) : undefined}
         onToggleMirrorRemote={setMirroredRemote ? () => setMirroredRemote((v) => !v) : undefined}
-        onLifeChange={life.changeLife}
-        onLifeReset={life.resetLife} onRetryPeer={retryPeer}
+        onLifeChange={life.changeLife} onLifeReset={life.resetLife} onRetryPeer={retryPeer}
         onClose={() => setFullscreenOpen(false)}
       />
       <MatchIntroOverlay active={isPlayer && started} matchId={tournament.matchId}
