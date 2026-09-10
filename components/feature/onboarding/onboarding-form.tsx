@@ -21,7 +21,6 @@ import { OnboardingCardPreview } from './onboarding-card-preview';
 interface OnboardingFormProps {
   userName?: string | null;
   initialGamertag: string | null;
-  suggestedGamertag?: string | null;
   redirectTo: string;
   qualifyingMatches: number;
 }
@@ -31,12 +30,11 @@ const GAMERTAG_PATTERN = /^[a-zA-Z0-9_]{3,20}$/;
 export function OnboardingForm({
   userName,
   initialGamertag,
-  suggestedGamertag,
   redirectTo,
   qualifyingMatches,
 }: OnboardingFormProps) {
   const router = useRouter();
-  const [value, setValue] = useState(initialGamertag ?? suggestedGamertag ?? '');
+  const [value, setValue] = useState(initialGamertag ?? '');
   const [selectedAvatarId, setSelectedAvatarId] = useState(() =>
     getUnlockedAvatarId(getSavedAvatarId(), qualifyingMatches));
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +148,7 @@ export function OnboardingForm({
               name="tournament-gamertag"
               value={value}
               onChange={(event) => { void handleGamertagChange(event.target.value); }}
-              placeholder="Es. DragoBlu92"
+              placeholder="Inserisci qui il tuo gamertag da battaglia"
               autoComplete="off"
               autoCapitalize="none"
               spellCheck={false}
@@ -161,7 +159,7 @@ export function OnboardingForm({
               disabled={saving}
               aria-describedby="gamertag-help gamertag-status"
               aria-invalid={trimmed.length > 0 && !validFormat}
-              className={`h-11 rounded-xl border-white/15 bg-white/[0.05] text-sm text-white placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary${checking ? ' pr-10' : ''}`}
+              className={`h-11 rounded-xl border-white/15 bg-white/[0.05] text-sm text-white placeholder:text-slate-400 placeholder:italic focus:border-primary focus:ring-1 focus:ring-primary${checking ? ' pr-10' : ''}`}
             />
             {checking && (
               <Loader2 aria-hidden className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-primary" />

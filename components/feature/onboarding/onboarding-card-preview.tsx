@@ -11,7 +11,8 @@ interface OnboardingCardPreviewProps {
  */
 export function OnboardingCardPreview({ gamertag, avatarId }: OnboardingCardPreviewProps) {
   const avatar = getAvatarById(avatarId);
-  const displayTag = gamertag.trim() || 'TuoGamertag';
+  const isPlaceholder = !gamertag.trim();
+  const displayTag = isPlaceholder ? 'Tuo Gamertag' : gamertag.trim();
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-b from-[#162032]/95 via-[#0d1424]/95 to-[#080d18]/95 p-4 shadow-xl backdrop-blur-md">
@@ -53,11 +54,15 @@ export function OnboardingCardPreview({ gamertag, avatarId }: OnboardingCardPrev
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-400">
             {avatar.name} · {avatar.subtitle}
           </p>
-          <h3 className="truncate font-display text-xl font-black tracking-tight text-white sm:text-2xl">
+          <h3
+            className={`truncate font-display text-xl font-black tracking-tight sm:text-2xl ${
+              isPlaceholder ? 'italic text-white/40' : 'text-white'
+            }`}
+          >
             {displayTag}
           </h3>
           <p className="text-[11px] text-slate-400">
-            Pronto per il tuo 1° torneo
+            {isPlaceholder ? 'Digita il tuo gamertag nel campo sotto' : 'Pronto per il tuo 1° torneo'}
           </p>
         </div>
       </div>

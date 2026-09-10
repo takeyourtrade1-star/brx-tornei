@@ -28,16 +28,12 @@ export default async function ImpostaUsernamePage({ searchParams }: PageProps) {
   ]);
   const userName = session.user.name;
   const userEmail = session.user.email;
-  const GAMERTAG_PATTERN = /^[a-zA-Z0-9_]{3,20}$/;
-  const suggestedGamertag =
-    !currentGamertag && userName && GAMERTAG_PATTERN.test(userName) ? userName : null;
 
   return (
     <OnboardingView
       userName={userName}
       userEmail={userEmail}
       initialGamertag={currentGamertag}
-      suggestedGamertag={suggestedGamertag}
       redirectTo={redirectTo}
       qualifyingMatches={reputation?.qualifiedMatches30m ?? 0}
     />

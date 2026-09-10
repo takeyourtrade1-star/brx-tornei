@@ -7,7 +7,6 @@ interface OnboardingViewProps {
   userName?: string | null;
   userEmail?: string | null;
   initialGamertag: string | null;
-  suggestedGamertag?: string | null;
   redirectTo: string;
   qualifyingMatches: number;
 }
@@ -20,7 +19,6 @@ export function OnboardingView({
   userName,
   userEmail,
   initialGamertag,
-  suggestedGamertag,
   redirectTo,
   qualifyingMatches,
 }: OnboardingViewProps) {
@@ -51,7 +49,6 @@ export function OnboardingView({
           <OnboardingForm
             userName={userName}
             initialGamertag={initialGamertag}
-            suggestedGamertag={suggestedGamertag}
             redirectTo={redirectTo}
             qualifyingMatches={qualifyingMatches}
           />
