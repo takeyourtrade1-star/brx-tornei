@@ -1,5 +1,3 @@
-'use client';
-
 import { OnboardingView } from '@/components/feature/onboarding/onboarding-view';
 
 interface SetGamertagViewProps {
@@ -16,14 +14,10 @@ interface SetGamertagViewProps {
 export function SetGamertagView({
   initialGamertag,
   redirectTo,
-  userName,
-  userEmail,
   qualifyingMatches = 0,
 }: SetGamertagViewProps) {
   return (
     <OnboardingView
-      userName={userName}
-      userEmail={userEmail}
       initialGamertag={initialGamertag}
       redirectTo={redirectTo}
       qualifyingMatches={qualifyingMatches}

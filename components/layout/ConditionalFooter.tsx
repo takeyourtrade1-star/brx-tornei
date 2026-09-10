@@ -4,11 +4,11 @@ import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * Nasconde il footer nelle schermate di gioco live o sessioni webcam telefono
- * dove lo schermo deve occupare interamente il viewport senza scrolling.
+ * Nasconde il footer nelle viste immersive e nella scelta iniziale del profilo.
  */
 function shouldHideFooter(pathname: string | null): boolean {
   if (!pathname) return false;
+  if (pathname === '/imposta-username') return true;
   if (pathname.includes('/live')) return true;
   if (pathname.startsWith('/tornei/webcam')) return true;
   return false;

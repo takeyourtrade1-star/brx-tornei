@@ -20,9 +20,9 @@ export function OnboardingAvatarPicker({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3">
-        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
-          Scegli il tuo avatar
-        </label>
+        <p className="text-sm font-semibold text-slate-900">
+          Scegli la tua icona
+        </p>
         <span className="text-right text-[10px] text-slate-500">3 iniziali · +1 ogni 5 partite</span>
       </div>
       <div className="grid grid-cols-5 gap-1.5">
@@ -43,8 +43,9 @@ export function OnboardingAvatarPicker({
                 ? `Seleziona avatar ${avatar.name}`
                 : `Avatar ${avatar.name} bloccato: servono ${requiredMatches} partite da almeno 30 minuti`}
               disabled={!unlocked}
+              aria-pressed={isSelected}
               className={cn(
-                'group relative grid aspect-square place-items-center rounded-xl border p-1.5 transition-all disabled:cursor-not-allowed',
+                'group relative grid h-14 place-items-center rounded-xl border p-1.5 transition-all disabled:cursor-not-allowed sm:h-16',
                 isSelected
                   ? 'scale-105 border-primary bg-primary/10 shadow-sm ring-2 ring-primary/40'
                   : unlocked

@@ -1,214 +1,169 @@
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TournamentRulesModal } from '@/components/feature/legal/tournament-rules-modal';
 import { checkGamertagAvailabilityAction, setGamertagAction } from '@/actions/players';
-import {
-  getSavedAvatarId,
-  getUnlockedAvatarId,
-  isAvatarUnlocked,
-  saveAvatarId,
-} from '@/lib/avatars';
+import { getSavedAvatarId, getUnlockedAvatarId, isAvatarUnlocked, saveAvatarId } from '@/lib/avatars';
 import type { GamertagAvailability } from '@/lib/data/player-api-client';
-import { OnboardingGuide } from './onboarding-guide';
-import { OnboardingCardPreview } from './onboarding-card-preview';
 import { OnboardingAgreements } from './onboarding-agreements';
 import { OnboardingAvatarPicker } from './onboarding-avatar-picker';
-import { Loader2 } from 'lucide-react';
 
 interface OnboardingFormProps {
-  userName?: string | null;
   initialGamertag: string | null;
-  suggestedGamertag?: string | null;
   redirectTo: string;
   qualifyingMatches: number;
 }
 
-/**
- * Gestore interattivo dell'onboarding: guida, configurazione avatar/gamertag,
- * patti di fair play in liquid glass e CTA finale.
- */
+const GAMERTAG_PATTERN = /^[a-zA-Z0-9_]{3,20}$/;
+
+/** Scelta del profilo con verifica della disponibilità legata al valore corrente. */
 export function OnboardingForm({
-  userName,
-  initialGamertag,
-  suggestedGamertag,
-  redirectTo,
-  qualifyingMatches,
+  initialGamertag, redirectTo, qualifyingMatches,
 }: OnboardingFormProps) {
   const router = useRouter();
-  const defaultInitial = initialGamertag ?? suggestedGamertag ?? '';
-  const [value, setValue] = useState(defaultInitial);
+  const [value, setValue] = useState(initialGamertag ?? '');
   const [selectedAvatarId, setSelectedAvatarId] = useState(() =>
     getUnlockedAvatarId(getSavedAvatarId(), qualifyingMatches));
   const [error, setError] = useState<string | null>(null);
-  const [availability, setAvailability] = useState<GamertagAvailability | null>(null);
+  const [availability, setAvailability] = useState<{
+    value: string; result: GamertagAvailability;
+  } | null>(null);
   const [fairPlayAccepted, setFairPlayAccepted] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [checking, startChecking] = useTransition();
-  const [saving, startSaving] = useTransition();
+  const [checking, setChecking] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const checkRevision = useRef(0);
+  const submitting = useRef(false);
+
+  const trimmed = value.trim();
+  const validFormat = GAMERTAG_PATTERN.test(trimmed);
+  const unchanged = trimmed.length > 0 && trimmed === (initialGamertag ?? '');
+  const currentAvailability = availability?.value === trimmed ? availability.result : null;
+  const mustAcceptRules = initialGamertag === null;
+  const canSubmit = validFormat && !saving && !checking &&
+    (unchanged || (currentAvailability?.validFormat && currentAvailability.available === true)) &&
+    (!mustAcceptRules || (rulesAccepted && fairPlayAccepted));
 
   function handleAvatarSelect(id: string) {
-    if (!isAvatarUnlocked(id, qualifyingMatches)) return;
+    if (saving || !isAvatarUnlocked(id, qualifyingMatches)) return;
     setSelectedAvatarId(id);
-    saveAvatarId(id);
   }
 
-  function handleGamertagChange(next: string) {
+  async function handleGamertagChange(next: string) {
+    const revision = ++checkRevision.current;
     setValue(next);
     setError(null);
-    const trimmed = next.trim();
-    if (trimmed.length < 3 || trimmed === (initialGamertag ?? '')) {
-      setAvailability(null);
-      return;
+    setAvailability(null);
+    setChecking(false);
+    const candidate = next.trim();
+    if (!GAMERTAG_PATTERN.test(candidate) || candidate === (initialGamertag ?? '')) return;
+
+    setChecking(true);
+    try {
+      const result = await checkGamertagAvailabilityAction(candidate);
+      if (revision !== checkRevision.current) return;
+      if (!result.validFormat) {
+        setError('Impossibile verificare la disponibilità. Riprova.');
+        return;
+      }
+      setAvailability({ value: candidate, result });
+    } catch {
+      if (revision === checkRevision.current) {
+        setError('Impossibile verificare la disponibilità. Riprova.');
+      }
+    } finally {
+      if (revision === checkRevision.current) setChecking(false);
     }
-    startChecking(async () => {
-      const result = await checkGamertagAvailabilityAction(trimmed);
-      setAvailability(result);
-    });
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!canSubmit || submitting.current) return;
+    submitting.current = true;
+    setSaving(true);
     setError(null);
-    startSaving(async () => {
-      const result = await setGamertagAction(value);
-      if (result.error) {
-        setError(result.error);
+    try {
+      const result = await setGamertagAction(trimmed);
+      if (!result.ok) {
+        setError(result.error ?? 'Impossibile salvare il gamertag. Riprova.');
         return;
       }
       saveAvatarId(selectedAvatarId);
       router.push(redirectTo);
       router.refresh();
-    });
+    } catch {
+      setError('Impossibile salvare il gamertag. Riprova.');
+    } finally {
+      submitting.current = false;
+      setSaving(false);
+    }
   }
 
-  const trimmed = value.trim();
-  const unchanged = trimmed.length > 0 && trimmed === (initialGamertag ?? '');
-  const showAvailability = !unchanged && trimmed.length >= 3 && availability !== null;
-  const mustAcceptRules = initialGamertag === null;
-  const canSubmit =
-    trimmed.length >= 3 &&
-    trimmed.length <= 20 &&
-    !saving &&
-    (unchanged || availability?.available === true) &&
-    (!mustAcceptRules || (rulesAccepted && fairPlayAccepted));
-
   return (
-    <form onSubmit={handleSubmit} className="w-full space-y-4 sm:space-y-5">
+    <form onSubmit={handleSubmit} aria-labelledby="onboarding-title"
+      className="w-full max-w-lg space-y-6 rounded-3xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl sm:p-8">
       <TournamentRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      <header className="space-y-1.5">
+        <h1 id="onboarding-title" className="text-2xl font-bold tracking-tight">Il tuo profilo da battaglia</h1>
+        <p className="text-sm text-slate-500">Scegli come farti riconoscere nei tornei.</p>
+      </header>
 
-      {/* Griglia Superiore: Guida a sinistra, Preview + Form a destra */}
-      <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
-        {/* Colonna Sinistra: Guida */}
-        <section className="lg:col-span-7">
-          <OnboardingGuide userName={userName} />
-        </section>
-
-        {/* Colonna Destra: Anteprima Carta + Scelta Avatar e Gamertag */}
-        <section className="space-y-3 lg:col-span-5">
-          <OnboardingCardPreview gamertag={value} avatarId={selectedAvatarId} />
-
-          <div className="space-y-3 rounded-2xl border border-slate-900/[0.08] bg-white p-4 shadow-xl sm:p-4.5 text-slate-900">
-            <OnboardingAvatarPicker
-              selectedAvatarId={selectedAvatarId}
-              qualifyingMatches={qualifyingMatches}
-              onSelect={handleAvatarSelect}
-            />
-
-            {/* Inserimento Gamertag */}
-            <div className="space-y-1.5 border-t border-slate-100 pt-2.5">
-              <label
-                htmlFor="gamertag-input"
-                className="block text-[11px] font-bold uppercase tracking-wider text-slate-700"
-              >
-                Gamertag nei tornei
-              </label>
-              <div className="relative">
-                <Input
-                  id="gamertag-input"
-                  autoFocus
-                  value={value}
-                  onChange={(e) => handleGamertagChange(e.target.value)}
-                  placeholder="Es. DragoBlu92"
-                  maxLength={20}
-                  aria-label="Gamertag"
-                  className="h-9.5 pr-9 text-xs sm:text-sm font-semibold text-slate-900"
-                />
-                {checking && (
-                  <span className="absolute right-2.5 top-2.5 text-slate-400">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-slate-500">
-                  3-20 caratteri (lettere, numeri, underscore)
-                </span>
-                {showAvailability && (
-                  <span
-                    className={
-                      availability?.validFormat && availability.available
-                        ? 'font-bold text-emerald-600'
-                        : 'font-bold text-destructive'
-                    }
-                  >
-                    {!availability?.validFormat
-                      ? 'Formato non valido'
-                      : availability.available
-                        ? 'Disponibile'
-                        : 'Già occupato'}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
+      <div className="space-y-2">
+        <label htmlFor="gamertag-input" className="block text-sm font-semibold">Gamertag</label>
+        <div className="relative">
+          <Input id="gamertag-input" name="tournament-gamertag" value={value}
+            onChange={(event) => { void handleGamertagChange(event.target.value); }}
+            placeholder="Inserisci il tuo gamertag da battaglia"
+            autoComplete="off" autoCapitalize="none" spellCheck={false}
+            minLength={3} maxLength={20} required pattern="[a-zA-Z0-9_]{3,20}"
+            disabled={saving} aria-describedby="gamertag-help gamertag-status"
+            aria-invalid={trimmed.length > 0 && !validFormat}
+            className={`h-12 rounded-xl border-slate-300 bg-white text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm${checking ? ' pr-10' : ''}`} />
+          {checking && <Loader2 aria-hidden className="absolute right-3 top-4 h-4 w-4 animate-spin text-slate-400" />}
+        </div>
+        <p id="gamertag-help" className="text-xs text-slate-500">3–20 caratteri: lettere, numeri e underscore.</p>
+        <p id="gamertag-status" role="status" className="text-xs font-medium">
+          {checking ? 'Verifica disponibilità…' : trimmed && !validFormat
+            ? <span className="text-destructive">Usa 3–20 lettere, numeri o underscore.</span>
+            : currentAvailability
+              ? <span className={currentAvailability.available ? 'text-emerald-700' : 'text-destructive'}>
+                {currentAvailability.available ? 'Gamertag disponibile' : 'Gamertag già in uso: provane un altro.'}
+              </span>
+              : null}
+        </p>
       </div>
 
-      {/* Sezione Inferiore Full-Width: Condizioni Liquid Glass e Bottone CTA */}
-      <div className="space-y-3.5 border-t border-white/10 pt-4">
+      <fieldset disabled={saving} className="min-w-0 border-t border-slate-100 pt-5">
+        <legend className="sr-only">Scegli la tua icona</legend>
+        <OnboardingAvatarPicker selectedAvatarId={selectedAvatarId}
+          qualifyingMatches={qualifyingMatches} onSelect={handleAvatarSelect} />
+      </fieldset>
+
+      <div className="space-y-5 border-t border-slate-100 pt-5">
         {mustAcceptRules && (
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Condizioni di partecipazione & Fair Play
-            </p>
-            <OnboardingAgreements
-              fairPlayAccepted={fairPlayAccepted}
-              onToggleFairPlay={() => setFairPlayAccepted((prev) => !prev)}
-              rulesAccepted={rulesAccepted}
-              onToggleRules={() => setRulesAccepted((prev) => !prev)}
-              onOpenRulesModal={() => setRulesOpen(true)}
-            />
-          </div>
+          <OnboardingAgreements fairPlayAccepted={fairPlayAccepted}
+            onToggleFairPlay={() => setFairPlayAccepted((prev) => !prev)}
+            rulesAccepted={rulesAccepted} onToggleRules={() => setRulesAccepted((prev) => !prev)}
+            onOpenRulesModal={() => setRulesOpen(true)} disabled={saving} />
         )}
-
         {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-2.5 text-center text-xs font-semibold text-red-300">
-            {error}
+          <div role="alert" className="space-y-1 text-xs text-destructive">
+            <p>{error}</p>
+            {!currentAvailability && validFormat && !unchanged && (
+              <button type="button" disabled={checking || saving}
+                onClick={() => { void handleGamertagChange(value); }}
+                className="font-semibold underline underline-offset-2">Riprova la verifica</button>
+            )}
           </div>
         )}
-
-        <div className="flex justify-center pt-1">
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            className="h-11 sm:h-12 w-full max-w-lg text-sm font-bold uppercase tracking-wider shadow-2xl transition-all"
-          >
-            {saving ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Accesso in corso…
-              </span>
-            ) : (
-              'Entra nella sala tornei'
-            )}
-          </Button>
-        </div>
+        <Button type="submit" disabled={!canSubmit} className="h-12 w-full rounded-xl text-sm font-semibold">
+          {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />Salvataggio…</> : 'Entra nella sala tornei'}
+        </Button>
       </div>
     </form>
   );

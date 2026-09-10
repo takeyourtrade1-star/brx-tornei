@@ -7,14 +7,12 @@ import { OnboardingView } from '@/components/feature/onboarding/onboarding-view'
 
 export const metadata: Metadata = {
   title: 'Benvenuto nei Tornei Ebartex',
-  description: 'Configura il tuo profilo duellante, consulta la guida e scendi in campo nei tornei TCG.',
+  description: 'Scegli il tuo gamertag e la tua icona per i tornei TCG.',
 };
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
-
-const GAMERTAG_PATTERN = /^[a-zA-Z0-9_]{3,20}$/;
 
 export default async function ImpostaUsernamePage({ searchParams }: PageProps) {
   const session = await getSession();
@@ -28,19 +26,9 @@ export default async function ImpostaUsernamePage({ searchParams }: PageProps) {
     fetchMyGamertag(),
     fetchMyReputation().catch(() => null),
   ]);
-  const userName = session.user.name;
-  const userEmail = session.user.email;
-
-  // Suggerisci il nome utente Ebartex se valido come gamertag
-  const suggestedGamertag =
-    !currentGamertag && userName && GAMERTAG_PATTERN.test(userName) ? userName : null;
-
   return (
     <OnboardingView
-      userName={userName}
-      userEmail={userEmail}
       initialGamertag={currentGamertag}
-      suggestedGamertag={suggestedGamertag}
       redirectTo={redirectTo}
       qualifyingMatches={reputation?.qualifiedMatches30m ?? 0}
     />
