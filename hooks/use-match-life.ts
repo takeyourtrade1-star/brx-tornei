@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MatchChatMessage } from '@/hooks/use-match-chat';
 import type { Participant } from '@/types/tournament';
 import { clampLife, DEFAULT_STARTING_LIFE, encodeMatchLifeCommand, parseMatchLifeCommand } from '@/lib/match-life-protocol';
-import { createLifeMap, nextLifeCommandId, rememberLifeCommand } from './match-life-state';
+import { createLifeMap, isCompleteLifeSnapshot, nextLifeCommandId, rememberLifeCommand } from './match-life-state';
+import { useMatchLifeSync } from './use-match-life-sync';
 
 interface UseMatchLifeOptions {
   matchId?: string | null;
@@ -32,13 +33,10 @@ export function useMatchLife({
   const [lifeByPlayerId, setLifeByPlayerId] = useState<Record<string, number>>(() =>
     createLifeMap(playerIds, DEFAULT_STARTING_LIFE),
   );
-  const [syncing, setSyncing] = useState(false);
   const stateRef = useRef<LifeState>({ startingLife, lifeByPlayerId, revision: 0 });
   const processedMessages = useRef(new Set<string>());
   const skipStaleMessages = useRef(true);
   const processedCommands = useRef(new Set<string>());
-  const requestedForMatch = useRef<string | null>(null);
-  const awaitingSnapshot = useRef(false);
   const skipNextPersistence = useRef(true);
   const commandSequence = useRef(0);
 
@@ -71,9 +69,6 @@ export function useMatchLife({
     processedMessages.current.clear();
     skipStaleMessages.current = true;
     processedCommands.current.clear();
-    requestedForMatch.current = null;
-    awaitingSnapshot.current = false;
-    setSyncing(userId !== authorityPlayerId);
     skipNextPersistence.current = true;
     const defaultState = {
       startingLife: DEFAULT_STARTING_LIFE,
@@ -82,7 +77,7 @@ export function useMatchLife({
     };
     const stored = matchId ? window.sessionStorage.getItem(`match-life:${matchId}`) : null;
     const snapshot = stored ? parseMatchLifeCommand(stored) : null;
-    const restoredState = snapshot?.type === 'snapshot'
+    const restoredState = isCompleteLifeSnapshot(snapshot, playerIds, authorityPlayerId)
       ? {
           startingLife: snapshot.startingLife,
           lifeByPlayerId: snapshot.lifeByPlayerId,
@@ -110,9 +105,14 @@ export function useMatchLife({
     );
   }, [authorityPlayerId, lifeByPlayerId, matchId, startingLife]);
 
+  const { synced, complete } = useMatchLifeSync({
+    matchId, userId, authorityPlayerId, playerIds, connected, send, stateRef, commandSequence,
+  });
+
   useEffect(() => {
     if (skipStaleMessages.current) {
       skipStaleMessages.current = false;
+      for (const message of messages) processedMessages.current.add(message.id);
       return;
     }
     for (const message of messages) {
@@ -144,21 +144,19 @@ export function useMatchLife({
           ...current,
           lifeByPlayerId: { ...current.lifeByPlayerId, [command.targetId]: current.startingLife },
         });
-      } else if (command.type === 'snapshot' && authoritative && awaitingSnapshot.current) {
+      } else if (isCompleteLifeSnapshot(command, playerIds, authorityPlayerId)) {
         const revision = command.revision ?? 0;
-        if (revision >= stateRef.current.revision) {
+        if (revision >= stateRef.current.revision && complete(command.requestId)) {
           commitState({
             startingLife: command.startingLife,
             lifeByPlayerId: command.lifeByPlayerId,
             revision,
           });
         }
-        awaitingSnapshot.current = false;
-        setSyncing(false);
       } else if (
         command.type === 'sync-request' &&
         userId === authorityPlayerId &&
-        command.senderId !== userId
+        command.senderId !== userId && playerIds.includes(command.senderId)
       ) {
         const state = stateRef.current;
         send(encodeMatchLifeCommand({
@@ -168,34 +166,14 @@ export function useMatchLife({
           senderId: userId,
           revision: state.revision,
           commandId: nextLifeCommandId(commandSequence, userId),
+          requestId: command.commandId,
         }));
       }
     }
-  }, [applyDelta, applySetup, authorityPlayerId, commitState, messages, playerIds, send, userId]);
-
-  useEffect(() => {
-    if (!connected || !matchId || userId === authorityPlayerId || requestedForMatch.current === matchId) return;
-    requestedForMatch.current = matchId;
-    const sent = send(encodeMatchLifeCommand({
-      type: 'sync-request',
-      senderId: userId,
-      revision: stateRef.current.revision,
-      commandId: nextLifeCommandId(commandSequence, userId),
-    }));
-    awaitingSnapshot.current = sent;
-    setSyncing(sent);
-  }, [authorityPlayerId, connected, matchId, send, userId]);
-
-  useEffect(() => {
-    if (!connected && userId !== authorityPlayerId) {
-      requestedForMatch.current = null;
-      awaitingSnapshot.current = false;
-      setSyncing(true);
-    }
-  }, [authorityPlayerId, connected, userId]);
+  }, [applyDelta, applySetup, authorityPlayerId, commitState, complete, messages, playerIds, send, userId]);
 
   const setStartingLife = useCallback((value: number) => {
-    if (userId !== authorityPlayerId) return false;
+    if (!connected || !playerIds.includes(userId) || userId !== authorityPlayerId) return false;
     const nextStartingLife = clampLife(value);
     const revision = stateRef.current.revision + 1;
     const commandId = nextLifeCommandId(commandSequence, userId);
@@ -205,10 +183,10 @@ export function useMatchLife({
     rememberLifeCommand(processedCommands.current, commandId);
     applySetup(nextStartingLife, revision);
     return true;
-  }, [applySetup, authorityPlayerId, send, userId]);
+  }, [applySetup, authorityPlayerId, connected, playerIds, send, userId]);
 
   const changeLife = useCallback((targetId: string, delta: number) => {
-    if (targetId !== userId) return false;
+    if (!connected || !synced || !playerIds.includes(userId) || targetId !== userId) return false;
     const commandId = nextLifeCommandId(commandSequence, userId);
     const revision = stateRef.current.revision;
     if (!send(encodeMatchLifeCommand({ type: 'delta', targetId, delta, senderId: userId, revision, commandId }))) {
@@ -217,9 +195,10 @@ export function useMatchLife({
     rememberLifeCommand(processedCommands.current, commandId);
     applyDelta(targetId, delta);
     return true;
-  }, [applyDelta, send, userId]);
+  }, [applyDelta, connected, playerIds, send, synced, userId]);
 
   const resetLife = useCallback(() => {
+    if (!connected || !synced || !playerIds.includes(userId)) return false;
     const current = stateRef.current;
     const commandId = nextLifeCommandId(commandSequence, userId);
     if (!send(encodeMatchLifeCommand({
@@ -235,8 +214,7 @@ export function useMatchLife({
       lifeByPlayerId: { ...current.lifeByPlayerId, [userId]: current.startingLife },
     });
     return true;
-  }, [commitState, send, userId]);
+  }, [commitState, connected, playerIds, send, synced, userId]);
 
-  const synced = userId === authorityPlayerId || !syncing;
   return { startingLife, lifeByPlayerId, setStartingLife, changeLife, resetLife, synced };
 }

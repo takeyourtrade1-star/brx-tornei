@@ -1,4 +1,13 @@
 import type { MutableRefObject } from 'react';
+import type { MatchLifeCommand } from '@/lib/match-life-protocol';
+
+export function isCompleteLifeSnapshot(
+  command: MatchLifeCommand | null, playerIds: string[], authorityPlayerId: string,
+): command is Extract<MatchLifeCommand, { type: 'snapshot' }> {
+  return command?.type === 'snapshot' && command.senderId === authorityPlayerId &&
+    Object.keys(command.lifeByPlayerId).length === playerIds.length &&
+    playerIds.every((id) => Object.hasOwn(command.lifeByPlayerId, id));
+}
 
 export function createLifeMap(playerIds: string[], startingLife: number): Record<string, number> {
   return Object.fromEntries(playerIds.map((playerId) => [playerId, startingLife]));

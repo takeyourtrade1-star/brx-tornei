@@ -14,6 +14,7 @@ export type MatchLifeCommand =
       senderId: string;
       revision?: number;
       commandId?: string;
+      requestId?: string;
     }
   | { type: 'sync-request'; senderId: string; revision?: number; commandId?: string };
 
@@ -34,6 +35,8 @@ export function parseMatchLifeCommand(text: string): MatchLifeCommand | null {
     if (value.commandId !== undefined && !commandId) return null;
     const revision = isRevision(value.revision) ? value.revision : undefined;
     if (value.revision !== undefined && revision === undefined) return null;
+    const requestId = isCommandId(value.requestId) ? value.requestId : undefined;
+    if (value.requestId !== undefined && !requestId) return null;
 
     if (value.type === 'setup' && isLife(value.startingLife)) {
       return { type: 'setup', startingLife: value.startingLife, senderId: value.senderId, ...withRevision(revision), ...withCommandId(commandId) };
@@ -67,6 +70,7 @@ export function parseMatchLifeCommand(text: string): MatchLifeCommand | null {
         startingLife: value.startingLife,
         lifeByPlayerId: value.lifeByPlayerId,
         senderId: value.senderId,
+        ...(requestId ? { requestId } : {}),
         ...withRevision(revision),
         ...withCommandId(commandId),
       };
