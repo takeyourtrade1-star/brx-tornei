@@ -213,7 +213,7 @@ export function MatchLiveContent(props: MatchLiveContentProps) {
               onFullscreen={() => setFullscreenOpen(true)} onLifeChange={life.changeLife}
               onLifeReset={life.resetLife} onRetryPeer={retryPeer}
               chat={
-                <div className="h-full min-h-[300px] lg:min-h-0">
+                <div className="h-full min-h-[300px] lg:h-[340px] lg:min-h-0">
                   <MatchCommentsPanel {...chatPanelProps} onSticker={sticker.handleSticker} />
                 </div>
               }

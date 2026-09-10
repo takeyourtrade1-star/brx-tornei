@@ -88,7 +88,7 @@ export function MatchVideoGrid({
       <div
         className={cn(
           'grid min-w-0 grid-cols-1 gap-3.5',
-          detachedLife ? 'lg:grid-cols-12 lg:items-center' : 'lg:grid-cols-2',
+          detachedLife ? 'lg:grid-cols-12 lg:items-start' : 'lg:grid-cols-2',
         )}
       >
         <div className="min-w-0 lg:order-1 lg:col-span-6">
