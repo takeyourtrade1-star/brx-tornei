@@ -11,7 +11,7 @@ import type { ReputationSummary as ReputationSummaryData } from '@/lib/data/play
 import type { NotificationSnapshot } from '@/types/notification';
 import type { SocialRoomFriendPresence } from '@/types/social';
 import { ReputationSummary } from './reputation-summary';
-import { TableCard } from './table-card';
+import { SearchableTableList } from './searchable-table-list';
 
 interface LobbyTableListProps {
   tables: LobbyTable[];
@@ -192,20 +192,15 @@ export function LobbyTableList({
             {error}
           </p>
         )}
-        <div className="flex flex-col gap-4" aria-label="Tavoli disponibili">
-          {tables.map((table) => (
-            <TableCard
-              key={table.key}
-              table={table}
-              busy={busy}
-              createLocked={createLocked}
-              onSit={onSit}
-              onOpen={onOpen}
-              onLeave={onLeave}
-              onGoLive={onGoLive}
-            />
-          ))}
-        </div>
+        <SearchableTableList
+          tables={tables}
+          busy={busy}
+          createLocked={createLocked}
+          onSit={onSit}
+          onOpen={onOpen}
+          onLeave={onLeave}
+          onGoLive={onGoLive}
+        />
       </main>
     </>
   );

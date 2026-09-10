@@ -9,9 +9,11 @@ import { ConnectionQualityBadge } from '../connection-quality-badge';
 import { EmptyTableCard } from './empty-table-card';
 import { TableMetaChips } from './table-meta-chips';
 import { TableStage, type TableSeatInfo } from './table-stage';
+import { TableNumber } from './table-number';
 
-interface TableCardProps {
+export interface TableCardProps {
   table: LobbyTable;
+  tableNumber: number;
   busy?: boolean;
   createLocked?: boolean;
   onSit: (table: LobbyTable) => void;
@@ -20,9 +22,9 @@ interface TableCardProps {
   onGoLive: (table: LobbyTable) => void;
 }
 
-export function TableCard({ table, busy, createLocked = false, onSit, onOpen, onLeave, onGoLive }: TableCardProps) {
+export function TableCard({ table, tableNumber, busy, createLocked = false, onSit, onOpen, onLeave, onGoLive }: TableCardProps) {
   if (table.kind === 'empty') {
-    return <EmptyTableCard table={table} busy={busy} createLocked={createLocked} onSit={onSit} />;
+    return <EmptyTableCard table={table} tableNumber={tableNumber} busy={busy} createLocked={createLocked} onSit={onSit} />;
   }
 
   const isMine = table.kind === 'mine';
@@ -94,7 +96,7 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
     <article
       role="button"
       tabIndex={busy ? -1 : 0}
-      aria-label={actionLabel}
+      aria-label={`Tavolo ${tableNumber}: ${actionLabel}`}
       aria-disabled={busy || undefined}
       onClick={handlePrimary}
       onKeyDown={onCardKeyDown}
@@ -107,8 +109,9 @@ export function TableCard({ table, busy, createLocked = false, onSit, onOpen, on
       )}
     >
 
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <header className="flex flex-wrap items-start gap-3">
+        <TableNumber number={tableNumber} />
+        <div className="min-w-0 flex-1 basis-32">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
           <h3 className="mt-0.5 truncate font-display text-base font-black leading-snug text-white sm:text-lg">
             {title}

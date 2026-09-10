@@ -6,7 +6,7 @@ import { Layers, MonitorUp, X } from 'lucide-react';
 import { DeckWorkspace } from '@/components/feature/decks/deck-workspace';
 import type { LobbyTable } from '@/lib/lobby';
 import type { Deck } from '@/types/deck';
-import { TableCard } from './table-card';
+import { SearchableTableList } from './searchable-table-list';
 
 export type ArcadeOfficialSurface = 'tournaments' | 'decks';
 
@@ -119,18 +119,15 @@ export function ArcadeOfficialModal({
                   {error}
                 </p>
               ) : null}
-              {tables.map((table) => (
-                <TableCard
-                  key={table.key}
-                  table={table}
-                  busy={busy}
-                  createLocked={createLocked}
-                  onSit={onSit}
-                  onOpen={onOpen}
-                  onLeave={onLeave}
-                  onGoLive={onGoLive}
-                />
-              ))}
+              <SearchableTableList
+                tables={tables}
+                busy={busy}
+                createLocked={createLocked}
+                onSit={onSit}
+                onOpen={onOpen}
+                onLeave={onLeave}
+                onGoLive={onGoLive}
+              />
             </div>
           ) : (
             <DeckWorkspace initialDecks={initialDecks} />

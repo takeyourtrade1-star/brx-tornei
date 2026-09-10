@@ -4,24 +4,27 @@ import { UserPlus } from 'lucide-react';
 import type { LobbyTable } from '@/lib/lobby';
 import { cn } from '@/lib/utils';
 import { TableStage } from './table-stage';
+import { TableNumber } from './table-number';
 
 interface EmptyTableCardProps {
   table: LobbyTable;
+  tableNumber: number;
   busy?: boolean;
   createLocked?: boolean;
   onSit: (table: LobbyTable) => void;
 }
 
 /** Tavolo libero: striscia tratteggiata, non una card piena come gli occupati. */
-export function EmptyTableCard({ table, busy, createLocked = false, onSit }: EmptyTableCardProps) {
+export function EmptyTableCard({ table, tableNumber, busy, createLocked = false, onSit }: EmptyTableCardProps) {
   if (createLocked) {
     return (
-      <p
+      <div
         role="note"
-        className="rounded-2xl border-2 border-dashed border-white/20 bg-white/5 px-4 py-3 text-sm font-bold text-white/80 backdrop-blur-sm"
+        className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-white/20 bg-white/5 px-4 py-3 text-sm font-bold text-white/80 backdrop-blur-sm"
       >
-        Aggiungiti a un tavolo già aperto, oppure scegli un formato in alto per aprirne uno nuovo.
-      </p>
+        <TableNumber number={tableNumber} />
+        <p>Aggiungiti a un tavolo già aperto, oppure scegli un formato in alto per aprirne uno nuovo.</p>
+      </div>
     );
   }
 
@@ -33,7 +36,7 @@ export function EmptyTableCard({ table, busy, createLocked = false, onSit }: Emp
     <article
       role="button"
       tabIndex={busy ? -1 : 0}
-      aria-label="Siediti e apri una sfida"
+      aria-label={`Tavolo ${tableNumber}: siediti e apri una sfida`}
       aria-disabled={busy || undefined}
       onClick={sit}
       onKeyDown={(event) => {
@@ -44,19 +47,22 @@ export function EmptyTableCard({ table, busy, createLocked = false, onSit }: Emp
         }
       }}
       className={cn(
-        'arena-table-card group flex cursor-pointer flex-col items-stretch gap-2.5 rounded-2xl border-2 border-dashed border-white/25 bg-white/[0.02] px-3 py-2 backdrop-blur-sm transition',
-        'hover:border-primary/55 hover:bg-primary/[0.05] active:scale-[0.995] sm:flex-row sm:items-center sm:gap-3.5 sm:px-4',
+        'arena-table-card group grid cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-2xl border-2 border-dashed border-white/25 bg-white/[0.02] px-3 py-3 backdrop-blur-sm transition',
+        'hover:border-primary/55 hover:bg-primary/[0.05] active:scale-[0.995] sm:flex sm:gap-3.5 sm:px-4 sm:py-2',
         busy && 'cursor-not-allowed opacity-60',
       )}
     >
-      <TableStage
-        far={{ occupied: false, label: 'Giocatore 1' }}
-        near={{ occupied: false, label: 'Giocatore 2' }}
-        tone="empty"
-        compact
-      />
+      <TableNumber number={tableNumber} />
+      <div className="col-span-2 sm:contents">
+        <TableStage
+          far={{ occupied: false, label: 'Giocatore 1' }}
+          near={{ occupied: false, label: 'Giocatore 2' }}
+          tone="empty"
+          compact
+        />
+      </div>
 
-      <div className="min-w-0 flex-1 text-center sm:text-left">
+      <div className="col-span-2 min-w-0 flex-1 text-left">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Tavolo libero</p>
         <h3 className="truncate font-display text-sm font-black leading-snug text-white sm:text-base">
           Siediti e apri una sfida
