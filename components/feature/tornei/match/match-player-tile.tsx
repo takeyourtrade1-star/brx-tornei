@@ -83,40 +83,27 @@ export function MatchPlayerTile({
       {/* Barra superiore HUD (ESTERNA AL VIDEO): identità, mazzo, punti vita e comandi */}
       <header
         className={cn(
-          'flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2 backdrop-blur-md',
+          'flex h-12 items-center justify-between gap-2 border-b px-3.5 py-1.5 backdrop-blur-md',
           local
             ? 'border-primary/25 bg-black/40'
             : 'border-sky-400/25 bg-black/40',
         )}
       >
-        {/* Identità e mazzo */}
+        {/* Identità e mazzo (senza rombi) */}
         <div className="flex min-w-0 items-center gap-2">
           <span
-            aria-hidden
             className={cn(
-              'h-2.5 w-2.5 shrink-0 rotate-45 rounded-[2px]',
+              'rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider',
               local
-                ? 'bg-primary shadow-[0_0_8px_#FF7300]'
-                : 'bg-sky-400 shadow-[0_0_8px_#38BDF8]',
+                ? 'bg-primary/20 text-primary'
+                : 'bg-sky-400/20 text-sky-300',
             )}
-          />
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span
-                className={cn(
-                  'rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider',
-                  local
-                    ? 'bg-primary/20 text-primary'
-                    : 'bg-sky-400/20 text-sky-300',
-                )}
-              >
-                {roleLabel}
-              </span>
-              <span className="truncate font-sans text-xs font-black text-white">
-                {player.username}
-              </span>
-            </div>
-          </div>
+          >
+            {roleLabel}
+          </span>
+          <span className="truncate font-sans text-xs sm:text-sm font-black text-white max-w-[120px] sm:max-w-[160px]">
+            {player.username}
+          </span>
           <MatchDeckChip player={player} formatName={formatName} />
         </div>
 
@@ -152,8 +139,8 @@ export function MatchPlayerTile({
               type="button"
               onClick={onFullscreen}
               aria-label="Apri la partita a schermo intero"
-              title="Schermo intero"
-              className="inline-flex h-7 items-center gap-1 rounded-lg border border-white/15 bg-white/[0.08] px-2 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-md transition hover:border-white/30 hover:bg-white/15 active:scale-95"
+              title="Fullscreen"
+              className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.08] px-2.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-md transition hover:border-white/30 hover:bg-white/15 active:scale-95"
             >
               <Maximize2 className="h-3 w-3" />
               <span className="hidden sm:inline">Fullscreen</span>

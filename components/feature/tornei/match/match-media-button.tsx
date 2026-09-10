@@ -5,9 +5,10 @@ interface MatchMediaButtonProps {
   on: boolean;
   label: 'camera' | 'microfono' | 'audio avversario';
   onClick?: () => void;
+  className?: string;
 }
 
-export function MatchMediaButton({ on, label, onClick }: MatchMediaButtonProps) {
+export function MatchMediaButton({ on, label, onClick, className }: MatchMediaButtonProps) {
   const Icon =
     label === 'camera'
       ? on
@@ -33,8 +34,11 @@ export function MatchMediaButton({ on, label, onClick }: MatchMediaButtonProps) 
       aria-label={ariaLabel}
       title={ariaLabel}
       className={cn(
-        'grid h-10 w-10 place-items-center rounded-full border backdrop-blur-md transition active:scale-95',
-        on ? 'border-white/20 bg-black/50 hover:bg-black/70 text-white' : 'border-red-400/50 bg-red-500/80 text-white shadow-[0_0_12px_rgba(239,68,68,0.5)]',
+        'grid h-9 w-9 place-items-center rounded-xl border backdrop-blur-md transition active:scale-95 shadow-sm',
+        on
+          ? 'border-white/15 bg-white/[0.08] text-white hover:border-white/30 hover:bg-white/15'
+          : 'border-red-400/50 bg-gradient-to-b from-red-500 to-red-600 text-white hover:brightness-110 shadow-[0_2px_8px_rgba(239,68,68,0.4)]',
+        className,
       )}
     >
       <Icon className="h-4 w-4" />

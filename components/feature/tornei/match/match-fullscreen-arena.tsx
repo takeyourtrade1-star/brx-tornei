@@ -42,7 +42,6 @@ export function MatchFullscreenArena(props: MatchFullscreenArenaProps) {
   } = props;
   const [mounted, setMounted] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'split' | 'focus'>('split');
   const dialogRef = useRef<HTMLElement | null>(null);
   const playmat = getPlaymat(playmatId);
 
@@ -103,8 +102,6 @@ export function MatchFullscreenArena(props: MatchFullscreenArenaProps) {
         lifeConnected={lifeConnected}
         onLifeChange={onLifeChange}
         onLifeReset={onLifeReset}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
         camOn={camOn}
         micOn={micOn}
         opponentMuted={opponentMuted}
@@ -116,96 +113,51 @@ export function MatchFullscreenArena(props: MatchFullscreenArenaProps) {
         onClose={onClose}
       />
 
-      {/* ARENA WEBCAM: priorità assoluta allo spazio video */}
+      {/* ARENA WEBCAM: Focus sull'avversario a tutto schermo con PiP propria */}
       <main className="relative z-10 flex min-h-0 flex-1 items-center justify-center p-2 sm:p-4">
-        {viewMode === 'split' ? (
-          <div className="grid h-full w-full grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-center justify-center">
-            {/* Webcam Locale */}
-            <div className="relative flex h-full max-h-[calc(100dvh-5.5rem)] w-full items-center justify-center overflow-hidden rounded-2xl border border-primary/35 bg-black/85 shadow-2xl ring-1 ring-primary/20">
-              <WebcamTile
-                stream={localStream}
-                username={localUsername}
-                feedLabel={localFeedLabel}
-                videoDisabled={!camOn}
-                mirrored={mirroredLocal}
-                onToggleMirror={onToggleMirrorLocal}
-                hideUsername
-              />
-              <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-full border border-primary/30 bg-primary/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-primary backdrop-blur-md">
-                Tu ({localUsername})
-              </span>
-            </div>
+        {/* Webcam Avversario massimizzata */}
+        <div className="relative flex h-full w-full max-w-[calc((100dvh-5rem)*1.7778)] aspect-video items-center justify-center overflow-hidden rounded-2xl border border-sky-400/35 bg-black/90 shadow-2xl ring-1 ring-sky-400/20">
+          <WebcamTile
+            stream={remoteStream}
+            username={remoteUsername}
+            connecting={connecting}
+            muted={opponentMuted}
+            mirrored={mirroredRemote}
+            onToggleMirror={onToggleMirrorRemote}
+            emptyLabel={remoteEmptyLabel}
+            hideUsername
+          />
+          <MatchWebcamDisconnectOverlay
+            reconnecting={peerReconnecting}
+            remaining={graceRemaining}
+            disconnectedIsMe={false}
+            opponentName={remoteUsername}
+            onRetry={onRetryPeer}
+          />
+          <span className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-sky-400/30 bg-black/60 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-sky-300 backdrop-blur-md shadow">
+            Webcam avversario
+          </span>
+        </div>
 
-            {/* Webcam Avversario */}
-            <div className="relative flex h-full max-h-[calc(100dvh-5.5rem)] w-full items-center justify-center overflow-hidden rounded-2xl border border-sky-400/35 bg-black/85 shadow-2xl ring-1 ring-sky-400/20">
-              <WebcamTile
-                stream={remoteStream}
-                username={remoteUsername}
-                connecting={connecting}
-                muted={opponentMuted}
-                mirrored={mirroredRemote}
-                onToggleMirror={onToggleMirrorRemote}
-                emptyLabel={remoteEmptyLabel}
-                hideUsername
-              />
-              <MatchWebcamDisconnectOverlay
-                reconnecting={peerReconnecting}
-                remaining={graceRemaining}
-                disconnectedIsMe={false}
-                opponentName={remoteUsername}
-                onRetry={onRetryPeer}
-              />
-              <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-full border border-sky-400/30 bg-sky-500/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-sky-300 backdrop-blur-md">
-                Avversario ({remoteUsername})
-              </span>
-            </div>
+        {/* Picture-in-Picture del proprio tavolo */}
+        <div className="absolute bottom-4 right-4 z-30 w-48 sm:w-60 rounded-xl border border-primary/35 bg-header-bg/95 p-1.5 shadow-2xl backdrop-blur-xl ring-1 ring-primary/25">
+          <div className="mb-1 flex items-center justify-between px-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-primary">La tua webcam</span>
+            <span className="truncate text-[10px] font-bold text-white/70 max-w-[100px]">{localUsername}</span>
           </div>
-        ) : (
-          <div className="relative flex h-full max-h-[calc(100dvh-5.5rem)] w-full items-center justify-center">
-            {/* Webcam Avversario a tutto schermo */}
-            <div className="relative h-full w-full max-w-[calc((100dvh-5.5rem)*1.7778)] overflow-hidden rounded-2xl border border-sky-400/35 bg-black/85 shadow-2xl ring-1 ring-sky-400/20">
-              <WebcamTile
-                stream={remoteStream}
-                username={remoteUsername}
-                connecting={connecting}
-                muted={opponentMuted}
-                mirrored={mirroredRemote}
-                onToggleMirror={onToggleMirrorRemote}
-                emptyLabel={remoteEmptyLabel}
-                hideUsername
-              />
-              <MatchWebcamDisconnectOverlay
-                reconnecting={peerReconnecting}
-                remaining={graceRemaining}
-                disconnectedIsMe={false}
-                opponentName={remoteUsername}
-                onRetry={onRetryPeer}
-              />
-              <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-full border border-sky-400/30 bg-sky-500/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-sky-300 backdrop-blur-md">
-                Webcam avversario
-              </span>
-            </div>
-
-            {/* Picture-in-Picture del proprio tavolo */}
-            <div className="absolute bottom-4 right-4 z-30 w-52 sm:w-64 rounded-xl border border-primary/40 bg-black/80 p-1 shadow-2xl backdrop-blur-xl">
-              <div className="mb-1 flex items-center justify-between px-1">
-                <span className="text-[9px] font-black uppercase text-primary">La tua webcam</span>
-              </div>
-              <div className="relative w-full overflow-hidden rounded-lg aspect-video">
-                <WebcamTile
-                  stream={localStream}
-                  username={localUsername}
-                  feedLabel={localFeedLabel}
-                  videoDisabled={!camOn}
-                  mirrored={mirroredLocal}
-                  onToggleMirror={onToggleMirrorLocal}
-                  compact
-                  hideUsername
-                />
-              </div>
-            </div>
+          <div className="relative w-full overflow-hidden rounded-lg aspect-video bg-black/90">
+            <WebcamTile
+              stream={localStream}
+              username={localUsername}
+              feedLabel={localFeedLabel}
+              videoDisabled={!camOn}
+              mirrored={mirroredLocal}
+              onToggleMirror={onToggleMirrorLocal}
+              compact
+              hideUsername
+            />
           </div>
-        )}
+        </div>
       </main>
 
       {/* CASSETTO CHAT FLUTTUANTE (non sottrae larghezza alle webcam) */}

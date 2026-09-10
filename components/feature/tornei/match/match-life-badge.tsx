@@ -75,22 +75,11 @@ export function MatchLifeBadge({
         )}
       />
 
-      {/* Intestazione opzionale: nome utente con cristallo */}
+      {/* Intestazione opzionale: nome utente pulito senza rombi */}
       {!hideUsername && (
-        <div className="relative flex min-w-0 items-center gap-1.5 pr-1">
-          <span
-            aria-hidden
-            className={cn(
-              'h-2 w-2 shrink-0 rotate-45 rounded-[2px]',
-              local
-                ? 'bg-primary shadow-[0_0_8px_#FF7300]'
-                : 'bg-sky-400 shadow-[0_0_8px_#38BDF8]',
-            )}
-          />
-          <span className="truncate font-sans text-xs font-black uppercase tracking-[0.1em] text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-            {username}
-          </span>
-        </div>
+        <span className="truncate font-sans text-xs font-black uppercase tracking-[0.08em] text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] pr-1">
+          {username}
+        </span>
       )}
 
       {/* Avviso mancata connessione / sincronizzazione */}
@@ -220,10 +209,10 @@ function LifeButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'grid h-8 min-w-8 place-items-center rounded-xl border border-white/15 bg-white/[0.08] px-1.5 text-xs font-black text-white/90 shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-25',
+        'grid h-7 min-w-7 place-items-center rounded-lg border border-white/15 bg-white/[0.08] px-1 text-[11px] font-black text-white/90 shadow-[0_1px_4px_rgba(0,0,0,0.3)] backdrop-blur-md transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-25',
         local
-          ? 'hover:border-primary/70 hover:bg-primary/30 hover:text-white hover:shadow-[0_0_12px_rgba(255,115,0,0.5)]'
-          : 'hover:border-sky-400/70 hover:bg-sky-400/30 hover:text-white hover:shadow-[0_0_12px_rgba(56,189,248,0.5)]',
+          ? 'hover:border-primary/70 hover:bg-primary/30 hover:text-white hover:shadow-[0_0_8px_rgba(255,115,0,0.4)]'
+          : 'hover:border-sky-400/70 hover:bg-sky-400/30 hover:text-white hover:shadow-[0_0_8px_rgba(56,189,248,0.4)]',
       )}
     >
       {children}

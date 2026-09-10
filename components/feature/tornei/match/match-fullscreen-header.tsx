@@ -1,6 +1,6 @@
 'use client';
 
-import { Columns2, Maximize, MessageSquare, Minimize2 } from 'lucide-react';
+import { MessageSquare, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchLifeBadge } from './match-life-badge';
 import { MatchMediaButton } from './match-media-button';
@@ -15,8 +15,6 @@ interface MatchFullscreenHeaderProps {
   lifeConnected: boolean;
   onLifeChange: (playerId: string, delta: number) => void;
   onLifeReset?: () => void;
-  viewMode: 'split' | 'focus';
-  onViewModeChange: (mode: 'split' | 'focus') => void;
   camOn: boolean;
   micOn: boolean;
   opponentMuted?: boolean;
@@ -38,8 +36,6 @@ export function MatchFullscreenHeader({
   lifeConnected,
   onLifeChange,
   onLifeReset,
-  viewMode,
-  onViewModeChange,
   camOn,
   micOn,
   opponentMuted = false,
@@ -51,13 +47,18 @@ export function MatchFullscreenHeader({
   onClose,
 }: MatchFullscreenHeaderProps) {
   return (
-    <header className="relative z-30 flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-header-bg/95 px-3 py-2 shadow-xl backdrop-blur-xl sm:px-6">
-      {/* Sinistra: Tu + Punti Vita */}
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <div className="hidden min-w-0 flex-col sm:flex">
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary">Tu</span>
-          <span className="truncate text-xs font-black text-white">{localUsername}</span>
+    <header className="relative z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-header-bg/95 px-4 shadow-xl backdrop-blur-xl sm:px-6">
+      {/* Sinistra: Capsula Tu + Punti Vita */}
+      <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-primary/30 bg-black/40 px-3 py-1 shadow-sm backdrop-blur-md">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="rounded-md bg-primary/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
+            Tu
+          </span>
+          <span className="truncate text-xs font-black text-white sm:text-sm max-w-[100px] sm:max-w-[160px]">
+            {localUsername}
+          </span>
         </div>
+        <div className="h-4 w-px bg-white/15" aria-hidden="true" />
         <MatchLifeBadge
           username={localUsername}
           life={lifeByPlayerId[localPlayerId] ?? startingLife}
@@ -72,51 +73,38 @@ export function MatchFullscreenHeader({
         />
       </div>
 
-      {/* Centro: Switcher Vista (Affiancata vs Focus) */}
-      <div className="flex items-center rounded-xl border border-white/15 bg-black/40 p-0.5 shadow-inner">
-        <button
-          type="button"
-          onClick={() => onViewModeChange('split')}
-          aria-pressed={viewMode === 'split'}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition',
-            viewMode === 'split' ? 'bg-primary text-white shadow-md' : 'text-white/60 hover:text-white',
-          )}
-        >
-          <Columns2 className="h-3 w-3" />
-          <span className="hidden sm:inline">Affiancata</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onViewModeChange('focus')}
-          aria-pressed={viewMode === 'focus'}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition',
-            viewMode === 'focus' ? 'bg-sky-500 text-white shadow-md' : 'text-white/60 hover:text-white',
-          )}
-        >
-          <Maximize className="h-3 w-3" />
-          <span className="hidden sm:inline">Focus</span>
-        </button>
+      {/* Centro: Distintivo VS sobrio ed elegante */}
+      <div className="hidden md:flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-0.5 text-[11px] font-black tracking-widest text-white/40 uppercase">
+        VS
       </div>
 
-      {/* Destra: Punti Vita Avversario + Comandi multimediali + Chat + Riduci */}
+      {/* Destra: Capsula Avversario + Comandi */}
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <MatchLifeBadge
-          username={remoteUsername}
-          life={lifeByPlayerId[remotePlayerId] ?? startingLife}
-          playerId={remotePlayerId}
-          connected={lifeConnected}
-          variant="remote"
-          interactive={false}
-          onChange={onLifeChange}
-          hideUsername
-        />
-        <div className="hidden min-w-0 flex-col text-right sm:flex">
-          <span className="text-[9px] font-black uppercase tracking-widest text-sky-400">Avversario</span>
-          <span className="truncate text-xs font-black text-white">{remoteUsername}</span>
+        {/* Capsula Avversario */}
+        <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-sky-400/30 bg-black/40 px-3 py-1 shadow-sm backdrop-blur-md">
+          <MatchLifeBadge
+            username={remoteUsername}
+            life={lifeByPlayerId[remotePlayerId] ?? startingLife}
+            playerId={remotePlayerId}
+            connected={lifeConnected}
+            variant="remote"
+            interactive={false}
+            onChange={onLifeChange}
+            hideUsername
+          />
+          <div className="h-4 w-px bg-white/15" aria-hidden="true" />
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-xs font-black text-white sm:text-sm max-w-[100px] sm:max-w-[160px]">
+              {remoteUsername}
+            </span>
+            <span className="rounded-md bg-sky-400/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-sky-300">
+              Avversario
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 pl-1 border-l border-white/15">
+
+        {/* Toolbar controlli multimediali, chat e riduci */}
+        <div className="flex items-center gap-1.5 border-l border-white/15 pl-2">
           <MatchMediaButton on={micOn} label="microfono" onClick={onToggleMic} />
           <MatchMediaButton on={camOn} label="camera" onClick={onToggleCam} />
           {onToggleOpponentMute && (
@@ -127,8 +115,10 @@ export function MatchFullscreenHeader({
             onClick={onToggleChat}
             aria-label={chatOpen ? 'Chiudi chat' : 'Apri chat'}
             className={cn(
-              'grid h-10 w-10 place-items-center rounded-full border backdrop-blur-md transition active:scale-95',
-              chatOpen ? 'border-primary/60 bg-primary/25 text-primary' : 'border-white/20 bg-black/50 hover:bg-black/70 text-white',
+              'grid h-9 w-9 place-items-center rounded-xl border backdrop-blur-md transition active:scale-95 shadow-sm',
+              chatOpen
+                ? 'border-primary/60 bg-primary/25 text-primary shadow-[0_0_10px_rgba(255,115,0,0.3)]'
+                : 'border-white/15 bg-white/[0.08] text-white hover:border-white/30 hover:bg-white/15',
             )}
           >
             <MessageSquare className="h-4 w-4" />
@@ -137,7 +127,7 @@ export function MatchFullscreenHeader({
             type="button"
             onClick={onClose}
             aria-label="Riduci schermo intero"
-            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-3 text-xs font-black uppercase backdrop-blur-md hover:bg-black/70"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.08] px-3 text-xs font-black uppercase tracking-wider text-white backdrop-blur-md transition hover:border-white/30 hover:bg-white/15 active:scale-95 shadow-sm"
           >
             <Minimize2 className="h-4 w-4" />
             <span className="hidden md:inline">Riduci</span>
