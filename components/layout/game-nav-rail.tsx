@@ -2,6 +2,8 @@
 
 import { usePathname } from 'next/navigation';
 import { GameNavButton } from '@/components/layout/game-nav-button';
+import { SocialDndReminder } from '@/components/layout/social-dnd-reminder';
+import { useSocialDndReminder } from '@/hooks/use-social-dnd-reminder';
 
 const HUD_ART = {
   mazzi: { src: '/images/hud/deck-icon.webp', width: 720, height: 264 },
@@ -26,6 +28,26 @@ export function GameNavRail({
   const pathname = usePathname();
   if (pathname.includes('/live')) return null;
 
+  return (
+    <GameNavRailContent
+      friendsOpen={friendsOpen}
+      onOpenFriends={onOpenFriends}
+      onlineFriendsCount={onlineFriendsCount}
+      pendingRequestsCount={pendingRequestsCount}
+      pathname={pathname}
+    />
+  );
+}
+
+function GameNavRailContent({
+  friendsOpen,
+  onOpenFriends,
+  onlineFriendsCount,
+  pendingRequestsCount,
+  pathname,
+}: GameNavRailProps & { pathname: string }) {
+  const { active: dndActive, minutesRemaining: dndMinutesRemaining } = useSocialDndReminder();
+
   const mazziActive = pathname.startsWith('/mazzi');
   const partiteActive = pathname.startsWith('/partite');
 
@@ -44,6 +66,8 @@ export function GameNavRail({
             onOpenFriends={onOpenFriends}
             onlineFriendsCount={onlineFriendsCount}
             pendingRequestsCount={pendingRequestsCount}
+            dndActive={dndActive}
+            dndMinutesRemaining={dndMinutesRemaining}
           />
         </div>
       </nav>
@@ -61,6 +85,8 @@ export function GameNavRail({
             onOpenFriends={onOpenFriends}
             onlineFriendsCount={onlineFriendsCount}
             pendingRequestsCount={pendingRequestsCount}
+            dndActive={dndActive}
+            dndMinutesRemaining={dndMinutesRemaining}
           />
         </div>
       </nav>
@@ -76,6 +102,8 @@ function Buttons({
   onOpenFriends,
   onlineFriendsCount,
   pendingRequestsCount,
+  dndActive,
+  dndMinutesRemaining,
 }: {
   compact: boolean;
   mazziActive: boolean;
@@ -84,6 +112,8 @@ function Buttons({
   onOpenFriends: () => void;
   onlineFriendsCount: number;
   pendingRequestsCount: number;
+  dndActive: boolean;
+  dndMinutesRemaining: number;
 }) {
   return (
     <>
@@ -105,17 +135,20 @@ function Buttons({
         active={partiteActive}
         compact={compact}
       />
-      <GameNavButton
-        label="Amici"
-        ariaLabel="Apri amici e duellanti"
-        art={HUD_ART.amici}
-        variant="amici"
-        active={friendsOpen}
-        compact={compact}
-        onlineDot={onlineFriendsCount > 0}
-        badge={pendingRequestsCount}
-        onClick={onOpenFriends}
-      />
+      <div className="relative">
+        <SocialDndReminder active={dndActive} minutesRemaining={dndMinutesRemaining} />
+        <GameNavButton
+          label="Amici"
+          ariaLabel="Apri amici e duellanti"
+          art={HUD_ART.amici}
+          variant="amici"
+          active={friendsOpen}
+          compact={compact}
+          onlineDot={onlineFriendsCount > 0}
+          badge={pendingRequestsCount}
+          onClick={onOpenFriends}
+        />
+      </div>
     </>
   );
 }

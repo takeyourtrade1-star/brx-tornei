@@ -9,6 +9,7 @@ import {
   setSocialDndAction,
   setSocialEbartexVisibilityAction,
 } from '@/actions/social-preferences';
+import { announceSocialDndChange } from '@/lib/social-dnd-event';
 import { cn } from '@/lib/utils';
 
 interface SocialSettingsModalProps {
@@ -72,13 +73,15 @@ export function SocialSettingsModal({ open, onClose, ebartexUsername }: SocialSe
     const result = await setSocialDndAction({ active: enable, durationMinutes: 60 });
     if (result.ok && result.data) {
       const expiresAt = result.data.dndUntil;
+      const activeUntil = expiresAt !== null && expiresAt > Date.now() ? expiresAt : null;
       setDnd({
-        active: Boolean(expiresAt && expiresAt > Date.now()),
+        active: activeUntil !== null,
         minutesRemaining: expiresAt
           ? Math.max(1, Math.ceil((expiresAt - Date.now()) / 60_000))
           : 0,
         expiresAt,
       });
+      announceSocialDndChange(activeUntil);
     } else {
       setError(result.error ?? 'Impossibile aggiornare lo stato.');
     }
