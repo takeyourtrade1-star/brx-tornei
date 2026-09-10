@@ -13,7 +13,7 @@ export function OnboardingAgreements({
 }: OnboardingAgreementsProps) {
   const checkboxClass = 'mt-0.5 h-4 w-4 shrink-0 accent-primary focus-visible:outline-primary';
   return (
-    <div className="space-y-3 text-xs leading-relaxed text-slate-600">
+    <div className="space-y-2.5 text-xs leading-5 text-slate-600">
       <label className="flex cursor-pointer items-start gap-2.5">
         <input type="checkbox" checked={fairPlayAccepted} onChange={onToggleFairPlay}
           disabled={disabled} className={checkboxClass} />

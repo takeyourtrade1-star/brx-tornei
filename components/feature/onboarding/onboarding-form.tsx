@@ -106,11 +106,10 @@ export function OnboardingForm({
 
   return (
     <form onSubmit={handleSubmit} aria-labelledby="onboarding-title"
-      className="w-full max-w-lg space-y-6 rounded-3xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl sm:p-8">
+      className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm">
       <TournamentRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
-      <header className="space-y-1.5">
-        <h1 id="onboarding-title" className="text-2xl font-bold tracking-tight">Il tuo profilo da battaglia</h1>
-        <p className="text-sm text-slate-500">Scegli come farti riconoscere nei tornei.</p>
+      <header>
+        <h1 id="onboarding-title" className="text-lg font-semibold tracking-tight">Il tuo profilo da battaglia</h1>
       </header>
 
       <div className="space-y-2">
@@ -123,8 +122,8 @@ export function OnboardingForm({
             minLength={3} maxLength={20} required pattern="[a-zA-Z0-9_]{3,20}"
             disabled={saving} aria-describedby="gamertag-help gamertag-status"
             aria-invalid={trimmed.length > 0 && !validFormat}
-            className={`h-12 rounded-xl border-slate-300 bg-white text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm${checking ? ' pr-10' : ''}`} />
-          {checking && <Loader2 aria-hidden className="absolute right-3 top-4 h-4 w-4 animate-spin text-slate-400" />}
+            className={`h-11 rounded-lg border-slate-300 bg-white text-sm text-slate-900 placeholder:text-xs${checking ? ' pr-10' : ''}`} />
+          {checking && <Loader2 aria-hidden className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />}
         </div>
         <p id="gamertag-help" className="text-xs text-slate-500">3–20 caratteri: lettere, numeri e underscore.</p>
         <p id="gamertag-status" role="status" className="text-xs font-medium">
@@ -138,13 +137,13 @@ export function OnboardingForm({
         </p>
       </div>
 
-      <fieldset disabled={saving} className="min-w-0 border-t border-slate-100 pt-5">
+      <fieldset disabled={saving} className="min-w-0 border-t border-slate-100 pt-3">
         <legend className="sr-only">Scegli la tua icona</legend>
         <OnboardingAvatarPicker selectedAvatarId={selectedAvatarId}
           qualifyingMatches={qualifyingMatches} onSelect={handleAvatarSelect} />
       </fieldset>
 
-      <div className="space-y-5 border-t border-slate-100 pt-5">
+      <div className="space-y-4 border-t border-slate-100 pt-3">
         {mustAcceptRules && (
           <OnboardingAgreements fairPlayAccepted={fairPlayAccepted}
             onToggleFairPlay={() => setFairPlayAccepted((prev) => !prev)}
@@ -161,7 +160,7 @@ export function OnboardingForm({
             )}
           </div>
         )}
-        <Button type="submit" disabled={!canSubmit} className="h-12 w-full rounded-xl text-sm font-semibold">
+        <Button type="submit" disabled={!canSubmit} className="h-11 w-full rounded-lg text-sm font-semibold">
           {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />Salvataggio…</> : 'Entra nella sala tornei'}
         </Button>
       </div>
